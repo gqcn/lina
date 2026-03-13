@@ -55,8 +55,9 @@ var (
 				group.Group("/uploads", func(group *ghttp.RouterGroup) {
 					group.Middleware(middlewareSvc.CORS)
 					group.ALL("/*any", func(r *ghttp.Request) {
+						basePath := g.Cfg().MustGet(r.Context(), "upload.path", "upload").String()
 						pathSuffix := r.GetRouter("any").String()
-						filePath := "manifest/data/uploads/" + pathSuffix
+						filePath := gfile.Join(basePath, pathSuffix)
 						if !gfile.Exists(filePath) {
 							r.Response.WriteStatus(404)
 							r.ExitAll()

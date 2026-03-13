@@ -37,7 +37,8 @@ func (c *ControllerV1) UpdateAvatar(ctx context.Context, req *v1.UpdateAvatarReq
 	filename := fmt.Sprintf("%s_%s.%s", gtime.Now().Format("Ymd_His"), grand.S(8), ext)
 
 	// Save to uploads directory
-	uploadDir := "manifest/data/uploads/avatars"
+	basePath := g.Cfg().MustGet(ctx, "upload.path", "upload").String()
+	uploadDir := gfile.Join(basePath, "avatars")
 	gfile.Mkdir(uploadDir)
 	file.Filename = filename
 	_, err = file.Save(uploadDir)
