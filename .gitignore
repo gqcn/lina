@@ -16,3 +16,4 @@ backend/bin/
 **/.turbo/
 *.tar.zst
 test-results/
+.aiprompt.zh.md
