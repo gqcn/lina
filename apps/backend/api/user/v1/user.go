@@ -145,3 +145,11 @@ type ResetPasswordReq struct {
 
 type ResetPasswordRes struct{}
 
+type UpdateAvatarReq struct {
+	g.Meta `path:"/user/profile/avatar" method:"post" mime:"multipart/form-data" tags:"User" summary:"Upload and update avatar"`
+}
+
+type UpdateAvatarRes struct {
+	Url string `json:"url" dc:"Avatar URL"`
+}
+

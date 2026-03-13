@@ -46,6 +46,12 @@ export const columns: VxeGridProps['columns'] = [
     sortable: true,
   },
   {
+    field: 'avatar',
+    title: '头像',
+    slots: { default: 'avatar' },
+    minWidth: 80,
+  },
+  {
     field: 'nickname',
     title: '昵称',
     minWidth: 120,

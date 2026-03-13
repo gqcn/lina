@@ -32,6 +32,8 @@ type SysUserColumns struct {
 	CreatedAt string //
 	UpdatedAt string //
 	DeletedAt string //
+	Avatar    string //
+	LoginDate string //
 }
 
 // sysUserColumns holds the columns for the table sys_user.
@@ -47,6 +49,8 @@ var sysUserColumns = SysUserColumns{
 	CreatedAt: "created_at",
 	UpdatedAt: "updated_at",
 	DeletedAt: "deleted_at",
+	Avatar:    "avatar",
+	LoginDate: "login_date",
 }
 
 // NewSysUserDao creates and returns a new DAO object for table data access.

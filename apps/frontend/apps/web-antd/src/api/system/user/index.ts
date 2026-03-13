@@ -6,8 +6,10 @@ export interface SysUser {
   nickname: string;
   email: string;
   phone: string;
+  avatar: string;
   status: number;
   remark: string;
+  loginDate: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -127,4 +129,20 @@ export function userImportTemplate() {
 /** 重置用户密码 */
 export function userResetPassword(id: number, password: string) {
   return requestClient.put(`/user/${id}/reset-password`, { password });
+}
+
+/** 上传头像 */
+export function userUpdateAvatar(fileCallback: {
+  file: Blob;
+  filename: string;
+}) {
+  let { file } = fileCallback;
+  const { filename } = fileCallback;
+  const uniqueName = filename || `${Date.now()}_${Math.random().toString(36).slice(2, 10)}.png`;
+  file = new File([file], uniqueName);
+  return requestClient.post(
+    '/user/profile/avatar',
+    { avatarfile: file },
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
 }

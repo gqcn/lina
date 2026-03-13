@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
+import { preferences } from '@vben/preferences';
 import { useUserStore } from '@vben/stores';
 
 import { computed, ref } from 'vue';
 
 import {
+  Avatar,
   Dropdown,
   Menu,
   MenuItem,
@@ -205,6 +207,10 @@ function handleResetPwd(row: any) {
           </a-button>
           <a-button type="primary" @click="handleAdd">新 增</a-button>
         </Space>
+      </template>
+
+      <template #avatar="{ row }">
+        <Avatar :src="row.avatar || preferences.app.defaultAvatar" />
       </template>
 
       <template #status="{ row }">

@@ -21,4 +21,6 @@ type SysUser struct {
 	CreatedAt *gtime.Time `json:"createdAt" orm:"created_at" description:""`
 	UpdatedAt *gtime.Time `json:"updatedAt" orm:"updated_at" description:""`
 	DeletedAt *gtime.Time `json:"deletedAt" orm:"deleted_at" description:""`
+	Avatar    string      `json:"avatar"    orm:"avatar"     description:""`
+	LoginDate *gtime.Time `json:"loginDate" orm:"login_date" description:""`
 }

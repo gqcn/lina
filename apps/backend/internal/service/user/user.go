@@ -353,3 +353,19 @@ func (s *Service) ResetPassword(ctx context.Context, id int, password string) er
 		Update()
 	return err
 }
+
+// UpdateAvatar updates current user's avatar URL.
+func (s *Service) UpdateAvatar(ctx context.Context, avatarUrl string) error {
+	bizCtx := s.bizCtxSvc.Get(ctx)
+	if bizCtx == nil {
+		return gerror.New("未登录")
+	}
+	_, err := dao.SysUser.Ctx(ctx).
+		Where(do.SysUser{Id: bizCtx.UserId}).
+		Data(do.SysUser{
+			Avatar:    avatarUrl,
+			UpdatedAt: gtime.Now(),
+		}).
+		Update()
+	return err
+}

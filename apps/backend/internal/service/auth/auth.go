@@ -6,6 +6,7 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
@@ -73,6 +74,12 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 	if err != nil {
 		return nil, err
 	}
+
+	// Record login time
+	_, _ = dao.SysUser.Ctx(ctx).
+		Where(do.SysUser{Id: user.Id}).
+		Data(do.SysUser{LoginDate: gtime.Now()}).
+		Update()
 
 	return &LoginOutput{AccessToken: token}, nil
 }

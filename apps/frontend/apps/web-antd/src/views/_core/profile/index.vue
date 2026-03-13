@@ -1,49 +1,64 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import type { SysUser } from '#/api/system/user';
 
-import { Profile } from '@vben/common-ui';
+import { onMounted, ref } from 'vue';
+
+import { Page } from '@vben/common-ui';
 import { useUserStore } from '@vben/stores';
 
-import ProfileBase from './base-setting.vue';
-import ProfileNotificationSetting from './notification-setting.vue';
-import ProfilePasswordSetting from './password-setting.vue';
-import ProfileSecuritySetting from './security-setting.vue';
+import { TabPane, Tabs } from 'ant-design-vue';
 
+import { getProfile } from '#/api/system/user';
+import { useAuthStore } from '#/store';
+
+import BaseSetting from './base-setting.vue';
+import PasswordSetting from './password-setting.vue';
+import ProfilePanel from './profile-panel.vue';
+
+const profile = ref<SysUser>();
+const authStore = useAuthStore();
 const userStore = useUserStore();
 
-const tabsValue = ref<string>('basic');
+async function loadProfile() {
+  profile.value = await getProfile();
+}
 
-const tabs = ref([
-  {
-    label: '基本设置',
-    value: 'basic',
-  },
-  {
-    label: '安全设置',
-    value: 'security',
-  },
-  {
-    label: '修改密码',
-    value: 'password',
-  },
-  {
-    label: '新消息提醒',
-    value: 'notice',
-  },
-]);
+onMounted(loadProfile);
+
+async function handleUploadFinish() {
+  await loadProfile();
+  const userInfo = await authStore.fetchUserInfo();
+  userStore.setUserInfo(userInfo);
+}
+
+async function handleProfileUpdated() {
+  await loadProfile();
+  const userInfo = await authStore.fetchUserInfo();
+  userStore.setUserInfo(userInfo);
+}
 </script>
 <template>
-  <Profile
-    v-model:model-value="tabsValue"
-    title="个人中心"
-    :user-info="userStore.userInfo"
-    :tabs="tabs"
-  >
-    <template #content>
-      <ProfileBase v-if="tabsValue === 'basic'" />
-      <ProfileSecuritySetting v-if="tabsValue === 'security'" />
-      <ProfilePasswordSetting v-if="tabsValue === 'password'" />
-      <ProfileNotificationSetting v-if="tabsValue === 'notice'" />
-    </template>
-  </Profile>
+  <Page>
+    <div class="flex flex-col gap-[16px] lg:flex-row lg:items-stretch">
+      <!-- 左侧 -->
+      <ProfilePanel :profile="profile" @upload-finish="handleUploadFinish" />
+      <!-- 右侧 -->
+      <div
+        class="bg-background rounded-[var(--radius)] px-[16px] pt-[4px] lg:flex-1"
+      >
+        <Tabs default-active-key="basic">
+          <TabPane key="basic" tab="基本设置">
+            <BaseSetting
+              v-if="profile"
+              :profile="profile"
+              @updated="handleProfileUpdated"
+            />
+          </TabPane>
+          <TabPane key="password" tab="安全设置">
+            <PasswordSetting @updated="handleProfileUpdated" />
+          </TabPane>
+        </Tabs>
+      </div>
+    </div>
+  </Page>
 </template>

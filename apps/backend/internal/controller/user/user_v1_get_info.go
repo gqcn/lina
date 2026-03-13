@@ -15,7 +15,7 @@ func (c *ControllerV1) GetInfo(ctx context.Context, req *v1.GetInfoReq) (res *v1
 		UserId:   user.Id,
 		Username: user.Username,
 		RealName: user.Nickname,
-		Avatar:   "",
+		Avatar:   user.Avatar,
 		Roles:    []string{"admin"},
 		HomePath: "/analytics",
 	}, nil

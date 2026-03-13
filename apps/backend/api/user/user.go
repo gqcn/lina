@@ -24,4 +24,5 @@ type IUserV1 interface {
 	Import(ctx context.Context, req *v1.ImportReq) (res *v1.ImportRes, err error)
 	ImportTemplate(ctx context.Context, req *v1.ImportTemplateReq) (res *v1.ImportTemplateRes, err error)
 	ResetPassword(ctx context.Context, req *v1.ResetPasswordReq) (res *v1.ResetPasswordRes, err error)
+	UpdateAvatar(ctx context.Context, req *v1.UpdateAvatarReq) (res *v1.UpdateAvatarRes, err error)
 }

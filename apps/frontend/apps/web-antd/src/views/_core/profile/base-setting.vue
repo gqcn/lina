@@ -1,65 +1,84 @@
 <script setup lang="ts">
-import type { BasicOption } from '@vben/types';
-
+import type { SysUser } from '#/api/system/user';
 import type { VbenFormSchema } from '#/adapter/form';
 
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 
-import { ProfileBaseSetting } from '@vben/common-ui';
+import { useVbenForm } from '#/adapter/form';
+import { updateProfile } from '#/api/system/user';
 
-import { getUserInfoApi } from '#/api';
+import { message } from 'ant-design-vue';
 
-const profileBaseSettingRef = ref();
+const props = defineProps<{ profile: SysUser }>();
 
-const MOCK_ROLES_OPTIONS: BasicOption[] = [
-  {
-    label: '管理员',
-    value: 'super',
-  },
-  {
-    label: '用户',
-    value: 'user',
-  },
-  {
-    label: '测试',
-    value: 'test',
-  },
-];
+const emit = defineEmits<{ updated: [] }>();
 
 const formSchema = computed((): VbenFormSchema[] => {
   return [
     {
-      fieldName: 'realName',
+      fieldName: 'nickname',
       component: 'Input',
-      label: '姓名',
-    },
-    {
-      fieldName: 'username',
-      component: 'Input',
-      label: '用户名',
-    },
-    {
-      fieldName: 'roles',
-      component: 'Select',
+      label: '昵称',
       componentProps: {
-        mode: 'tags',
-        options: MOCK_ROLES_OPTIONS,
+        placeholder: '请输入昵称',
       },
-      label: '角色',
     },
     {
-      fieldName: 'introduction',
-      component: 'Textarea',
-      label: '个人简介',
+      fieldName: 'email',
+      component: 'Input',
+      label: '邮箱',
+      componentProps: {
+        placeholder: '请输入邮箱',
+      },
+    },
+    {
+      fieldName: 'phone',
+      component: 'Input',
+      label: '手机号',
+      componentProps: {
+        placeholder: '请输入手机号',
+      },
     },
   ];
 });
 
-onMounted(async () => {
-  const data = await getUserInfoApi();
-  profileBaseSettingRef.value.getFormApi().setValues(data);
+function buttonLoading(loading: boolean) {
+  formApi.setState({ submitButtonOptions: { loading } });
+}
+
+const [Form, formApi] = useVbenForm({
+  schema: formSchema,
+  commonConfig: {
+    labelWidth: 80,
+    componentProps: {
+      class: 'w-full',
+    },
+  },
+  wrapperClass: 'grid-cols-1',
+  resetButtonOptions: { show: false },
+  submitButtonOptions: { content: '更新信息' },
+  async handleSubmit(values) {
+    buttonLoading(true);
+    try {
+      await updateProfile(values);
+      message.success('更新成功');
+      emit('updated');
+    } finally {
+      buttonLoading(false);
+    }
+  },
+});
+
+onMounted(() => {
+  formApi.setValues({
+    nickname: props.profile.nickname,
+    email: props.profile.email,
+    phone: props.profile.phone,
+  });
 });
 </script>
 <template>
-  <ProfileBaseSetting ref="profileBaseSettingRef" :form-schema="formSchema" />
+  <div class="mt-[16px] md:w-full lg:w-1/2 2xl:w-2/5">
+    <Form />
+  </div>
 </template>

@@ -50,6 +50,22 @@ var (
 			var authCtrl = auth.NewV1()
 
 			s.Group("/api", func(group *ghttp.RouterGroup) {
+				// Static file serving for uploads (no JSON wrapper)
+				group.Group("/uploads", func(group *ghttp.RouterGroup) {
+					group.Middleware(middlewareSvc.CORS)
+					group.ALL("/*any", func(r *ghttp.Request) {
+						pathSuffix := r.GetRouter("any").String()
+						filePath := "manifest/data/uploads/" + pathSuffix
+						if !gfile.Exists(filePath) {
+							r.Response.WriteStatus(404)
+							r.ExitAll()
+							return
+						}
+						r.Response.ServeFile(filePath)
+						r.ExitAll()
+					})
+				})
+
 				group.Middleware(
 					ghttp.MiddlewareHandlerResponse,
 					middlewareSvc.CORS,

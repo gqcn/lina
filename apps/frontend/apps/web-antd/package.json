@@ -42,6 +42,7 @@
     "@vben/utils": "workspace:*",
     "@vueuse/core": "catalog:",
     "ant-design-vue": "catalog:",
+    "cropperjs": "^1.6.2",
     "dayjs": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",
