@@ -14,6 +14,7 @@ type ListReq struct {
 	Nickname       string `json:"nickname" dc:"Filter by nickname"`
 	Status         *int   `json:"status" dc:"Filter by status"`
 	Phone          string `json:"phone" dc:"Filter by phone"`
+	Sex            *int   `json:"sex" dc:"Filter by sex"`
 	BeginTime      string `json:"beginTime" dc:"Filter by created_at start time"`
 	EndTime        string `json:"endTime" dc:"Filter by created_at end time"`
 	OrderBy        string `json:"orderBy" dc:"Sort field: id,username,nickname,phone,email,status,created_at"`
@@ -32,6 +33,7 @@ type CreateReq struct {
 	Nickname string `json:"nickname" dc:"Nickname"`
 	Email    string `json:"email" dc:"Email"`
 	Phone    string `json:"phone" dc:"Phone"`
+	Sex      *int   `json:"sex" d:"0" dc:"Sex: 0=unknown 1=male 2=female"`
 	Status   *int   `json:"status" d:"1" dc:"Status: 1=normal 0=disabled"`
 	Remark   string `json:"remark" dc:"Remark"`
 }
@@ -57,6 +59,7 @@ type UpdateReq struct {
 	Nickname *string `json:"nickname" dc:"Nickname"`
 	Email    *string `json:"email" dc:"Email"`
 	Phone    *string `json:"phone" dc:"Phone"`
+	Sex      *int    `json:"sex" dc:"Sex"`
 	Status   *int    `json:"status" dc:"Status"`
 	Remark   *string `json:"remark" dc:"Remark"`
 }
@@ -91,6 +94,7 @@ type UpdateProfileReq struct {
 	Nickname *string `json:"nickname" dc:"Nickname"`
 	Email    *string `json:"email" dc:"Email"`
 	Phone    *string `json:"phone" dc:"Phone"`
+	Sex      *int    `json:"sex" dc:"Sex"`
 	Password *string `json:"password" dc:"New password"`
 }
 

@@ -27,6 +27,7 @@ type SysUserColumns struct {
 	Nickname  string //
 	Email     string //
 	Phone     string //
+	Sex       string //
 	Status    string //
 	Remark    string //
 	CreatedAt string //
@@ -44,6 +45,7 @@ var sysUserColumns = SysUserColumns{
 	Nickname:  "nickname",
 	Email:     "email",
 	Phone:     "phone",
+	Sex:       "sex",
 	Status:    "status",
 	Remark:    "remark",
 	CreatedAt: "created_at",

@@ -43,7 +43,7 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	defer f.Close()
 	sheet := "Sheet1"
 
-	headers := []string{"用户名", "昵称", "手机号", "邮箱", "状态", "备注", "创建时间"}
+	headers := []string{"用户名", "昵称", "手机号码", "邮箱", "性别", "状态", "备注", "创建时间"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -55,14 +55,22 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 		f.SetCellValue(sheet, cellName(2, row), u.Nickname)
 		f.SetCellValue(sheet, cellName(3, row), u.Phone)
 		f.SetCellValue(sheet, cellName(4, row), u.Email)
+		sexText := "未知"
+		switch u.Sex {
+		case 1:
+			sexText = "男"
+		case 2:
+			sexText = "女"
+		}
+		f.SetCellValue(sheet, cellName(5, row), sexText)
 		statusText := "正常"
 		if u.Status == 0 {
 			statusText = "停用"
 		}
-		f.SetCellValue(sheet, cellName(5, row), statusText)
-		f.SetCellValue(sheet, cellName(6, row), u.Remark)
+		f.SetCellValue(sheet, cellName(6, row), statusText)
+		f.SetCellValue(sheet, cellName(7, row), u.Remark)
 		if u.CreatedAt != nil {
-			f.SetCellValue(sheet, cellName(7, row), u.CreatedAt.String())
+			f.SetCellValue(sheet, cellName(8, row), u.CreatedAt.String())
 		}
 	}
 
@@ -179,12 +187,22 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader) (*ImportResu
 		}
 		if len(row) > 5 {
 			switch row[5] {
+			case "男", "1":
+				data.Sex = 1
+			case "女", "2":
+				data.Sex = 2
+			default:
+				data.Sex = 0
+			}
+		}
+		if len(row) > 6 {
+			switch row[6] {
 			case "停用", "0":
 				data.Status = 0
 			}
 		}
-		if len(row) > 6 {
-			data.Remark = row[6]
+		if len(row) > 7 {
+			data.Remark = row[7]
 		}
 
 		_, err = dao.SysUser.Ctx(ctx).Data(data).Insert()
@@ -209,7 +227,7 @@ func (s *Service) GenerateImportTemplate() ([]byte, error) {
 	defer f.Close()
 	sheet := "Sheet1"
 
-	headers := []string{"用户名", "密码", "昵称", "手机号", "邮箱", "状态", "备注"}
+	headers := []string{"用户名", "密码", "昵称", "手机号码", "邮箱", "性别", "状态", "备注"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -221,8 +239,9 @@ func (s *Service) GenerateImportTemplate() ([]byte, error) {
 	f.SetCellValue(sheet, cellName(3, 2), "张三")
 	f.SetCellValue(sheet, cellName(4, 2), "13800138000")
 	f.SetCellValue(sheet, cellName(5, 2), "zhangsan@example.com")
-	f.SetCellValue(sheet, cellName(6, 2), "正常")
-	f.SetCellValue(sheet, cellName(7, 2), "示例用户")
+	f.SetCellValue(sheet, cellName(6, 2), "男")
+	f.SetCellValue(sheet, cellName(7, 2), "正常")
+	f.SetCellValue(sheet, cellName(8, 2), "示例用户")
 
 	var buf bytes.Buffer
 	if err := f.Write(&buf); err != nil {

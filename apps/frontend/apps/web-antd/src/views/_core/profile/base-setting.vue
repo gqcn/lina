@@ -4,7 +4,7 @@ import type { VbenFormSchema } from '#/adapter/form';
 
 import { computed, onMounted } from 'vue';
 
-import { useVbenForm } from '#/adapter/form';
+import { useVbenForm, z } from '#/adapter/form';
 import { updateProfile } from '#/api/system/user';
 
 import { message } from 'ant-design-vue';
@@ -19,6 +19,7 @@ const formSchema = computed((): VbenFormSchema[] => {
       fieldName: 'nickname',
       component: 'Input',
       label: '昵称',
+      rules: 'required',
       componentProps: {
         placeholder: '请输入昵称',
       },
@@ -27,6 +28,7 @@ const formSchema = computed((): VbenFormSchema[] => {
       fieldName: 'email',
       component: 'Input',
       label: '邮箱',
+      rules: z.string().email('请输入正确的邮箱'),
       componentProps: {
         placeholder: '请输入邮箱',
       },
@@ -34,9 +36,26 @@ const formSchema = computed((): VbenFormSchema[] => {
     {
       fieldName: 'phone',
       component: 'Input',
-      label: '手机号',
+      label: '手机号码',
+      rules: z.string().regex(/^1[3-9]\d{9}$/, '请输入正确的手机号'),
       componentProps: {
-        placeholder: '请输入手机号',
+        placeholder: '请输入手机号码',
+      },
+    },
+    {
+      fieldName: 'sex',
+      component: 'RadioGroup',
+      label: '性别',
+      rules: 'required',
+      defaultValue: 0,
+      componentProps: {
+        buttonStyle: 'solid',
+        optionType: 'button',
+        options: [
+          { label: '未知', value: 0 },
+          { label: '男', value: 1 },
+          { label: '女', value: 2 },
+        ],
       },
     },
   ];
@@ -74,6 +93,7 @@ onMounted(() => {
     nickname: props.profile.nickname,
     email: props.profile.email,
     phone: props.profile.phone,
+    sex: props.profile.sex,
   });
 });
 </script>

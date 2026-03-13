@@ -18,6 +18,7 @@ type SysUser struct {
 	Nickname  any         //
 	Email     any         //
 	Phone     any         //
+	Sex       any         //
 	Status    any         //
 	Remark    any         //
 	CreatedAt *gtime.Time //

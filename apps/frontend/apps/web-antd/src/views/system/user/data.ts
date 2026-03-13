@@ -59,12 +59,21 @@ export const columns: VxeGridProps['columns'] = [
   },
   {
     field: 'phone',
-    title: '手机号',
+    title: '手机号码',
     formatter({ cellValue }) {
       return cellValue || '暂无';
     },
     minWidth: 130,
     sortable: true,
+  },
+  {
+    field: 'sex',
+    title: '性别',
+    minWidth: 80,
+    formatter({ cellValue }) {
+      const map: Record<number, string> = { 0: '未知', 1: '男', 2: '女' };
+      return map[cellValue as number] ?? '未知';
+    },
   },
   {
     field: 'email',
@@ -136,9 +145,24 @@ export function drawerSchema(isEdit: boolean): VbenFormSchema[] {
     {
       component: 'Input',
       fieldName: 'phone',
-      label: '手机号',
+      label: '手机号码',
       componentProps: {
-        placeholder: '请输入手机号',
+        placeholder: '请输入手机号码',
+      },
+    },
+    {
+      component: 'RadioGroup',
+      fieldName: 'sex',
+      label: '性别',
+      defaultValue: 0,
+      componentProps: {
+        buttonStyle: 'solid',
+        optionType: 'button',
+        options: [
+          { label: '未知', value: 0 },
+          { label: '男', value: 1 },
+          { label: '女', value: 2 },
+        ],
       },
     },
     {

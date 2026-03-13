@@ -103,4 +103,9 @@
 - [x] **FB-31**：个人中心页面去掉右侧菜单中的"安全设置"Tab
 - [x] **FB-32**：个人中心页面左侧面板增加"上次登录"信息（数据库增加 login_date 字段、后端登录时记录时间、前端展示）
 - [x] **FB-33**：个人中心右侧面板样式修复：基本设置和修改密码表单的提交按钮应使用 useVbenForm 内置的 submitButtonOptions 渲染（而非手动添加外部按钮），与参考项目保持一致
+- [x] **FB-34**：将个人中心左侧面板的"手机号码"展示描述改为"手机"
+- [x] **FB-35**：个人中心基本设置表单字段增加必填校验（昵称 required、邮箱 email 格式校验、手机 正则校验），参考 ruoyi-plus-vben5 项目
+- [x] **FB-36**：数据库 sys_user 表增加 sex 字段（TINYINT DEFAULT 0），重新生成 DAO/Entity/DO，后端 API 定义（CreateReq/UpdateReq/UpdateProfileReq/ListReq）增加 Sex 字段，后端 Service 层支持 sex 字段的读写和筛选
+- [x] **FB-37**：前端个人中心基本设置表单增加性别字段（RadioGroup，button 样式，选项：未知/男/女，必填），前端用户管理抽屉表单增加性别字段
+- [x] **FB-38**：前端用户管理表格增加性别列，后端 Excel 导出/导入增加性别字段
 

@@ -15,6 +15,7 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListR
 		Nickname:       req.Nickname,
 		Status:         req.Status,
 		Phone:          req.Phone,
+		Sex:            req.Sex,
 		BeginTime:      req.BeginTime,
 		EndTime:        req.EndTime,
 		OrderBy:        req.OrderBy,

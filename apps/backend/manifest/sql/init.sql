@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     nickname    VARCHAR(64)  NOT NULL DEFAULT '',
     email       VARCHAR(128) NOT NULL DEFAULT '',
     phone       VARCHAR(20)  NOT NULL DEFAULT '',
+    sex         TINYINT      NOT NULL DEFAULT 0,
     avatar      VARCHAR(512) NOT NULL DEFAULT '',
     status      TINYINT      NOT NULL DEFAULT 1,
     remark      VARCHAR(512) NOT NULL DEFAULT '',

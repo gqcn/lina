@@ -48,8 +48,8 @@ const avatar = computed(
           <DescriptionsItem label="账号">
             {{ profile.username }}
           </DescriptionsItem>
-          <DescriptionsItem label="手机号码">
-            {{ profile.phone || '未绑定手机号' }}
+          <DescriptionsItem label="手机">
+            {{ profile.phone || '未绑定手机' }}
           </DescriptionsItem>
           <DescriptionsItem label="邮箱">
             {{ profile.email || '未绑定邮箱' }}

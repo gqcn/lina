@@ -12,6 +12,7 @@ func (c *ControllerV1) UpdateProfile(ctx context.Context, req *v1.UpdateProfileR
 		Nickname: req.Nickname,
 		Email:    req.Email,
 		Phone:    req.Phone,
+		Sex:      req.Sex,
 		Password: req.Password,
 	})
 }

@@ -17,6 +17,7 @@ import (
 func initDatabase(ctx context.Context) {
 	sqlFiles := []string{
 		"manifest/sql/init.sql",
+		"manifest/sql/migrate.sql",
 		"manifest/sql/seed_users.sql",
 	}
 	for _, file := range sqlFiles {

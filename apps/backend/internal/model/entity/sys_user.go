@@ -16,6 +16,7 @@ type SysUser struct {
 	Nickname  string      `json:"nickname"  orm:"nickname"   description:""`
 	Email     string      `json:"email"     orm:"email"      description:""`
 	Phone     string      `json:"phone"     orm:"phone"      description:""`
+	Sex       int         `json:"sex"       orm:"sex"        description:""`
 	Status    int         `json:"status"    orm:"status"     description:""`
 	Remark    string      `json:"remark"    orm:"remark"     description:""`
 	CreatedAt *gtime.Time `json:"createdAt" orm:"created_at" description:""`

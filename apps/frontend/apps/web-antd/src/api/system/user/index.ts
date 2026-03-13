@@ -6,6 +6,7 @@ export interface SysUser {
   nickname: string;
   email: string;
   phone: string;
+  sex: number;
   avatar: string;
   status: number;
   remark: string;
@@ -38,6 +39,7 @@ export interface UserCreateParams {
   nickname?: string;
   email?: string;
   phone?: string;
+  sex?: number;
   status?: number;
   remark?: string;
 }
@@ -49,6 +51,7 @@ export interface UserUpdateParams {
   nickname?: string;
   email?: string;
   phone?: string;
+  sex?: number;
   status?: number;
   remark?: string;
 }
@@ -95,6 +98,7 @@ export function updateProfile(data: {
   nickname?: string;
   email?: string;
   phone?: string;
+  sex?: number;
   password?: string;
 }) {
   return requestClient.put('/user/profile', data);

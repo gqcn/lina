@@ -36,6 +36,7 @@ type ListInput struct {
 	Nickname       string
 	Status         *int
 	Phone          string
+	Sex            *int
 	BeginTime      string
 	EndTime        string
 	OrderBy        string
@@ -67,6 +68,9 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	}
 	if in.Phone != "" {
 		m = m.WhereLike(cols.Phone, "%"+in.Phone+"%")
+	}
+	if in.Sex != nil {
+		m = m.Where(cols.Sex, *in.Sex)
 	}
 	if in.BeginTime != "" {
 		m = m.WhereGTE(cols.CreatedAt, in.BeginTime)
@@ -124,6 +128,7 @@ type CreateInput struct {
 	Nickname string
 	Email    string
 	Phone    string
+	Sex      int
 	Status   int
 	Remark   string
 }
@@ -156,6 +161,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 		Nickname:  in.Nickname,
 		Email:     in.Email,
 		Phone:     in.Phone,
+		Sex:       in.Sex,
 		Status:    in.Status,
 		Remark:    in.Remark,
 		CreatedAt: gtime.Now(),
@@ -194,6 +200,7 @@ type UpdateInput struct {
 	Nickname *string
 	Email    *string
 	Phone    *string
+	Sex      *int
 	Status   *int
 	Remark   *string
 }
@@ -232,6 +239,9 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	}
 	if in.Phone != nil {
 		data.Phone = *in.Phone
+	}
+	if in.Sex != nil {
+		data.Sex = *in.Sex
 	}
 	if in.Status != nil {
 		data.Status = *in.Status
@@ -297,6 +307,7 @@ type UpdateProfileInput struct {
 	Nickname *string
 	Email    *string
 	Phone    *string
+	Sex      *int
 	Password *string
 }
 
@@ -318,6 +329,9 @@ func (s *Service) UpdateProfile(ctx context.Context, in UpdateProfileInput) erro
 	}
 	if in.Phone != nil {
 		data.Phone = *in.Phone
+	}
+	if in.Sex != nil {
+		data.Sex = *in.Sex
 	}
 	if in.Password != nil && *in.Password != "" {
 		hash, err := s.authSvc.HashPassword(*in.Password)
