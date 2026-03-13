@@ -110,6 +110,25 @@ pnpm report            # 查看 HTML 报告
 - 表格页面使用 `useVbenVxeGrid` + `Page` 组件，操作列用 `ghost-button` + `Popconfirm`
 - 前端样式和交互参考 ruoyi-plus-vben5 项目保持一致
 
+### UI 设计规范
+
+**CRITICAL: 所有前端 UI 设计和实现必须参考 ruoyi-plus-vben5 项目（`/Users/john/Workspace/gitee/dapppp/ruoyi-plus-vben5`），保持 UI 的一致性和用户体验的一致性。**
+
+在实现任何前端页面或组件时，必须遵循以下规范：
+
+1. **UI 交互设计**: 弹窗（Modal/Drawer）、表单、表格、搜索栏等交互模式必须与参考项目保持一致
+2. **页面样式**: 布局、间距、字体、颜色等视觉元素参考参考项目的实现
+3. **组件使用**: 优先使用与参考项目相同的组件和配置方式，包括：
+   - 表单使用 `useVbenForm`，弹窗使用 `useVbenModal`，抽屉使用 `useVbenDrawer`
+   - RadioGroup 单选项使用 `optionType: 'button'` + `buttonStyle: 'solid'`（按钮样式）
+   - 文件上传使用 `Upload.Dragger`（拖拽上传样式）
+   - 文件下载使用 `requestClient.download` 方法
+   - 操作列的"更多"下拉菜单使用 `Dropdown` + `Menu` + `MenuItem`
+4. **弹窗规范**: 导入弹窗包含拖拽上传区域、文件类型提示、下载模板链接、覆盖开关；重置密码弹窗包含用户信息展示（Descriptions）和密码输入
+5. **图标使用**: 使用 `IconifyIcon` 组件（来自 `@vben/icons`），图标名使用 Iconify 格式（如 `ant-design:inbox-outlined`）
+
+开发新页面前，**必须先查看参考项目中对应页面的实现**，确保 UI 和交互保持一致。
+
 ## 默认账号
 
 - 用户名: `admin`

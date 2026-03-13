@@ -168,6 +168,58 @@ export class UserPage {
     await this.page.waitForTimeout(2000);
   }
 
+  /** Select a row by clicking its checkbox (search for the user first) */
+  async selectRow(username: string) {
+    await this.fillSearchField('用户账号', username);
+    await this.clickSearch();
+    // Click the first checkbox in the body rows
+    const checkbox = this.page.locator('.vxe-body--row .vxe-checkbox--icon').first();
+    await checkbox.click();
+    await this.page.waitForTimeout(300);
+  }
+
+  /** Check if the export button is visible */
+  async isExportVisible(): Promise<boolean> {
+    return this.page
+      .getByRole('button', { name: /导\s*出/ })
+      .isVisible({ timeout: 2000 })
+      .catch(() => false);
+  }
+
+  /** Check if the toolbar delete button is visible */
+  async isToolbarDeleteVisible(): Promise<boolean> {
+    // Toolbar delete button is a primary danger button (not the ghost button in rows)
+    return this.page
+      .locator('.vxe-grid--toolbar')
+      .getByRole('button', { name: /删\s*除/ })
+      .isVisible({ timeout: 2000 })
+      .catch(() => false);
+  }
+
+  /** Check if action buttons (edit/delete/more) are visible for a row */
+  async hasActionButtons(username: string): Promise<boolean> {
+    await this.fillSearchField('用户账号', username);
+    await this.clickSearch();
+    const editBtn = this.page.getByRole('button', { name: /编\s*辑/ }).first();
+    return editBtn.isVisible({ timeout: 2000 }).catch(() => false);
+  }
+
+  /** Check if the status switch is disabled for a row */
+  async isStatusSwitchDisabled(username: string): Promise<boolean> {
+    await this.fillSearchField('用户账号', username);
+    await this.clickSearch();
+    const switchEl = this.page.locator('.vxe-body--row .ant-switch').first();
+    return switchEl.evaluate((el) => el.classList.contains('ant-switch-disabled'));
+  }
+
+  /** Check if the row checkbox is disabled */
+  async isCheckboxDisabled(username: string): Promise<boolean> {
+    await this.fillSearchField('用户账号', username);
+    await this.clickSearch();
+    const checkbox = this.page.locator('.vxe-body--row .vxe-cell--checkbox').first();
+    return checkbox.evaluate((el) => el.classList.contains('is--disabled'));
+  }
+
   /** Click import button to open import modal */
   async clickImport() {
     await this.page.getByRole('button', { name: /导\s*入/ }).first().click();

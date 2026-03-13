@@ -12,14 +12,7 @@ import (
 
 func (c *ControllerV1) Export(ctx context.Context, req *v1.ExportReq) (res *v1.ExportRes, err error) {
 	data, err := c.userSvc.Export(ctx, usersvc.ExportInput{
-		Username:       req.Username,
-		Nickname:       req.Nickname,
-		Status:         req.Status,
-		Phone:          req.Phone,
-		BeginTime:      req.BeginTime,
-		EndTime:        req.EndTime,
-		OrderBy:        req.OrderBy,
-		OrderDirection: req.OrderDirection,
+		Ids: req.Ids,
 	})
 	if err != nil {
 		return nil, err

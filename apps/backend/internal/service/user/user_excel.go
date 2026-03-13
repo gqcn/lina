@@ -18,64 +18,21 @@ import (
 
 // ExportInput defines input for Export function.
 type ExportInput struct {
-	Username       string
-	Nickname       string
-	Status         *int
-	Phone          string
-	BeginTime      string
-	EndTime        string
-	OrderBy        string
-	OrderDirection string
+	Ids []int
 }
 
-// Export generates an Excel file with user data based on filters.
+// Export generates an Excel file with user data based on IDs.
 func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
-	// Reuse list logic but without pagination
 	cols := dao.SysUser.Columns()
 	m := dao.SysUser.Ctx(ctx).WhereNull(cols.DeletedAt)
 
-	if in.Username != "" {
-		m = m.WhereLike(cols.Username, "%"+in.Username+"%")
-	}
-	if in.Nickname != "" {
-		m = m.WhereLike(cols.Nickname, "%"+in.Nickname+"%")
-	}
-	if in.Status != nil {
-		m = m.Where(cols.Status, *in.Status)
-	}
-	if in.Phone != "" {
-		m = m.WhereLike(cols.Phone, "%"+in.Phone+"%")
-	}
-	if in.BeginTime != "" {
-		m = m.WhereGTE(cols.CreatedAt, in.BeginTime)
-	}
-	if in.EndTime != "" {
-		m = m.WhereLTE(cols.CreatedAt, in.EndTime)
-	}
-
-	// Determine sort order
-	allowedSortFields := map[string]string{
-		"id":         cols.Id,
-		"username":   cols.Username,
-		"nickname":   cols.Nickname,
-		"phone":      cols.Phone,
-		"email":      cols.Email,
-		"status":     cols.Status,
-		"created_at": cols.CreatedAt,
-		"createdAt":  cols.CreatedAt,
-	}
-	sortField := cols.Id
-	if f, ok := allowedSortFields[in.OrderBy]; ok {
-		sortField = f
-	}
-	sortDirection := "DESC"
-	if in.OrderDirection == "asc" {
-		sortDirection = "ASC"
+	if len(in.Ids) > 0 {
+		m = m.WhereIn(cols.Id, in.Ids)
 	}
 
 	var list []*entity.SysUser
 	err := m.FieldsEx(cols.Password).
-		Order(sortField + " " + sortDirection).
+		Order(cols.Id + " ASC").
 		Scan(&list)
 	if err != nil {
 		return nil, err

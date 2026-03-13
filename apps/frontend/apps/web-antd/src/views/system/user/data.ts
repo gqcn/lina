@@ -141,6 +141,8 @@ export function drawerSchema(isEdit: boolean): VbenFormSchema[] {
       label: '状态',
       defaultValue: 1,
       componentProps: {
+        buttonStyle: 'solid',
+        optionType: 'button',
         options: [
           { label: '正常', value: 1 },
           { label: '停用', value: 0 },

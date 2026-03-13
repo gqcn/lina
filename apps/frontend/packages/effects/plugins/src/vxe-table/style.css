@@ -117,3 +117,8 @@
 .vxe-grid--layout-body-content-wrapper {
   overflow: hidden;
 }
+
+/* Sortable column headers show pointer cursor */
+.vxe-header--column.is--sortable {
+  cursor: pointer;
+}

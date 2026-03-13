@@ -200,6 +200,12 @@ type UpdateInput struct {
 
 // Update updates user information.
 func (s *Service) Update(ctx context.Context, in UpdateInput) error {
+	// Cannot edit self via admin panel
+	bizCtx := s.bizCtxSvc.Get(ctx)
+	if bizCtx != nil && bizCtx.UserId == in.Id {
+		return gerror.New("不能编辑当前登录用户")
+	}
+
 	// Check user exists
 	if _, err := s.GetById(ctx, in.Id); err != nil {
 		return err
@@ -322,5 +328,28 @@ func (s *Service) UpdateProfile(ctx context.Context, in UpdateProfileInput) erro
 	}
 
 	_, err := dao.SysUser.Ctx(ctx).Where(do.SysUser{Id: bizCtx.UserId}).Data(data).Update()
+	return err
+}
+
+// ResetPassword resets a user's password.
+func (s *Service) ResetPassword(ctx context.Context, id int, password string) error {
+	// Check user exists
+	if _, err := s.GetById(ctx, id); err != nil {
+		return err
+	}
+
+	// Hash password
+	hash, err := s.authSvc.HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	_, err = dao.SysUser.Ctx(ctx).
+		Where(do.SysUser{Id: id}).
+		Data(do.SysUser{
+			Password:  hash,
+			UpdatedAt: gtime.Now(),
+		}).
+		Update()
 	return err
 }

@@ -99,17 +99,19 @@ export function updateProfile(data: {
 }
 
 /** 导出用户列表为 Excel */
-export function userExport(params?: Omit<UserListParams, 'pageNum' | 'pageSize'>) {
-  return requestClient.get('/user/export', {
+export function userExport(params?: { ids?: number[] }) {
+  return requestClient.download<Blob>('/user/export', {
     params,
-    responseType: 'blob',
   });
 }
 
 /** 导入用户 */
-export function userImport(file: File) {
+export function userImport(file: File, updateSupport?: boolean) {
   const formData = new FormData();
   formData.append('file', file);
+  if (updateSupport) {
+    formData.append('updateSupport', '1');
+  }
   return requestClient.post<{
     success: number;
     fail: number;
@@ -119,7 +121,10 @@ export function userImport(file: File) {
 
 /** 下载导入模板 */
 export function userImportTemplate() {
-  return requestClient.get('/user/import-template', {
-    responseType: 'blob',
-  });
+  return requestClient.download<Blob>('/user/import-template');
+}
+
+/** 重置用户密码 */
+export function userResetPassword(id: number, password: string) {
+  return requestClient.put(`/user/${id}/reset-password`, { password });
 }

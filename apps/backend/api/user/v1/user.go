@@ -110,15 +110,8 @@ type GetInfoRes struct {
 }
 
 type ExportReq struct {
-	g.Meta         `path:"/user/export" method:"get" tags:"User" summary:"Export users to Excel"`
-	Username       string `json:"username" dc:"Filter by username"`
-	Nickname       string `json:"nickname" dc:"Filter by nickname"`
-	Status         *int   `json:"status" dc:"Filter by status"`
-	Phone          string `json:"phone" dc:"Filter by phone"`
-	BeginTime      string `json:"beginTime" dc:"Filter by created_at start time"`
-	EndTime        string `json:"endTime" dc:"Filter by created_at end time"`
-	OrderBy        string `json:"orderBy" dc:"Sort field"`
-	OrderDirection string `json:"orderDirection" d:"desc" dc:"Sort direction"`
+	g.Meta `path:"/user/export" method:"get" tags:"User" summary:"Export users to Excel"`
+	Ids    []int `json:"ids" dc:"Export specific user IDs"`
 }
 
 type ExportRes struct{}
@@ -143,4 +136,12 @@ type ImportTemplateReq struct {
 }
 
 type ImportTemplateRes struct{}
+
+type ResetPasswordReq struct {
+	g.Meta   `path:"/user/{id}/reset-password" method:"put" tags:"User" summary:"Reset user password"`
+	Id       int    `json:"id" v:"required" dc:"User ID"`
+	Password string `json:"password" v:"required|length:5,20#请输入密码|密码长度为5-20个字符" dc:"New password"`
+}
+
+type ResetPasswordRes struct{}
 

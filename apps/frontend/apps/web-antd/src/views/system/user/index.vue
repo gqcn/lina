@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
+import { useUserStore } from '@vben/stores';
 
-import { Page, useVbenDrawer } from '@vben/common-ui';
+import { computed, ref } from 'vue';
 
 import {
   Dropdown,
@@ -12,25 +13,39 @@ import {
   Popconfirm,
   Space,
   Switch,
-  Upload,
 } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   userDelete,
   userExport,
-  userImport,
-  userImportTemplate,
   userList,
   userStatusChange,
 } from '#/api/system/user';
+import { downloadBlob } from '#/utils/download';
 
 import { columns, querySchema } from './data';
 import UserDrawer from './user-drawer.vue';
+import UserImportModal from './user-import-modal.vue';
+import UserResetPwdModal from './user-reset-pwd-modal.vue';
 
 const [UserDrawerRef, userDrawerApi] = useVbenDrawer({
   connectedComponent: UserDrawer,
 });
+
+const [UserImportModalRef, userImportModalApi] = useVbenModal({
+  connectedComponent: UserImportModal,
+});
+
+const [UserResetPwdModalRef, userResetPwdModalApi] = useVbenModal({
+  connectedComponent: UserResetPwdModal,
+});
+
+const userStore = useUserStore();
+
+function isSelf(row: any) {
+  return row.id === Number(userStore.userInfo?.userId);
+}
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -47,6 +62,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     checkboxConfig: {
       highlight: true,
       reserve: true,
+      checkMethod: ({ row }: any) => !isSelf(row),
     },
     columns,
     height: 'auto',
@@ -95,7 +111,18 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
     id: 'system-user-index',
   },
+  gridEvents: {
+    checkboxChange: () => {
+      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+    },
+    checkboxAll: () => {
+      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+    },
+  },
 });
+
+const checkedRows = ref<any[]>([]);
+const hasChecked = computed(() => checkedRows.value.length > 0);
 
 function handleAdd() {
   userDrawerApi.setData({ isEdit: false });
@@ -124,6 +151,7 @@ function handleMultiDelete() {
       for (const id of ids) {
         await userDelete(id);
       }
+      checkedRows.value = [];
       await gridApi.query();
     },
   });
@@ -133,77 +161,28 @@ async function handleStatusChange(row: any) {
   await userStatusChange(row.id, row.status);
 }
 
-function onDrawerSuccess() {
+function onReload() {
   gridApi.query();
 }
 
-const importModalVisible = ref(false);
-
 async function handleExport() {
   try {
-    const formValues = gridApi.formApi.form.values || {};
-    const params: Record<string, any> = { ...formValues };
-    if (params.createdAt && Array.isArray(params.createdAt)) {
-      params.beginTime = params.createdAt[0];
-      params.endTime = params.createdAt[1];
-      delete params.createdAt;
-    }
-    const data = await userExport(params);
-    const blob = new Blob([data as any], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'users.xlsx';
-    link.click();
-    window.URL.revokeObjectURL(url);
+    const ids = checkedRows.value.map((row: any) => row.id);
+    const data = await userExport({ ids });
+    downloadBlob(data, 'users.xlsx');
     message.success('导出成功');
   } catch {
     message.error('导出失败');
   }
 }
 
-async function handleDownloadTemplate() {
-  try {
-    const data = await userImportTemplate();
-    const blob = new Blob([data as any], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'user-import-template.xlsx';
-    link.click();
-    window.URL.revokeObjectURL(url);
-  } catch {
-    message.error('下载模板失败');
-  }
+function handleImport() {
+  userImportModalApi.open();
 }
 
-async function handleImportUpload(info: any) {
-  const file = info.file;
-  if (!file) return;
-  try {
-    const result = await userImport(file);
-    const res = result as any;
-    if (res.fail > 0) {
-      const failReasons = res.failList
-        .slice(0, 5)
-        .map((item: any) => `第${item.row}行: ${item.reason}`)
-        .join('\n');
-      Modal.info({
-        title: '导入结果',
-        content: `成功 ${res.success} 条，失败 ${res.fail} 条\n${failReasons}${res.failList.length > 5 ? '\n...' : ''}`,
-      });
-    } else {
-      message.success(`成功导入 ${res.success} 条用户数据`);
-    }
-    importModalVisible.value = false;
-    gridApi.query();
-  } catch {
-    message.error('导入失败');
-  }
+function handleResetPwd(row: any) {
+  userResetPwdModalApi.setData({ record: row });
+  userResetPwdModalApi.open();
 }
 </script>
 
@@ -212,9 +191,16 @@ async function handleImportUpload(info: any) {
     <Grid class="h-full" table-title="用户列表">
       <template #toolbar-tools>
         <Space>
-          <a-button @click="handleExport">导 出</a-button>
-          <a-button @click="importModalVisible = true">导 入</a-button>
-          <a-button danger type="primary" @click="handleMultiDelete">
+          <a-button :disabled="!hasChecked" @click="handleExport">
+            导 出
+          </a-button>
+          <a-button @click="handleImport">导 入</a-button>
+          <a-button
+            :disabled="!hasChecked"
+            danger
+            type="primary"
+            @click="handleMultiDelete"
+          >
             删 除
           </a-button>
           <a-button type="primary" @click="handleAdd">新 增</a-button>
@@ -225,6 +211,7 @@ async function handleImportUpload(info: any) {
         <Switch
           v-model:checked="row.status"
           :checked-value="1"
+          :disabled="isSelf(row)"
           :un-checked-value="0"
           checked-children="启用"
           un-checked-children="禁用"
@@ -233,55 +220,33 @@ async function handleImportUpload(info: any) {
       </template>
 
       <template #action="{ row }">
-        <Space>
-          <ghost-button @click.stop="handleEdit(row)">编辑</ghost-button>
-          <Popconfirm
-            placement="left"
-            title="确认删除？"
-            @confirm="handleDelete(row)"
-          >
-            <ghost-button danger @click.stop="">删除</ghost-button>
-          </Popconfirm>
-        </Space>
-        <Dropdown placement="bottomRight">
-          <template #overlay>
-            <Menu>
-              <MenuItem key="resetPwd">重置密码</MenuItem>
-              <MenuItem key="assignRole">分配角色</MenuItem>
-            </Menu>
-          </template>
-          <a-button size="small" type="link">更多</a-button>
-        </Dropdown>
+        <template v-if="!isSelf(row)">
+          <Space>
+            <ghost-button @click.stop="handleEdit(row)">编辑</ghost-button>
+            <Popconfirm
+              placement="left"
+              title="确认删除？"
+              @confirm="handleDelete(row)"
+            >
+              <ghost-button danger @click.stop="">删除</ghost-button>
+            </Popconfirm>
+          </Space>
+          <Dropdown placement="bottomRight">
+            <template #overlay>
+              <Menu>
+                <MenuItem key="resetPwd" @click="handleResetPwd(row)">
+                  重置密码
+                </MenuItem>
+              </Menu>
+            </template>
+            <a-button size="small" type="link">更多</a-button>
+          </Dropdown>
+        </template>
       </template>
     </Grid>
 
-    <UserDrawerRef @success="onDrawerSuccess" />
-
-    <Modal
-      v-model:open="importModalVisible"
-      :footer="null"
-      title="导入用户"
-      width="480px"
-    >
-      <div class="py-4">
-        <p class="mb-4 text-gray-500">
-          请先下载导入模板，按模板格式填写数据后上传。
-        </p>
-        <div class="mb-4">
-          <a-button type="link" @click="handleDownloadTemplate">
-            下载导入模板
-          </a-button>
-        </div>
-        <Upload
-          :before-upload="() => false"
-          :max-count="1"
-          :show-upload-list="false"
-          accept=".xlsx,.xls"
-          @change="handleImportUpload"
-        >
-          <a-button type="primary">选择文件并导入</a-button>
-        </Upload>
-      </div>
-    </Modal>
+    <UserDrawerRef @success="onReload" />
+    <UserImportModalRef @reload="onReload" />
+    <UserResetPwdModalRef @reload="onReload" />
   </Page>
 </template>
