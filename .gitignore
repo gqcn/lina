@@ -6,14 +6,27 @@
 .idea/
 .settings/
 .vscode/
-backend/bin/
 **/.DS_Store
-.playwright-cli/
-.playwright-mcp/
+.aiprompt.zh.md
+
+# Backend
+apps/backend/bin/
+apps/backend/manifest/data/*.db
+
+# Frontend
 **/node_modules/
 **/dist/
 **/dist.zip
 **/.turbo/
-*.tar.zst
+
+# Testing
+.playwright-cli/
+.playwright-mcp/
+playwright-report/
 test-results/
-.aiprompt.zh.md
+*.tar.zst
+
+# Build artifacts
+*.exe
+*.test
+*.out

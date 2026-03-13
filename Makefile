@@ -1,0 +1,102 @@
+.PHONY: dev stop status test up
+
+BACKEND_DIR   := apps/backend
+FRONTEND_DIR  := apps/frontend
+PID_DIR       := /tmp/lina-pids
+BACKEND_PID   := $(PID_DIR)/backend.pid
+FRONTEND_PID  := $(PID_DIR)/frontend.pid
+BACKEND_PORT  := 8080
+FRONTEND_PORT := 5666
+
+## 依赖Claude Code，自动生成 commit message 并提交到远程仓库
+up:
+	@if git diff --quiet HEAD && git diff --cached --quiet && [ -z "$$(git ls-files --others --exclude-standard)" ]; then \
+		echo "No changes to commit"; \
+		exit 0; \
+	fi
+	@git add -A
+	@echo "Analyzing changes and generating commit message via AI..."
+	@set -e; \
+	MSG=$$(git diff --cached --stat && echo "---" && git diff --cached | head -2000 | \
+		claude -p "Analyze the git diff above and generate a concise commit message (single line, max 72 chars, lowercase, no quotes). Output only the commit message itself, nothing else." \
+		--model haiku) || { echo "Error: Claude command failed"; exit 1; }; \
+	COMMIT_MSG=$$(echo "$$MSG" | tail -1); \
+	if [ -z "$$COMMIT_MSG" ]; then \
+		echo "Error: Failed to generate commit message"; \
+		exit 1; \
+	fi; \
+	echo "Commit: $$COMMIT_MSG"; \
+	git commit -m "$$COMMIT_MSG" && \
+	git push origin
+	
+## dev: 启动前后端开发服务器
+dev:
+	@mkdir -p $(PID_DIR)
+	@# ── 停掉旧进程 ──────────────────────────────────────────────
+	@if [ -f $(BACKEND_PID) ]; then kill $$(cat $(BACKEND_PID)) 2>/dev/null || true; fi
+	@if [ -f $(FRONTEND_PID) ]; then kill $$(cat $(FRONTEND_PID)) 2>/dev/null || true; fi
+	@# ── 编译后端 ────────────────────────────────────────────────
+	@echo "正在编译后端..."
+	@cd $(BACKEND_DIR) && go build -o bin/lina . || { echo "后端编译失败"; exit 1; }
+	@echo "✓ 后端编译成功"
+	@# ── 启动后端 ────────────────────────────────────────────────
+	@cd $(BACKEND_DIR) && ./bin/lina >> /tmp/lina-backend.log 2>&1 & echo $$! > $(BACKEND_PID)
+	@sleep 1
+	@# ── 启动前端 ────────────────────────────────────────────────
+	@cd $(FRONTEND_DIR) && npx turbo run dev --filter=@lina/web-antd >> /tmp/lina-frontend.log 2>&1 & echo $$! > $(FRONTEND_PID)
+	@sleep 2
+	@echo ""
+	@echo "╔══════════════════════════════════════════════╗"
+	@echo "║           Lina Admin - Dev                   ║"
+	@echo "╠══════════════════════════════════════════════╣"
+	@echo "║  前端地址:  http://localhost:$(FRONTEND_PORT)            ║"
+	@echo "║  后端地址:  http://localhost:$(BACKEND_PORT)            ║"
+	@echo "║  后端日志:  /tmp/lina-backend.log             ║"
+	@echo "║  前端日志:  /tmp/lina-frontend.log            ║"
+	@echo "╚══════════════════════════════════════════════╝"
+	@echo ""
+
+## stop: 停止前后端开发服务器
+stop:
+	@echo "正在停止服务..."
+	@if lsof -ti :$(BACKEND_PORT) >/dev/null 2>&1; then \
+		kill $$(lsof -ti :$(BACKEND_PORT)) 2>/dev/null; rm -f $(BACKEND_PID); echo "✓ 后端已停止"; \
+	else \
+		rm -f $(BACKEND_PID); echo "  后端未在运行"; \
+	fi
+	@if lsof -ti :$(FRONTEND_PORT) >/dev/null 2>&1; then \
+		kill $$(lsof -ti :$(FRONTEND_PORT)) 2>/dev/null; rm -f $(FRONTEND_PID); echo "✓ 前端已停止"; \
+	else \
+		rm -f $(FRONTEND_PID); echo "  前端未在运行"; \
+	fi
+
+## status: 查看前后端运行状态及日志路径
+status:
+	@echo ""
+	@echo "╔══════════════════════════════════════════════╗"
+	@echo "║           Lina Admin - Status                ║"
+	@echo "╠══════════════════════════════════════════════╣"
+	@if lsof -ti :$(BACKEND_PORT) >/dev/null 2>&1; then \
+		echo "║  后端: ✓ 运行中  http://localhost:$(BACKEND_PORT)       ║"; \
+	else \
+		echo "║  后端: ✗ 未运行  (端口 $(BACKEND_PORT))                 ║"; \
+	fi
+	@if lsof -ti :$(FRONTEND_PORT) >/dev/null 2>&1; then \
+		echo "║  前端: ✓ 运行中  http://localhost:$(FRONTEND_PORT)       ║"; \
+	else \
+		echo "║  前端: ✗ 未运行  (端口 $(FRONTEND_PORT))                 ║"; \
+	fi
+	@echo "╠══════════════════════════════════════════════╣"
+	@echo "║  后端日志:  /tmp/lina-backend.log            ║"
+	@echo "║  前端日志:  /tmp/lina-frontend.log           ║"
+	@echo "╚══════════════════════════════════════════════╝"
+	@echo ""
+
+## test: 运行完整 E2E 测试套件
+test:
+	@echo "🧪 运行 E2E 测试套件..."
+	cd hack/tests && npx playwright test
+
+## help: 显示帮助信息
+help:
+	@grep -E '^##' Makefile | sed 's/## //'
