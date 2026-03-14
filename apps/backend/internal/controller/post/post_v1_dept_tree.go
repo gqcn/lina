@@ -24,9 +24,10 @@ func convertDeptTreeNodes(nodes []*postsvc.DeptTreeNode) []*v1.DeptTreeNode {
 	result := make([]*v1.DeptTreeNode, 0, len(nodes))
 	for _, n := range nodes {
 		result = append(result, &v1.DeptTreeNode{
-			Id:       n.Id,
-			Label:    n.Label,
-			Children: convertDeptTreeNodes(n.Children),
+			Id:        n.Id,
+			Label:     n.Label,
+			PostCount: n.PostCount,
+			Children:  convertDeptTreeNodes(n.Children),
 		})
 	}
 	return result

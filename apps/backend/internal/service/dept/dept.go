@@ -449,7 +449,7 @@ func (s *Service) UserDeptTree(ctx context.Context) ([]*TreeNode, error) {
 	}
 	unassignedCount := totalUsers - assignedUsers
 
-	// Prepend "未分配部门" virtual node at the top
+	// Append "未分配部门" virtual node at the end
 	unassignedNode := &TreeNode{
 		Id:        0,
 		Label:     fmt.Sprintf("未分配部门(%d)", unassignedCount),
@@ -457,8 +457,8 @@ func (s *Service) UserDeptTree(ctx context.Context) ([]*TreeNode, error) {
 		Children:  make([]*TreeNode, 0),
 	}
 	result := make([]*TreeNode, 0, len(nodes)+1)
-	result = append(result, unassignedNode)
 	result = append(result, nodes...)
+	result = append(result, unassignedNode)
 
 	return result, nil
 }

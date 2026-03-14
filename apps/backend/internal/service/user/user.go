@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gtime"
@@ -165,16 +166,43 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 
 // GetUserIdsByDeptId returns user IDs associated with a dept.
 func (s *Service) GetUserIdsByDeptId(ctx context.Context, deptId int) ([]int, error) {
+	// Collect the selected dept and all its descendant depts via ancestors field.
+	// ancestors stores comma-separated path like "0,1" (no trailing comma),
+	// so we use (',' || ancestors || ',') LIKE '%,{deptId},%' to match reliably.
+	deptCols := dao.SysDept.Columns()
+	var descDepts []*entity.SysDept
+	err := dao.SysDept.Ctx(ctx).
+		WhereNull(deptCols.DeletedAt).
+		Where(
+			fmt.Sprintf("(',' || %s || ',') LIKE ?", deptCols.Ancestors),
+			fmt.Sprintf("%%,%d,%%", deptId),
+		).
+		Fields(deptCols.Id).
+		Scan(&descDepts)
+	if err != nil {
+		return nil, err
+	}
+	deptIds := []int{deptId}
+	for _, d := range descDepts {
+		deptIds = append(deptIds, d.Id)
+	}
+
+	// Query users belonging to any of these depts
 	var userDepts []*entity.SysUserDept
-	err := dao.SysUserDept.Ctx(ctx).
-		Where(dao.SysUserDept.Columns().DeptId, deptId).
+	err = dao.SysUserDept.Ctx(ctx).
+		WhereIn(dao.SysUserDept.Columns().DeptId, deptIds).
 		Scan(&userDepts)
 	if err != nil {
 		return nil, err
 	}
+	// Deduplicate user IDs (a user could belong to multiple depts in the subtree)
+	seen := make(map[int]struct{})
 	ids := make([]int, 0, len(userDepts))
 	for _, ud := range userDepts {
-		ids = append(ids, ud.UserId)
+		if _, ok := seen[ud.UserId]; !ok {
+			seen[ud.UserId] = struct{}{}
+			ids = append(ids, ud.UserId)
+		}
 	}
 	return ids, nil
 }

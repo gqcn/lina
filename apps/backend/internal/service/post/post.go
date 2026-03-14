@@ -2,6 +2,8 @@ package post
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/text/gstr"
@@ -45,11 +47,16 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 
 	// Apply filters
 	if in.DeptId != nil {
-		if *in.DeptId == -1 {
+		if *in.DeptId == 0 {
 			// Unassigned: posts with dept_id = 0
 			m = m.Where(cols.DeptId, 0)
 		} else {
-			m = m.Where(cols.DeptId, *in.DeptId)
+			// Include selected dept and all descendant depts
+			deptIds, err := s.getDeptAndDescendantIds(ctx, *in.DeptId)
+			if err != nil {
+				return nil, err
+			}
+			m = m.WhereIn(cols.DeptId, deptIds)
 		}
 	}
 	if in.Code != "" {
@@ -230,9 +237,10 @@ func (s *Service) Delete(ctx context.Context, ids string) error {
 
 // DeptTreeNode defines a department tree node.
 type DeptTreeNode struct {
-	Id       int             `json:"id"`
-	Label    string          `json:"label"`
-	Children []*DeptTreeNode `json:"children"`
+	Id        int             `json:"id"`
+	Label     string          `json:"label"`
+	PostCount int             `json:"postCount"`
+	Children  []*DeptTreeNode `json:"children"`
 }
 
 // DeptTree returns department tree structure with "未分配部门" virtual node.
@@ -269,11 +277,50 @@ func (s *Service) DeptTree(ctx context.Context) ([]*DeptTreeNode, error) {
 
 	// Append "未分配部门" virtual node
 	unassignedNode := &DeptTreeNode{
-		Id:       -1,
+		Id:       0,
 		Label:    "未分配部门",
 		Children: make([]*DeptTreeNode, 0),
 	}
 	roots = append(roots, unassignedNode)
+
+	// Count posts per dept
+	type DeptCount struct {
+		DeptId int `json:"dept_id"`
+		Cnt    int `json:"cnt"`
+	}
+	var counts []DeptCount
+	postCols := dao.SysPost.Columns()
+	err = dao.SysPost.Ctx(ctx).
+		Fields("dept_id, COUNT(*) as cnt").
+		WhereNull(postCols.DeletedAt).
+		Group("dept_id").
+		Scan(&counts)
+	if err != nil {
+		return nil, err
+	}
+	countMap := make(map[int]int)
+	for _, c := range counts {
+		countMap[c.DeptId] = c.Cnt
+	}
+
+	// Apply post counts (parent = self + all descendants), process children first
+	var applyCount func(nodes []*DeptTreeNode)
+	applyCount = func(nodes []*DeptTreeNode) {
+		for _, n := range nodes {
+			applyCount(n.Children)
+			n.PostCount = countMap[n.Id]
+			for _, child := range n.Children {
+				n.PostCount += child.PostCount
+			}
+			n.Label = fmt.Sprintf("%s(%d)", n.Label, n.PostCount)
+		}
+	}
+	// Apply to real dept nodes only (not the virtual unassigned node)
+	applyCount(roots[:len(roots)-1])
+
+	// Handle unassigned node separately
+	unassignedNode.PostCount = countMap[0]
+	unassignedNode.Label = fmt.Sprintf("未分配部门(%d)", unassignedNode.PostCount)
 
 	return roots, nil
 }
@@ -315,4 +362,26 @@ func (s *Service) OptionSelect(ctx context.Context, in OptionSelectInput) ([]Pos
 	}
 
 	return options, nil
+}
+
+// getDeptAndDescendantIds returns the given deptId plus all descendant dept IDs.
+func (s *Service) getDeptAndDescendantIds(ctx context.Context, deptId int) ([]int, error) {
+	deptCols := dao.SysDept.Columns()
+	var descDepts []*entity.SysDept
+	err := dao.SysDept.Ctx(ctx).
+		WhereNull(deptCols.DeletedAt).
+		Where(
+			fmt.Sprintf("(',' || %s || ',') LIKE ?", deptCols.Ancestors),
+			fmt.Sprintf("%%,%d,%%", deptId),
+		).
+		Fields(deptCols.Id).
+		Scan(&descDepts)
+	if err != nil {
+		return nil, err
+	}
+	deptIds := []int{deptId}
+	for _, d := range descDepts {
+		deptIds = append(deptIds, d.Id)
+	}
+	return deptIds, nil
 }

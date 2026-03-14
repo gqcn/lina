@@ -83,9 +83,10 @@ type DeptTreeRes struct {
 }
 
 type DeptTreeNode struct {
-	Id       int             `json:"id" dc:"Dept ID"`
-	Label    string          `json:"label" dc:"Dept name"`
-	Children []*DeptTreeNode `json:"children" dc:"Child depts"`
+	Id        int             `json:"id" dc:"Dept ID"`
+	Label     string          `json:"label" dc:"Dept name"`
+	PostCount int             `json:"postCount" dc:"Post count"`
+	Children  []*DeptTreeNode `json:"children" dc:"Child depts"`
 }
 
 type OptionSelectReq struct {

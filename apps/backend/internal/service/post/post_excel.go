@@ -25,7 +25,15 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 
 	// Apply filters
 	if in.DeptId != nil {
-		m = m.Where(cols.DeptId, *in.DeptId)
+		if *in.DeptId == 0 {
+			m = m.Where(cols.DeptId, 0)
+		} else {
+			deptIds, err := s.getDeptAndDescendantIds(ctx, *in.DeptId)
+			if err != nil {
+				return nil, err
+			}
+			m = m.WhereIn(cols.DeptId, deptIds)
+		}
 	}
 	if in.Code != "" {
 		m = m.WhereLike(cols.Code, "%"+in.Code+"%")
