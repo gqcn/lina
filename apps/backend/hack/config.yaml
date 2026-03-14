@@ -4,7 +4,7 @@
 gfcli:
   gen:
     dao:
-      - link: "sqlite::@file(./manifest/data/data.db)"
+      - link: "sqlite::@file(./temp/data/data.db)"
         tables: "sys_user"
         descriptionTag: true
         noModelComment: true

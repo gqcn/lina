@@ -6,7 +6,6 @@
 .idea/
 .settings/
 .vscode/
-bin/
 **/.DS_Store
 gf
 main
@@ -15,5 +14,3 @@ output/
 manifest/output/
 temp/
 temp.yaml
-bin/
-upload/

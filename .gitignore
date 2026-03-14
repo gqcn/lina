@@ -12,8 +12,7 @@ assets/
 
 
 # Backend
-apps/backend/bin/
-apps/backend/manifest/data/*.db
+apps/backend/temp/
 
 # Frontend
 **/node_modules/

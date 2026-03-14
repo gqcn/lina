@@ -13,7 +13,7 @@ logger:
 database:
   default:
     type: "sqlite"
-    link: "sqlite::@file(manifest/data/data.db)"
+    link: "sqlite::@file(temp/data/data.db)"
     debug: true
 
 jwt:
@@ -21,7 +21,7 @@ jwt:
   expireHour: 24
 
 upload:
-  path: "upload"
+  path: "temp/upload"
 
 # Database initialization (executed by `make init`)
 # Scans sqlDir for *.sql files, sorted by ASCII order, executed sequentially
