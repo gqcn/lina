@@ -22,15 +22,6 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        name: 'DictManagement',
-        path: '/system/dict',
-        component: () => import('#/views/system/dict/index.vue'),
-        meta: {
-          icon: 'lucide:book-open',
-          title: '字典管理',
-        },
-      },
-      {
         name: 'DeptManagement',
         path: '/system/dept',
         component: () => import('#/views/system/dept/index.vue'),
@@ -46,6 +37,15 @@ const routes: RouteRecordRaw[] = [
         meta: {
           icon: 'lucide:briefcase',
           title: '岗位管理',
+        },
+      },
+      {
+        name: 'DictManagement',
+        path: '/system/dict',
+        component: () => import('#/views/system/dict/index.vue'),
+        meta: {
+          icon: 'lucide:book-open',
+          title: '字典管理',
         },
       },
     ],

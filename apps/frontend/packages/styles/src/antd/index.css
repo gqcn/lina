@@ -76,3 +76,27 @@
 .ant-app .form-valid-error .ant-picker-focused {
   box-shadow: 0 0 0 2px rgb(255 38 5 / 6%);
 }
+
+/**
+自定义success按钮样式
+ghost按钮专用!
+*/
+.btn-success {
+  color: hsl(var(--success)) !important;
+  border-color: hsl(var(--success)) !important;
+}
+
+.btn-success:hover {
+  color: hsl(var(--success) / 50%) !important;
+  border-color: hsl(var(--success) / 50%) !important;
+}
+
+html.dark button[disabled].btn-success {
+  color: rgb(242 242 242 / 25%) !important;
+  border-color: hsl(240deg 3.7% 22%) !important;
+}
+
+button[disabled].btn-success {
+  color: rgb(50 54 57 / 25%) !important;
+  border-color: hsl(240deg 5.9% 90%) !important;
+}

@@ -10,10 +10,8 @@ import { message, Modal, Popconfirm, Space } from 'ant-design-vue';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   dictDataDelete,
-  dictDataExport,
   dictDataList,
 } from '#/api/system/dict/dict-data';
-import { downloadBlob } from '#/utils/download';
 
 import { emitter } from '../mitt';
 import { columns, querySchema } from './data';
@@ -111,19 +109,6 @@ function handleMultiDelete() {
   });
 }
 
-async function handleExport() {
-  try {
-    const data = await dictDataExport({
-      dictType: dictType.value,
-      ...tableApi.formApi.form.values,
-    });
-    downloadBlob(data, '字典数据.xlsx');
-    message.success('导出成功');
-  } catch {
-    message.error('导出失败');
-  }
-}
-
 function onReload() {
   tableApi.query();
 }
@@ -139,7 +124,6 @@ emitter.on('rowClick', async (value: string) => {
     <BasicTable id="dict-data" table-title="字典数据列表">
       <template #toolbar-tools>
         <Space>
-          <a-button @click="handleExport">导 出</a-button>
           <a-button
             :disabled="!hasChecked"
             danger

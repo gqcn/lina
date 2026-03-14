@@ -10,10 +10,8 @@ import { message, Modal, Popconfirm, Space } from 'ant-design-vue';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   dictTypeDelete,
-  dictTypeExport,
   dictTypeList,
 } from '#/api/system/dict/dict-type';
-import { downloadBlob } from '#/utils/download';
 
 import { emitter } from '../mitt';
 import { columns, querySchema } from './data';
@@ -117,16 +115,6 @@ function handleMultiDelete() {
   });
 }
 
-async function handleExport() {
-  try {
-    const data = await dictTypeExport(tableApi.formApi.form.values);
-    downloadBlob(data, '字典类型数据.xlsx');
-    message.success('导出成功');
-  } catch {
-    message.error('导出失败');
-  }
-}
-
 function onReload() {
   tableApi.query();
 }
@@ -137,7 +125,6 @@ function onReload() {
     <BasicTable id="dict-type" table-title="字典类型列表">
       <template #toolbar-tools>
         <Space>
-          <a-button @click="handleExport">导 出</a-button>
           <a-button
             :disabled="!hasChecked"
             danger

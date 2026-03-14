@@ -8,13 +8,7 @@ import { Page, useVbenDrawer } from '@vben/common-ui';
 import { message, Modal, Popconfirm, Space, Tag } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  postDelete,
-  postDeptTree,
-  postExport,
-  postList,
-} from '#/api/system/post';
-import { downloadBlob } from '#/utils/download';
+import { postDelete, postDeptTree, postList } from '#/api/system/post';
 import DeptTree from '#/views/system/user/dept-tree.vue';
 
 import { columns, querySchema } from './data';
@@ -122,17 +116,6 @@ function handleMultiDelete() {
   });
 }
 
-async function handleExport() {
-  try {
-    const formValues = gridApi.formApi.form.values;
-    const data = await postExport(formValues);
-    downloadBlob(data, 'posts.xlsx');
-    message.success('导出成功');
-  } catch {
-    message.error('导出失败');
-  }
-}
-
 function onReload() {
   gridApi.query();
   deptTreeRef.value?.refreshTree();
@@ -152,7 +135,6 @@ function onReload() {
     <Grid class="flex-1 overflow-hidden" table-title="岗位列表">
       <template #toolbar-tools>
         <Space>
-          <a-button @click="handleExport">导 出</a-button>
           <a-button
             :disabled="!hasChecked"
             danger

@@ -145,7 +145,7 @@ function setExpandOrCollapse(expand: boolean) {
 
 <template>
   <Page :auto-content-height="true">
-    <BasicTable table-title="部门列表" table-title-help="双击展开/收起子菜单">
+    <BasicTable table-title="部门列表">
       <template #toolbar-tools>
         <Space>
           <a-button @click="setExpandOrCollapse(false)">折 叠</a-button>
