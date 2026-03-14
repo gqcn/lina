@@ -23,8 +23,7 @@ jwt:
 upload:
   path: "upload"
 
-# Database initialization SQL files (executed by `make init`)
+# Database initialization (executed by `make init`)
+# Scans sqlDir for *.sql files, sorted by ASCII order, executed sequentially
 init:
-  sqlFiles:
-    - "manifest/sql/init.sql"
-    - "manifest/sql/seed_users.sql"
+  sqlDir: "manifest/sql"

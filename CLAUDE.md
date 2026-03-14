@@ -92,6 +92,7 @@ pnpm report            # 查看 HTML 报告
 - Controller 由 `gf gen ctrl` 自动生成骨架，在生成的文件中填写业务逻辑
 - 数据库操作**必须使用 DO 对象**，不使用 `g.Map`
 - 错误处理使用 `gerror` 组件
+- **优先使用 GoFrame 内置方法**：所有 Go 方法调用优先使用 GoFrame 框架已有的方法，避免重复造轮子。例如遍历目录使用 `gfile.ScanDirFile`，而非自行实现目录遍历逻辑
 - **SQL 文件按迭代版本命名**：每次数据库变更的 SQL 文件以当前迭代版本号命名（如 `v0.1.0.sql`、`v0.2.0.sql`），存放在 `manifest/sql/` 目录下。`init.sql` 仅用于初始建表，后续迭代的表结构变更（ALTER TABLE、新增表等）使用版本号命名的 SQL 文件。升级时按版本顺序依次执行即可完成数据库迁移。
 - 代码生成流程：
   1. **API 变更**: 修改 `api/{resource}/v1/*.go` → `make ctrl`

@@ -3,12 +3,16 @@ package main
 import (
 	_ "github.com/gogf/gf/contrib/drivers/sqlite/v2"
 
+	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/os/gctx"
 
 	"backend/internal/cmd"
 )
 
 func main() {
-	cmd.Main.AddCommand(&cmd.Init)
-	cmd.Main.Run(gctx.GetInitCtx())
+	c, err := gcmd.NewFromObject(cmd.Main{})
+	if err != nil {
+		panic(err)
+	}
+	c.Run(gctx.GetInitCtx())
 }
