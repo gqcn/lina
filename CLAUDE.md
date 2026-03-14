@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## 项目概述
 
 Lina 是一个管理后台系统，采用前后端分离架构。
@@ -36,7 +34,7 @@ hack/
   tests/             → E2E 测试（Playwright）
     e2e/             → 测试用例文件
     fixtures/        → 测试 fixtures（auth, config）
-    pages/           → Page Object Models
+    pages/           → 页面对象模型
 openspec/
   changes/           → OpenSpec 变更记录
 ```
@@ -94,9 +92,10 @@ pnpm report            # 查看 HTML 报告
 - Controller 由 `gf gen ctrl` 自动生成骨架，在生成的文件中填写业务逻辑
 - 数据库操作**必须使用 DO 对象**，不使用 `g.Map`
 - 错误处理使用 `gerror` 组件
+- **SQL 文件按迭代版本命名**：每次数据库变更的 SQL 文件以当前迭代版本号命名（如 `v0.1.0.sql`、`v0.2.0.sql`），存放在 `manifest/sql/` 目录下。`init.sql` 仅用于初始建表，后续迭代的表结构变更（ALTER TABLE、新增表等）使用版本号命名的 SQL 文件。升级时按版本顺序依次执行即可完成数据库迁移。
 - 代码生成流程：
   1. **API 变更**: 修改 `api/{resource}/v1/*.go` → `make ctrl`
-  2. **数据库变更**: 修改 `manifest/sql/init.sql` → `make dao`
+  2. **数据库变更**: 新增或修改 `manifest/sql/{version}.sql`（如 `v0.2.0.sql`）→ `make dao`
   3. **Service 变更**: 手动在 `internal/service/` 中实现
 
 ### 前端
@@ -112,7 +111,7 @@ pnpm report            # 查看 HTML 报告
 
 ### UI 设计规范
 
-**CRITICAL: 所有前端 UI 设计和实现必须参考 ruoyi-plus-vben5 项目（`/Users/john/Workspace/gitee/dapppp/ruoyi-plus-vben5`），保持 UI 的一致性和用户体验的一致性。**
+**重要：所有前端 UI 设计和实现必须参考 ruoyi-plus-vben5 项目（`/Users/john/Workspace/gitee/dapppp/ruoyi-plus-vben5`），保持 UI 的一致性和用户体验的一致性。**
 
 在实现任何前端页面或组件时，必须遵循以下规范：
 
@@ -134,37 +133,37 @@ pnpm report            # 查看 HTML 报告
 - 用户名: `admin`
 - 密码: `admin123`
 
-## OpenSpec Workflow
+## OpenSpec 工作流
 
-This project uses OpenSpec-driven development. Changes live in `openspec/changes/`. Each change has: `proposal.md`, `design.md`, `specs/`, `tasks.md`.
+本项目采用 OpenSpec 驱动开发。变更记录存放在 `openspec/changes/` 目录下。每个变更包含：`proposal.md`（提案）、`design.md`（设计）、`specs/`（规格说明）、`tasks.md`（任务清单）。
 
-**Critical rules**:
-1. When user reports bugs/issues/feedback (Chinese or English), invoke the `openspec-feedback` skill BEFORE making any code changes.
+**关键规则**：
+1. 当用户报告缺陷/问题/反馈时（无论中文或英文），必须先调用 `openspec-feedback` 技能，**然后再进行任何代码修改**。
 
-## GoFrame v2 Development Standards
+## GoFrame v2 开发标准
 
-**CRITICAL: All Go backend code MUST follow GoFrame v2 framework conventions. Use the `goframe-v2` skill for ALL backend development tasks.**
+**重要：所有 Go 后端代码必须遵循 GoFrame v2 框架规范。所有后端开发任务必须使用 `goframe-v2` 技能。**
 
-### When to Use goframe-v2 Skill
+### 何时使用 goframe-v2 技能
 
-**MANDATORY** — Invoke the `goframe-v2` skill when:
-- Writing or modifying any Go code in `apps/backend/`
-- Implementing service layer logic (`internal/service/`)
-- Creating new API endpoints or controllers
-- Working with database operations (DAO/ORM)
-- Implementing error handling, logging, or validation
-- Managing configuration, context, or dependency injection
-- Any Go backend development task
+**强制要求** — 以下场景必须调用 `goframe-v2` 技能：
+- 编写或修改 `apps/backend/` 中的任何 Go 代码
+- 实现服务层逻辑（`internal/service/`）
+- 创建新的 API 接口或控制器
+- 进行数据库操作（DAO/ORM）
+- 实现错误处理、日志记录或数据校验
+- 管理配置、上下文或依赖注入
+- 任何 Go 后端开发任务
 
-### Service Layer Requirements
+### 服务层要求
 
-Service layer code (`internal/service/`) MUST follow these patterns:
+服务层代码（`internal/service/`）必须遵循以下模式：
 
-1. **Interface Definition**: Define service interfaces in `internal/service/{domain}/` with clear method signatures
-2. **Implementation Structure**: Implement services with proper dependency injection via `s{ServiceName}` struct
-3. **Context Management**: Always pass `ctx context.Context` as the first parameter
-4. **Error Handling**: Use GoFrame's `gerror` package for structured error handling
-5. **Logging**: Use `g.Log()` with proper context for all logging operations
-6. **Configuration Access**: Use `g.Cfg()` for configuration retrieval
-7. **Validation**: Use GoFrame's validation tags and `gvalid` package
-8. **Transaction Management**: Use `g.DB().Transaction()` for multi-step operations
+1. **接口定义**：在 `internal/service/{domain}/` 中定义清晰的服务接口方法签名
+2. **实现结构**：通过 `s{ServiceName}` 结构体实现服务，支持依赖注入
+3. **上下文管理**：第一个参数始终传入 `ctx context.Context`
+4. **错误处理**：使用 GoFrame 的 `gerror` 包进行结构化错误处理
+5. **日志记录**：使用 `g.Log()` 并传入上下文进行日志记录
+6. **配置访问**：使用 `g.Cfg()` 获取配置项
+7. **数据校验**：使用 GoFrame 的校验标签和 `gvalid` 包
+8. **事务管理**：使用 `g.DB().Transaction()` 处理多步操作

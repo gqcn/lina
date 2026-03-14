@@ -10,6 +10,18 @@ context: |
   The only exceptions are: code identifiers, API paths, technical terms with no
   standard Chinese translation, and RFC keyword markers (SHALL/MUST/SHOULD/GIVEN/WHEN/THEN).
 
+  Version naming: Each iteration (change directory) MUST be named following
+  GNU Semantic Versioning format: v{MAJOR}.{MINOR}.{PATCH}
+  Examples: v0.1.0, v0.2.0, v1.0.0, v1.0.1, v2.0.0
+  Rules:
+  - MAJOR: incremented for incompatible or breaking changes
+  - MINOR: incremented for new features with backward compatibility
+  - PATCH: incremented for backward-compatible bug fixes or minor improvements
+  - The version prefix "v" is mandatory
+  - The first iteration starts at v0.1.0
+  - When creating a new change, auto-determine the next version based on the
+    scope of changes (feature → bump MINOR, bugfix → bump PATCH, breaking → bump MAJOR)
+
 # Per-artifact rules
 rules:
   tasks:
