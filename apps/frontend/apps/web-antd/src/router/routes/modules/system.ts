@@ -21,6 +21,33 @@ const routes: RouteRecordRaw[] = [
           title: '用户管理',
         },
       },
+      {
+        name: 'DictManagement',
+        path: '/system/dict',
+        component: () => import('#/views/system/dict/index.vue'),
+        meta: {
+          icon: 'lucide:book-open',
+          title: '字典管理',
+        },
+      },
+      {
+        name: 'DeptManagement',
+        path: '/system/dept',
+        component: () => import('#/views/system/dept/index.vue'),
+        meta: {
+          icon: 'lucide:network',
+          title: '部门管理',
+        },
+      },
+      {
+        name: 'PostManagement',
+        path: '/system/post',
+        component: () => import('#/views/system/post/index.vue'),
+        meta: {
+          icon: 'lucide:briefcase',
+          title: '岗位管理',
+        },
+      },
     ],
   },
   {

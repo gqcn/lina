@@ -1,0 +1,388 @@
+package dept
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/os/gtime"
+	"github.com/gogf/gf/v2/text/gstr"
+
+	"backend/internal/dao"
+	"backend/internal/model/do"
+	"backend/internal/model/entity"
+)
+
+// Service provides dept management operations.
+type Service struct{}
+
+// New creates and returns a new Service instance.
+func New() *Service {
+	return &Service{}
+}
+
+// TreeNode defines the tree structure for dept.
+type TreeNode struct {
+	Id       int         `json:"id"`
+	Label    string      `json:"label"`
+	Children []*TreeNode `json:"children"`
+}
+
+// DeptUser defines the user info in a dept.
+type DeptUser struct {
+	Id       int    `json:"id"`
+	Username string `json:"username"`
+	Nickname string `json:"nickname"`
+}
+
+// ListInput defines input for List function.
+type ListInput struct {
+	Name   string
+	Status *int
+}
+
+// ListOutput defines output for List function.
+type ListOutput struct {
+	List []*entity.SysDept
+}
+
+// List queries dept list with filters.
+func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
+	var (
+		cols = dao.SysDept.Columns()
+		m    = dao.SysDept.Ctx(ctx).WhereNull(cols.DeletedAt)
+	)
+
+	// Apply filters
+	if in.Name != "" {
+		m = m.WhereLike(cols.Name, "%"+in.Name+"%")
+	}
+	if in.Status != nil {
+		m = m.Where(cols.Status, *in.Status)
+	}
+
+	// Query all, ordered by order_num ASC
+	var list []*entity.SysDept
+	err := m.Order(cols.OrderNum + " ASC").Scan(&list)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListOutput{
+		List: list,
+	}, nil
+}
+
+// CreateInput defines input for Create function.
+type CreateInput struct {
+	ParentId int
+	Name     string
+	OrderNum int
+	Leader   int
+	Phone    string
+	Email    string
+	Status   int
+	Remark   string
+}
+
+// Create creates a new dept.
+func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
+	// Calculate ancestors
+	var ancestors string
+	if in.ParentId == 0 {
+		ancestors = "0"
+	} else {
+		parent, err := s.GetById(ctx, in.ParentId)
+		if err != nil {
+			return 0, err
+		}
+		ancestors = fmt.Sprintf("%s,%d", parent.Ancestors, in.ParentId)
+	}
+
+	// Insert dept
+	id, err := dao.SysDept.Ctx(ctx).Data(do.SysDept{
+		ParentId:  in.ParentId,
+		Ancestors: ancestors,
+		Name:      in.Name,
+		OrderNum:  in.OrderNum,
+		Leader:    in.Leader,
+		Phone:     in.Phone,
+		Email:     in.Email,
+		Status:    in.Status,
+		Remark:    in.Remark,
+		CreatedAt: gtime.Now(),
+		UpdatedAt: gtime.Now(),
+	}).InsertAndGetId()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(id), nil
+}
+
+// GetById retrieves dept by ID.
+func (s *Service) GetById(ctx context.Context, id int) (*entity.SysDept, error) {
+	var dept *entity.SysDept
+	cols := dao.SysDept.Columns()
+	err := dao.SysDept.Ctx(ctx).
+		Where(do.SysDept{Id: id}).
+		WhereNull(cols.DeletedAt).
+		Scan(&dept)
+	if err != nil {
+		return nil, err
+	}
+	if dept == nil {
+		return nil, gerror.New("部门不存在")
+	}
+	return dept, nil
+}
+
+// UpdateInput defines input for Update function.
+type UpdateInput struct {
+	Id       int
+	ParentId *int
+	Name     *string
+	OrderNum *int
+	Leader   *int
+	Phone    *string
+	Email    *string
+	Status   *int
+	Remark   *string
+}
+
+// Update updates dept information.
+func (s *Service) Update(ctx context.Context, in UpdateInput) error {
+	// Check dept exists
+	dept, err := s.GetById(ctx, in.Id)
+	if err != nil {
+		return err
+	}
+
+	data := do.SysDept{
+		UpdatedAt: gtime.Now(),
+	}
+	if in.Name != nil {
+		data.Name = *in.Name
+	}
+	if in.OrderNum != nil {
+		data.OrderNum = *in.OrderNum
+	}
+	if in.Leader != nil {
+		data.Leader = *in.Leader
+	}
+	if in.Phone != nil {
+		data.Phone = *in.Phone
+	}
+	if in.Email != nil {
+		data.Email = *in.Email
+	}
+	if in.Status != nil {
+		data.Status = *in.Status
+	}
+	if in.Remark != nil {
+		data.Remark = *in.Remark
+	}
+
+	// Handle parent change: recalculate ancestors
+	if in.ParentId != nil && *in.ParentId != dept.ParentId {
+		newParentId := *in.ParentId
+		var newAncestors string
+		if newParentId == 0 {
+			newAncestors = "0"
+		} else {
+			parent, err := s.GetById(ctx, newParentId)
+			if err != nil {
+				return err
+			}
+			newAncestors = fmt.Sprintf("%s,%d", parent.Ancestors, newParentId)
+		}
+
+		oldAncestors := dept.Ancestors
+		data.ParentId = newParentId
+		data.Ancestors = newAncestors
+
+		// Update children's ancestors
+		oldPrefix := fmt.Sprintf("%s,%d", oldAncestors, in.Id)
+		newPrefix := fmt.Sprintf("%s,%d", newAncestors, in.Id)
+
+		cols := dao.SysDept.Columns()
+		var children []*entity.SysDept
+		err = dao.SysDept.Ctx(ctx).
+			WhereNull(cols.DeletedAt).
+			Where(
+				dao.SysDept.Ctx(ctx).Builder().
+					WhereLike(cols.Ancestors, oldPrefix+",%").
+					WhereOr(cols.ParentId, in.Id),
+			).
+			Scan(&children)
+		if err != nil {
+			return err
+		}
+
+		for _, child := range children {
+			childNewAncestors := gstr.Replace(child.Ancestors, oldPrefix, newPrefix, 1)
+			_, err = dao.SysDept.Ctx(ctx).
+				Where(do.SysDept{Id: child.Id}).
+				Data(do.SysDept{
+					Ancestors: childNewAncestors,
+					UpdatedAt: gtime.Now(),
+				}).
+				Update()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	_, err = dao.SysDept.Ctx(ctx).Where(do.SysDept{Id: in.Id}).Data(data).Update()
+	return err
+}
+
+// Delete soft-deletes a dept.
+func (s *Service) Delete(ctx context.Context, id int) error {
+	cols := dao.SysDept.Columns()
+
+	// Check no children
+	childCount, err := dao.SysDept.Ctx(ctx).
+		Where(cols.ParentId, id).
+		WhereNull(cols.DeletedAt).
+		Count()
+	if err != nil {
+		return err
+	}
+	if childCount > 0 {
+		return gerror.New("存在子部门，不允许删除")
+	}
+
+	// Check no users in dept
+	userCount, err := dao.SysUserDept.Ctx(ctx).
+		Where(do.SysUserDept{DeptId: id}).
+		Count()
+	if err != nil {
+		return err
+	}
+	if userCount > 0 {
+		return gerror.New("部门存在用户，不允许删除")
+	}
+
+	// Soft delete
+	_, err = dao.SysDept.Ctx(ctx).
+		Where(do.SysDept{Id: id}).
+		Data(do.SysDept{DeletedAt: gtime.Now()}).
+		Update()
+	return err
+}
+
+// Tree builds dept tree structure.
+func (s *Service) Tree(ctx context.Context) ([]*TreeNode, error) {
+	cols := dao.SysDept.Columns()
+
+	var depts []*entity.SysDept
+	err := dao.SysDept.Ctx(ctx).
+		WhereNull(cols.DeletedAt).
+		Order(cols.OrderNum + " ASC").
+		Scan(&depts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build tree from flat list
+	nodeMap := make(map[int]*TreeNode)
+	for _, d := range depts {
+		nodeMap[d.Id] = &TreeNode{
+			Id:       d.Id,
+			Label:    d.Name,
+			Children: make([]*TreeNode, 0),
+		}
+	}
+
+	var roots []*TreeNode
+	for _, d := range depts {
+		node := nodeMap[d.Id]
+		if parent, ok := nodeMap[d.ParentId]; ok {
+			parent.Children = append(parent.Children, node)
+		} else {
+			roots = append(roots, node)
+		}
+	}
+
+	return roots, nil
+}
+
+// ExcludeInput defines input for Exclude function.
+type ExcludeInput struct {
+	Id int
+}
+
+// Exclude returns dept list excluding specified dept and its descendants.
+func (s *Service) Exclude(ctx context.Context, in ExcludeInput) ([]*entity.SysDept, error) {
+	// Get the target dept
+	dept, err := s.GetById(ctx, in.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	cols := dao.SysDept.Columns()
+	prefix := fmt.Sprintf("%s,%d", dept.Ancestors, in.Id)
+
+	// Get all non-deleted depts excluding the target and its descendants
+	var list []*entity.SysDept
+	err = dao.SysDept.Ctx(ctx).
+		WhereNull(cols.DeletedAt).
+		WhereNot(cols.Id, in.Id).
+		WhereNotLike(cols.Ancestors, prefix+",%").
+		WhereNotLike(cols.Ancestors, prefix).
+		Order(cols.OrderNum + " ASC").
+		Scan(&list)
+	if err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}
+
+// Users gets users in a dept.
+func (s *Service) Users(ctx context.Context, deptId int) ([]*DeptUser, error) {
+	// Query sys_user_dept for user_ids
+	var userDepts []*entity.SysUserDept
+	err := dao.SysUserDept.Ctx(ctx).
+		Where(do.SysUserDept{DeptId: deptId}).
+		Scan(&userDepts)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(userDepts) == 0 {
+		return make([]*DeptUser, 0), nil
+	}
+
+	// Collect user IDs
+	userIds := make([]int, 0, len(userDepts))
+	for _, ud := range userDepts {
+		userIds = append(userIds, ud.UserId)
+	}
+
+	// Query sys_user for those IDs
+	uCols := dao.SysUser.Columns()
+	var users []*entity.SysUser
+	err = dao.SysUser.Ctx(ctx).
+		Fields(uCols.Id, uCols.Username, uCols.Nickname).
+		WhereIn(uCols.Id, userIds).
+		WhereNull(uCols.DeletedAt).
+		Scan(&users)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to DeptUser
+	result := make([]*DeptUser, 0, len(users))
+	for _, u := range users {
+		result = append(result, &DeptUser{
+			Id:       u.Id,
+			Username: u.Username,
+			Nickname: u.Nickname,
+		})
+	}
+
+	return result, nil
+}

@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 
-	"backend/api/user/v1"
+	v1 "backend/api/user/v1"
 	usersvc "backend/internal/service/user"
 )
 
@@ -18,5 +18,7 @@ func (c *ControllerV1) Update(ctx context.Context, req *v1.UpdateReq) (res *v1.U
 		Sex:      req.Sex,
 		Status:   req.Status,
 		Remark:   req.Remark,
+		DeptId:   req.DeptId,
+		PostIds:  req.PostIds,
 	})
 }

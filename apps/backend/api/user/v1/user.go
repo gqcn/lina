@@ -15,15 +15,22 @@ type ListReq struct {
 	Status         *int   `json:"status" dc:"Filter by status"`
 	Phone          string `json:"phone" dc:"Filter by phone"`
 	Sex            *int   `json:"sex" dc:"Filter by sex"`
+	DeptId         *int   `json:"deptId" dc:"Filter by dept ID"`
 	BeginTime      string `json:"beginTime" dc:"Filter by created_at start time"`
 	EndTime        string `json:"endTime" dc:"Filter by created_at end time"`
 	OrderBy        string `json:"orderBy" dc:"Sort field: id,username,nickname,phone,email,status,created_at"`
 	OrderDirection string `json:"orderDirection" d:"desc" dc:"Sort direction: asc or desc"`
 }
 
+type ListItem struct {
+	*entity.SysUser
+	DeptId   int    `json:"deptId" dc:"Dept ID"`
+	DeptName string `json:"deptName" dc:"Dept name"`
+}
+
 type ListRes struct {
-	List  []*entity.SysUser `json:"list" dc:"User list"`
-	Total int               `json:"total" dc:"Total count"`
+	List  []*ListItem `json:"list" dc:"User list"`
+	Total int         `json:"total" dc:"Total count"`
 }
 
 type CreateReq struct {
@@ -36,6 +43,8 @@ type CreateReq struct {
 	Sex      *int   `json:"sex" d:"0" dc:"Sex: 0=unknown 1=male 2=female"`
 	Status   *int   `json:"status" d:"1" dc:"Status: 1=normal 0=disabled"`
 	Remark   string `json:"remark" dc:"Remark"`
+	DeptId   *int   `json:"deptId" dc:"Dept ID"`
+	PostIds  []int  `json:"postIds" dc:"Post IDs"`
 }
 
 type CreateRes struct {
@@ -49,6 +58,9 @@ type GetReq struct {
 
 type GetRes struct {
 	*entity.SysUser `dc:"User info"`
+	DeptId          int   `json:"deptId" dc:"Dept ID"`
+	DeptName        string `json:"deptName" dc:"Dept name"`
+	PostIds         []int  `json:"postIds" dc:"Post IDs"`
 }
 
 type UpdateReq struct {
@@ -62,6 +74,8 @@ type UpdateReq struct {
 	Sex      *int    `json:"sex" dc:"Sex"`
 	Status   *int    `json:"status" dc:"Status"`
 	Remark   *string `json:"remark" dc:"Remark"`
+	DeptId   *int    `json:"deptId" dc:"Dept ID"`
+	PostIds  []int   `json:"postIds" dc:"Post IDs"`
 }
 
 type UpdateRes struct{}
@@ -155,5 +169,19 @@ type UpdateAvatarReq struct {
 
 type UpdateAvatarRes struct {
 	Url string `json:"url" dc:"Avatar URL"`
+}
+
+type DeptTreeReq struct {
+	g.Meta `path:"/user/dept-tree" method:"get" tags:"User" summary:"Get dept tree for user filter"`
+}
+
+type DeptTreeNode struct {
+	Id       int             `json:"id" dc:"Dept ID"`
+	Label    string          `json:"label" dc:"Dept name"`
+	Children []*DeptTreeNode `json:"children" dc:"Child depts"`
+}
+
+type DeptTreeRes struct {
+	List []*DeptTreeNode `json:"list" dc:"Dept tree"`
 }
 

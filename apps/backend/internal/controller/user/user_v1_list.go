@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 
-	"backend/api/user/v1"
+	v1 "backend/api/user/v1"
 	usersvc "backend/internal/service/user"
 )
 
@@ -16,6 +16,7 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListR
 		Status:         req.Status,
 		Phone:          req.Phone,
 		Sex:            req.Sex,
+		DeptId:         req.DeptId,
 		BeginTime:      req.BeginTime,
 		EndTime:        req.EndTime,
 		OrderBy:        req.OrderBy,
@@ -24,8 +25,17 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListR
 	if err != nil {
 		return nil, err
 	}
+	// Convert to ListItem with dept info
+	list := make([]*v1.ListItem, 0, len(out.List))
+	for _, u := range out.List {
+		list = append(list, &v1.ListItem{
+			SysUser:  u.SysUser,
+			DeptId:   u.DeptId,
+			DeptName: u.DeptName,
+		})
+	}
 	return &v1.ListRes{
-		List:  out.List,
+		List:  list,
 		Total: out.Total,
 	}, nil
 }

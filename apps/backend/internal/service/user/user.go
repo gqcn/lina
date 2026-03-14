@@ -37,15 +37,23 @@ type ListInput struct {
 	Status         *int
 	Phone          string
 	Sex            *int
+	DeptId         *int
 	BeginTime      string
 	EndTime        string
 	OrderBy        string
 	OrderDirection string
 }
 
+// ListOutputItem defines a single item in list output with dept info.
+type ListOutputItem struct {
+	SysUser  *entity.SysUser
+	DeptId   int
+	DeptName string
+}
+
 // ListOutput defines output for List function.
 type ListOutput struct {
-	List  []*entity.SysUser
+	List  []*ListOutputItem
 	Total int
 }
 
@@ -77,6 +85,18 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	}
 	if in.EndTime != "" {
 		m = m.WhereLTE(cols.CreatedAt, in.EndTime)
+	}
+
+	// Filter by dept via association table
+	if in.DeptId != nil {
+		userIds, err := s.GetUserIdsByDeptId(ctx, *in.DeptId)
+		if err != nil {
+			return nil, err
+		}
+		if len(userIds) == 0 {
+			return &ListOutput{List: []*ListOutputItem{}, Total: 0}, nil
+		}
+		m = m.WhereIn(cols.Id, userIds)
 	}
 
 	// Get total count
@@ -115,10 +135,58 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 		return nil, err
 	}
 
+	// Build output with dept info
+	items := make([]*ListOutputItem, 0, len(list))
+	for _, u := range list {
+		item := &ListOutputItem{SysUser: u}
+		// Get dept info from association table
+		deptId, deptName, _ := s.GetUserDeptInfo(ctx, u.Id)
+		item.DeptId = deptId
+		item.DeptName = deptName
+		items = append(items, item)
+	}
+
 	return &ListOutput{
-		List:  list,
+		List:  items,
 		Total: total,
 	}, nil
+}
+
+// GetUserIdsByDeptId returns user IDs associated with a dept.
+func (s *Service) GetUserIdsByDeptId(ctx context.Context, deptId int) ([]int, error) {
+	var userDepts []*entity.SysUserDept
+	err := dao.SysUserDept.Ctx(ctx).
+		Where(dao.SysUserDept.Columns().DeptId, deptId).
+		Scan(&userDepts)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]int, 0, len(userDepts))
+	for _, ud := range userDepts {
+		ids = append(ids, ud.UserId)
+	}
+	return ids, nil
+}
+
+// GetUserDeptInfo returns the dept ID and name for a user.
+func (s *Service) GetUserDeptInfo(ctx context.Context, userId int) (int, string, error) {
+	var userDept *entity.SysUserDept
+	err := dao.SysUserDept.Ctx(ctx).
+		Where(dao.SysUserDept.Columns().UserId, userId).
+		Scan(&userDept)
+	if err != nil || userDept == nil {
+		return 0, "", err
+	}
+	var dept *entity.SysDept
+	deptCols := dao.SysDept.Columns()
+	err = dao.SysDept.Ctx(ctx).
+		Where(dao.SysDept.Columns().Id, userDept.DeptId).
+		WhereNull(deptCols.DeletedAt).
+		Scan(&dept)
+	if err != nil || dept == nil {
+		return 0, "", err
+	}
+	return dept.Id, dept.Name, nil
 }
 
 // CreateInput defines input for Create function.
@@ -131,6 +199,8 @@ type CreateInput struct {
 	Sex      int
 	Status   int
 	Remark   string
+	DeptId   *int
+	PostIds  []int
 }
 
 // Create creates a new user.
@@ -171,7 +241,31 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 		return 0, err
 	}
 
-	return int(id), nil
+	userId := int(id)
+
+	// Save dept association
+	if in.DeptId != nil && *in.DeptId > 0 {
+		_, err = dao.SysUserDept.Ctx(ctx).Data(do.SysUserDept{
+			UserId: userId,
+			DeptId: *in.DeptId,
+		}).Insert()
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	// Save post associations
+	for _, postId := range in.PostIds {
+		_, err = dao.SysUserPost.Ctx(ctx).Data(do.SysUserPost{
+			UserId: userId,
+			PostId: postId,
+		}).Insert()
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return userId, nil
 }
 
 // GetById retrieves user by ID.
@@ -203,6 +297,8 @@ type UpdateInput struct {
 	Sex      *int
 	Status   *int
 	Remark   *string
+	DeptId   *int
+	PostIds  []int
 }
 
 // Update updates user information.
@@ -251,7 +347,39 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	}
 
 	_, err := dao.SysUser.Ctx(ctx).Where(do.SysUser{Id: in.Id}).Data(data).Update()
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Update dept association (delete and re-insert)
+	if in.DeptId != nil {
+		_, _ = dao.SysUserDept.Ctx(ctx).Where(dao.SysUserDept.Columns().UserId, in.Id).Delete()
+		if *in.DeptId > 0 {
+			_, err = dao.SysUserDept.Ctx(ctx).Data(do.SysUserDept{
+				UserId: in.Id,
+				DeptId: *in.DeptId,
+			}).Insert()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Update post associations (delete and re-insert)
+	if in.PostIds != nil {
+		_, _ = dao.SysUserPost.Ctx(ctx).Where(dao.SysUserPost.Columns().UserId, in.Id).Delete()
+		for _, postId := range in.PostIds {
+			_, err = dao.SysUserPost.Ctx(ctx).Data(do.SysUserPost{
+				UserId: in.Id,
+				PostId: postId,
+			}).Insert()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // Delete soft-deletes a user.
@@ -272,7 +400,15 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		Where(do.SysUser{Id: id}).
 		Data(do.SysUser{DeletedAt: gtime.Now()}).
 		Update()
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Clean up dept and post associations
+	_, _ = dao.SysUserDept.Ctx(ctx).Where(dao.SysUserDept.Columns().UserId, id).Delete()
+	_, _ = dao.SysUserPost.Ctx(ctx).Where(dao.SysUserPost.Columns().UserId, id).Delete()
+
+	return nil
 }
 
 // UpdateStatus updates user status.
@@ -382,4 +518,20 @@ func (s *Service) UpdateAvatar(ctx context.Context, avatarUrl string) error {
 		}).
 		Update()
 	return err
+}
+
+// GetUserPostIds returns the post IDs associated with a user.
+func (s *Service) GetUserPostIds(ctx context.Context, userId int) ([]int, error) {
+	var userPosts []*entity.SysUserPost
+	err := dao.SysUserPost.Ctx(ctx).
+		Where(dao.SysUserPost.Columns().UserId, userId).
+		Scan(&userPosts)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]int, 0, len(userPosts))
+	for _, up := range userPosts {
+		ids = append(ids, up.PostId)
+	}
+	return ids, nil
 }

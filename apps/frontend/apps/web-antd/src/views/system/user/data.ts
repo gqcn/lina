@@ -58,6 +58,11 @@ export const columns: VxeGridProps['columns'] = [
     sortable: true,
   },
   {
+    field: 'deptName',
+    title: '部门',
+    minWidth: 120,
+  },
+  {
     field: 'phone',
     title: '手机号码',
     formatter({ cellValue }) {
@@ -135,6 +140,26 @@ export function drawerSchema(isEdit: boolean): VbenFormSchema[] {
       },
     },
     {
+      component: 'TreeSelect',
+      defaultValue: undefined,
+      fieldName: 'deptId',
+      label: '所属部门',
+      rules: 'required',
+      componentProps: {
+        fieldNames: {
+          key: 'id',
+          value: 'id',
+          children: 'children',
+        },
+        showSearch: true,
+        treeDefaultExpandAll: true,
+        treeNodeLabelProp: 'fullName',
+        treeLine: { showLeafIcon: false },
+        treeNodeFilterProp: 'label',
+        placeholder: '请选择',
+      },
+    },
+    {
       component: 'Input',
       fieldName: 'email',
       label: '邮箱',
@@ -177,6 +202,17 @@ export function drawerSchema(isEdit: boolean): VbenFormSchema[] {
           { label: '正常', value: 1 },
           { label: '停用', value: 0 },
         ],
+      },
+    },
+    {
+      component: 'Select',
+      fieldName: 'postIds',
+      label: '岗位',
+      help: '选择部门后, 将自动加载该部门下所有的岗位',
+      componentProps: {
+        mode: 'multiple',
+        optionFilterProp: 'label',
+        placeholder: '请先选择部门',
       },
     },
     {

@@ -8,6 +8,9 @@ import (
 	"github.com/gogf/gf/v2/os/gfile"
 
 	"backend/internal/controller/auth"
+	"backend/internal/controller/dept"
+	"backend/internal/controller/dict"
+	"backend/internal/controller/post"
 	"backend/internal/controller/user"
 	"backend/internal/service/middleware"
 )
@@ -64,6 +67,9 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 			})
 			group.Bind(
 				user.NewV1(),
+				dict.NewV1(),
+				dept.NewV1(),
+				post.NewV1(),
 			)
 		})
 	})

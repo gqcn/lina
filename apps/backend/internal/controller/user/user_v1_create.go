@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 
-	"backend/api/user/v1"
+	v1 "backend/api/user/v1"
 	usersvc "backend/internal/service/user"
 )
 
@@ -25,6 +25,8 @@ func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.C
 		Sex:      sex,
 		Status:   status,
 		Remark:   req.Remark,
+		DeptId:   req.DeptId,
+		PostIds:  req.PostIds,
 	})
 	if err != nil {
 		return nil, err

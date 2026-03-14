@@ -27,6 +27,7 @@ import {
 import { downloadBlob } from '#/utils/download';
 
 import { columns, querySchema } from './data';
+import DeptTree from './dept-tree.vue';
 import UserDrawer from './user-drawer.vue';
 import UserImportModal from './user-import-modal.vue';
 import UserResetPwdModal from './user-reset-pwd-modal.vue';
@@ -45,6 +46,9 @@ const [UserResetPwdModalRef, userResetPwdModalApi] = useVbenModal({
 
 const userStore = useUserStore();
 
+// 左边部门用
+const selectDeptId = ref<string[]>([]);
+
 function isSelf(row: any) {
   return row.id === Number(userStore.userInfo?.userId);
 }
@@ -59,6 +63,15 @@ const [Grid, gridApi] = useVbenVxeGrid({
       },
     },
     wrapperClass: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+    handleReset: async () => {
+      selectDeptId.value = [];
+
+      const { formApi, reload } = gridApi;
+      await formApi.resetForm();
+      const formValues = formApi.form.values;
+      formApi.setLatestSubmissionValues(formValues);
+      await reload(formValues);
+    },
   },
   gridOptions: {
     checkboxConfig: {
@@ -77,7 +90,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       sort: true,
       ajax: {
-        query: async ({ page, sorts }, formValues = {}) => {
+        query: async ({ page, sorts }: any, formValues: Record<string, any> = {}) => {
           const sortParams: Record<string, string> = {};
           if (sorts && sorts.length > 0) {
             const sort = sorts[0];
@@ -86,6 +99,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
               sortParams.orderDirection = sort.order;
             }
           }
+
+          // 部门树选择处理
+          if (selectDeptId.value.length === 1) {
+            formValues.deptId = selectDeptId.value[0];
+          } else {
+            Reflect.deleteProperty(formValues, 'deptId');
+          }
+
           // Handle createdAt date range
           const params: Record<string, any> = {
             pageNum: page.currentPage,
@@ -190,66 +211,74 @@ function handleResetPwd(row: any) {
 
 <template>
   <Page :auto-content-height="true">
-    <Grid class="h-full" table-title="用户列表">
-      <template #toolbar-tools>
-        <Space>
-          <a-button :disabled="!hasChecked" @click="handleExport">
-            导 出
-          </a-button>
-          <a-button @click="handleImport">导 入</a-button>
-          <a-button
-            :disabled="!hasChecked"
-            danger
-            type="primary"
-            @click="handleMultiDelete"
-          >
-            删 除
-          </a-button>
-          <a-button type="primary" @click="handleAdd">新 增</a-button>
-        </Space>
-      </template>
-
-      <template #avatar="{ row }">
-        <Avatar :src="row.avatar || preferences.app.defaultAvatar" />
-      </template>
-
-      <template #status="{ row }">
-        <Switch
-          v-model:checked="row.status"
-          :checked-value="1"
-          :disabled="isSelf(row)"
-          :un-checked-value="0"
-          checked-children="启用"
-          un-checked-children="禁用"
-          @change="() => handleStatusChange(row)"
-        />
-      </template>
-
-      <template #action="{ row }">
-        <template v-if="!isSelf(row)">
+    <div class="flex h-full gap-[8px]">
+      <DeptTree
+        v-model:select-dept-id="selectDeptId"
+        class="w-[260px]"
+        @reload="() => gridApi.reload()"
+        @select="() => gridApi.reload()"
+      />
+      <Grid class="flex-1 overflow-hidden" table-title="用户列表">
+        <template #toolbar-tools>
           <Space>
-            <ghost-button @click.stop="handleEdit(row)">编辑</ghost-button>
-            <Popconfirm
-              placement="left"
-              title="确认删除？"
-              @confirm="handleDelete(row)"
+            <a-button :disabled="!hasChecked" @click="handleExport">
+              导 出
+            </a-button>
+            <a-button @click="handleImport">导 入</a-button>
+            <a-button
+              :disabled="!hasChecked"
+              danger
+              type="primary"
+              @click="handleMultiDelete"
             >
-              <ghost-button danger @click.stop="">删除</ghost-button>
-            </Popconfirm>
+              删 除
+            </a-button>
+            <a-button type="primary" @click="handleAdd">新 增</a-button>
           </Space>
-          <Dropdown placement="bottomRight">
-            <template #overlay>
-              <Menu>
-                <MenuItem key="resetPwd" @click="handleResetPwd(row)">
-                  重置密码
-                </MenuItem>
-              </Menu>
-            </template>
-            <a-button size="small" type="link">更多</a-button>
-          </Dropdown>
         </template>
-      </template>
-    </Grid>
+
+        <template #avatar="{ row }">
+          <Avatar :src="row.avatar || preferences.app.defaultAvatar" />
+        </template>
+
+        <template #status="{ row }">
+          <Switch
+            v-model:checked="row.status"
+            :checked-value="1"
+            :disabled="isSelf(row)"
+            :un-checked-value="0"
+            checked-children="启用"
+            un-checked-children="禁用"
+            @change="() => handleStatusChange(row)"
+          />
+        </template>
+
+        <template #action="{ row }">
+          <template v-if="!isSelf(row)">
+            <Space>
+              <ghost-button @click.stop="handleEdit(row)">编辑</ghost-button>
+              <Popconfirm
+                placement="left"
+                title="确认删除？"
+                @confirm="handleDelete(row)"
+              >
+                <ghost-button danger @click.stop="">删除</ghost-button>
+              </Popconfirm>
+            </Space>
+            <Dropdown placement="bottomRight">
+              <template #overlay>
+                <Menu>
+                  <MenuItem key="resetPwd" @click="handleResetPwd(row)">
+                    重置密码
+                  </MenuItem>
+                </Menu>
+              </template>
+              <a-button size="small" type="link">更多</a-button>
+            </Dropdown>
+          </template>
+        </template>
+      </Grid>
+    </div>
 
     <UserDrawerRef @success="onReload" />
     <UserImportModalRef @reload="onReload" />

@@ -13,6 +13,15 @@ export interface SysUser {
   loginDate: string;
   createdAt: string;
   updatedAt: string;
+  deptId: number;
+  deptName: string;
+  postIds: number[];
+}
+
+export interface DeptTree {
+  id: number;
+  label: string;
+  children?: DeptTree[];
 }
 
 export interface UserListParams {
@@ -26,6 +35,7 @@ export interface UserListParams {
   endTime?: string;
   orderBy?: string;
   orderDirection?: string;
+  deptId?: number;
 }
 
 export interface UserListResult {
@@ -42,6 +52,8 @@ export interface UserCreateParams {
   sex?: number;
   status?: number;
   remark?: string;
+  deptId?: number;
+  postIds?: number[];
 }
 
 export interface UserUpdateParams {
@@ -54,6 +66,8 @@ export interface UserUpdateParams {
   sex?: number;
   status?: number;
   remark?: string;
+  deptId?: number;
+  postIds?: number[];
 }
 
 /** 用户列表 */
@@ -149,4 +163,10 @@ export function userUpdateAvatar(fileCallback: {
     { avatarfile: file },
     { headers: { 'Content-Type': 'multipart/form-data' } },
   );
+}
+
+/** 获取部门树 */
+export async function getDeptTree() {
+  const res = await requestClient.get<{ list: DeptTree[] }>('/user/dept-tree');
+  return res.list;
 }

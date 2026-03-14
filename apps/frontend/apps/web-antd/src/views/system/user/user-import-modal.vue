@@ -25,7 +25,7 @@ const updateSupport = ref(false);
 
 async function handleSubmit() {
   try {
-    modalApi.modalLoading(true);
+    modalApi.setState({ loading: true });
     if (fileList.value.length !== 1) {
       handleCancel();
       return;
@@ -57,7 +57,7 @@ async function handleSubmit() {
     console.warn(error);
     modalApi.close();
   } finally {
-    modalApi.modalLoading(false);
+    modalApi.setState({ loading: false });
   }
 }
 
