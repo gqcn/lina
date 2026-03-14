@@ -1,4 +1,4 @@
-.PHONY: dev stop status test up
+.PHONY: dev stop status test up init
 
 BACKEND_DIR   := apps/backend
 FRONTEND_DIR  := apps/frontend
@@ -100,3 +100,9 @@ test:
 ## help: 显示帮助信息
 help:
 	@grep -E '^##' Makefile | sed 's/## //'
+
+## init: 初始化数据库（执行 SQL 建表和数据填充脚本）
+init:
+	@echo "正在初始化数据库..."
+	@cd $(BACKEND_DIR) && go run main.go init
+	@echo "✓ 数据库初始化完成"

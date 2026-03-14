@@ -1,0 +1,30 @@
+# https://goframe.org/docs/web/server-config-file-template
+server:
+  address:     ":8080"
+  openapiPath: "/api.json"
+  swaggerPath: "/swagger"
+
+# https://goframe.org/docs/core/glog-config
+logger:
+  level : "all"
+  stdout: true
+
+# https://goframe.org/docs/core/gdb-config-file
+database:
+  default:
+    type: "sqlite"
+    link: "sqlite::@file(manifest/data/data.db)"
+    debug: true
+
+jwt:
+  secret: "lina-jwt-secret-key-change-in-production"
+  expireHour: 24
+
+upload:
+  path: "upload"
+
+# Database initialization SQL files (executed by `make init`)
+init:
+  sqlFiles:
+    - "manifest/sql/init.sql"
+    - "manifest/sql/seed_users.sql"

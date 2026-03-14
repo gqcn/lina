@@ -15,10 +15,10 @@ import (
 
 // initDatabase executes SQL init and seed files if they exist.
 func initDatabase(ctx context.Context) {
-	sqlFiles := []string{
-		"manifest/sql/init.sql",
-		"manifest/sql/migrate.sql",
-		"manifest/sql/seed_users.sql",
+	sqlFiles := g.Cfg().MustGet(ctx, "init.sqlFiles").Strings()
+	if len(sqlFiles) == 0 {
+		g.Log().Warning(ctx, "no SQL files configured in init.sqlFiles")
+		return
 	}
 	for _, file := range sqlFiles {
 		if !gfile.Exists(file) {
@@ -35,13 +35,22 @@ func initDatabase(ctx context.Context) {
 }
 
 var (
+	Init = gcmd.Command{
+		Name:  "init",
+		Usage: "init",
+		Brief: "initialize database (run SQL init/seed scripts)",
+		Func: func(ctx context.Context, parser *gcmd.Parser) (err error) {
+			initDatabase(ctx)
+			g.Log().Info(ctx, "Database initialization completed.")
+			return nil
+		},
+	}
+
 	Main = gcmd.Command{
 		Name:  "main",
 		Usage: "main",
 		Brief: "start lina backend server",
 		Func: func(ctx context.Context, parser *gcmd.Parser) (err error) {
-			// Initialize database
-			initDatabase(ctx)
 
 			var (
 				s             = g.Server()

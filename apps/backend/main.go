@@ -1,8 +1,6 @@
 package main
 
 import (
-	_ "backend/internal/packed"
-
 	_ "github.com/gogf/gf/contrib/drivers/sqlite/v2"
 
 	"github.com/gogf/gf/v2/os/gctx"
@@ -11,5 +9,6 @@ import (
 )
 
 func main() {
+	cmd.Main.AddCommand(&cmd.Init)
 	cmd.Main.Run(gctx.GetInitCtx())
 }

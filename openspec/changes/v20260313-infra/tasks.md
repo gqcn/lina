@@ -108,4 +108,5 @@
 - [x] **FB-36**：数据库 sys_user 表增加 sex 字段（TINYINT DEFAULT 0），重新生成 DAO/Entity/DO，后端 API 定义（CreateReq/UpdateReq/UpdateProfileReq/ListReq）增加 Sex 字段，后端 Service 层支持 sex 字段的读写和筛选
 - [x] **FB-37**：前端个人中心基本设置表单增加性别字段（RadioGroup，button 样式，选项：未知/男/女，必填），前端用户管理抽屉表单增加性别字段
 - [x] **FB-38**：前端用户管理表格增加性别列，后端 Excel 导出/导入增加性别字段
+- [x] **FB-39**：将数据库 SQL 初始化从后端启动流程中剥离，改为独立的 `make init` 命令（后端增加 init 子命令，根 Makefile 增加 init target）
 
