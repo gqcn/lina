@@ -344,7 +344,11 @@ func (s *Service) OptionSelect(ctx context.Context, in OptionSelectInput) ([]Pos
 		WhereNull(cols.DeletedAt)
 
 	if in.DeptId != nil {
-		m = m.Where(cols.DeptId, *in.DeptId)
+		deptIds, err := s.getDeptAndDescendantIds(ctx, *in.DeptId)
+		if err != nil {
+			return nil, err
+		}
+		m = m.WhereIn(cols.DeptId, deptIds)
 	}
 
 	var list []*entity.SysPost
