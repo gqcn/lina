@@ -23,9 +23,10 @@ func New() *Service {
 
 // TreeNode defines the tree structure for dept.
 type TreeNode struct {
-	Id       int         `json:"id"`
-	Label    string      `json:"label"`
-	Children []*TreeNode `json:"children"`
+	Id        int         `json:"id"`
+	Label     string      `json:"label"`
+	UserCount int         `json:"userCount"`
+	Children  []*TreeNode `json:"children"`
 }
 
 // DeptUser defines the user info in a dept.
@@ -383,6 +384,81 @@ func (s *Service) Users(ctx context.Context, deptId int) ([]*DeptUser, error) {
 			Nickname: u.Nickname,
 		})
 	}
+
+	return result, nil
+}
+
+// UserDeptTree builds dept tree with user count per node, plus an "未分配部门" virtual node.
+func (s *Service) UserDeptTree(ctx context.Context) ([]*TreeNode, error) {
+	// Get base tree
+	nodes, err := s.Tree(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get user count per dept via sys_user_dept (only count non-deleted users)
+	type DeptCount struct {
+		DeptId int `json:"dept_id"`
+		Cnt    int `json:"cnt"`
+	}
+	var counts []DeptCount
+	err = dao.SysUserDept.Ctx(ctx).
+		Fields("dept_id, COUNT(*) as cnt").
+		InnerJoin(
+			dao.SysUser.Table(),
+			fmt.Sprintf(
+				"%s.%s = %s.%s",
+				dao.SysUserDept.Table(), dao.SysUserDept.Columns().UserId,
+				dao.SysUser.Table(), dao.SysUser.Columns().Id,
+			),
+		).
+		Where(fmt.Sprintf("%s.%s IS NULL", dao.SysUser.Table(), dao.SysUser.Columns().DeletedAt)).
+		Group("dept_id").
+		Scan(&counts)
+	if err != nil {
+		return nil, err
+	}
+	countMap := make(map[int]int)
+	for _, c := range counts {
+		countMap[c.DeptId] = c.Cnt
+	}
+
+	// Apply user counts to tree nodes (parent = self + all descendants)
+	var applyCount func(nodes []*TreeNode)
+	applyCount = func(nodes []*TreeNode) {
+		for _, n := range nodes {
+			applyCount(n.Children)
+			n.UserCount = countMap[n.Id]
+			for _, child := range n.Children {
+				n.UserCount += child.UserCount
+			}
+			n.Label = fmt.Sprintf("%s(%d)", n.Label, n.UserCount)
+		}
+	}
+	applyCount(nodes)
+
+	// Count unassigned users (users not in sys_user_dept)
+	uCols := dao.SysUser.Columns()
+	totalUsers, err := dao.SysUser.Ctx(ctx).WhereNull(uCols.DeletedAt).Count()
+	if err != nil {
+		return nil, err
+	}
+	assignedUsers := 0
+	for _, c := range countMap {
+		assignedUsers += c
+	}
+	unassignedCount := totalUsers - assignedUsers
+
+	// Prepend "未分配部门" virtual node at the top
+	unassignedNode := &TreeNode{
+		Id:        0,
+		Label:     fmt.Sprintf("未分配部门(%d)", unassignedCount),
+		UserCount: unassignedCount,
+		Children:  make([]*TreeNode, 0),
+	}
+	result := make([]*TreeNode, 0, len(nodes)+1)
+	result = append(result, unassignedNode)
+	result = append(result, nodes...)
 
 	return result, nil
 }

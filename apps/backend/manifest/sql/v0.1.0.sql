@@ -20,6 +20,3 @@ CREATE TABLE IF NOT EXISTS sys_user (
 -- Default admin user (password: admin123, bcrypt hash)
 INSERT OR IGNORE INTO sys_user (username, password, nickname, status, created_at, updated_at)
 VALUES ('admin', '$2a$10$6u4IIEd63chleDWJIY6.NewSU7YrpBQ0Tbp.KfLiG71NQrRlL9qTe', '管理员', 1, datetime('now'), datetime('now'));
-
--- Load test seed data
--- See seed_users.sql for 100 test users (password: 123456)

@@ -19,6 +19,7 @@ import {
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
+  getDeptTree,
   userDelete,
   userExport,
   userList,
@@ -48,6 +49,7 @@ const userStore = useUserStore();
 
 // 左边部门用
 const selectDeptId = ref<string[]>([]);
+const deptTreeRef = ref<InstanceType<typeof DeptTree>>();
 
 function isSelf(row: any) {
   return row.id === Number(userStore.userInfo?.userId);
@@ -161,6 +163,7 @@ async function handleDelete(row: any) {
   await userDelete(row.id);
   message.success('删除成功');
   await gridApi.query();
+  deptTreeRef.value?.refreshTree();
 }
 
 function handleMultiDelete() {
@@ -176,6 +179,7 @@ function handleMultiDelete() {
       }
       checkedRows.value = [];
       await gridApi.query();
+      deptTreeRef.value?.refreshTree();
     },
   });
 }
@@ -186,6 +190,7 @@ async function handleStatusChange(row: any) {
 
 function onReload() {
   gridApi.query();
+  deptTreeRef.value?.refreshTree();
 }
 
 async function handleExport() {
@@ -213,7 +218,9 @@ function handleResetPwd(row: any) {
   <Page :auto-content-height="true">
     <div class="flex h-full gap-[8px]">
       <DeptTree
+        ref="deptTreeRef"
         v-model:select-dept-id="selectDeptId"
+        :api="getDeptTree"
         class="w-[260px]"
         @reload="() => gridApi.reload()"
         @select="() => gridApi.reload()"

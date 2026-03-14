@@ -15,6 +15,7 @@ export interface Dept {
 export interface DeptTree {
   id: number;
   label: string;
+  userCount?: number;
   children?: DeptTree[];
 }
 

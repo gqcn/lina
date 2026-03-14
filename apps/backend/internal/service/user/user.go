@@ -89,14 +89,25 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 
 	// Filter by dept via association table
 	if in.DeptId != nil {
-		userIds, err := s.GetUserIdsByDeptId(ctx, *in.DeptId)
-		if err != nil {
-			return nil, err
+		if *in.DeptId == 0 {
+			// Unassigned: users NOT in sys_user_dept
+			assignedUserIds, err := s.GetAllAssignedUserIds(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if len(assignedUserIds) > 0 {
+				m = m.WhereNotIn(cols.Id, assignedUserIds)
+			}
+		} else {
+			userIds, err := s.GetUserIdsByDeptId(ctx, *in.DeptId)
+			if err != nil {
+				return nil, err
+			}
+			if len(userIds) == 0 {
+				return &ListOutput{List: []*ListOutputItem{}, Total: 0}, nil
+			}
+			m = m.WhereIn(cols.Id, userIds)
 		}
-		if len(userIds) == 0 {
-			return &ListOutput{List: []*ListOutputItem{}, Total: 0}, nil
-		}
-		m = m.WhereIn(cols.Id, userIds)
 	}
 
 	// Get total count
@@ -157,6 +168,23 @@ func (s *Service) GetUserIdsByDeptId(ctx context.Context, deptId int) ([]int, er
 	var userDepts []*entity.SysUserDept
 	err := dao.SysUserDept.Ctx(ctx).
 		Where(dao.SysUserDept.Columns().DeptId, deptId).
+		Scan(&userDepts)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]int, 0, len(userDepts))
+	for _, ud := range userDepts {
+		ids = append(ids, ud.UserId)
+	}
+	return ids, nil
+}
+
+// GetAllAssignedUserIds returns all user IDs that have a dept association.
+func (s *Service) GetAllAssignedUserIds(ctx context.Context) ([]int, error) {
+	var userDepts []*entity.SysUserDept
+	err := dao.SysUserDept.Ctx(ctx).
+		Fields(dao.SysUserDept.Columns().UserId).
+		Distinct().
 		Scan(&userDepts)
 	if err != nil {
 		return nil, err

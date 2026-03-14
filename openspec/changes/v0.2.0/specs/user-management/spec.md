@@ -80,11 +80,22 @@
 - **THEN** 包含 postIds（关联岗位 ID 数组）
 
 ### Requirement: 用户部门树接口
-系统 SHALL 提供用于用户管理左侧筛选的部门树接口。
+系统 SHALL 提供用于用户管理左侧筛选的部门树接口，包含"未分配部门"虚拟节点和各节点用户数量。
 
 #### Scenario: 获取用户部门树
 - **WHEN** 调用 `GET /api/user/dept-tree`
-- **THEN** 返回部门树形结构数据，每个节点包含 id、label、children
+- **THEN** 返回部门树形结构数据，每个节点包含 id、label、children、userCount
+- **THEN** 每个部门节点的 label 格式为"部门名(N)"，N 为该部门关联的用户数量
+- **THEN** 树的第一层（与根节点同级）包含一个"未分配部门"虚拟节点（id 为 -1）
+
+#### Scenario: 未分配部门虚拟节点
+- **WHEN** 部门树返回数据
+- **THEN** 包含一个 id 为 -1 的"未分配部门"虚拟节点
+- **THEN** 该节点的 userCount 为未关联任何部门的用户总数
+
+#### Scenario: 按未分配部门过滤用户
+- **WHEN** 查询用户列表时传入 `deptId=-1`
+- **THEN** 返回所有未在 sys_user_dept 表中有关联记录的用户
 
 ## ADDED Requirements
 

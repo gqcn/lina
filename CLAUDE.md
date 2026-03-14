@@ -26,7 +26,8 @@ apps/
     manifest/
       config/        → 配置文件
       data/          → SQLite 数据库文件
-      sql/           → 数据库 schema
+      sql/           → DDL + Seed DML（版本 SQL 文件）
+        mock-data/   → Mock 演示/测试数据（不随生产部署）
   frontend/          → Vben5 前端（pnpm monorepo）
     apps/web-antd/   → 主应用（Ant Design Vue）
     packages/        → 共享库（@core, effects, stores, utils 等）
@@ -48,6 +49,8 @@ make dev       # 启动前后端（前端:5666, 后端:8080）
 make stop      # 停止所有服务
 make status    # 查看服务状态
 make test      # 运行 E2E 测试
+make init      # 初始化数据库（DDL + Seed 数据）
+make mock      # 加载 Mock 演示数据（需先执行 init）
 make up        # AI 生成 commit message 并推送
 ```
 
@@ -94,6 +97,7 @@ pnpm report            # 查看 HTML 报告
 - 错误处理使用 `gerror` 组件
 - **优先使用 GoFrame 内置方法**：所有 Go 方法调用优先使用 GoFrame 框架已有的方法，避免重复造轮子。例如遍历目录使用 `gfile.ScanDirFile`，而非自行实现目录遍历逻辑
 - **SQL 文件按迭代版本命名**：每次数据库变更的 SQL 文件以当前迭代版本号命名（如 `v0.1.0.sql`、`v0.2.0.sql`），存放在 `manifest/sql/` 目录下。`init.sql` 仅用于初始建表，后续迭代的表结构变更（ALTER TABLE、新增表等）使用版本号命名的 SQL 文件。升级时按版本顺序依次执行即可完成数据库迁移。
+- **SQL 数据分类管理**：版本 SQL 文件（如 `v0.2.0.sql`）中只允许包含 DDL（建表/改表）和 Seed DML（系统运行所必需的初始化数据，如字典类型、管理员账号等）。演示/测试用的 Mock 数据（如测试用户、演示部门/岗位等）必须放到 `manifest/sql/mock-data/` 目录下的独立 SQL 文件中，文件名以数字前缀控制执行顺序（如 `01_mock_depts.sql`、`02_mock_posts.sql`）。
 - 代码生成流程：
   1. **API 变更**: 修改 `api/{resource}/v1/*.go` → `make ctrl`
   2. **数据库变更**: 新增或修改 `manifest/sql/{version}.sql`（如 `v0.2.0.sql`）→ `make dao`
@@ -109,6 +113,12 @@ pnpm report            # 查看 HTML 报告
 - 全局组件在 `src/components/global/` 注册（如 GhostButton 用于表格操作列）
 - 表格页面使用 `useVbenVxeGrid` + `Page` 组件，操作列用 `ghost-button` + `Popconfirm`
 - 前端样式和交互参考 ruoyi-plus-vben5 项目保持一致
+
+### E2E 测试要求
+
+- 修复 bug 或新增功能涉及**用户可观察行为变化**时，必须编写或更新对应的 E2E 测试用例
+- 修改完成后必须运行相关 E2E 测试并确认通过，再标记任务完成
+- 纯内部重构（无 UI 变化）可豁免，但需运行已有测试套件确认无回归
 
 ### UI 设计规范
 

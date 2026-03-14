@@ -45,7 +45,12 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 
 	// Apply filters
 	if in.DeptId != nil {
-		m = m.Where(cols.DeptId, *in.DeptId)
+		if *in.DeptId == -1 {
+			// Unassigned: posts with dept_id = 0
+			m = m.Where(cols.DeptId, 0)
+		} else {
+			m = m.Where(cols.DeptId, *in.DeptId)
+		}
 	}
 	if in.Code != "" {
 		m = m.WhereLike(cols.Code, "%"+in.Code+"%")
@@ -230,7 +235,7 @@ type DeptTreeNode struct {
 	Children []*DeptTreeNode `json:"children"`
 }
 
-// DeptTree returns department tree structure.
+// DeptTree returns department tree structure with "未分配部门" virtual node.
 func (s *Service) DeptTree(ctx context.Context) ([]*DeptTreeNode, error) {
 	cols := dao.SysDept.Columns()
 	var depts []*entity.SysDept
@@ -261,6 +266,14 @@ func (s *Service) DeptTree(ctx context.Context) ([]*DeptTreeNode, error) {
 			roots = append(roots, node)
 		}
 	}
+
+	// Append "未分配部门" virtual node
+	unassignedNode := &DeptTreeNode{
+		Id:       -1,
+		Label:    "未分配部门",
+		Children: make([]*DeptTreeNode, 0),
+	}
+	roots = append(roots, unassignedNode)
 
 	return roots, nil
 }

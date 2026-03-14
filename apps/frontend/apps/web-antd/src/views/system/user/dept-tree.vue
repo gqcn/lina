@@ -63,7 +63,15 @@ async function handleReload() {
   emit('reload');
 }
 
+/** 静默刷新树数据（不重置选中状态和搜索框） */
+async function refreshTree() {
+  const ret = await props.api();
+  deptTreeArray.value = ret;
+}
+
 onMounted(loadTree);
+
+defineExpose({ refreshTree });
 </script>
 
 <template>

@@ -176,9 +176,10 @@ type DeptTreeReq struct {
 }
 
 type DeptTreeNode struct {
-	Id       int             `json:"id" dc:"Dept ID"`
-	Label    string          `json:"label" dc:"Dept name"`
-	Children []*DeptTreeNode `json:"children" dc:"Child depts"`
+	Id        int             `json:"id" dc:"Dept ID"`
+	Label     string          `json:"label" dc:"Dept name"`
+	UserCount int             `json:"userCount" dc:"User count in this dept"`
+	Children  []*DeptTreeNode `json:"children" dc:"Child depts"`
 }
 
 type DeptTreeRes struct {

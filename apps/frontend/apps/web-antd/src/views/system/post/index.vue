@@ -21,6 +21,7 @@ import { columns, querySchema } from './data';
 import PostDrawer from './post-drawer.vue';
 
 const selectDeptId = ref<string[]>([]);
+const deptTreeRef = ref<InstanceType<typeof DeptTree>>();
 
 const [PostDrawerRef, postDrawerApi] = useVbenDrawer({
   connectedComponent: PostDrawer,
@@ -102,6 +103,7 @@ async function handleDelete(row: Post) {
   await postDelete(String(row.id));
   message.success('删除成功');
   await gridApi.query();
+  deptTreeRef.value?.refreshTree();
 }
 
 function handleMultiDelete() {
@@ -115,6 +117,7 @@ function handleMultiDelete() {
       await postDelete(ids.join(','));
       checkedRows.value = [];
       await gridApi.query();
+      deptTreeRef.value?.refreshTree();
     },
   });
 }
@@ -132,12 +135,14 @@ async function handleExport() {
 
 function onReload() {
   gridApi.query();
+  deptTreeRef.value?.refreshTree();
 }
 </script>
 
 <template>
   <Page :auto-content-height="true" content-class="flex gap-[8px] w-full">
     <DeptTree
+      ref="deptTreeRef"
       :api="postDeptTree"
       v-model:select-dept-id="selectDeptId"
       class="w-[260px]"

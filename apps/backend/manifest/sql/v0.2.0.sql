@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS sys_user_post (
 );
 
 -- ============================================================
--- 字典初始化数据
+-- 字典初始化数据（系统必需）
 -- ============================================================
 
 -- 字典类型: 系统开关
@@ -112,39 +112,3 @@ INSERT OR IGNORE INTO sys_dict_data (dict_type, label, value, sort, tag_style, s
 VALUES ('sys_user_sex', '女', '2', 2, 'danger', 1, datetime('now'), datetime('now'));
 INSERT OR IGNORE INTO sys_dict_data (dict_type, label, value, sort, tag_style, status, created_at, updated_at)
 VALUES ('sys_user_sex', '未知', '0', 3, 'default', 1, datetime('now'), datetime('now'));
-
--- ============================================================
--- 部门初始化数据
--- ============================================================
-INSERT OR IGNORE INTO sys_dept (id, parent_id, ancestors, name, order_num, status, created_at, updated_at)
-VALUES (1, 0, '0', 'Lina科技', 0, 1, datetime('now'), datetime('now'));
-INSERT OR IGNORE INTO sys_dept (id, parent_id, ancestors, name, order_num, status, created_at, updated_at)
-VALUES (2, 1, '0,1', '研发部门', 1, 1, datetime('now'), datetime('now'));
-INSERT OR IGNORE INTO sys_dept (id, parent_id, ancestors, name, order_num, status, created_at, updated_at)
-VALUES (3, 1, '0,1', '市场部门', 2, 1, datetime('now'), datetime('now'));
-INSERT OR IGNORE INTO sys_dept (id, parent_id, ancestors, name, order_num, status, created_at, updated_at)
-VALUES (4, 1, '0,1', '测试部门', 3, 1, datetime('now'), datetime('now'));
-INSERT OR IGNORE INTO sys_dept (id, parent_id, ancestors, name, order_num, status, created_at, updated_at)
-VALUES (5, 1, '0,1', '财务部门', 4, 1, datetime('now'), datetime('now'));
-INSERT OR IGNORE INTO sys_dept (id, parent_id, ancestors, name, order_num, status, created_at, updated_at)
-VALUES (6, 1, '0,1', '运维部门', 5, 1, datetime('now'), datetime('now'));
-
--- ============================================================
--- 岗位初始化数据
--- ============================================================
-INSERT OR IGNORE INTO sys_post (id, dept_id, code, name, sort, status, created_at, updated_at)
-VALUES (1, 1, 'CEO', '总经理', 1, 1, datetime('now'), datetime('now'));
-INSERT OR IGNORE INTO sys_post (id, dept_id, code, name, sort, status, created_at, updated_at)
-VALUES (2, 2, 'CTO', '技术总监', 2, 1, datetime('now'), datetime('now'));
-INSERT OR IGNORE INTO sys_post (id, dept_id, code, name, sort, status, created_at, updated_at)
-VALUES (3, 2, 'PM', '项目经理', 3, 1, datetime('now'), datetime('now'));
-INSERT OR IGNORE INTO sys_post (id, dept_id, code, name, sort, status, created_at, updated_at)
-VALUES (4, 2, 'DEV', '开发工程师', 4, 1, datetime('now'), datetime('now'));
-INSERT OR IGNORE INTO sys_post (id, dept_id, code, name, sort, status, created_at, updated_at)
-VALUES (5, 4, 'QA', '测试工程师', 5, 1, datetime('now'), datetime('now'));
-
--- ============================================================
--- 关联 admin 用户到 Lina科技 部门和总经理岗位
--- ============================================================
-INSERT OR IGNORE INTO sys_user_dept (user_id, dept_id) VALUES (1, 1);
-INSERT OR IGNORE INTO sys_user_post (user_id, post_id) VALUES (1, 1);
