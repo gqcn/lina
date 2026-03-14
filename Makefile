@@ -27,7 +27,7 @@ up:
 	fi; \
 	echo "Commit: $$COMMIT_MSG"; \
 	git commit -m "$$COMMIT_MSG" && \
-	git push origin
+	git push origin $$(git branch --show-current)
 	
 ## dev: 启动前后端开发服务器
 dev:
