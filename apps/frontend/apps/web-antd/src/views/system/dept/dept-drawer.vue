@@ -65,9 +65,9 @@ async function initDeptSelect(id?: number) {
   let treeData: DeptTree[];
   if (isUpdate.value && id) {
     // 编辑时排除自身及子节点
-    treeData = await deptExclude(id);
+    treeData = (await deptExclude(id)) || [];
   } else {
-    treeData = await deptTree();
+    treeData = (await deptTree()) || [];
   }
   // 添加完整路径名
   addFullName(treeData);
@@ -87,9 +87,9 @@ async function initDeptSelect(id?: number) {
   ]);
 }
 
-/** 初始化部门负责人下拉 */
-async function initDeptUsers(id: number) {
-  const ret = await deptUsers(id);
+/** 加载负责人用户列表 */
+async function loadLeaderUsers(targetDeptId: number, keyword?: string) {
+  const ret = await deptUsers(targetDeptId, { keyword, limit: 10 });
   const options = ret.map((user) => ({
     label: `${user.username} | ${user.nickname}`,
     value: user.id,
@@ -97,27 +97,20 @@ async function initDeptUsers(id: number) {
   formApi.updateSchema([
     {
       componentProps: {
-        disabled: ret.length === 0,
+        filterOption: false,
+        onSearch: (val: string) => loadLeaderUsers(targetDeptId, val),
         options,
-        placeholder: ret.length === 0 ? '该部门暂无用户' : '请选择部门负责人',
+        placeholder: '请选择部门负责人',
+        showSearch: true,
       },
       fieldName: 'leader',
     },
   ]);
 }
 
-/** 新增时禁用负责人选择 */
-function setLeaderDisabled() {
-  formApi.updateSchema([
-    {
-      componentProps: {
-        disabled: true,
-        options: [],
-        placeholder: '仅在更新时可选部门负责人',
-      },
-      fieldName: 'leader',
-    },
-  ]);
+/** 初始化部门负责人下拉 */
+async function initDeptUsers(targetDeptId: number) {
+  await loadLeaderUsers(targetDeptId);
 }
 
 const [BasicDrawer, drawerApi] = useVbenDrawer({
@@ -137,11 +130,17 @@ const [BasicDrawer, drawerApi] = useVbenDrawer({
       if (update) {
         deptId.value = id;
         const record = await deptInfo(id);
+        // Convert leader=0 to undefined so the select shows blank
+        if (record.leader === 0) {
+          record.leader = undefined as any;
+        }
         await formApi.setValues(record);
       }
     }
 
-    await (update && id ? initDeptUsers(id) : setLeaderDisabled());
+    // For new dept (no id or id used as parentId): load all users (deptId=0)
+    // For edit dept: load users from this dept's subtree
+    await initDeptUsers(update && id ? id : 0);
     await initDeptSelect(id);
 
     drawerApi.setState({ loading: false });

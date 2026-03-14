@@ -7,7 +7,7 @@ import (
 )
 
 func (c *ControllerV1) Users(ctx context.Context, req *v1.UsersReq) (res *v1.UsersRes, err error) {
-	users, err := c.deptSvc.Users(ctx, req.Id)
+	users, err := c.deptSvc.Users(ctx, req.Id, req.Keyword, req.Limit)
 	if err != nil {
 		return nil, err
 	}

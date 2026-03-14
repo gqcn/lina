@@ -150,7 +150,7 @@ function setExpandOrCollapse(expand: boolean) {
         <Space>
           <a-button @click="setExpandOrCollapse(false)">折 叠</a-button>
           <a-button @click="setExpandOrCollapse(true)">展 开</a-button>
-          <a-button type="primary" @click="handleAdd">新增部门</a-button>
+          <a-button type="primary" @click="handleAdd">新增</a-button>
         </Space>
       </template>
       <template #action="{ row }">

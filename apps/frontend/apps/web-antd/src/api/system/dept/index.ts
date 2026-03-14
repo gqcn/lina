@@ -42,10 +42,14 @@ export async function deptExclude(id: number) {
   return res.list;
 }
 
-/** 获取部门下的用户列表 */
-export async function deptUsers(id: number) {
+/** 获取部门下的用户列表（负责人选择） */
+export async function deptUsers(
+  id: number,
+  params?: { keyword?: string; limit?: number },
+) {
   const res = await requestClient.get<{ list: DeptUser[] }>(
     `/dept/${id}/users`,
+    { params },
   );
   return res.list;
 }

@@ -89,9 +89,12 @@ type ExcludeRes struct {
 }
 
 // UsersReq returns users belonging to a dept (for leader selection).
+// When Id=0, returns all users. When Id>0, returns users in the dept and all its sub-depts.
 type UsersReq struct {
-	g.Meta `path:"/dept/{id}/users" method:"get" tags:"Dept" summary:"Get dept users"`
-	Id     int `json:"id" v:"required" dc:"Dept ID"`
+	g.Meta  `path:"/dept/{id}/users" method:"get" tags:"Dept" summary:"Get dept users"`
+	Id      int    `json:"id" dc:"Dept ID, 0 for all users"`
+	Keyword string `json:"keyword" dc:"Search by username or nickname"`
+	Limit   int    `json:"limit" d:"10" dc:"Max number of results"`
 }
 
 type DeptUser struct {

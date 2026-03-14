@@ -92,7 +92,7 @@ export function drawerSchema(): VbenFormSchema[] {
     {
       component: 'Select',
       componentProps: {
-        allowClear: false,
+        allowClear: true,
       },
       fieldName: 'leader',
       label: '负责人',

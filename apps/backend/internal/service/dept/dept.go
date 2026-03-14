@@ -342,12 +342,64 @@ func (s *Service) Exclude(ctx context.Context, in ExcludeInput) ([]*entity.SysDe
 	return list, nil
 }
 
-// Users gets users in a dept.
-func (s *Service) Users(ctx context.Context, deptId int) ([]*DeptUser, error) {
-	// Query sys_user_dept for user_ids
+// Users gets users for leader selection.
+// When deptId=0, returns all users. When deptId>0, returns users in the dept and all its sub-depts.
+// Supports keyword search on username/nickname and result limit.
+func (s *Service) Users(ctx context.Context, deptId int, keyword string, limit int) ([]*DeptUser, error) {
+	uCols := dao.SysUser.Columns()
+
+	if deptId == 0 {
+		// Return all users (for new dept creation)
+		q := dao.SysUser.Ctx(ctx).
+			Fields(uCols.Id, uCols.Username, uCols.Nickname).
+			WhereNull(uCols.DeletedAt)
+		if keyword != "" {
+			q = q.Where(
+				fmt.Sprintf("(%s LIKE ? OR %s LIKE ?)", uCols.Username, uCols.Nickname),
+				"%"+keyword+"%", "%"+keyword+"%",
+			)
+		}
+		if limit > 0 {
+			q = q.Limit(limit)
+		}
+		var users []*entity.SysUser
+		if err := q.Scan(&users); err != nil {
+			return nil, err
+		}
+		result := make([]*DeptUser, 0, len(users))
+		for _, u := range users {
+			result = append(result, &DeptUser{
+				Id:       u.Id,
+				Username: u.Username,
+				Nickname: u.Nickname,
+			})
+		}
+		return result, nil
+	}
+
+	// Collect the selected dept and all its descendant depts via ancestors field.
+	deptCols := dao.SysDept.Columns()
+	var descDepts []*entity.SysDept
+	err := dao.SysDept.Ctx(ctx).
+		WhereNull(deptCols.DeletedAt).
+		Where(
+			fmt.Sprintf("(',' || %s || ',') LIKE ?", deptCols.Ancestors),
+			fmt.Sprintf("%%,%d,%%", deptId),
+		).
+		Fields(deptCols.Id).
+		Scan(&descDepts)
+	if err != nil {
+		return nil, err
+	}
+	deptIds := []int{deptId}
+	for _, d := range descDepts {
+		deptIds = append(deptIds, d.Id)
+	}
+
+	// Query sys_user_dept for user_ids in the subtree
 	var userDepts []*entity.SysUserDept
-	err := dao.SysUserDept.Ctx(ctx).
-		Where(do.SysUserDept{DeptId: deptId}).
+	err = dao.SysUserDept.Ctx(ctx).
+		WhereIn(dao.SysUserDept.Columns().DeptId, deptIds).
 		Scan(&userDepts)
 	if err != nil {
 		return nil, err
@@ -357,21 +409,32 @@ func (s *Service) Users(ctx context.Context, deptId int) ([]*DeptUser, error) {
 		return make([]*DeptUser, 0), nil
 	}
 
-	// Collect user IDs
+	// Deduplicate user IDs
+	seen := make(map[int]struct{})
 	userIds := make([]int, 0, len(userDepts))
 	for _, ud := range userDepts {
-		userIds = append(userIds, ud.UserId)
+		if _, ok := seen[ud.UserId]; !ok {
+			seen[ud.UserId] = struct{}{}
+			userIds = append(userIds, ud.UserId)
+		}
 	}
 
 	// Query sys_user for those IDs
-	uCols := dao.SysUser.Columns()
-	var users []*entity.SysUser
-	err = dao.SysUser.Ctx(ctx).
+	q := dao.SysUser.Ctx(ctx).
 		Fields(uCols.Id, uCols.Username, uCols.Nickname).
 		WhereIn(uCols.Id, userIds).
-		WhereNull(uCols.DeletedAt).
-		Scan(&users)
-	if err != nil {
+		WhereNull(uCols.DeletedAt)
+	if keyword != "" {
+		q = q.Where(
+			fmt.Sprintf("(%s LIKE ? OR %s LIKE ?)", uCols.Username, uCols.Nickname),
+			"%"+keyword+"%", "%"+keyword+"%",
+		)
+	}
+	if limit > 0 {
+		q = q.Limit(limit)
+	}
+	var users []*entity.SysUser
+	if err = q.Scan(&users); err != nil {
 		return nil, err
 	}
 

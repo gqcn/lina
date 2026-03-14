@@ -35,10 +35,12 @@ export class DeptPage {
     await this.page.waitForTimeout(500);
   }
 
-  /** Create a root dept by clicking "新增部门" toolbar button */
+  /** Create a root dept by clicking "新增" toolbar button */
   async createRootDept(name: string) {
+    // Click the primary "新增" button in toolbar (not the row-level "新增" buttons)
     await this.page
-      .getByRole('button', { name: /新增部门/ })
+      .locator('.vxe-grid--toolbar')
+      .getByRole('button', { name: /新\s*增/ })
       .click();
 
     // Wait for drawer to open
