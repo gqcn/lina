@@ -36,6 +36,15 @@ CREATE TABLE IF NOT EXISTS sys_login_log (
 );
 
 -- ============================================================
+-- 字典数据表: 添加唯一约束防止重复数据
+-- ============================================================
+-- 先清理已有重复数据（保留每组 dict_type+value 中 id 最小的记录）
+DELETE FROM sys_dict_data WHERE id NOT IN (
+    SELECT MIN(id) FROM sys_dict_data GROUP BY dict_type, value
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sys_dict_data_type_value ON sys_dict_data(dict_type, value);
+
+-- ============================================================
 -- 字典初始化数据：操作类型
 -- ============================================================
 INSERT OR IGNORE INTO sys_dict_type (name, type, status, remark, created_at, updated_at)

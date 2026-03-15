@@ -22,8 +22,19 @@ import LoginlogDetailModal from './loginlog-detail-modal.vue';
 
 const dictStore = useDictStore();
 
-onMounted(() => {
-  dictStore.getDictOptions('sys_oper_status');
+onMounted(async () => {
+  const statusOptions = await dictStore.getDictOptions('sys_oper_status');
+  gridApi.formApi.updateSchema([
+    {
+      fieldName: 'status',
+      componentProps: {
+        options: statusOptions.map((d: any) => ({
+          label: d.label,
+          value: d.value,
+        })),
+      },
+    },
+  ]);
 });
 
 const [DetailModalRef, detailModalApi] = useVbenModal({

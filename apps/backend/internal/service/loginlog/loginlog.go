@@ -82,7 +82,11 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 		m = m.WhereGTE(cols.LoginTime, in.BeginTime)
 	}
 	if in.EndTime != "" {
-		m = m.WhereLTE(cols.LoginTime, in.EndTime)
+		endTime := in.EndTime
+		if len(endTime) == 10 {
+			endTime += " 23:59:59"
+		}
+		m = m.WhereLTE(cols.LoginTime, endTime)
 	}
 
 	total, err := m.Count()
@@ -152,7 +156,11 @@ func (s *Service) Clean(ctx context.Context, in CleanInput) (int, error) {
 		hasFilter = true
 	}
 	if in.EndTime != "" {
-		m = m.WhereLTE(cols.LoginTime, in.EndTime)
+		endTime := in.EndTime
+		if len(endTime) == 10 {
+			endTime += " 23:59:59"
+		}
+		m = m.WhereLTE(cols.LoginTime, endTime)
 		hasFilter = true
 	}
 	if !hasFilter {
@@ -209,7 +217,11 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 		m = m.WhereGTE(cols.LoginTime, in.BeginTime)
 	}
 	if in.EndTime != "" {
-		m = m.WhereLTE(cols.LoginTime, in.EndTime)
+		endTime := in.EndTime
+		if len(endTime) == 10 {
+			endTime += " 23:59:59"
+		}
+		m = m.WhereLTE(cols.LoginTime, endTime)
 	}
 
 	orderBy := cols.LoginTime

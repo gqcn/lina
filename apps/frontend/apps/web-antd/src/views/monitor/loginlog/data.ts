@@ -32,6 +32,9 @@ export const querySchema: VbenFormSchema[] = [
     component: 'RangePicker',
     fieldName: 'loginTime',
     label: '登录日期',
+    componentProps: {
+      valueFormat: 'YYYY-MM-DD',
+    },
   },
 ];
 

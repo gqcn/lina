@@ -22,9 +22,31 @@ import OperlogDetailDrawer from './operlog-detail-drawer.vue';
 
 const dictStore = useDictStore();
 
-onMounted(() => {
-  dictStore.getDictOptions('sys_oper_type');
-  dictStore.getDictOptions('sys_oper_status');
+onMounted(async () => {
+  const [operTypeOptions, operStatusOptions] = await Promise.all([
+    dictStore.getDictOptions('sys_oper_type'),
+    dictStore.getDictOptions('sys_oper_status'),
+  ]);
+  gridApi.formApi.updateSchema([
+    {
+      fieldName: 'operType',
+      componentProps: {
+        options: operTypeOptions.map((d: any) => ({
+          label: d.label,
+          value: d.value,
+        })),
+      },
+    },
+    {
+      fieldName: 'status',
+      componentProps: {
+        options: operStatusOptions.map((d: any) => ({
+          label: d.label,
+          value: d.value,
+        })),
+      },
+    },
+  ]);
 });
 
 const [DetailDrawerRef, detailDrawerApi] = useVbenDrawer({

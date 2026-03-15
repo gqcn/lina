@@ -31,7 +31,7 @@ export const querySchema: VbenFormSchema[] = [
   {
     component: 'Select',
     fieldName: 'status',
-    label: '操作状态',
+    label: '操作结果',
     componentProps: {
       options: [] as { label: string; value: string }[],
     },
@@ -40,6 +40,9 @@ export const querySchema: VbenFormSchema[] = [
     component: 'RangePicker',
     fieldName: 'operTime',
     label: '操作时间',
+    componentProps: {
+      valueFormat: 'YYYY-MM-DD',
+    },
   },
 ];
 
@@ -85,7 +88,7 @@ export const columns: VxeGridProps['columns'] = [
   },
   {
     field: 'status',
-    title: '操作状态',
+    title: '操作结果',
     minWidth: 100,
     slots: {
       default: ({ row }) => {

@@ -9,69 +9,69 @@ import (
 // Dict Type API
 
 type TypeListReq struct {
-	g.Meta   `path:"/dict/type" method:"get" tags:"DictType" summary:"Get dict type list"`
-	PageNum  int    `json:"pageNum" d:"1" v:"min:1" dc:"Page number"`
-	PageSize int    `json:"pageSize" d:"10" v:"min:1|max:100" dc:"Page size"`
-	Name     string `json:"name" dc:"Filter by dict name"`
-	Type     string `json:"type" dc:"Filter by dict type"`
+	g.Meta   `path:"/dict/type" method:"get" tags:"字典管理" summary:"获取字典类型列表"`
+	PageNum  int    `json:"pageNum" d:"1" v:"min:1" dc:"页码"`
+	PageSize int    `json:"pageSize" d:"10" v:"min:1|max:100" dc:"每页条数"`
+	Name     string `json:"name" dc:"按字典名称筛选"`
+	Type     string `json:"type" dc:"按字典类型筛选"`
 }
 
 type TypeListRes struct {
-	List  []*entity.SysDictType `json:"list" dc:"Dict type list"`
-	Total int                   `json:"total" dc:"Total count"`
+	List  []*entity.SysDictType `json:"list" dc:"字典类型列表"`
+	Total int                   `json:"total" dc:"总条数"`
 }
 
 type TypeCreateReq struct {
-	g.Meta `path:"/dict/type" method:"post" tags:"DictType" summary:"Create dict type"`
-	Name   string `json:"name" v:"required#请输入字典名称" dc:"Dict name"`
-	Type   string `json:"type" v:"required#请输入字典类型" dc:"Dict type"`
-	Status *int   `json:"status" d:"1" dc:"Status: 1=normal 0=disabled"`
-	Remark string `json:"remark" dc:"Remark"`
+	g.Meta `path:"/dict/type" method:"post" tags:"字典管理" summary:"创建字典类型"`
+	Name   string `json:"name" v:"required#请输入字典名称" dc:"字典名称"`
+	Type   string `json:"type" v:"required#请输入字典类型" dc:"字典类型"`
+	Status *int   `json:"status" d:"1" dc:"状态：1=正常 0=停用"`
+	Remark string `json:"remark" dc:"备注"`
 }
 
 type TypeCreateRes struct {
-	Id int `json:"id" dc:"Dict type ID"`
+	Id int `json:"id" dc:"字典类型ID"`
 }
 
 type TypeGetReq struct {
-	g.Meta `path:"/dict/type/{id}" method:"get" tags:"DictType" summary:"Get dict type detail"`
-	Id     int `json:"id" v:"required" dc:"Dict type ID"`
+	g.Meta `path:"/dict/type/{id}" method:"get" tags:"字典管理" summary:"获取字典类型详情"`
+	Id     int `json:"id" v:"required" dc:"字典类型ID"`
 }
 
 type TypeGetRes struct {
-	*entity.SysDictType `dc:"Dict type info"`
+	*entity.SysDictType `dc:"字典类型信息"`
 }
 
 type TypeUpdateReq struct {
-	g.Meta `path:"/dict/type/{id}" method:"put" tags:"DictType" summary:"Update dict type"`
-	Id     int     `json:"id" v:"required" dc:"Dict type ID"`
-	Name   *string `json:"name" dc:"Dict name"`
-	Type   *string `json:"type" dc:"Dict type"`
-	Status *int    `json:"status" dc:"Status"`
-	Remark *string `json:"remark" dc:"Remark"`
+	g.Meta `path:"/dict/type/{id}" method:"put" tags:"字典管理" summary:"更新字典类型"`
+	Id     int     `json:"id" v:"required" dc:"字典类型ID"`
+	Name   *string `json:"name" dc:"字典名称"`
+	Type   *string `json:"type" dc:"字典类型"`
+	Status *int    `json:"status" dc:"状态"`
+	Remark *string `json:"remark" dc:"备注"`
 }
 
 type TypeUpdateRes struct{}
 
 type TypeDeleteReq struct {
-	g.Meta `path:"/dict/type/{id}" method:"delete" tags:"DictType" summary:"Delete dict type"`
-	Id     int `json:"id" v:"required" dc:"Dict type ID"`
+	g.Meta `path:"/dict/type/{id}" method:"delete" tags:"字典管理" summary:"删除字典类型"`
+	Id     int `json:"id" v:"required" dc:"字典类型ID"`
 }
 
 type TypeDeleteRes struct{}
 
 type TypeExportReq struct {
-	g.Meta `path:"/dict/type/export" method:"get" tags:"DictType" summary:"Export dict types to Excel" operLog:"4"`
-	Name   string `json:"name" dc:"Filter by dict name"`
-	Type   string `json:"type" dc:"Filter by dict type"`
+	g.Meta `path:"/dict/type/export" method:"get" tags:"字典管理" summary:"导出字典类型" operLog:"4"`
+	Name   string `json:"name" dc:"按字典名称筛选"`
+	Type   string `json:"type" dc:"按字典类型筛选"`
 }
 
 type TypeExportRes struct{}
 
 type TypeOptionsReq struct {
-	g.Meta `path:"/dict/type/options" method:"get" tags:"DictType" summary:"Get all dict type options"`
+	g.Meta `path:"/dict/type/options" method:"get" tags:"字典管理" summary:"获取全部字典类型选项"`
 }
 
 type TypeOptionsRes struct {
-	List []*entity.SysDictType `json:"list" dc:"Dict type options"`
+	List []*entity.SysDictType `json:"list" dc:"字典类型选项列表"`
 }

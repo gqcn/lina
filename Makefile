@@ -30,15 +30,11 @@ up:
 	git push origin $$(git branch --show-current)
 	
 ## dev: 启动前后端开发服务器
-dev:
+dev: stop
 	@mkdir -p $(PID_DIR)
-	@# ── 停掉旧进程 ──────────────────────────────────────────────
-	@if [ -f $(BACKEND_PID) ]; then kill $$(cat $(BACKEND_PID)) 2>/dev/null || true; fi
-	@if [ -f $(FRONTEND_PID) ]; then kill $$(cat $(FRONTEND_PID)) 2>/dev/null || true; fi
 	@# ── 编译后端 ────────────────────────────────────────────────
-	@echo "正在编译后端..."
+	@echo "正在重启服务..."
 	@cd $(BACKEND_DIR) && go build -o temp/bin/lina . || { echo "后端编译失败"; exit 1; }
-	@echo "✓ 后端编译成功"
 	@# ── 启动后端 ────────────────────────────────────────────────
 	@cd $(BACKEND_DIR) && ./temp/bin/lina >> /tmp/lina-backend.log 2>&1 & echo $$! > $(BACKEND_PID)
 	@sleep 1
@@ -51,8 +47,8 @@ dev:
 	@echo "╠══════════════════════════════════════════════╣"
 	@echo "║  前端地址:  http://localhost:$(FRONTEND_PORT)            ║"
 	@echo "║  后端地址:  http://localhost:$(BACKEND_PORT)            ║"
-	@echo "║  后端日志:  /tmp/lina-backend.log             ║"
-	@echo "║  前端日志:  /tmp/lina-frontend.log            ║"
+	@echo "║  后端日志:  /tmp/lina-backend.log            ║"
+	@echo "║  前端日志:  /tmp/lina-frontend.log           ║"
 	@echo "╚══════════════════════════════════════════════╝"
 	@echo ""
 
