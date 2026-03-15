@@ -5,7 +5,7 @@ import { computed, shallowRef } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
 
-import { Descriptions, DescriptionsItem, Tag } from 'ant-design-vue';
+import { Descriptions, DescriptionsItem } from 'ant-design-vue';
 
 import { DictTag } from '#/components/dict';
 import JsonPreview from '#/components/json-preview/index.vue';
@@ -69,7 +69,7 @@ function parseJson(str: string): any {
         />
       </DescriptionsItem>
       <DescriptionsItem label="模块名称">
-        <Tag>{{ currentLog.title }}</Tag>
+        {{ currentLog.title }}
       </DescriptionsItem>
       <DescriptionsItem label="操作名称">
         {{ currentLog.operSummary }}
