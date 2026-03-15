@@ -9,19 +9,22 @@ import (
 	"backend/internal/model"
 	"backend/internal/service/auth"
 	"backend/internal/service/bizctx"
+	"backend/internal/service/operlog"
 )
 
 // Service provides middleware operations.
 type Service struct {
-	authSvc   *auth.Service
-	bizCtxSvc *bizctx.Service
+	authSvc    *auth.Service
+	bizCtxSvc  *bizctx.Service
+	operLogSvc *operlog.Service
 }
 
 // New creates and returns a new Service instance.
 func New() *Service {
 	return &Service{
-		authSvc:   auth.New(),
-		bizCtxSvc: bizctx.New(),
+		authSvc:    auth.New(),
+		bizCtxSvc:  bizctx.New(),
+		operLogSvc: operlog.New(),
 	}
 }
 

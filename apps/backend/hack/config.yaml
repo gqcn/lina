@@ -5,7 +5,7 @@ gfcli:
   gen:
     dao:
       - link: "sqlite::@file(./temp/data/data.db)"
-        tables: "sys_user,sys_dict_type,sys_dict_data,sys_dept,sys_post,sys_user_dept,sys_user_post"
+        tables: "sys_user,sys_dict_type,sys_dict_data,sys_dept,sys_post,sys_user_dept,sys_user_post,sys_oper_log,sys_login_log"
         descriptionTag: true
         noModelComment: true
 

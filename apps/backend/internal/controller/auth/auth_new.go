@@ -7,14 +7,17 @@ package auth
 import (
 	authapi "backend/api/auth"
 	authsvc "backend/internal/service/auth"
+	"backend/internal/service/bizctx"
 )
 
 type ControllerV1 struct {
-	authSvc *authsvc.Service
+	authSvc   *authsvc.Service
+	bizCtxSvc *bizctx.Service
 }
 
 func NewV1() authapi.IAuthV1 {
 	return &ControllerV1{
-		authSvc: authsvc.New(),
+		authSvc:   authsvc.New(),
+		bizCtxSvc: bizctx.New(),
 	}
 }

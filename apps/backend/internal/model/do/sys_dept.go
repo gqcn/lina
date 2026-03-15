@@ -16,6 +16,7 @@ type SysDept struct {
 	ParentId  any         //
 	Ancestors any         //
 	Name      any         //
+	Code      any         //
 	OrderNum  any         //
 	Leader    any         //
 	Phone     any         //
@@ -25,5 +26,4 @@ type SysDept struct {
 	CreatedAt *gtime.Time //
 	UpdatedAt *gtime.Time //
 	DeletedAt *gtime.Time //
-	Code      any         //
 }

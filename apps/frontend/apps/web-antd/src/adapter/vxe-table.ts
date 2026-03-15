@@ -86,4 +86,13 @@ setupVbenVxeTable({
 
 export { useVbenVxeGrid };
 
+/**
+ * 判断vxe-table的复选框是否选中
+ */
+export function vxeCheckboxChecked(
+  tableApi: ReturnType<typeof useVbenVxeGrid>[1],
+) {
+  return tableApi?.grid?.getCheckboxRecords?.()?.length > 0;
+}
+
 export type * from '@vben/plugins/vxe-table';

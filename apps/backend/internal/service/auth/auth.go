@@ -8,20 +8,26 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/mssola/useragent"
 	"golang.org/x/crypto/bcrypt"
 
 	"backend/internal/consts"
 	"backend/internal/dao"
 	"backend/internal/model/do"
 	"backend/internal/model/entity"
+	"backend/internal/service/loginlog"
 )
 
 // Service provides authentication operations.
-type Service struct{}
+type Service struct {
+	loginLogSvc *loginlog.Service
+}
 
 // New creates and returns a new Service instance.
 func New() *Service {
-	return &Service{}
+	return &Service{
+		loginLogSvc: loginlog.New(),
+	}
 }
 
 // Claims defines JWT token claims.
@@ -45,6 +51,27 @@ type LoginOutput struct {
 
 // Login verifies credentials and issues JWT token.
 func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error) {
+	// Extract client info for login log
+	var ip, browser, osName string
+	if r := g.RequestFromCtx(ctx); r != nil {
+		ip = r.GetClientIp()
+		ua := useragent.New(r.GetHeader("User-Agent"))
+		browserName, browserVersion := ua.Browser()
+		browser = browserName + " " + browserVersion
+		osName = ua.OS()
+	}
+
+	recordLoginLog := func(username string, status int, msg string) {
+		_ = s.loginLogSvc.Create(ctx, loginlog.CreateInput{
+			UserName: username,
+			Status:   status,
+			Ip:       ip,
+			Browser:  browser,
+			Os:       osName,
+			Msg:      msg,
+		})
+	}
+
 	// Query user by username (exclude soft-deleted)
 	var user *entity.SysUser
 	cols := dao.SysUser.Columns()
@@ -56,16 +83,19 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 		return nil, err
 	}
 	if user == nil {
+		recordLoginLog(in.Username, 1, "用户名或密码错误")
 		return nil, gerror.New("用户名或密码错误")
 	}
 
 	// Verify password
 	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(in.Password)); err != nil {
+		recordLoginLog(in.Username, 1, "用户名或密码错误")
 		return nil, gerror.New("用户名或密码错误")
 	}
 
 	// Check status
 	if user.Status == consts.UserStatusDisabled {
+		recordLoginLog(in.Username, 1, "用户已停用")
 		return nil, gerror.New("用户已停用")
 	}
 
@@ -81,6 +111,7 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 		Data(do.SysUser{LoginDate: gtime.Now()}).
 		Update()
 
+	recordLoginLog(in.Username, 0, "登录成功")
 	return &LoginOutput{AccessToken: token}, nil
 }
 
@@ -106,6 +137,26 @@ func (s *Service) HashPassword(password string) (string, error) {
 		return "", gerror.Wrap(err, "密码加密失败")
 	}
 	return string(hash), nil
+}
+
+// Logout records logout login log.
+func (s *Service) Logout(ctx context.Context, username string) {
+	var ip, browser, osName string
+	if r := g.RequestFromCtx(ctx); r != nil {
+		ip = r.GetClientIp()
+		ua := useragent.New(r.GetHeader("User-Agent"))
+		browserName, browserVersion := ua.Browser()
+		browser = browserName + " " + browserVersion
+		osName = ua.OS()
+	}
+	_ = s.loginLogSvc.Create(ctx, loginlog.CreateInput{
+		UserName: username,
+		Status:   0,
+		Ip:       ip,
+		Browser:  browser,
+		Os:       osName,
+		Msg:      "登出成功",
+	})
 }
 
 // generateToken generates JWT token for given user.

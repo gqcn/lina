@@ -61,7 +61,7 @@ type TypeDeleteReq struct {
 type TypeDeleteRes struct{}
 
 type TypeExportReq struct {
-	g.Meta `path:"/dict/type/export" method:"get" tags:"DictType" summary:"Export dict types to Excel"`
+	g.Meta `path:"/dict/type/export" method:"get" tags:"DictType" summary:"Export dict types to Excel" operLog:"4"`
 	Name   string `json:"name" dc:"Filter by dict name"`
 	Type   string `json:"type" dc:"Filter by dict type"`
 }

@@ -10,6 +10,8 @@ import (
 	"backend/internal/controller/auth"
 	"backend/internal/controller/dept"
 	"backend/internal/controller/dict"
+	"backend/internal/controller/loginlog"
+	"backend/internal/controller/operlog"
 	"backend/internal/controller/post"
 	"backend/internal/controller/user"
 	"backend/internal/service/middleware"
@@ -46,6 +48,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		})
 
 		group.Middleware(
+			ghttp.MiddlewareNeverDoneCtx,
 			ghttp.MiddlewareHandlerResponse,
 			middlewareSvc.CORS,
 			middlewareSvc.Ctx,
@@ -61,6 +64,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		// Protected routes (auth required)
 		group.Group("/", func(group *ghttp.RouterGroup) {
 			group.Middleware(middlewareSvc.Auth)
+			group.Middleware(middlewareSvc.OperLog)
 			group.ALLMap(g.Map{
 				"POST:/auth/logout": authCtrl.Logout,
 				"GET:/auth/codes":   authCtrl.Codes,
@@ -70,6 +74,8 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				dict.NewV1(),
 				dept.NewV1(),
 				post.NewV1(),
+				loginlog.NewV1(),
+				operlog.NewV1(),
 			)
 		})
 	})

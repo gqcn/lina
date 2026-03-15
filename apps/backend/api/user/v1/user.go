@@ -128,7 +128,7 @@ type GetInfoRes struct {
 }
 
 type ExportReq struct {
-	g.Meta `path:"/user/export" method:"get" tags:"User" summary:"Export users to Excel"`
+	g.Meta `path:"/user/export" method:"get" tags:"User" summary:"Export users to Excel" operLog:"4"`
 	Ids    []int `json:"ids" dc:"Export specific user IDs"`
 }
 

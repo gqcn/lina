@@ -14,6 +14,7 @@ type SysDept struct {
 	ParentId  int         `json:"parentId"  orm:"parent_id"  description:""`
 	Ancestors string      `json:"ancestors" orm:"ancestors"  description:""`
 	Name      string      `json:"name"      orm:"name"       description:""`
+	Code      string      `json:"code"      orm:"code"       description:""`
 	OrderNum  int         `json:"orderNum"  orm:"order_num"  description:""`
 	Leader    int         `json:"leader"    orm:"leader"     description:""`
 	Phone     string      `json:"phone"     orm:"phone"      description:""`
@@ -23,5 +24,4 @@ type SysDept struct {
 	CreatedAt *gtime.Time `json:"createdAt" orm:"created_at" description:""`
 	UpdatedAt *gtime.Time `json:"updatedAt" orm:"updated_at" description:""`
 	DeletedAt *gtime.Time `json:"deletedAt" orm:"deleted_at" description:""`
-	Code      string      `json:"code"      orm:"code"       description:""`
 }

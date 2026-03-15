@@ -65,7 +65,7 @@ type DeleteReq struct {
 type DeleteRes struct{}
 
 type ExportReq struct {
-	g.Meta `path:"/post/export" method:"get" tags:"Post" summary:"Export posts to Excel"`
+	g.Meta `path:"/post/export" method:"get" tags:"Post" summary:"Export posts to Excel" operLog:"4"`
 	DeptId *int   `json:"deptId" dc:"Filter by dept ID"`
 	Code   string `json:"code" dc:"Filter by post code"`
 	Name   string `json:"name" dc:"Filter by post name"`
