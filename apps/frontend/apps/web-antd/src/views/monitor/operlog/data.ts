@@ -131,3 +131,14 @@ export function getMethodTagColor(method: string): string {
   };
   return map[method?.toUpperCase()] || 'default';
 }
+
+export function getMethodLabel(method: string): string {
+  const map: Record<string, string> = {
+    DELETE: '删除',
+    GET: '查询',
+    PATCH: '局部更新',
+    POST: '新增',
+    PUT: '修改',
+  };
+  return map[method?.toUpperCase()] || method;
+}

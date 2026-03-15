@@ -11,7 +11,6 @@ import { DictTag } from '#/components/dict';
 import JsonPreview from '#/components/json-preview/index.vue';
 import { useDictStore } from '#/store/dict';
 
-import { getMethodTagColor } from './data';
 
 const dictStore = useDictStore();
 
@@ -84,10 +83,7 @@ function parseJson(str: string): any {
       <DescriptionsItem label="操作人员">
         {{ currentLog.operName }}
       </DescriptionsItem>
-      <DescriptionsItem label="请求信息">
-        <Tag :color="getMethodTagColor(currentLog.requestMethod)">
-          {{ currentLog.requestMethod }}
-        </Tag>
+      <DescriptionsItem label="请求地址">
         {{ currentLog.operUrl }}
       </DescriptionsItem>
       <DescriptionsItem label="IP地址">
