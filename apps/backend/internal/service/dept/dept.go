@@ -78,6 +78,7 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 type CreateInput struct {
 	ParentId int
 	Name     string
+	Code     string
 	OrderNum int
 	Leader   int
 	Phone    string
@@ -88,6 +89,13 @@ type CreateInput struct {
 
 // Create creates a new dept.
 func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
+	// Check code uniqueness
+	if in.Code != "" {
+		if err := s.checkCodeUnique(ctx, in.Code, 0); err != nil {
+			return 0, err
+		}
+	}
+
 	// Calculate ancestors
 	var ancestors string
 	if in.ParentId == 0 {
@@ -105,6 +113,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 		ParentId:  in.ParentId,
 		Ancestors: ancestors,
 		Name:      in.Name,
+		Code:      in.Code,
 		OrderNum:  in.OrderNum,
 		Leader:    in.Leader,
 		Phone:     in.Phone,
@@ -143,6 +152,7 @@ type UpdateInput struct {
 	Id       int
 	ParentId *int
 	Name     *string
+	Code     *string
 	OrderNum *int
 	Leader   *int
 	Phone    *string
@@ -164,6 +174,14 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	}
 	if in.Name != nil {
 		data.Name = *in.Name
+	}
+	if in.Code != nil {
+		if *in.Code != "" {
+			if err := s.checkCodeUnique(ctx, *in.Code, in.Id); err != nil {
+				return err
+			}
+		}
+		data.Code = *in.Code
 	}
 	if in.OrderNum != nil {
 		data.OrderNum = *in.OrderNum
@@ -524,4 +542,23 @@ func (s *Service) UserDeptTree(ctx context.Context) ([]*TreeNode, error) {
 	result = append(result, unassignedNode)
 
 	return result, nil
+}
+
+// checkCodeUnique checks if the dept code is unique (excluding the given dept ID for updates).
+func (s *Service) checkCodeUnique(ctx context.Context, code string, excludeId int) error {
+	cols := dao.SysDept.Columns()
+	m := dao.SysDept.Ctx(ctx).
+		Where(cols.Code, code).
+		WhereNull(cols.DeletedAt)
+	if excludeId > 0 {
+		m = m.WhereNot(cols.Id, excludeId)
+	}
+	count, err := m.Count()
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return gerror.New("部门编码已存在")
+	}
+	return nil
 }

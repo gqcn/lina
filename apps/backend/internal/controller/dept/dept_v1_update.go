@@ -12,6 +12,7 @@ func (c *ControllerV1) Update(ctx context.Context, req *v1.UpdateReq) (res *v1.U
 		Id:       req.Id,
 		ParentId: req.ParentId,
 		Name:     req.Name,
+		Code:     req.Code,
 		OrderNum: req.OrderNum,
 		Leader:   req.Leader,
 		Phone:    req.Phone,

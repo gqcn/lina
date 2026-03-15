@@ -34,6 +34,7 @@ type SysDeptColumns struct {
 	CreatedAt string //
 	UpdatedAt string //
 	DeletedAt string //
+	Code      string //
 }
 
 // sysDeptColumns holds the columns for the table sys_dept.
@@ -51,6 +52,7 @@ var sysDeptColumns = SysDeptColumns{
 	CreatedAt: "created_at",
 	UpdatedAt: "updated_at",
 	DeletedAt: "deleted_at",
+	Code:      "code",
 }
 
 // NewSysDeptDao creates and returns a new DAO object for table data access.

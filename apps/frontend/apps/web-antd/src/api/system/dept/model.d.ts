@@ -3,6 +3,7 @@ export interface Dept {
   parentId: number;
   ancestors: string;
   name: string;
+  code: string;
   orderNum: number;
   leader: number;
   phone: string;

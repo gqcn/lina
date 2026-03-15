@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS sys_dept (
     parent_id   INTEGER      NOT NULL DEFAULT 0,
     ancestors   VARCHAR(512) NOT NULL DEFAULT '',
     name        VARCHAR(128) NOT NULL DEFAULT '',
+    code        VARCHAR(64)  NOT NULL DEFAULT '',
     order_num   INTEGER      NOT NULL DEFAULT 0,
     leader      INTEGER      NOT NULL DEFAULT 0,
     phone       VARCHAR(20)  NOT NULL DEFAULT '',
@@ -51,6 +52,9 @@ CREATE TABLE IF NOT EXISTS sys_dept (
     updated_at  DATETIME,
     deleted_at  DATETIME
 );
+
+-- 部门编码唯一索引（排除空字符串）
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sys_dept_code ON sys_dept(code) WHERE code != '';
 
 -- ============================================================
 -- 岗位表

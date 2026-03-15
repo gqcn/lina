@@ -25,4 +25,5 @@ type SysDept struct {
 	CreatedAt *gtime.Time //
 	UpdatedAt *gtime.Time //
 	DeletedAt *gtime.Time //
+	Code      any         //
 }

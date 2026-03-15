@@ -23,6 +23,7 @@ func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.C
 	id, err := c.deptSvc.Create(ctx, deptsvc.CreateInput{
 		ParentId: req.ParentId,
 		Name:     req.Name,
+		Code:     req.Code,
 		OrderNum: orderNum,
 		Leader:   leader,
 		Phone:    req.Phone,

@@ -37,6 +37,11 @@ export const columns: VxeGridProps['columns'] = [
     minWidth: 200,
   },
   {
+    field: 'code',
+    title: '部门编码',
+    minWidth: 120,
+  },
+  {
     field: 'orderNum',
     title: '排序',
     width: 100,
@@ -81,6 +86,11 @@ export function drawerSchema(): VbenFormSchema[] {
       fieldName: 'name',
       label: '部门名称',
       rules: 'required',
+    },
+    {
+      component: 'Input',
+      fieldName: 'code',
+      label: '部门编码',
     },
     {
       component: 'InputNumber',

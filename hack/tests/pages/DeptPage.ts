@@ -36,7 +36,7 @@ export class DeptPage {
   }
 
   /** Create a root dept by clicking "新增" toolbar button */
-  async createRootDept(name: string) {
+  async createRootDept(name: string, opts?: { code?: string }) {
     // Click the primary "新增" button in toolbar (not the row-level "新增" buttons)
     await this.page
       .locator('.vxe-grid--toolbar')
@@ -46,10 +46,17 @@ export class DeptPage {
     // Wait for drawer to open
     await this.drawer.waitFor({ state: 'visible', timeout: 5000 });
 
-    // Fill dept name - use the second "请输入" input in drawer (first is TreeSelect for parent)
-    // The form order: 上级部门(TreeSelect), 部门名称(Input), 显示排序(InputNumber)
+    // Fill dept name (first text input in drawer)
     const nameInput = this.drawer.locator('input[placeholder="请输入"]').first();
     await nameInput.fill(name);
+
+    // Fill dept code if provided (second text input in drawer)
+    if (opts?.code) {
+      const codeInput = this.drawer
+        .locator('input[placeholder="请输入"]')
+        .nth(1);
+      await codeInput.fill(opts.code);
+    }
 
     // Click confirm button
     await this.drawer
@@ -61,7 +68,11 @@ export class DeptPage {
   }
 
   /** Create a sub dept under the specified parent row */
-  async createSubDept(parentName: string, name: string) {
+  async createSubDept(
+    parentName: string,
+    name: string,
+    opts?: { code?: string },
+  ) {
     // Find the parent row and click the "新增" action button (green, btn-success)
     const parentRow = this.page.locator('.vxe-body--row', {
       hasText: parentName,
@@ -74,9 +85,17 @@ export class DeptPage {
     // Wait for drawer to open
     await this.drawer.waitFor({ state: 'visible', timeout: 5000 });
 
-    // Fill dept name
+    // Fill dept name (first text input in drawer)
     const nameInput = this.drawer.locator('input[placeholder="请输入"]').first();
     await nameInput.fill(name);
+
+    // Fill dept code if provided (second text input in drawer)
+    if (opts?.code) {
+      const codeInput = this.drawer
+        .locator('input[placeholder="请输入"]')
+        .nth(1);
+      await codeInput.fill(opts.code);
+    }
 
     // Click confirm button
     await this.drawer
@@ -87,8 +106,12 @@ export class DeptPage {
     await this.page.waitForTimeout(500);
   }
 
-  /** Edit a dept: find the row, click edit, update name in drawer */
-  async editDept(deptName: string, newName: string) {
+  /** Edit a dept: find the row, click edit, update fields in drawer */
+  async editDept(
+    deptName: string,
+    newName: string,
+    opts?: { code?: string },
+  ) {
     // Find the row and click the edit button
     const row = this.page.locator('.vxe-body--row', { hasText: deptName });
     await row
@@ -99,10 +122,19 @@ export class DeptPage {
     // Wait for drawer to open
     await this.drawer.waitFor({ state: 'visible', timeout: 5000 });
 
-    // Clear and fill the new name
+    // Clear and fill the new name (first text input)
     const nameInput = this.drawer.locator('input[placeholder="请输入"]').first();
     await nameInput.clear();
     await nameInput.fill(newName);
+
+    // Fill dept code if provided (second text input)
+    if (opts?.code) {
+      const codeInput = this.drawer
+        .locator('input[placeholder="请输入"]')
+        .nth(1);
+      await codeInput.clear();
+      await codeInput.fill(opts.code);
+    }
 
     // Click confirm button
     await this.drawer
@@ -146,6 +178,21 @@ export class DeptPage {
       .locator('.vxe-body--row', { hasText: deptName })
       .first()
       .isVisible({ timeout: 5000 })
+      .catch(() => false);
+  }
+
+  /** Check if a dept row with the given name has the expected code */
+  async hasDeptWithCode(deptName: string, code: string): Promise<boolean> {
+    const row = this.page.locator('.vxe-body--row', { hasText: deptName });
+    const hasRow = await row
+      .first()
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
+    if (!hasRow) return false;
+    return row
+      .locator('.vxe-body--column', { hasText: code })
+      .first()
+      .isVisible({ timeout: 2000 })
       .catch(() => false);
   }
 }

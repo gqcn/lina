@@ -27,14 +27,14 @@ type SysUserColumns struct {
 	Nickname  string //
 	Email     string //
 	Phone     string //
+	Sex       string //
+	Avatar    string //
 	Status    string //
 	Remark    string //
+	LoginDate string //
 	CreatedAt string //
 	UpdatedAt string //
 	DeletedAt string //
-	Avatar    string //
-	LoginDate string //
-	Sex       string //
 }
 
 // sysUserColumns holds the columns for the table sys_user.
@@ -45,14 +45,14 @@ var sysUserColumns = SysUserColumns{
 	Nickname:  "nickname",
 	Email:     "email",
 	Phone:     "phone",
+	Sex:       "sex",
+	Avatar:    "avatar",
 	Status:    "status",
 	Remark:    "remark",
+	LoginDate: "login_date",
 	CreatedAt: "created_at",
 	UpdatedAt: "updated_at",
 	DeletedAt: "deleted_at",
-	Avatar:    "avatar",
-	LoginDate: "login_date",
-	Sex:       "sex",
 }
 
 // NewSysUserDao creates and returns a new DAO object for table data access.

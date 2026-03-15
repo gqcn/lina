@@ -16,12 +16,12 @@ type SysUser struct {
 	Nickname  string      `json:"nickname"  orm:"nickname"   description:""`
 	Email     string      `json:"email"     orm:"email"      description:""`
 	Phone     string      `json:"phone"     orm:"phone"      description:""`
+	Sex       int         `json:"sex"       orm:"sex"        description:""`
+	Avatar    string      `json:"avatar"    orm:"avatar"     description:""`
 	Status    int         `json:"status"    orm:"status"     description:""`
 	Remark    string      `json:"remark"    orm:"remark"     description:""`
+	LoginDate *gtime.Time `json:"loginDate" orm:"login_date" description:""`
 	CreatedAt *gtime.Time `json:"createdAt" orm:"created_at" description:""`
 	UpdatedAt *gtime.Time `json:"updatedAt" orm:"updated_at" description:""`
 	DeletedAt *gtime.Time `json:"deletedAt" orm:"deleted_at" description:""`
-	Avatar    string      `json:"avatar"    orm:"avatar"     description:""`
-	LoginDate *gtime.Time `json:"loginDate" orm:"login_date" description:""`
-	Sex       int         `json:"sex"       orm:"sex"        description:""`
 }

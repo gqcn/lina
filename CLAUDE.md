@@ -10,7 +10,7 @@ Lina 是一个管理后台系统，采用前后端分离架构。
 
 ## 目录结构
 
-```
+```text
 apps/
   backend/           → GoFrame v2 后端
     api/             → 请求/响应 DTO（g.Meta 路由定义）

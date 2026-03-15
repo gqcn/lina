@@ -20,6 +20,7 @@ type CreateReq struct {
 	g.Meta   `path:"/dept" method:"post" tags:"Dept" summary:"Create dept"`
 	ParentId int    `json:"parentId" d:"0" dc:"Parent dept ID"`
 	Name     string `json:"name" v:"required#请输入部门名称" dc:"Dept name"`
+	Code     string `json:"code" dc:"Dept code (unique)"`
 	OrderNum *int   `json:"orderNum" d:"0" dc:"Sort order"`
 	Leader   *int   `json:"leader" dc:"Leader user ID"`
 	Phone    string `json:"phone" dc:"Phone"`
@@ -46,6 +47,7 @@ type UpdateReq struct {
 	Id       int     `json:"id" v:"required" dc:"Dept ID"`
 	ParentId *int    `json:"parentId" dc:"Parent dept ID"`
 	Name     *string `json:"name" dc:"Dept name"`
+	Code     *string `json:"code" dc:"Dept code (unique)"`
 	OrderNum *int    `json:"orderNum" dc:"Sort order"`
 	Leader   *int    `json:"leader" dc:"Leader user ID"`
 	Phone    *string `json:"phone" dc:"Phone"`
