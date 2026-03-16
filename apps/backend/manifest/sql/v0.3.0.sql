@@ -4,36 +4,36 @@
 -- 操作日志表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS sys_oper_log (
-    id              INT PRIMARY KEY AUTO_INCREMENT,
-    title           VARCHAR(50)   NOT NULL DEFAULT '',
-    oper_summary    VARCHAR(200)  NOT NULL DEFAULT '',
-    oper_type       TINYINT       NOT NULL DEFAULT 0,
-    method          VARCHAR(200)  NOT NULL DEFAULT '',
-    request_method  VARCHAR(10)   NOT NULL DEFAULT '',
-    oper_name       VARCHAR(50)   NOT NULL DEFAULT '',
-    oper_url        VARCHAR(500)  NOT NULL DEFAULT '',
-    oper_ip         VARCHAR(50)   NOT NULL DEFAULT '',
-    oper_param      TEXT          NOT NULL,
-    json_result     TEXT          NOT NULL,
-    status          TINYINT       NOT NULL DEFAULT 0,
-    error_msg       TEXT          NOT NULL,
-    cost_time       INT           NOT NULL DEFAULT 0,
-    oper_time       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    id              INT PRIMARY KEY AUTO_INCREMENT COMMENT '日志ID',
+    title           VARCHAR(50)   NOT NULL DEFAULT '' COMMENT '模块标题',
+    oper_summary    VARCHAR(200)  NOT NULL DEFAULT '' COMMENT '操作摘要',
+    oper_type       TINYINT       NOT NULL DEFAULT 0  COMMENT '操作类型（1新增 2修改 3删除 4导出 5导入 6其他）',
+    method          VARCHAR(200)  NOT NULL DEFAULT '' COMMENT '方法名称',
+    request_method  VARCHAR(10)   NOT NULL DEFAULT '' COMMENT '请求方式（GET/POST/PUT/DELETE）',
+    oper_name       VARCHAR(50)   NOT NULL DEFAULT '' COMMENT '操作人员',
+    oper_url        VARCHAR(500)  NOT NULL DEFAULT '' COMMENT '请求URL',
+    oper_ip         VARCHAR(50)   NOT NULL DEFAULT '' COMMENT '操作IP地址',
+    oper_param      TEXT          NOT NULL             COMMENT '请求参数',
+    json_result     TEXT          NOT NULL             COMMENT '返回参数',
+    status          TINYINT       NOT NULL DEFAULT 0   COMMENT '操作状态（0成功 1失败）',
+    error_msg       TEXT          NOT NULL             COMMENT '错误消息',
+    cost_time       INT           NOT NULL DEFAULT 0   COMMENT '耗时（毫秒）',
+    oper_time       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='操作日志记录表';
 
 -- ============================================================
 -- 登录日志表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS sys_login_log (
-    id          INT PRIMARY KEY AUTO_INCREMENT,
-    user_name   VARCHAR(50)  NOT NULL DEFAULT '',
-    status      TINYINT      NOT NULL DEFAULT 0,
-    ip          VARCHAR(50)  NOT NULL DEFAULT '',
-    browser     VARCHAR(200) NOT NULL DEFAULT '',
-    os          VARCHAR(200) NOT NULL DEFAULT '',
-    msg         VARCHAR(500) NOT NULL DEFAULT '',
-    login_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    id          INT PRIMARY KEY AUTO_INCREMENT COMMENT '日志ID',
+    user_name   VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '登录账号',
+    status      TINYINT      NOT NULL DEFAULT 0  COMMENT '登录状态（0成功 1失败）',
+    ip          VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '登录IP地址',
+    browser     VARCHAR(200) NOT NULL DEFAULT '' COMMENT '浏览器类型',
+    os          VARCHAR(200) NOT NULL DEFAULT '' COMMENT '操作系统',
+    msg         VARCHAR(500) NOT NULL DEFAULT '' COMMENT '提示消息',
+    login_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '登录时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='系统登录日志表';
 
 -- ============================================================
 -- 字典数据表: 添加唯一约束防止重复数据
