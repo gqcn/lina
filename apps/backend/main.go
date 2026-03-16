@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "github.com/gogf/gf/contrib/drivers/sqlite/v2"
+	_ "github.com/gogf/gf/contrib/drivers/mysql/v2"
 
 	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/os/gctx"

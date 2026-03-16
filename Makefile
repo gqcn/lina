@@ -1,5 +1,3 @@
-.PHONY: dev stop status test up init mock
-
 BACKEND_DIR   := apps/backend
 FRONTEND_DIR  := apps/frontend
 PID_DIR       := /tmp/lina-pids
@@ -9,6 +7,7 @@ BACKEND_PORT  := 8080
 FRONTEND_PORT := 5666
 
 ## 依赖Claude Code，自动生成 commit message 并提交到远程仓库
+.PHONY: up
 up:
 	@if git diff --quiet HEAD && git diff --cached --quiet && [ -z "$$(git ls-files --others --exclude-standard)" ]; then \
 		echo "No changes to commit"; \
@@ -30,6 +29,7 @@ up:
 	git push origin $$(git branch --show-current)
 	
 ## dev: 启动前后端开发服务器
+.PHONY: dev
 dev: stop
 	@mkdir -p $(PID_DIR)
 	@# ── 编译后端 ────────────────────────────────────────────────
@@ -53,6 +53,7 @@ dev: stop
 	@echo ""
 
 ## stop: 停止前后端开发服务器
+.PHONY: stop
 stop:
 	@echo "正在停止服务..."
 	@if lsof -ti :$(BACKEND_PORT) >/dev/null 2>&1; then \
@@ -67,6 +68,7 @@ stop:
 	fi
 
 ## status: 查看前后端运行状态及日志路径
+.PHONY: status
 status:
 	@echo ""
 	@echo "╔══════════════════════════════════════════════╗"
@@ -89,21 +91,25 @@ status:
 	@echo ""
 
 ## test: 运行完整 E2E 测试套件
+.PHONY: test
 test:
 	@echo "🧪 运行 E2E 测试套件..."
 	cd hack/tests && npx playwright test
 
 ## help: 显示帮助信息
+.PHONY: help
 help:
 	@grep -E '^##' Makefile | sed 's/## //'
 
 ## init: 初始化数据库（仅执行 DDL 建表和 Seed 数据）
+.PHONY: init
 init:
 	@echo "正在初始化数据库..."
 	@cd $(BACKEND_DIR) && go run main.go init
 	@echo "✓ 数据库初始化完成"
 
 ## mock: 加载 Mock 演示数据（需先执行 init）
+.PHONY: mock
 mock:
 	@echo "正在加载 Mock 数据..."
 	@cd $(BACKEND_DIR) && go run main.go mock

@@ -1,6 +1,6 @@
 -- sys_user table
 CREATE TABLE IF NOT EXISTS sys_user (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    id          INT PRIMARY KEY AUTO_INCREMENT,
     username    VARCHAR(64)  NOT NULL,
     password    VARCHAR(256) NOT NULL,
     nickname    VARCHAR(64)  NOT NULL DEFAULT '',
@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS sys_user (
     updated_at  DATETIME,
     deleted_at  DATETIME,
     UNIQUE(username)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Default admin user (password: admin123, bcrypt hash)
-INSERT OR IGNORE INTO sys_user (username, password, nickname, status, created_at, updated_at)
-VALUES ('admin', '$2a$10$6u4IIEd63chleDWJIY6.NewSU7YrpBQ0Tbp.KfLiG71NQrRlL9qTe', '管理员', 1, datetime('now'), datetime('now'));
+INSERT IGNORE INTO sys_user (username, password, nickname, status, created_at, updated_at)
+VALUES ('admin', '$2a$10$6u4IIEd63chleDWJIY6.NewSU7YrpBQ0Tbp.KfLiG71NQrRlL9qTe', '管理员', 1, NOW(), NOW());

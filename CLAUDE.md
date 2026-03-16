@@ -5,7 +5,7 @@
 `Lina`是一个`Go`语言管理后台系统，采用前后端分离架构。
 
 - **前端**: `Vben5 + Vue 3 + Ant Design Vue + TypeScript（pnpm monorepo）`
-- **后端**: `GoFrame + SQLite + JWT`
+- **后端**: `GoFrame + MySQL + JWT`
 - **参考项目**: `/Users/john/Workspace/gitee/dapppp/ruoyi-plus-vben5`（前端样式和功能交互参考）
 
 ## 开发流程
@@ -19,7 +19,7 @@
 4. 执行完成后，可以人工或`Agent`再次测试产品功能，如果存在问题或者改进点，那么手动调用`/openspec-feedback`技能进行反馈和自动修复、验证，并更新相关`OpenSpec`文档。通过这种方式不断打磨完善当前变更(迭代)的功能，直到没有问题为止。
 5. 确认本次变更(迭代)功能已完成没有问题后，则执行`/opsx:archive`命令将本次变更归档。
 
-**关键规则**：当用户报告缺陷/问题/反馈/改进/思路时（无论中文或英文），必须先调用`openspec-feedback`技能，**然后再进行任何代码修改**。
+**关键规则**：当用户报告缺陷/问题/反馈/改进/思路时（无论中文或英文），如果当前项目存在活跃的`OpenSpec`变更，必须先调用`openspec-feedback`技能，**然后再进行任何代码修改**。
 
 ## 架构设计规范
 
