@@ -1,22 +1,13 @@
 ---
 name: openspec-feedback
 description: >-
-  Organize, fix, verify, and cover with tests any bugs, improvements, or gaps reported during verification of an OpenSpec change.
-  Use this skill when the user reports bugs, issues, defects, problems, missing test cases, missing coverage,
-  improvement points, or UX feedback — whether discovered during manual verification, testing, or daily use.
-  Trigger phrases include (but are not limited to): "bug", "issue", "fix", "feedback", "问题反馈", "问题",
-  "反馈", "缺陷", "修复", "改进", "优化", "改善", "功能改进", "改进点", or numbered/bulleted
-  lists of problems or improvements (中文或英文编号列表均可触发).
-  This skill ensures every reported issue is tracked as a task artifact
-  before any fix begins, and that each fix is covered by E2E test cases following the openspec-e2e conventions.
-  IMPORTANT: This skill MUST be activated whenever the user provides any form of bug report, issue list,
-  improvement suggestion, or feedback — regardless of language. If the message contains multiple numbered
-  items describing problems or desired changes, this skill takes priority over direct implementation.
+  Track, fix, verify, and test any bugs, improvements, or gaps reported against an OpenSpec change.
+  Activates on bug reports, issue lists, improvement suggestions, or feedback.
 license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: gqcn
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Feedback: Structured Fix, Verification & Test Coverage Loop
@@ -34,14 +25,14 @@ The core principles:
 
 - User reports one or more bugs, defects, improvement points, or gaps (missing features / missing test cases / incomplete coverage)
 - User describes untested scenarios, missing test cases, or test coverage gaps
-- The project uses OpenSpec with an active change
+- The project uses OpenSpec (an active change is not required — one will be auto-created if needed)
 - The issues relate to an existing implementation (post-development feedback)
 
 ---
 
 ## Workflow
 
-### 1. Identify the Active Change
+### 1. Identify or Create the Active Change
 
 Determine which change the issues relate to:
 
@@ -49,6 +40,21 @@ Determine which change the issues relate to:
 - If conversation context makes it obvious, use that
 - If only one active change exists, auto-select it
 - If ambiguous, run `openspec list --json` and ask the user to select
+- **If no active change exists**, auto-create one using the version auto-increment rules below
+
+**Version auto-increment (when no active change exists):**
+
+When all existing changes are archived or complete and no active change is available, automatically create a new change with a version number derived from the latest archived/complete change:
+
+1. Find the latest version by scanning `openspec/changes/` (active) and `openspec/changes/archive/` (archived). Extract the highest semantic version number (e.g., `v0.3.0`).
+2. Determine the version increment based on feedback type:
+   - **Bug fix / defect** → increment PATCH: `v0.3.0` → `v0.3.1`, `v0.3.1` → `v0.3.2`
+   - **Improvement / new feature** → increment MINOR, reset PATCH: `v0.3.0` → `v0.4.0`, `v0.3.2` → `v0.4.0`
+3. Create the change:
+   ```bash
+   openspec new change "<new-version>"
+   ```
+4. Generate minimal `proposal.md` and `design.md` in the new change directory summarizing the feedback context. The `tasks.md` will be populated in Step 5.
 
 Announce: "Applying feedback fixes to change: **<name>**"
 
@@ -158,26 +164,57 @@ Work through the task list sequentially. For each task:
 **d. Write or update E2E test cases**
 - Follow **openspec-e2e** conventions strictly
 
-**e. Verify — MANDATORY before marking complete**
-- Run the newly added or updated E2E test cases and confirm they **pass**
-- If the project has a broader e2e suite, run it to check for regressions
-- Check for side effects in related functionality
-- **A task MUST NOT be marked complete until its corresponding E2E test(s) have been executed and passed.** If no E2E test is applicable (internal optimization), the fix must at least be verified by running the existing test suite without regressions.
+**e. Assess Impact Scope — MANDATORY after every fix**
 
-**f. Update tasks.md**
-- Mark the task as complete: `- [ ]` → `- [x]` — **only after step (e) passes**
+After implementing the fix (and before final verification), evaluate the blast radius of the changes to determine which existing functionality might be affected:
+
+1. **Identify modified files and their dependents** — Trace which modules, components, API endpoints, or pages are touched by the fix. Consider both direct changes and indirect effects (e.g., a shared utility change affects all callers; a backend API change affects all frontend pages consuming it).
+2. **Map to affected E2E test cases** — Scan existing test files under `hack/tests/e2e/` and identify which test cases exercise the modified or dependent functionality. Use file names, module directories, and page object references to find relevant tests.
+3. **Build a regression test list** — Compile the list of E2E test files that must be run as regression tests, in addition to the test cases written/updated for the current task. Announce the list:
+   ```
+   ### Impact Analysis for FB-X
+   - Modified: <files changed>
+   - Affected modules: <module names>
+   - Regression tests to run: TC0001, TC0003, TC0007, ...
+   ```
+
+**Impact mapping guidelines:**
+- **Backend API changes** → Run E2E tests for all frontend pages that call the changed endpoint(s)
+- **Shared component/utility changes** → Run E2E tests for all pages that use the component
+- **Database schema / DAO changes** → Run E2E tests for all features that read/write the affected table(s)
+- **Auth / permission changes** → Run all auth-related tests plus any tests that depend on permission checks
+- **Router / menu changes** → Run navigation and access-related tests
+- **Page-specific changes** → Run all tests under the corresponding module directory at minimum
+
+**f. Verify — MANDATORY before marking complete**
+- Run the newly added or updated E2E test cases for the current task and confirm they **pass**
+- Run ALL regression test cases identified in step (e) and confirm they **pass**
+- **A task MUST NOT be marked complete until BOTH its own E2E test(s) AND all identified regression tests have been executed and passed.**
+- If no E2E test is applicable for the task itself (internal optimization), the fix must still be verified by running the regression tests from the impact analysis, plus the existing test suite without regressions.
+- If a regression test fails, investigate immediately: fix the regression before proceeding, or add it as a new FB task if the root cause is separate.
+
+**g. Update tasks.md**
+- Mark the task as complete: `- [ ]` → `- [x]` — **only after step (f) passes**
 - Never mark a task complete based solely on code changes without test verification
 
-**g. Continue to next task**
+**h. Continue to next task**
 
 ### 7. Run Comprehensive Verification
 
-After all individual fixes are complete:
+After all individual fixes are complete, perform a final comprehensive regression pass:
 
-1. Run the full test suite if available
-2. Report results — which tests pass, which fail
-3. If new failures appear, analyze whether they are regressions from the fixes
-4. If regressions exist, add them as new tasks and loop back to Step 6
+1. **Aggregate the full impact scope** — Collect the union of all regression test lists from each task's impact analysis (Step 6e). This is the minimum set that must pass.
+2. **Run the aggregated regression tests** — Execute all identified regression tests in a single pass. If the project has a full E2E suite and it is reasonably scoped, run the entire suite instead to catch any cross-cutting regressions.
+3. **Report results with detail:**
+   ```
+   ### Comprehensive Verification Results
+   - Total tests run: N
+   - Passed: N
+   - Failed: N (list each failed test with brief failure description)
+   - Regression tests (from impact analysis): all passed ✓ / X failures
+   ```
+4. If new failures appear, analyze whether they are regressions from the fixes or pre-existing issues.
+5. If regressions exist, add them as new FB tasks and loop back to Step 6.
 
 ### 8. Report Completion
 
@@ -190,17 +227,18 @@ Display a summary:
 **Issues reported:** X
 **Issues fixed:** Y/X
 **Tests added:** Z new test cases / sub-assertions
+**Regression tests run:** R test cases across N affected modules
 **Verification:** <all passed / N issues remaining>
 
 ### Fixed This Session
-- [x] FB-1: <title> ✓ (test: TC0010a)
-- [x] FB-2: <title> ✓ (test: 已有覆盖)
-- [x] FB-3: <title> ✓ (test: TC0010b)
+- [x] FB-1: <title> ✓ (test: TC0010a | regression: TC0001, TC0003 ✓)
+- [x] FB-2: <title> ✓ (test: 已有覆盖 | regression: TC0005 ✓)
+- [x] FB-3: <title> ✓ (test: TC0010b | regression: TC0001, TC0007 ✓)
 
 ### Remaining (if any)
 - [ ] FB-4: <title> — blocked by <reason>
 
-All fixes verified and test-covered. The tasks.md has been updated with full fix records.
+All fixes verified with impact-scoped regression testing. The tasks.md has been updated with full fix records.
 ```
 
 If all tasks are complete and verified, suggest archiving the change.
@@ -217,11 +255,7 @@ If all tasks are complete and verified, suggest archiving the change.
 
 **Issue is actually a design change:** If a reported "bug" is actually a requirement change or design change rather than an implementation bug, classify it as spec-level. Update the delta specs first (Step 4), then record the task (Step 5). If the change is large enough to affect `design.md` (e.g., new API endpoints, new DB schema, architectural changes), discuss with the user whether to also update `design.md` before proceeding.
 
-**No active openspec change:** If the project uses openspec but there's no active change (e.g., all archived), create a new feedback-specific change:
-```bash
-openspec new change "feedback-<brief-description>"
-```
-Then generate the tasks.md in that new change directory.
+**No active openspec change:** Handled automatically in Step 1 via version auto-increment. The new version number is determined by the feedback type (PATCH for bugs, MINOR for improvements) based on the latest existing version.
 
 **Multiple rounds of feedback:** All feedback tasks from every round are appended to the same single Feedback section. Sequential numbering (`FB-1`, `FB-2`, ...) naturally preserves the chronological order of when issues were discovered and fixed.
 
@@ -239,6 +273,8 @@ Then generate the tasks.md in that new change directory.
 - **Follow openspec-e2e conventions** — All new test cases MUST follow the TC ID allocation, naming, POM, and fixture conventions defined in the openspec-e2e skill.
 - **Verify each fix individually** — Don't batch all fixes and hope for the best.
 - **No green check without green tests** — A task can only be marked `[x]` after its E2E test(s) have been executed and passed. Code changes alone are never sufficient to mark a task complete.
+- **Impact analysis is not optional** — Every fix must include an impact scope assessment. Regression tests for affected functionality must be run alongside the task's own tests. Skipping impact analysis risks silent regressions in related features.
+- **Regression failures block completion** — If any regression test fails after a fix, the task cannot be marked complete until the regression is resolved (either fixed inline or tracked as a new FB task).
 - **Update tasks.md in real time** — Mark tasks complete immediately after verification, not at the end.
 - **Preserve existing task format** — Match the conventions already used in the file.
 - **Match the language of the target file** — When appending to or updating an artifact (specs, tasks.md, etc.), use the same natural language as the existing content in that file. If the file is written in Chinese, write in Chinese; if in English, write in English. Do not mix languages within a single file.
