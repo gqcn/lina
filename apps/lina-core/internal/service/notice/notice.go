@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
 
 	"lina-core/internal/dao"
@@ -34,10 +35,10 @@ type ListInput struct {
 	CreatedBy string
 }
 
-// ListItem defines a single list item with creator name.
+// ListItem defines a single list item.
 type ListItem struct {
 	*entity.SysNotice
-	CreatedByName string `json:"createdByName"`
+	CreatedByName string
 }
 
 // ListOutput defines output for List function.
@@ -84,21 +85,39 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 		return nil, err
 	}
 
-	// Build result with creator names
-	items := make([]*ListItem, 0, len(list))
+	// Collect unique creator IDs
+	userIds := make([]int64, 0, len(list))
+	seen := make(map[int64]bool)
 	for _, n := range list {
-		item := &ListItem{SysNotice: n}
-		if n.CreatedBy > 0 {
-			var user *entity.SysUser
-			_ = dao.SysUser.Ctx(ctx).Where(do.SysUser{Id: int(n.CreatedBy)}).Scan(&user)
-			if user != nil {
-				item.CreatedByName = user.Nickname
-				if item.CreatedByName == "" {
-					item.CreatedByName = user.Username
-				}
+		if n.CreatedBy > 0 && !seen[n.CreatedBy] {
+			userIds = append(userIds, n.CreatedBy)
+			seen[n.CreatedBy] = true
+		}
+	}
+
+	// Resolve creator usernames
+	userNameMap := make(map[int64]string)
+	if len(userIds) > 0 {
+		var users []*entity.SysUser
+		userCols := dao.SysUser.Columns()
+		err = dao.SysUser.Ctx(ctx).
+			Fields(userCols.Id, userCols.Username).
+			WhereIn(userCols.Id, userIds).
+			Scan(&users)
+		if err == nil {
+			for _, u := range users {
+				userNameMap[int64(u.Id)] = u.Username
 			}
 		}
-		items = append(items, item)
+	}
+
+	// Build result
+	items := make([]*ListItem, 0, len(list))
+	for _, n := range list {
+		items = append(items, &ListItem{
+			SysNotice:     n,
+			CreatedByName: userNameMap[n.CreatedBy],
+		})
 	}
 
 	return &ListOutput{
@@ -123,16 +142,20 @@ func (s *Service) GetById(ctx context.Context, id int64) (*ListItem, error) {
 	}
 
 	item := &ListItem{SysNotice: notice}
+
+	// Resolve creator username
 	if notice.CreatedBy > 0 {
 		var user *entity.SysUser
-		_ = dao.SysUser.Ctx(ctx).Where(do.SysUser{Id: int(notice.CreatedBy)}).Scan(&user)
-		if user != nil {
-			item.CreatedByName = user.Nickname
-			if item.CreatedByName == "" {
-				item.CreatedByName = user.Username
-			}
+		userCols := dao.SysUser.Columns()
+		err = dao.SysUser.Ctx(ctx).
+			Fields(userCols.Id, userCols.Username).
+			Where(userCols.Id, notice.CreatedBy).
+			Scan(&user)
+		if err == nil && user != nil {
+			item.CreatedByName = user.Username
 		}
 	}
+
 	return item, nil
 }
 
@@ -170,7 +193,9 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int64, error) {
 
 	// If published, fan-out messages to all active users
 	if in.Status == 1 {
-		_ = s.fanOutMessages(ctx, id, in.Title, in.Type, createdBy)
+		if err := s.fanOutMessages(ctx, id, in.Title, in.Type, createdBy); err != nil {
+			g.Log().Errorf(ctx, "fanOutMessages failed for notice %d: %v", id, err)
+		}
 	}
 
 	return id, nil
@@ -243,13 +268,15 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		if in.Type != nil {
 			noticeType = *in.Type
 		}
-		_ = s.fanOutMessages(ctx, in.Id, title, noticeType, int64(oldNotice.CreatedBy))
+		if err := s.fanOutMessages(ctx, in.Id, title, noticeType, int64(oldNotice.CreatedBy)); err != nil {
+			g.Log().Errorf(ctx, "fanOutMessages failed for notice %d: %v", in.Id, err)
+		}
 	}
 
 	return nil
 }
 
-// Delete soft-deletes notices by IDs.
+// Delete soft-deletes notices by IDs and cascades to user messages.
 func (s *Service) Delete(ctx context.Context, ids string) error {
 	idList := strings.Split(ids, ",")
 	if len(idList) == 0 {
@@ -260,7 +287,20 @@ func (s *Service) Delete(ctx context.Context, ids string) error {
 		WhereIn(dao.SysNotice.Columns().Id, idList).
 		Data(do.SysNotice{DeletedAt: gtime.Now()}).
 		Update()
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Cascade delete corresponding user messages
+	msgCols := dao.SysUserMessage.Columns()
+	_, err = dao.SysUserMessage.Ctx(ctx).
+		Where(msgCols.SourceType, "notice").
+		WhereIn(msgCols.SourceId, idList).
+		Delete()
+	if err != nil {
+		g.Log().Errorf(ctx, "cascade delete user messages failed for notice ids %s: %v", ids, err)
+	}
+	return nil
 }
 
 // fanOutMessages creates user_message records for all active users.
@@ -277,7 +317,7 @@ func (s *Service) fanOutMessages(ctx context.Context, noticeId int64, title stri
 	}
 
 	for _, user := range users {
-		_, _ = dao.SysUserMessage.Ctx(ctx).Data(do.SysUserMessage{
+		_, err = dao.SysUserMessage.Ctx(ctx).Data(do.SysUserMessage{
 			UserId:     user.Id,
 			Title:      title,
 			Type:       noticeType,
@@ -286,6 +326,10 @@ func (s *Service) fanOutMessages(ctx context.Context, noticeId int64, title stri
 			IsRead:     0,
 			CreatedAt:  gtime.Now(),
 		}).Insert()
+		if err != nil {
+			g.Log().Errorf(ctx, "fanOutMessages insert failed for user %d notice %d: %v", user.Id, noticeId, err)
+		}
 	}
+	g.Log().Infof(ctx, "fanOutMessages: notice %d fanned out to %d users", noticeId, len(users))
 	return nil
 }

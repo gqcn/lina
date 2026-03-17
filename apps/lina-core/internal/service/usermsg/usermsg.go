@@ -40,8 +40,10 @@ func (s *Service) UnreadCount(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
+	cols := dao.SysUserMessage.Columns()
 	count, err := dao.SysUserMessage.Ctx(ctx).
-		Where(do.SysUserMessage{UserId: userId, IsRead: 0}).
+		Where(cols.UserId, userId).
+		Where(cols.IsRead, 0).
 		Count()
 	if err != nil {
 		return 0, err
@@ -108,8 +110,10 @@ func (s *Service) MarkReadAll(ctx context.Context) error {
 		return err
 	}
 
+	cols := dao.SysUserMessage.Columns()
 	_, err = dao.SysUserMessage.Ctx(ctx).
-		Where(do.SysUserMessage{UserId: userId, IsRead: 0}).
+		Where(cols.UserId, userId).
+		Where(cols.IsRead, 0).
 		Data(do.SysUserMessage{IsRead: 1, ReadAt: gtime.Now()}).
 		Update()
 	return err

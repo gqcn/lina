@@ -14,6 +14,7 @@ import { useDictStore } from '#/store/dict';
 
 import { columns, querySchema } from './data';
 import NoticeModal from './notice-modal.vue';
+import NoticePreviewModal from './notice-preview-modal.vue';
 
 const dictStore = useDictStore();
 const noticeTypeDicts = ref<any[]>([]);
@@ -28,6 +29,10 @@ onMounted(async () => {
 
 const [NoticeModalRef, noticeModalApi] = useVbenModal({
   connectedComponent: NoticeModal,
+});
+
+const [NoticePreviewModalRef, noticePreviewModalApi] = useVbenModal({
+  connectedComponent: NoticePreviewModal,
 });
 
 const [Grid, gridApi] = useVbenVxeGrid({
@@ -85,6 +90,11 @@ const hasChecked = computed(() => checkedRows.value.length > 0);
 function handleAdd() {
   noticeModalApi.setData({});
   noticeModalApi.open();
+}
+
+function handlePreview(row: Notice) {
+  noticePreviewModalApi.setData({ id: row.id });
+  noticePreviewModalApi.open();
 }
 
 function handleEdit(row: Notice) {
@@ -145,6 +155,7 @@ function onReload() {
 
       <template #action="{ row }">
         <Space>
+          <ghost-button @click.stop="handlePreview(row)">预览</ghost-button>
           <ghost-button @click.stop="handleEdit(row)">编辑</ghost-button>
           <Popconfirm
             placement="left"
@@ -158,5 +169,6 @@ function onReload() {
     </Grid>
 
     <NoticeModalRef @reload="onReload" />
+    <NoticePreviewModalRef />
   </Page>
 </template>

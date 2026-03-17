@@ -32,9 +32,9 @@ export class NoticePage {
     await this.modal.waitFor({ state: 'visible', timeout: 5000 });
     await this.page.waitForTimeout(500);
 
-    // Fill title - use the input with placeholder inside the modal
+    // Fill title - use placeholder to find the input inside the modal
     const titleInput = this.modal
-      .locator('input[placeholder="请输入"]')
+      .getByPlaceholder('请输入公告标题')
       .first();
     await titleInput.fill(title);
 
@@ -79,7 +79,7 @@ export class NoticePage {
     await this.page.waitForTimeout(1000);
 
     const titleInput = this.modal
-      .locator('input[placeholder="请输入"]')
+      .getByPlaceholder('请输入公告标题')
       .first();
     await titleInput.clear();
     await titleInput.fill(newTitle);
@@ -123,6 +123,20 @@ export class NoticePage {
       .first()
       .isVisible({ timeout: 5000 })
       .catch(() => false);
+  }
+
+  /** Preview a notice: search by title, click preview button */
+  async previewNotice(title: string) {
+    await this.fillSearchField('公告标题', title);
+    await this.clickSearch();
+
+    await this.page
+      .getByRole('button', { name: /预\s*览/ })
+      .first()
+      .click();
+
+    await this.modal.waitFor({ state: 'visible', timeout: 5000 });
+    await this.page.waitForTimeout(500);
   }
 
   /** Fill search form field by label */

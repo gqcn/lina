@@ -13,7 +13,7 @@ import {
   messageUnreadCount,
 } from '#/api/system/message';
 
-const POLL_INTERVAL = 60_000; // 60 seconds
+const DEFAULT_POLL_INTERVAL = 60_000; // 60 seconds
 
 export const useMessageStore = defineStore('message', () => {
   const unreadCount = ref(0);
@@ -21,20 +21,27 @@ export const useMessageStore = defineStore('message', () => {
   const messagesTotal = ref(0);
   let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-  /** Fetch unread count from server */
+  /** Fetch unread count from server, and refresh message list if count changed */
   async function fetchUnreadCount() {
     try {
-      unreadCount.value = await messageUnreadCount();
+      const newCount = await messageUnreadCount();
+      if (newCount !== unreadCount.value) {
+        unreadCount.value = newCount;
+        // Refresh message list when unread count changes
+        await fetchMessages();
+      }
     } catch {
       // Silently ignore polling errors
     }
   }
 
-  /** Start polling for unread count */
-  function startPolling() {
+  /** Start polling for unread count
+   * @param interval - polling interval in milliseconds, defaults to 60000
+   */
+  function startPolling(interval: number = DEFAULT_POLL_INTERVAL) {
     stopPolling();
     fetchUnreadCount();
-    pollTimer = setInterval(fetchUnreadCount, POLL_INTERVAL);
+    pollTimer = setInterval(fetchUnreadCount, interval);
   }
 
   /** Stop polling */

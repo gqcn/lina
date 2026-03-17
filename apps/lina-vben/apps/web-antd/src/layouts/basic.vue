@@ -4,7 +4,7 @@ import type { NotificationItem } from '@vben/layouts';
 import { computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
+import { AuthenticationLoginExpiredModal, useVbenModal } from '@vben/common-ui';
 import { VBEN_DOC_URL, VBEN_GITHUB_URL } from '@vben/constants';
 import { useWatermark } from '@vben/hooks';
 import { BookOpenText, CircleHelp, SvgGithubIcon } from '@vben/icons';
@@ -24,6 +24,7 @@ import { $t } from '#/locales';
 import { useAuthStore } from '#/store';
 import { useMessageStore } from '#/store/message';
 import LoginForm from '#/views/_core/authentication/login.vue';
+import NoticePreviewModal from '#/views/system/notice/notice-preview-modal.vue';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -32,6 +33,10 @@ const accessStore = useAccessStore();
 const messageStore = useMessageStore();
 const { destroyWatermark, updateWatermark } = useWatermark();
 
+const [PreviewModal, previewModalApi] = useVbenModal({
+  connectedComponent: NoticePreviewModal,
+});
+
 // Map server messages to NotificationItem format
 const notifications = computed<NotificationItem[]>(() =>
   messageStore.messages.map((msg) => ({
@@ -39,8 +44,10 @@ const notifications = computed<NotificationItem[]>(() =>
     avatar: '',
     date: msg.createdAt,
     isRead: msg.isRead === 1,
-    message: msg.type === 1 ? '通知' : '公告',
-    title: msg.title,
+    message: msg.title,
+    title: msg.type === 1 ? '通知' : '公告',
+    sourceType: msg.sourceType,
+    sourceId: msg.sourceId,
   })),
 );
 
@@ -110,11 +117,6 @@ async function handleNoticeClear() {
 async function handleRead(item: NotificationItem) {
   if (item.id) {
     await messageStore.markRead(item.id as number);
-    // Find the original message to get sourceId for navigation
-    const msg = messageStore.messages.find((m) => m.id === item.id);
-    if (msg?.sourceType === 'notice' && msg.sourceId) {
-      router.push(`/system/notice/detail/${msg.sourceId}`);
-    }
   }
 }
 
@@ -126,6 +128,18 @@ async function handleRemove(item: NotificationItem) {
 
 async function handleMakeAll() {
   await messageStore.markAllRead();
+}
+
+function handleViewAll() {
+  router.push('/system/message');
+}
+
+function handleNotificationClick(item: NotificationItem) {
+  const msg = messageStore.messages.find((m) => m.id === item.id);
+  if (msg?.sourceType === 'notice' && msg?.sourceId) {
+    previewModalApi.setData({ id: msg.sourceId });
+    previewModalApi.open();
+  }
 }
 
 // Fetch messages when notification panel is likely to open
@@ -174,9 +188,11 @@ watch(
         :dot="showDot"
         :notifications="notifications"
         @clear="handleNoticeClear"
+        @click="handleNotificationClick"
         @read="handleRead"
         @remove="handleRemove"
         @make-all="handleMakeAll"
+        @view-all="handleViewAll"
       />
     </template>
     <template #extra>
@@ -191,4 +207,5 @@ watch(
       <LockScreen :avatar @to-login="handleLogout" />
     </template>
   </BasicLayout>
+  <PreviewModal />
 </template>

@@ -24,5 +24,5 @@ type ListRes struct {
 
 type ListItem struct {
 	*entity.SysNotice
-	CreatedByName string `json:"createdByName" dc:"创建人名称"`
+	CreatedByName string `json:"createdByName" dc:"创建者用户名"`
 }

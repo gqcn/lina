@@ -1,36 +1,74 @@
 import { test, expect } from '../../fixtures/auth';
+import { config } from '../../fixtures/config';
 
-test.describe('TC0041 通知公告详情页', () => {
-  test('TC0041a: 直接访问通知详情页', async ({ adminPage }) => {
-    // Navigate to a mock notice detail page (id=1 from mock data)
-    await adminPage.goto('/system/notice/detail/1');
-    await adminPage.waitForLoadState('networkidle');
+const API_BASE = 'http://localhost:8080/api';
 
-    // Should show the notice title
-    await expect(adminPage.getByText('系统升级通知')).toBeVisible({
-      timeout: 10000,
+async function apiLogin(
+  username: string,
+  password: string,
+): Promise<string> {
+  const resp = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  const data = await resp.json();
+  return data.data.accessToken;
+}
+
+async function apiClearMessages(token: string): Promise<void> {
+  await fetch(`${API_BASE}/user/message/clear`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+test.describe('TC0041 消息列表预览弹窗查看通知详情', () => {
+  test('TC0041a: 从消息列表点击消息弹出预览窗口', async ({ adminPage }) => {
+    // Create a notice as user001 so admin receives the message via fan-out
+    const adminToken = await apiLogin(config.adminUser, config.adminPass);
+    await apiClearMessages(adminToken);
+
+    const user001Token = await apiLogin('user001', config.adminPass);
+    const title = `预览测试通知_${Date.now()}`;
+    const content = '<p>这是预览测试的通知内容</p>';
+    const resp = await fetch(`${API_BASE}/notice`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${user001Token}`,
+      },
+      body: JSON.stringify({ title, type: 1, content, status: 1 }),
     });
+    const createData = await resp.json();
+    expect(createData.code).toBe(0);
+    const noticeId = createData.data.id;
 
-    // Should show the notice content
+    // Navigate admin to message list page
+    await adminPage.goto('/system/message');
+    await adminPage.waitForLoadState('networkidle');
+
+    // Click on the message
+    await adminPage.getByText(title).click();
+
+    // Preview modal should appear
+    const modal = adminPage.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 10000 });
+
+    // Should show the notice content in the preview modal
     await expect(
-      adminPage.getByText('系统将于本周六凌晨'),
+      modal.getByText('这是预览测试的通知内容'),
     ).toBeVisible({ timeout: 5000 });
-  });
 
-  test('TC0041b: 详情页显示通知类型', async ({ adminPage }) => {
-    await adminPage.goto('/system/notice/detail/1');
-    await adminPage.waitForLoadState('networkidle');
+    // Should show descriptions with type info
+    const descArea = modal.locator('.ant-descriptions');
+    await expect(descArea).toBeVisible({ timeout: 5000 });
 
-    // Should show type as dict tag within descriptions
-    const descArea = adminPage.locator('.ant-descriptions');
-    await expect(descArea).toBeVisible({ timeout: 10000 });
-  });
-
-  test('TC0041c: 返回按钮可用', async ({ adminPage }) => {
-    await adminPage.goto('/system/notice/detail/1');
-    await adminPage.waitForLoadState('networkidle');
-
-    const backButton = adminPage.getByText('返回');
-    await expect(backButton).toBeVisible({ timeout: 5000 });
+    // Cleanup: delete the notice and clear messages
+    await fetch(`${API_BASE}/notice/${noticeId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${user001Token}` },
+    });
+    await apiClearMessages(adminToken);
   });
 });

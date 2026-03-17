@@ -58,12 +58,12 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        name: 'NoticeDetail',
-        path: '/system/notice/detail/:id',
-        component: () => import('#/views/system/notice/detail.vue'),
+        name: 'MessageList',
+        path: '/system/message',
+        component: () => import('#/views/system/message/index.vue'),
         meta: {
           hideInMenu: true,
-          title: '通知详情',
+          title: '消息列表',
         },
       },
     ],

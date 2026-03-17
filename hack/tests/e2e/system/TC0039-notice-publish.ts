@@ -1,5 +1,39 @@
 import { test, expect } from '../../fixtures/auth';
 import { NoticePage } from '../../pages/NoticePage';
+import { config } from '../../fixtures/config';
+
+const API_BASE = 'http://localhost:8080/api';
+
+/** Login via API and return accessToken */
+async function apiLogin(
+  username: string,
+  password: string,
+): Promise<string> {
+  const resp = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  const data = await resp.json();
+  return data.data.accessToken;
+}
+
+/** Get unread message count via API */
+async function apiUnreadCount(token: string): Promise<number> {
+  const resp = await fetch(`${API_BASE}/user/message/count`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await resp.json();
+  return data.data.count;
+}
+
+/** Clear all messages via API */
+async function apiClearMessages(token: string): Promise<void> {
+  await fetch(`${API_BASE}/user/message/clear`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
 
 test.describe('TC0039 通知公告发布与消息分发', () => {
   const publishTitle = `发布测试_${Date.now()}`;
@@ -21,7 +55,103 @@ test.describe('TC0039 通知公告发布与消息分发', () => {
     expect(hasNotice).toBeTruthy();
   });
 
-  test('TC0039b: 清理 - 删除测试通知', async ({ adminPage }) => {
+  test('TC0039b: 发布后其他用户收到消息通知', async () => {
+    // Clear user001's messages first
+    const userToken = await apiLogin('user001', config.adminPass);
+    await apiClearMessages(userToken);
+
+    // Verify user001 has 0 unread messages
+    const countBefore = await apiUnreadCount(userToken);
+    expect(countBefore).toBe(0);
+
+    // Admin creates a published notice
+    const adminToken = await apiLogin(config.adminUser, config.adminPass);
+    const resp = await fetch(`${API_BASE}/notice`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        title: `消息分发测试_${Date.now()}`,
+        type: 1,
+        content: '验证消息分发',
+        status: 1,
+      }),
+    });
+    const createData = await resp.json();
+    expect(createData.code).toBe(0);
+
+    // Verify user001 now has 1 unread message
+    const countAfter = await apiUnreadCount(userToken);
+    expect(countAfter).toBe(1);
+
+    // Clean up: clear user001's messages and delete the notice
+    await apiClearMessages(userToken);
+    const noticeId = createData.data.id;
+    await fetch(`${API_BASE}/notice/${noticeId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+  });
+
+  test('TC0039d: 草稿发布后其他用户收到消息通知', async () => {
+    // Clear user001's messages first
+    const userToken = await apiLogin('user001', config.adminPass);
+    await apiClearMessages(userToken);
+
+    // Verify user001 has 0 unread messages
+    const countBefore = await apiUnreadCount(userToken);
+    expect(countBefore).toBe(0);
+
+    // Admin creates a DRAFT notice
+    const adminToken = await apiLogin(config.adminUser, config.adminPass);
+    const createResp = await fetch(`${API_BASE}/notice`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        title: `草稿发布测试_${Date.now()}`,
+        type: 1,
+        content: '草稿内容',
+        status: 0,
+      }),
+    });
+    const createData = await createResp.json();
+    expect(createData.code).toBe(0);
+    const noticeId = createData.data.id;
+
+    // Verify user001 still has 0 unread messages (draft should not fan-out)
+    const countAfterDraft = await apiUnreadCount(userToken);
+    expect(countAfterDraft).toBe(0);
+
+    // Now publish the draft by updating status to 1
+    const updateResp = await fetch(`${API_BASE}/notice/${noticeId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ status: 1 }),
+    });
+    const updateData = await updateResp.json();
+    expect(updateData.code).toBe(0);
+
+    // Verify user001 now has 1 unread message
+    const countAfterPublish = await apiUnreadCount(userToken);
+    expect(countAfterPublish).toBe(1);
+
+    // Clean up
+    await apiClearMessages(userToken);
+    await fetch(`${API_BASE}/notice/${noticeId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+  });
+
+  test('TC0039c: 清理 - 删除测试通知', async ({ adminPage }) => {
     const noticePage = new NoticePage(adminPage);
     await noticePage.goto();
     await noticePage.deleteNotice(publishTitle);
