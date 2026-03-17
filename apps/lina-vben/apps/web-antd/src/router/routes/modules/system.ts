@@ -48,6 +48,24 @@ const routes: RouteRecordRaw[] = [
           title: '字典管理',
         },
       },
+      {
+        name: 'NoticeManagement',
+        path: '/system/notice',
+        component: () => import('#/views/system/notice/index.vue'),
+        meta: {
+          icon: 'lucide:megaphone',
+          title: '通知公告',
+        },
+      },
+      {
+        name: 'NoticeDetail',
+        path: '/system/notice/detail/:id',
+        component: () => import('#/views/system/notice/detail.vue'),
+        meta: {
+          hideInMenu: true,
+          title: '通知详情',
+        },
+      },
     ],
   },
   {

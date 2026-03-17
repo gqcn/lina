@@ -14,9 +14,11 @@ import (
 	"lina-core/internal/controller/dept"
 	"lina-core/internal/controller/dict"
 	"lina-core/internal/controller/loginlog"
+	"lina-core/internal/controller/notice"
 	"lina-core/internal/controller/operlog"
 	"lina-core/internal/controller/post"
 	"lina-core/internal/controller/user"
+	"lina-core/internal/controller/usermsg"
 	"lina-core/internal/packed"
 	"lina-core/internal/service/middleware"
 )
@@ -80,6 +82,8 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				dict.NewV1(),
 				dept.NewV1(),
 				post.NewV1(),
+				notice.NewV1(),
+				usermsg.NewV1(),
 				loginlog.NewV1(),
 				operlog.NewV1(),
 			)

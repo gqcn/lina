@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { NotificationItem } from '@vben/layouts';
 
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
@@ -18,71 +18,38 @@ import { preferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 import { openWindow } from '@vben/utils';
 
+import { Modal } from 'ant-design-vue';
+
 import { $t } from '#/locales';
 import { useAuthStore } from '#/store';
+import { useMessageStore } from '#/store/message';
 import LoginForm from '#/views/_core/authentication/login.vue';
-
-const notifications = ref<NotificationItem[]>([
-  {
-    id: 1,
-    avatar: 'https://avatar.vercel.sh/vercel.svg?text=VB',
-    date: '3小时前',
-    isRead: true,
-    message: '描述信息描述信息描述信息',
-    title: '收到了 14 份新周报',
-  },
-  {
-    id: 2,
-    avatar: 'https://avatar.vercel.sh/1',
-    date: '刚刚',
-    isRead: false,
-    message: '描述信息描述信息描述信息',
-    title: '朱偏右 回复了你',
-  },
-  {
-    id: 3,
-    avatar: 'https://avatar.vercel.sh/1',
-    date: '2024-01-01',
-    isRead: false,
-    message: '描述信息描述信息描述信息',
-    title: '曲丽丽 评论了你',
-  },
-  {
-    id: 4,
-    avatar: 'https://avatar.vercel.sh/satori',
-    date: '1天前',
-    isRead: false,
-    message: '描述信息描述信息描述信息',
-    title: '代办提醒',
-  },
-  {
-    id: 5,
-    avatar: 'https://avatar.vercel.sh/satori',
-    date: '1天前',
-    isRead: false,
-    message: '描述信息描述信息描述信息',
-    title: '跳转Workspace示例',
-    link: '/workspace',
-  },
-  {
-    id: 6,
-    avatar: 'https://avatar.vercel.sh/satori',
-    date: '1天前',
-    isRead: false,
-    message: '描述信息描述信息描述信息',
-    title: '跳转外部链接示例',
-    link: 'https://doc.vben.pro',
-  },
-]);
 
 const router = useRouter();
 const userStore = useUserStore();
 const authStore = useAuthStore();
 const accessStore = useAccessStore();
+const messageStore = useMessageStore();
 const { destroyWatermark, updateWatermark } = useWatermark();
-const showDot = computed(() =>
-  notifications.value.some((item) => !item.isRead),
+
+// Map server messages to NotificationItem format
+const notifications = computed<NotificationItem[]>(() =>
+  messageStore.messages.map((msg) => ({
+    id: msg.id,
+    avatar: '',
+    date: msg.createdAt,
+    isRead: msg.isRead === 1,
+    message: msg.type === 1 ? '通知' : '公告',
+    title: msg.title,
+  })),
 );
+
+const showDot = computed(() => messageStore.unreadCount > 0);
+
+// Start polling on mount
+onMounted(() => {
+  messageStore.startPolling();
+});
 
 const menus = computed(() => [
   {
@@ -126,27 +93,48 @@ const avatar = computed(() => {
 });
 
 async function handleLogout() {
+  messageStore.stopPolling();
   await authStore.logout(false);
 }
 
-function handleNoticeClear() {
-  notifications.value = [];
+async function handleNoticeClear() {
+  Modal.confirm({
+    title: '提示',
+    content: '确认清空所有消息通知？',
+    onOk: async () => {
+      await messageStore.clearAll();
+    },
+  });
 }
 
-function markRead(id: number | string) {
-  const item = notifications.value.find((item) => item.id === id);
-  if (item) {
-    item.isRead = true;
+async function handleRead(item: NotificationItem) {
+  if (item.id) {
+    await messageStore.markRead(item.id as number);
+    // Find the original message to get sourceId for navigation
+    const msg = messageStore.messages.find((m) => m.id === item.id);
+    if (msg?.sourceType === 'notice' && msg.sourceId) {
+      router.push(`/system/notice/detail/${msg.sourceId}`);
+    }
   }
 }
 
-function remove(id: number | string) {
-  notifications.value = notifications.value.filter((item) => item.id !== id);
+async function handleRemove(item: NotificationItem) {
+  if (item.id) {
+    await messageStore.removeMessage(item.id as number);
+  }
 }
 
-function handleMakeAll() {
-  notifications.value.forEach((item) => (item.isRead = true));
+async function handleMakeAll() {
+  await messageStore.markAllRead();
 }
+
+// Fetch messages when notification panel is likely to open
+// The Notification component triggers @read when opened
+// We fetch on mount to have data ready
+onMounted(() => {
+  messageStore.fetchMessages();
+});
+
 watch(
   () => ({
     enable: preferences.app.watermark,
@@ -186,8 +174,8 @@ watch(
         :dot="showDot"
         :notifications="notifications"
         @clear="handleNoticeClear"
-        @read="(item) => item.id && markRead(item.id)"
-        @remove="(item) => item.id && remove(item.id)"
+        @read="handleRead"
+        @remove="handleRemove"
         @make-all="handleMakeAll"
       />
     </template>

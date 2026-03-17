@@ -5,11 +5,6 @@ gfcli:
   gen:
     dao:
       - link: "mysql:root:12345678@tcp(127.0.0.1:3306)/lina?charset=utf8mb4&parseTime=true&loc=Local"
-        tables: "sys_user,sys_dict_type,sys_dict_data,sys_dept,sys_post,sys_user_dept,sys_user_post,sys_oper_log,sys_login_log"
+        tables: "*"
         descriptionTag: true
         noModelComment: true
-
-  docker:
-    build: "-a amd64 -s linux -p temp -ew"
-    tagPrefixes:
-      - my.image.pub/my-app
