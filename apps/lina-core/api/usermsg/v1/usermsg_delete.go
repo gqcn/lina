@@ -1,0 +1,14 @@
+package v1
+
+import (
+	"github.com/gogf/gf/v2/frame/g"
+)
+
+// UserMsg Delete API
+
+type DeleteReq struct {
+	g.Meta `path:"/user/message/{id}" method:"delete" tags:"用户消息" summary:"删除单条消息"`
+	Id     int64 `json:"id" v:"required" dc:"消息ID"`
+}
+
+type DeleteRes struct{}
