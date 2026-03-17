@@ -5,6 +5,7 @@ BACKEND_PID   := $(PID_DIR)/backend.pid
 FRONTEND_PID  := $(PID_DIR)/frontend.pid
 BACKEND_PORT  := 8080
 FRONTEND_PORT := 5666
+EMBED_DIR     := $(BACKEND_DIR)/internal/packed/public
 
 ## 依赖Claude Code，自动生成 commit message 并提交到远程仓库
 .PHONY: up
@@ -104,3 +105,16 @@ init:
 .PHONY: mock
 mock:
 	@cd $(BACKEND_DIR) && make mock
+
+## build: 构建单体二进制（前端嵌入）
+.PHONY: build
+build:
+	@echo "构建前端..."
+	@cd $(FRONTEND_DIR) && pnpm run build
+	@rm -rf $(EMBED_DIR)/*
+	@mkdir -p $(EMBED_DIR)
+	@cp -r $(FRONTEND_DIR)/apps/web-antd/dist/* $(EMBED_DIR)/
+	@echo "✓ 前端构建完成"
+	@echo "构建后端（嵌入前端静态文件）..."
+	@cd $(BACKEND_DIR) && go build -o lina .
+	@echo "✓ 单体二进制构建完成: $(BACKEND_DIR)/lina"

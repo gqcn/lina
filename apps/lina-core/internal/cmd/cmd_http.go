@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"context"
+	"io/fs"
+	"net/http"
+	"strings"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
@@ -14,6 +17,7 @@ import (
 	"lina-core/internal/controller/operlog"
 	"lina-core/internal/controller/post"
 	"lina-core/internal/controller/user"
+	"lina-core/internal/packed"
 	"lina-core/internal/service/middleware"
 )
 
@@ -80,6 +84,27 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				operlog.NewV1(),
 			)
 		})
+	})
+
+	// Serve embedded frontend static files
+	subFS, _ := fs.Sub(packed.Files, "public")
+	fileServer := http.FileServer(http.FS(subFS))
+	s.BindHandler("/*", func(r *ghttp.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/")
+		if path == "" {
+			path = "index.html"
+		}
+		f, err := subFS.Open(path)
+		if err == nil {
+			f.Close()
+			fileServer.ServeHTTP(r.Response.RawWriter(), r.Request)
+			r.ExitAll()
+			return
+		}
+		// SPA fallback: serve index.html for unmatched paths
+		r.Request.URL.Path = "/index.html"
+		fileServer.ServeHTTP(r.Response.RawWriter(), r.Request)
+		r.ExitAll()
 	})
 
 	s.Run()
