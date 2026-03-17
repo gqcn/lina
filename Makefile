@@ -1,5 +1,5 @@
-BACKEND_DIR   := apps/backend
-FRONTEND_DIR  := apps/frontend
+BACKEND_DIR   := apps/lina-core
+FRONTEND_DIR  := apps/lina-vben
 PID_DIR       := /tmp/lina-pids
 BACKEND_PID   := $(PID_DIR)/backend.pid
 FRONTEND_PID  := $(PID_DIR)/frontend.pid
@@ -36,10 +36,10 @@ dev: stop
 	@echo "正在重启服务..."
 	@cd $(BACKEND_DIR) && go build -o temp/bin/lina . || { echo "后端编译失败"; exit 1; }
 	@# ── 启动后端 ────────────────────────────────────────────────
-	@cd $(BACKEND_DIR) && ./temp/bin/lina >> /tmp/lina-backend.log 2>&1 & echo $$! > $(BACKEND_PID)
+	@cd $(BACKEND_DIR) && ./temp/bin/lina >> /tmp/lina-core.log 2>&1 & echo $$! > $(BACKEND_PID)
 	@sleep 1
 	@# ── 启动前端 ────────────────────────────────────────────────
-	@cd $(FRONTEND_DIR) && npx turbo run dev --filter=@lina/web-antd >> /tmp/lina-frontend.log 2>&1 & echo $$! > $(FRONTEND_PID)
+	@cd $(FRONTEND_DIR) && npx turbo run dev --filter=@lina/web-antd >> /tmp/lina-vben.log 2>&1 & echo $$! > $(FRONTEND_PID)
 	@sleep 2
 	@echo ""
 	@echo "╔══════════════════════════════════════════════╗"
@@ -47,8 +47,8 @@ dev: stop
 	@echo "╠══════════════════════════════════════════════╣"
 	@echo "║  前端地址:  http://localhost:$(FRONTEND_PORT)            ║"
 	@echo "║  后端地址:  http://localhost:$(BACKEND_PORT)            ║"
-	@echo "║  后端日志:  /tmp/lina-backend.log            ║"
-	@echo "║  前端日志:  /tmp/lina-frontend.log           ║"
+	@echo "║  后端日志:  /tmp/lina-core.log            ║"
+	@echo "║  前端日志:  /tmp/lina-vben.log           ║"
 	@echo "╚══════════════════════════════════════════════╝"
 	@echo ""
 
@@ -85,8 +85,8 @@ status:
 		echo "║  前端: ✗ 未运行  (端口 $(FRONTEND_PORT))                 ║"; \
 	fi
 	@echo "╠══════════════════════════════════════════════╣"
-	@echo "║  后端日志:  /tmp/lina-backend.log            ║"
-	@echo "║  前端日志:  /tmp/lina-frontend.log           ║"
+	@echo "║  后端日志:  /tmp/lina-core.log            ║"
+	@echo "║  前端日志:  /tmp/lina-vben.log           ║"
 	@echo "╚══════════════════════════════════════════════╝"
 	@echo ""
 

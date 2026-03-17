@@ -4,7 +4,7 @@
 系统 SHALL 提供基于 GoFrame v2 框架的后端项目，项目结构遵循 GoFrame 标准分层架构（api / controller / service / dao / model）。
 
 #### Scenario: 后端项目可编译运行
-- **WHEN** 在 `apps/backend/` 目录下执行 `go build` 或 `make build`
+- **WHEN** 在 `apps/lina-core/` 目录下执行 `go build` 或 `make build`
 - **THEN** 项目成功编译为可执行文件
 
 #### Scenario: 后端服务启动并监听端口
@@ -15,7 +15,7 @@
 系统 SHALL 提供基于 Vben5 最新版 + Ant Design Vue 的前端项目，使用 pnpm monorepo 结构。
 
 #### Scenario: 前端项目可构建
-- **WHEN** 在 `apps/frontend/` 目录下执行 `pnpm install && pnpm build`
+- **WHEN** 在 `apps/lina-vben/` 目录下执行 `pnpm install && pnpm build`
 - **THEN** 项目成功构建产出 dist 产物
 
 #### Scenario: 前端开发服务器启动

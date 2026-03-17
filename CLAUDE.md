@@ -15,7 +15,7 @@
 
 ```text
 apps/                → MonoRepo项目目录
-  backend/           → GoFrame框架实现的后端源码
+  lina-core/         → GoFrame框架实现的后端源码
     api/             → 请求/响应 DTO（g.Meta 路由定义）
     internal/        → 后端核心代码实现
       cmd/           → 服务启动 & 路由注册
@@ -30,7 +30,7 @@ apps/                → MonoRepo项目目录
       config/        → 后端配置文件
       sql/           → DDL + Seed DML（版本 SQL 文件）
         mock-data/   → Mock 演示/测试数据（不随生产部署）
-  frontend/          → Vben5 前端（pnpm monorepo）
+  lina-vben/         → Vben5 前端（pnpm monorepo）
     apps/web-antd/   → 主应用（Ant Design Vue）
     packages/        → 共享库（@core, effects, stores, utils 等）
 hack/                → 项目脚本及测试用例文件
@@ -59,7 +59,7 @@ make up        # AI 生成 commit message 并推送
 ### 后端
 
 ```bash
-cd apps/backend
+cd apps/lina-core
 go run main.go          # 运行
 make build              # 构建
 make dao                # 生成 DAO/DO/Entity（修改 SQL 后）
@@ -69,7 +69,7 @@ make ctrl               # 生成控制器骨架（修改 API 定义后）
 ### 前端
 
 ```bash
-cd apps/frontend
+cd apps/lina-vben
 pnpm install                   # 安装依赖
 pnpm -F @lina/web-antd dev     # 开发模式
 pnpm run build                 # 构建

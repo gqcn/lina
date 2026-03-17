@@ -12,7 +12,7 @@ assets/
 
 
 # Backend
-apps/backend/temp/
+apps/lina-core/temp/
 
 # Frontend
 **/node_modules/

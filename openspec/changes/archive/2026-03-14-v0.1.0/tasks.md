@@ -1,11 +1,11 @@
 ## 1. 后端项目初始化
 
-- [x] 1.1 创建 GoFrame v2 后端项目骨架（`apps/backend/`），包含标准目录结构：api、internal/cmd、internal/controller、internal/service、internal/dao、internal/model、manifest/config、manifest/sql
+- [x] 1.1 创建 GoFrame v2 后端项目骨架（`apps/lina-core/`），包含标准目录结构：api、internal/cmd、internal/controller、internal/service、internal/dao、internal/model、manifest/config、manifest/sql
 - [x] 1.2 配置 `go.mod`，引入 GoFrame v2、SQLite driver（`github.com/gogf/gf/contrib/drivers/sqlite/v2`）、JWT（`github.com/golang-jwt/jwt/v5`）、bcrypt（`golang.org/x/crypto`）
 - [x] 1.3 编写 `manifest/config/config.yaml`，配置 server（端口 8080）、logger、database（SQLite）、jwt（secret、expireHour）
 - [x] 1.4 编写 `manifest/sql/init.sql`，创建 `sys_user` 表并插入默认管理员账号（admin/admin123 bcrypt 哈希）
 - [x] 1.5 编写 `internal/cmd/cmd.go`，实现服务启动、路由注册框架（公开路由组 + 认证路由组）
-- [x] 1.6 编写 `Makefile`（`apps/backend/Makefile`），支持 build、ctrl、dao、service 命令
+- [x] 1.6 编写 `Makefile`（`apps/lina-core/Makefile`），支持 build、ctrl、dao、service 命令
 - [x] 1.7 验证后端项目可编译运行并监听 8080 端口
 
 ## 2. 后端认证模块
@@ -27,7 +27,7 @@
 
 ## 4. 前端项目初始化
 
-- [x] 4.1 使用 Vben5 最新版官方脚手架初始化前端项目到 `apps/frontend/`，选择 Ant Design Vue 变体
+- [x] 4.1 使用 Vben5 最新版官方脚手架初始化前端项目到 `apps/lina-vben/`，选择 Ant Design Vue 变体
 - [x] 4.2 清理模板示例页面，配置项目名称为 Lina
 - [x] 4.3 配置 API 代理：开发环境将 `/api` 前缀请求代理到 `http://localhost:8080`
 - [x] 4.4 配置请求客户端（`src/api/request.ts`）：Bearer Token 认证头、统一错误处理、401 自动跳转登录
@@ -56,7 +56,7 @@
 
 - [x] 8.1 编写根目录 `Makefile`：dev（启动前后端）、stop（停止服务）、status（查看状态）
 - [x] 8.2 编写 `CLAUDE.md`：项目概述、常用命令、架构说明、开发规范
-- [x] 8.3 更新 `.gitignore`：补充 backend/frontend 相关忽略规则
+- [x] 8.3 更新 `.gitignore`：补充 backend/lina-vben 相关忽略规则
 
 ## 9. E2E 测试
 

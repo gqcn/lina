@@ -26,8 +26,8 @@ Lina 管理后台系统需要从零开始搭建。作为第一个迭代（Change
 
 ## Impact
 
-- 新增前端项目 `apps/frontend/`（Vben5 monorepo 结构）
-- 新增后端项目 `apps/backend/`（GoFrame v2 标准结构）
+- 新增前端项目 `apps/lina-vben/`（Vben5 monorepo 结构）
+- 新增后端项目 `apps/lina-core/`（GoFrame v2 标准结构）
 - 新增数据库表：`sys_user`
 - 新增 API 端点：认证相关（登录/登出）、用户 CRUD
 - 新增 E2E 测试：Playwright 测试用例
