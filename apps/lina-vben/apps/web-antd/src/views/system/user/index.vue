@@ -3,7 +3,7 @@ import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { preferences } from '@vben/preferences';
 import { useUserStore } from '@vben/stores';
 
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import {
   Avatar,
@@ -25,6 +25,7 @@ import {
   userList,
   userStatusChange,
 } from '#/api/system/user';
+import { useDictStore } from '#/store/dict';
 import { downloadBlob } from '#/utils/download';
 
 import { columns, querySchema } from './data';
@@ -46,6 +47,33 @@ const [UserResetPwdModalRef, userResetPwdModalApi] = useVbenModal({
 });
 
 const userStore = useUserStore();
+
+// 加载字典数据
+const dictStore = useDictStore();
+const statusLabel = computed(() => {
+  const opts = dictStore.dictOptionsMap.get('sys_normal_disable') || [];
+  const checked = opts.find((d) => d.value === '1');
+  const unchecked = opts.find((d) => d.value === '0');
+  return {
+    checked: checked?.label || '正常',
+    unchecked: unchecked?.label || '停用',
+  };
+});
+
+onMounted(async () => {
+  const statusOptions = await dictStore.getDictOptions('sys_normal_disable');
+  gridApi.formApi.updateSchema([
+    {
+      fieldName: 'status',
+      componentProps: {
+        options: statusOptions.map((d) => ({
+          label: d.label,
+          value: Number(d.value),
+        })),
+      },
+    },
+  ]);
+});
 
 // 左边部门用
 const selectDeptId = ref<string[]>([]);
@@ -254,8 +282,8 @@ function handleResetPwd(row: any) {
             :checked-value="1"
             :disabled="isSelf(row)"
             :un-checked-value="0"
-            checked-children="启用"
-            un-checked-children="禁用"
+            :checked-children="statusLabel.checked"
+            :un-checked-children="statusLabel.unchecked"
             @change="() => handleStatusChange(row)"
           />
         </template>

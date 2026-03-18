@@ -1,6 +1,13 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
+import { h } from 'vue';
+
+import { DictTag } from '#/components/dict';
+import { useDictStore } from '#/store/dict';
+
+const dictStore = useDictStore();
+
 /** 查询表单schema */
 export const querySchema: VbenFormSchema[] = [
   {
@@ -22,12 +29,6 @@ export const querySchema: VbenFormSchema[] = [
     component: 'Select',
     fieldName: 'status',
     label: '用户状态',
-    componentProps: {
-      options: [
-        { label: '启用', value: 1 },
-        { label: '禁用', value: 0 },
-      ],
-    },
   },
   {
     component: 'RangePicker',
@@ -182,10 +183,6 @@ export function drawerSchema(isEdit: boolean): VbenFormSchema[] {
       componentProps: {
         buttonStyle: 'solid',
         optionType: 'button',
-        options: [
-          { label: '正常', value: 1 },
-          { label: '停用', value: 0 },
-        ],
       },
     },
     {

@@ -92,15 +92,15 @@ CREATE TABLE IF NOT EXISTS sys_user_post (
 -- 字典初始化数据（系统必需）
 -- ============================================================
 
--- 字典类型: 系统开关
+-- 字典类型: 状态开关
 INSERT IGNORE INTO sys_dict_type (name, type, status, remark, created_at, updated_at)
-VALUES ('系统开关', 'sys_normal_disable', 1, '系统开关列表', NOW(), NOW());
+VALUES ('状态开关', 'sys_normal_disable', 1, '状态开关列表', NOW(), NOW());
 
 -- 字典类型: 用户性别
 INSERT IGNORE INTO sys_dict_type (name, type, status, remark, created_at, updated_at)
 VALUES ('用户性别', 'sys_user_sex', 1, '用户性别列表', NOW(), NOW());
 
--- 字典数据: 系统开关
+-- 字典数据: 状态开关
 INSERT IGNORE INTO sys_dict_data (dict_type, label, value, sort, tag_style, status, created_at, updated_at)
 VALUES ('sys_normal_disable', '正常', '1', 1, 'primary', 1, NOW(), NOW());
 INSERT IGNORE INTO sys_dict_data (dict_type, label, value, sort, tag_style, status, created_at, updated_at)

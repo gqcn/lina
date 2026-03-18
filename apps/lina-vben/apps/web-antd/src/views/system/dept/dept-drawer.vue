@@ -16,10 +16,13 @@ import {
   deptUpdate,
   deptUsers,
 } from '#/api/system/dept';
+import { useDictStore } from '#/store/dict';
 
 import { drawerSchema } from './data';
 
 const emit = defineEmits<{ reload: [] }>();
+
+const dictStore = useDictStore();
 
 interface DrawerProps {
   id?: number;
@@ -142,6 +145,20 @@ const [BasicDrawer, drawerApi] = useVbenDrawer({
     // For edit dept: load users from this dept's subtree
     await initDeptUsers(update && id ? id : 0);
     await initDeptSelect(id);
+
+    // 加载字典：状态选项
+    const statusOptions = await dictStore.getDictOptions('sys_normal_disable');
+    formApi.updateSchema([
+      {
+        fieldName: 'status',
+        componentProps: {
+          options: statusOptions.map((d) => ({
+            label: d.label,
+            value: Number(d.value),
+          })),
+        },
+      },
+    ]);
 
     drawerApi.setState({ loading: false });
   },

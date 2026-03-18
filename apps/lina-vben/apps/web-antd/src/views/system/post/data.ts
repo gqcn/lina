@@ -1,6 +1,13 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
+import { h } from 'vue';
+
+import { DictTag } from '#/components/dict';
+import { useDictStore } from '#/store/dict';
+
+const dictStore = useDictStore();
+
 /** 查询表单schema */
 export const querySchema: VbenFormSchema[] = [
   {
@@ -17,12 +24,6 @@ export const querySchema: VbenFormSchema[] = [
     component: 'Select',
     fieldName: 'status',
     label: '状态',
-    componentProps: {
-      options: [
-        { label: '正常', value: 1 },
-        { label: '停用', value: 0 },
-      ],
-    },
   },
 ];
 
@@ -48,7 +49,12 @@ export const columns: VxeGridProps['columns'] = [
     field: 'status',
     title: '状态',
     minWidth: 100,
-    slots: { default: 'status' },
+    slots: {
+      default: ({ row }) => {
+        const dicts = dictStore.dictOptionsMap.get('sys_normal_disable') || [];
+        return h(DictTag, { dicts: dicts as any, value: row.status });
+      },
+    },
   },
   {
     field: 'createdAt',
@@ -100,10 +106,6 @@ export const drawerSchema: VbenFormSchema[] = [
     componentProps: {
       buttonStyle: 'solid',
       optionType: 'button',
-      options: [
-        { label: '正常', value: 1 },
-        { label: '停用', value: 0 },
-      ],
     },
   },
   {

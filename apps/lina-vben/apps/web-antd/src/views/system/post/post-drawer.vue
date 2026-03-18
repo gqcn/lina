@@ -7,10 +7,13 @@ import { message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { postAdd, postDeptTree, postInfo, postUpdate } from '#/api/system/post';
+import { useDictStore } from '#/store/dict';
 
 import { drawerSchema } from './data';
 
 const emit = defineEmits<{ reload: [] }>();
+
+const dictStore = useDictStore();
 
 const isUpdate = ref(false);
 const postId = ref<number>(0);
@@ -71,6 +74,21 @@ const [Drawer, drawerApi] = useVbenDrawer({
       isUpdate.value = !!data?.id;
 
       await setupDeptSelect();
+
+      // 加载字典：状态选项
+      const statusOptions =
+        await dictStore.getDictOptions('sys_normal_disable');
+      formApi.updateSchema([
+        {
+          fieldName: 'status',
+          componentProps: {
+            options: statusOptions.map((d) => ({
+              label: d.label,
+              value: Number(d.value),
+            })),
+          },
+        },
+      ]);
 
       if (isUpdate.value && data?.id) {
         postId.value = data.id;

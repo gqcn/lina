@@ -12,12 +12,14 @@ import {
   dictDataDelete,
   dictDataList,
 } from '#/api/system/dict/dict-data';
+import { useDictStore } from '#/store/dict';
 
 import { emitter } from '../mitt';
 import { columns, querySchema } from './data';
 import dictDataDrawer from './dict-data-drawer.vue';
 
 const dictType = ref('');
+const dictStore = useDictStore();
 
 const [BasicTable, tableApi] = useVbenVxeGrid({
   formOptions: {
@@ -89,6 +91,7 @@ function handleEdit(row: DictData) {
 async function handleDelete(row: DictData) {
   await dictDataDelete(row.id);
   message.success('删除成功');
+  dictStore.resetCache();
   await tableApi.query();
 }
 
@@ -104,6 +107,7 @@ function handleMultiDelete() {
         await dictDataDelete(id);
       }
       checkedRows.value = [];
+      dictStore.resetCache();
       await tableApi.query();
     },
   });

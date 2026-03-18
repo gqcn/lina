@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import type { Post } from '#/api/system/post/model';
 
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import { Page, useVbenDrawer } from '@vben/common-ui';
 
-import { message, Modal, Popconfirm, Space, Tag } from 'ant-design-vue';
+import { message, Modal, Popconfirm, Space } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { postDelete, postDeptTree, postList } from '#/api/system/post';
+import { useDictStore } from '#/store/dict';
 import DeptTree from '#/views/system/user/dept-tree.vue';
 
 import { columns, querySchema } from './data';
@@ -16,6 +17,24 @@ import PostDrawer from './post-drawer.vue';
 
 const selectDeptId = ref<string[]>([]);
 const deptTreeRef = ref<InstanceType<typeof DeptTree>>();
+
+// 加载字典数据
+const dictStore = useDictStore();
+
+onMounted(async () => {
+  const statusOptions = await dictStore.getDictOptions('sys_normal_disable');
+  gridApi.formApi.updateSchema([
+    {
+      fieldName: 'status',
+      componentProps: {
+        options: statusOptions.map((d) => ({
+          label: d.label,
+          value: Number(d.value),
+        })),
+      },
+    },
+  ]);
+});
 
 const [PostDrawerRef, postDrawerApi] = useVbenDrawer({
   connectedComponent: PostDrawer,
@@ -145,11 +164,6 @@ function onReload() {
           </a-button>
           <a-button type="primary" @click="handleAdd">新 增</a-button>
         </Space>
-      </template>
-
-      <template #status="{ row }">
-        <Tag v-if="row.status === 1" color="success">正常</Tag>
-        <Tag v-else color="error">停用</Tag>
       </template>
 
       <template #action="{ row }">

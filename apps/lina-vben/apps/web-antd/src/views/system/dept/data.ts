@@ -19,12 +19,6 @@ export const querySchema: VbenFormSchema[] = [
     component: 'Select',
     fieldName: 'status',
     label: '部门状态',
-    componentProps: {
-      options: [
-        { label: '正常', value: 1 },
-        { label: '停用', value: 0 },
-      ],
-    },
   },
 ];
 
@@ -122,10 +116,6 @@ export function drawerSchema(): VbenFormSchema[] {
       componentProps: {
         buttonStyle: 'solid',
         optionType: 'button',
-        options: [
-          { label: '正常', value: 1 },
-          { label: '停用', value: 0 },
-        ],
       },
       defaultValue: 1,
       fieldName: 'status',

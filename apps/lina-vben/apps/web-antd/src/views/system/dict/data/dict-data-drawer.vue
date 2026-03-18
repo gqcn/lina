@@ -12,11 +12,14 @@ import {
   dictDataUpdate,
 } from '#/api/system/dict/dict-data';
 import { tagTypes } from '#/components/dict';
+import { useDictStore } from '#/store/dict';
 
 import { drawerSchema } from './data';
 import TagStylePicker from './tag-style-picker.vue';
 
 const emit = defineEmits<{ reload: [] }>();
+
+const dictStore = useDictStore();
 
 interface DrawerProps {
   dictType: string;
@@ -95,6 +98,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
         await dictDataAdd(data);
         message.success('创建成功');
       }
+
+      // 清除字典缓存，确保其他页面读取最新数据
+      dictStore.resetCache();
 
       emit('reload');
       drawerApi.close();

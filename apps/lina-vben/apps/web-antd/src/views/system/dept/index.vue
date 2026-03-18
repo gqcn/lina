@@ -4,7 +4,7 @@ import type { VbenFormProps } from '@vben/common-ui';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 import type { Dept } from '#/api/system/dept/model';
 
-import { nextTick } from 'vue';
+import { nextTick, onMounted } from 'vue';
 
 import { Page, useVbenDrawer } from '@vben/common-ui';
 
@@ -19,7 +19,21 @@ import deptDrawer from './dept-drawer.vue';
 
 // 加载字典数据
 const dictStore = useDictStore();
-dictStore.getDictOptions('sys_normal_disable');
+
+onMounted(async () => {
+  const statusOptions = await dictStore.getDictOptions('sys_normal_disable');
+  gridApi.formApi.updateSchema([
+    {
+      fieldName: 'status',
+      componentProps: {
+        options: statusOptions.map((d) => ({
+          label: d.label,
+          value: Number(d.value),
+        })),
+      },
+    },
+  ]);
+});
 
 const formOptions: VbenFormProps = {
   commonConfig: {

@@ -8,6 +8,7 @@ import { message } from 'ant-design-vue';
 import { useVbenForm } from '#/adapter/form';
 import { postOptionSelect } from '#/api/system/post';
 import { getDeptTree, userAdd, userInfo, userUpdate } from '#/api/system/user';
+import { useDictStore } from '#/store/dict';
 
 import { drawerSchema } from './data';
 
@@ -16,6 +17,8 @@ const emit = defineEmits<{ success: [] }>();
 const isEdit = ref(false);
 const userId = ref<number>(0);
 const title = computed(() => (isEdit.value ? '编辑用户' : '新增用户'));
+
+const dictStore = useDictStore();
 
 function addFullName(
   tree: any[],
@@ -124,6 +127,20 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
     // 加载部门树
     await setupDeptSelect();
+
+    // 加载字典：状态选项
+    const statusOptions = await dictStore.getDictOptions('sys_normal_disable');
+    formApi.updateSchema([
+      {
+        fieldName: 'status',
+        componentProps: {
+          options: statusOptions.map((d) => ({
+            label: d.label,
+            value: Number(d.value),
+          })),
+        },
+      },
+    ]);
 
     if (isEdit.value && data?.row) {
       userId.value = data.row.id;
