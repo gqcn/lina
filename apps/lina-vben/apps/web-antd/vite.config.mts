@@ -19,7 +19,7 @@ export default defineConfig(async () => {
             ws: true,
           },
           '/stoplight/apidocs.html': {
-            target: 'http://localhost:5666',
+            target: 'http://localhost:8080',
             bypass(_req, res) {
               // Serve the static HTML file directly, bypassing Vite's SPA fallback
               if (!cachedApidocsHtml) {
@@ -31,6 +31,8 @@ export default defineConfig(async () => {
               }
               res.setHeader('Content-Type', 'text/html; charset=utf-8');
               res.end(cachedApidocsHtml);
+              // Return false to prevent proxy from connecting to the target
+              return false;
             },
           },
         },
