@@ -61,3 +61,7 @@
 - [x] **FB-18**：将部门层级查询中的 MySQL 特有 FIND_IN_SET 替换为基于 parent_id 迭代查询的跨数据库通用实现（涉及 dept/post/user 三个服务共 3 处）
 - [x] **FB-19**：通知公告 NoticeModal 中 formRules 使用普通对象导致 Vue warn "Invalid watch source"，需改为 reactive 对象
 - [x] **FB-20**：系统接口页面嵌套的接口文档 iframe 中 html/body 背景透明，导致外层页面灰色背景透过 iframe 渗透到 Stoplight 侧边栏与内容区之间的分隔条区域
+- [x] **FB-21**：系统接口文档左侧菜单中只有模块名称粗体展示，接口名称不应粗体展示
+- [x] **FB-22**：去掉系统接口文档左下角的"powered by Stoplight"展示
+- [x] **FB-23**：接口文档中接口地址背景块（如"GET /api/v1/notice"）长度应与当前板块宽度一致，GET 在左侧、接口地址在右侧
+- [x] **FB-24**：系统接口文档左侧 SCHEMAS 区域做成可折叠的（默认折叠）
