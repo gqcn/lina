@@ -35,9 +35,13 @@ export default defineConfig(async () => {
           },
         },
         watch: {
-          // Exclude large Stoplight static assets from Vite's file watcher
-          // to prevent excessive CPU usage during development
-          ignored: ['**/public/stoplight/**'],
+          // Exclude directories that don't need HMR watching
+          ignored: [
+            '**/public/stoplight/**',
+            '**/node_modules/**',
+            '**/dist/**',
+            '**/.vite/**',
+          ],
         },
       },
     },

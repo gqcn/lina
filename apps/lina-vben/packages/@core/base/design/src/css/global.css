@@ -1,15 +1,13 @@
-@import 'tailwindcss';
+@import 'tailwindcss' source(none);
 @import 'tw-animate-css';
 
 @plugin '@tailwindcss/typography';
 @plugin '@iconify/tailwind4';
 
-/* Monorepo source detection: scan all packages and apps for utility classes */
-@source '../../../../../../packages/';
-@source '../../../../../../apps/';
-
-/* Exclude static assets from scanning to prevent high CPU usage */
-@source not '../../../../../../apps/*/public/';
+/* Only scan packages that actually use Tailwind utility classes */
+@source '../../../../../../packages/@core/';
+@source '../../../../../../packages/effects/';
+@source '../../../../../../apps/web-antd/src/';
 
 /* Dark mode uses .dark class selector, not prefers-color-scheme */
 @custom-variant dark (&:is(.dark *));

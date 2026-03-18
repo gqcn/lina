@@ -51,25 +51,48 @@ dev: stop
 .PHONY: stop
 stop:
 	@echo "正在停止服务..."
-	@# ── 停止后端 ────────────────────────────────────────────────
-	@if [ -f $(BACKEND_PID) ] && kill -0 $$(cat $(BACKEND_PID)) 2>/dev/null; then \
-		kill $$(cat $(BACKEND_PID)) 2>/dev/null; rm -f $(BACKEND_PID); echo "✓ 后端已停止"; \
-	elif lsof -ti :$(BACKEND_PORT) >/dev/null 2>&1; then \
-		kill $$(lsof -ti :$(BACKEND_PORT)) 2>/dev/null; rm -f $(BACKEND_PID); echo "✓ 后端已停止"; \
-	else \
-		rm -f $(BACKEND_PID); echo "  后端未在运行"; \
-	fi
-	@# ── 停止前端（杀掉整个进程树：turbo → pnpm → vite）────────
-	@if [ -f $(FRONTEND_PID) ] && kill -0 $$(cat $(FRONTEND_PID)) 2>/dev/null; then \
-		PID=$$(cat $(FRONTEND_PID)); \
-		PGID=$$(ps -o pgid= -p $$PID | tr -d ' '); \
-		if [ -n "$$PGID" ]; then kill -- -$$PGID 2>/dev/null; fi; \
-		rm -f $(FRONTEND_PID); echo "✓ 前端已停止"; \
-	elif lsof -ti :$(FRONTEND_PORT) >/dev/null 2>&1; then \
-		kill $$(lsof -ti :$(FRONTEND_PORT)) 2>/dev/null; rm -f $(FRONTEND_PID); echo "✓ 前端已停止"; \
-	else \
-		rm -f $(FRONTEND_PID); echo "  前端未在运行"; \
-	fi
+	@# ── 辅助函数：递归杀进程树（先杀子进程再杀父进程）──────────
+	@# kill_tree <pid>: 通过 pgrep 递归查找子进程并逐一终止
+	@_kill_tree() { \
+		for child in $$(pgrep -P $$1 2>/dev/null); do \
+			_kill_tree $$child; \
+		done; \
+		kill $$1 2>/dev/null; \
+	}; \
+	\
+	_stop_service() { \
+		local name="$$1" pid_file="$$2" port="$$3"; \
+		local stopped=false; \
+		\
+		if [ -f "$$pid_file" ]; then \
+			local pid=$$(cat "$$pid_file"); \
+			if kill -0 "$$pid" 2>/dev/null; then \
+				_kill_tree "$$pid"; \
+				stopped=true; \
+			fi; \
+			rm -f "$$pid_file"; \
+		fi; \
+		\
+		local pids=$$(lsof -ti :"$$port" 2>/dev/null); \
+		if [ -n "$$pids" ]; then \
+			echo "$$pids" | xargs kill 2>/dev/null; \
+			sleep 0.5; \
+			pids=$$(lsof -ti :"$$port" 2>/dev/null); \
+			if [ -n "$$pids" ]; then \
+				echo "$$pids" | xargs kill -9 2>/dev/null; \
+			fi; \
+			stopped=true; \
+		fi; \
+		\
+		if [ "$$stopped" = true ]; then \
+			echo "✓ $$name 已停止"; \
+		else \
+			echo "  $$name 未在运行"; \
+		fi; \
+	}; \
+	\
+	_stop_service "后端" "$(BACKEND_PID)" "$(BACKEND_PORT)"; \
+	_stop_service "前端" "$(FRONTEND_PID)" "$(FRONTEND_PORT)"
 
 ## status: 查看前后端运行状态及日志路径
 .PHONY: status
