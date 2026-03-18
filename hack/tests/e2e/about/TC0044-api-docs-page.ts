@@ -85,7 +85,9 @@ test.describe('TC0044 系统接口页面', () => {
     await frame.locator('[title="认证管理"]').click();
     await frame.locator('[title="获取权限码"]').click();
     // Find the method/path block
-    const pathBlock = frame.locator('div[title="/api/v1/auth/codes"]');
+    const pathBlock = frame.locator(
+      'div[title*="/api/v1/auth/codes"]',
+    );
     await expect(pathBlock).toBeVisible({ timeout: 10_000 });
     // Block should be full width (display: flex, not inline-flex)
     await expect(pathBlock).toHaveCSS('display', 'flex');

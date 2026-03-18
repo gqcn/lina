@@ -8,6 +8,7 @@ import (
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/gogf/gf/v2/net/goai"
 	"github.com/gogf/gf/v2/os/gfile"
 
 	"lina-core/internal/controller/auth"
@@ -36,11 +37,36 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		authCtrl      = auth.NewV1()
 	)
 
-	// Set OpenAPI info for API documentation
+	// Set OpenAPI info from configuration
 	oai := s.GetOpenApi()
-	oai.Info.Title = "Lina Admin API"
-	oai.Info.Description = "Lina 管理后台系统 RESTful API 接口文档。基于 GoFrame 框架构建，提供用户管理、部门管理、岗位管理、字典管理、通知公告、操作日志、登录日志等功能模块的完整接口。"
-	oai.Info.Version = "v0.5.0"
+	oai.Info.Title = g.Cfg().MustGet(ctx, "openapi.title", "Lina Admin API").String()
+	oai.Info.Description = g.Cfg().MustGet(ctx, "openapi.description").String()
+	oai.Info.Version = g.Cfg().MustGet(ctx, "openapi.version", "v1.0.0").String()
+
+	// Set API server URL so documentation shows the correct backend address
+	if serverUrl := g.Cfg().MustGet(ctx, "openapi.serverUrl").String(); serverUrl != "" {
+		oai.Servers = &goai.Servers{
+			{
+				URL:         serverUrl,
+				Description: g.Cfg().MustGet(ctx, "openapi.serverDescription", "API Server").String(),
+			},
+		}
+	}
+
+	// Add JWT Bearer security scheme for API documentation
+	oai.Components.SecuritySchemes = goai.SecuritySchemes{
+		"BearerAuth": goai.SecuritySchemeRef{
+			Value: &goai.SecurityScheme{
+				Type:         "http",
+				Scheme:       "bearer",
+				BearerFormat: "JWT",
+				Description:  "JWT Bearer Token 认证",
+			},
+		},
+	}
+	oai.Security = &goai.SecurityRequirements{
+		{"BearerAuth": {}},
+	}
 
 	s.Group("/api/v1", func(group *ghttp.RouterGroup) {
 		// Static file serving for uploads (no JSON wrapper)

@@ -1,9 +1,19 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+
+import { useAccessStore } from '@vben/stores';
+
 defineOptions({ name: 'ApiDocs' });
+
+const accessStore = useAccessStore();
+const iframeSrc = computed(() => {
+  const token = accessStore.accessToken || '';
+  return `/stoplight/apidocs.html?token=${encodeURIComponent(token)}`;
+});
 </script>
 
 <template>
-  <iframe class="api-docs-iframe" src="/stoplight/apidocs.html" />
+  <iframe class="api-docs-iframe" :src="iframeSrc" />
 </template>
 
 <style scoped>

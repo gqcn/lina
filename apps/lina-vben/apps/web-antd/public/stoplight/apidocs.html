@@ -9,9 +9,22 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; overflow: hidden; background-color: #fff; }
 
-    /* 减少侧边栏顶部空白 */
+    /* 减少侧边栏顶部空白：隐藏标题容器并去除多余间距 */
     .sl-overflow-y-auto.sl-flex-col.sl-sticky {
-      padding-top: 8px !important;
+      padding-top: 0 !important;
+    }
+    /* FB-30: 隐藏侧边栏顶部的 API 文档标题容器（如 "Lina Admin API"） */
+    .sl-overflow-y-auto.sl-flex-col.sl-sticky > div.sl-flex.sl-items-center.sl-mb-5 {
+      display: none !important;
+    }
+    /* 去除 Overview 上方的额外间距 */
+    .sl-overflow-y-auto.sl-flex-col.sl-sticky .sl-my-3 {
+      margin-top: 20px !important;
+    }
+
+    /* 减少右侧接口详情顶部间距 */
+    .sl-py-16 {
+      padding-top: 20px !important;
     }
 
     /* FB-21: 只有模块名称（sl-pl-4）粗体，接口名称（sl-pl-8）不粗体 */
@@ -63,6 +76,18 @@
   </style>
 </head>
 <body>
+  <script>
+    // FB-32: Read JWT token from URL parameter and pre-fill Stoplight Try It auth
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get('token');
+      if (token) {
+        localStorage.setItem('TryIt_securitySchemeValues', JSON.stringify({
+          BearerAuth: token
+        }));
+      }
+    })();
+  </script>
   <elements-api
     apiDescriptionUrl="/api.json"
     router="memory"
