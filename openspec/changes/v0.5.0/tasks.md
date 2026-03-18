@@ -59,3 +59,4 @@
 - [x] **FB-16**：用户创建/修改页面"所属部门"字段名称改为"部门"，移至岗位字段上方，改为非必填项
 - [x] **FB-17**：用户列表中用户不属于任何部门时，部门列应展示"未分配部门"而非空白
 - [x] **FB-18**：将部门层级查询中的 MySQL 特有 FIND_IN_SET 替换为基于 parent_id 迭代查询的跨数据库通用实现（涉及 dept/post/user 三个服务共 3 处）
+- [x] **FB-19**：通知公告 NoticeModal 中 formRules 使用普通对象导致 Vue warn "Invalid watch source"，需改为 reactive 对象

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
@@ -29,12 +29,12 @@ const defaultValues: FormData = {
 const isEdit = computed(() => !!formData.value.id);
 const formData = ref<FormData>({ ...defaultValues });
 
-const formRules = {
+const formRules = reactive({
   title: [{ message: '请输入公告标题', required: true }],
   status: [{ message: '请选择公告状态', required: true }],
   type: [{ message: '请选择公告类型', required: true }],
   content: [{ message: '请输入公告内容', required: true }],
-};
+});
 
 const { validate, validateInfos, resetFields } = Form.useForm(
   formData,
