@@ -370,22 +370,23 @@ func (s *Service) OptionSelect(ctx context.Context, in OptionSelectInput) ([]Pos
 
 // getDeptAndDescendantIds returns the given deptId plus all descendant dept IDs.
 func (s *Service) getDeptAndDescendantIds(ctx context.Context, deptId int) ([]int, error) {
-	deptCols := dao.SysDept.Columns()
-	var descDepts []*entity.SysDept
-	err := dao.SysDept.Ctx(ctx).
-		WhereNull(deptCols.DeletedAt).
-		Where(
-			fmt.Sprintf("(',' || %s || ',') LIKE ?", deptCols.Ancestors),
-			fmt.Sprintf("%%,%d,%%", deptId),
-		).
-		Fields(deptCols.Id).
-		Scan(&descDepts)
-	if err != nil {
-		return nil, err
-	}
-	deptIds := []int{deptId}
-	for _, d := range descDepts {
-		deptIds = append(deptIds, d.Id)
+	var (
+		deptCols  = dao.SysDept.Columns()
+		deptIds   = []int{deptId}
+		parentIds = []int{deptId}
+	)
+	for len(parentIds) > 0 {
+		childValues, err := dao.SysDept.Ctx(ctx).
+			WhereNull(deptCols.DeletedAt).
+			WhereIn(deptCols.ParentId, parentIds).
+			Fields(deptCols.Id).
+			Array()
+		if err != nil {
+			return nil, err
+		}
+		var childIds = gconv.Ints(childValues)
+		deptIds = append(deptIds, childIds...)
+		parentIds = childIds
 	}
 	return deptIds, nil
 }

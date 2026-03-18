@@ -1,7 +1,7 @@
 import { test, expect } from '../../fixtures/auth';
 
-test.describe('TC0045 系统信息页面', () => {
-  test('TC0045a: 系统信息页面显示四个区块', async ({ adminPage }) => {
+test.describe('TC0045 版本信息页面', () => {
+  test('TC0045a: 版本信息页面显示四个区块', async ({ adminPage }) => {
     await adminPage.goto('/about/system-info');
     await adminPage.waitForLoadState('networkidle');
 

@@ -5,9 +5,7 @@ import { computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AuthenticationLoginExpiredModal, useVbenModal } from '@vben/common-ui';
-import { VBEN_DOC_URL, VBEN_GITHUB_URL } from '@vben/constants';
 import { useWatermark } from '@vben/hooks';
-import { BookOpenText, CircleHelp, SvgGithubIcon } from '@vben/icons';
 import {
   BasicLayout,
   LockScreen,
@@ -16,7 +14,6 @@ import {
 } from '@vben/layouts';
 import { preferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
-import { openWindow } from '@vben/utils';
 
 import { Modal } from 'ant-design-vue';
 
@@ -66,37 +63,10 @@ const menus = computed(() => [
     icon: 'lucide:user',
     text: $t('page.auth.profile'),
   },
-  {
-    handler: () => {
-      openWindow(VBEN_DOC_URL, {
-        target: '_blank',
-      });
-    },
-    icon: BookOpenText,
-    text: $t('ui.widgets.document'),
-  },
-  {
-    handler: () => {
-      openWindow(VBEN_GITHUB_URL, {
-        target: '_blank',
-      });
-    },
-    icon: SvgGithubIcon,
-    text: 'GitHub',
-  },
-  {
-    handler: () => {
-      openWindow(`${VBEN_GITHUB_URL}/issues`, {
-        target: '_blank',
-      });
-    },
-    icon: CircleHelp,
-    text: $t('ui.widgets.qa'),
-  },
 ]);
 
 const avatar = computed(() => {
-  return userStore.userInfo?.avatar ?? preferences.app.defaultAvatar;
+  return userStore.userInfo?.avatar || preferences.app.defaultAvatar;
 });
 
 async function handleLogout() {
@@ -178,8 +148,8 @@ watch(
         :avatar
         :menus
         :text="userStore.userInfo?.realName"
-        description="ann.vben@gmail.com"
-        tag-text="Pro"
+        :description="userStore.userInfo?.email || ''"
+        :tag-text="userStore.userInfo?.username"
         @logout="handleLogout"
       />
     </template>

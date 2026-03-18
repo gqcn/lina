@@ -47,7 +47,7 @@ func (c *ControllerV1) UpdateAvatar(ctx context.Context, req *v1.UpdateAvatarReq
 	}
 
 	// Build URL path
-	avatarUrl := "/api/uploads/avatars/" + filename
+	avatarUrl := "/api/v1/uploads/avatars/" + filename
 
 	// Update user avatar in database
 	err = c.userSvc.UpdateAvatar(ctx, avatarUrl)

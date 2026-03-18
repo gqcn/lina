@@ -18,7 +18,7 @@ type GetProfileRes struct {
 
 type UpdateProfileReq struct {
 	g.Meta   `path:"/user/profile" method:"put" tags:"用户管理" summary:"更新当前用户信息"`
-	Nickname *string `json:"nickname" dc:"昵称"`
+	Nickname *string `json:"nickname" v:"required#请输入昵称" dc:"昵称"`
 	Email    *string `json:"email" dc:"邮箱"`
 	Phone    *string `json:"phone" dc:"手机号"`
 	Sex      *int    `json:"sex" dc:"性别"`

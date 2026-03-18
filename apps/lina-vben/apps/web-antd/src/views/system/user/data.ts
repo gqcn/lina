@@ -61,6 +61,9 @@ export const columns: VxeGridProps['columns'] = [
     field: 'deptName',
     title: '部门',
     minWidth: 120,
+    formatter({ cellValue }) {
+      return cellValue || '未分配部门';
+    },
   },
   {
     field: 'phone',
@@ -135,28 +138,9 @@ export function drawerSchema(isEdit: boolean): VbenFormSchema[] {
       component: 'Input',
       fieldName: 'nickname',
       label: '昵称',
-      componentProps: {
-        placeholder: '请输入昵称',
-      },
-    },
-    {
-      component: 'TreeSelect',
-      defaultValue: undefined,
-      fieldName: 'deptId',
-      label: '所属部门',
       rules: 'required',
       componentProps: {
-        fieldNames: {
-          key: 'id',
-          value: 'id',
-          children: 'children',
-        },
-        showSearch: true,
-        treeDefaultExpandAll: true,
-        treeNodeLabelProp: 'fullName',
-        treeLine: { showLeafIcon: false },
-        treeNodeFilterProp: 'label',
-        placeholder: '请选择',
+        placeholder: '请输入昵称',
       },
     },
     {
@@ -202,6 +186,25 @@ export function drawerSchema(isEdit: boolean): VbenFormSchema[] {
           { label: '正常', value: 1 },
           { label: '停用', value: 0 },
         ],
+      },
+    },
+    {
+      component: 'TreeSelect',
+      defaultValue: undefined,
+      fieldName: 'deptId',
+      label: '部门',
+      componentProps: {
+        fieldNames: {
+          key: 'id',
+          value: 'id',
+          children: 'children',
+        },
+        showSearch: true,
+        treeDefaultExpandAll: true,
+        treeNodeLabelProp: 'fullName',
+        treeLine: { showLeafIcon: false },
+        treeNodeFilterProp: 'label',
+        placeholder: '请选择',
       },
     },
     {

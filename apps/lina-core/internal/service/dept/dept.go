@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/text/gstr"
+	"github.com/gogf/gf/v2/util/gconv"
 
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
@@ -395,28 +396,29 @@ func (s *Service) Users(ctx context.Context, deptId int, keyword string, limit i
 		return result, nil
 	}
 
-	// Collect the selected dept and all its descendant depts via ancestors field.
-	deptCols := dao.SysDept.Columns()
-	var descDepts []*entity.SysDept
-	err := dao.SysDept.Ctx(ctx).
-		WhereNull(deptCols.DeletedAt).
-		Where(
-			fmt.Sprintf("(',' || %s || ',') LIKE ?", deptCols.Ancestors),
-			fmt.Sprintf("%%,%d,%%", deptId),
-		).
-		Fields(deptCols.Id).
-		Scan(&descDepts)
-	if err != nil {
-		return nil, err
-	}
-	deptIds := []int{deptId}
-	for _, d := range descDepts {
-		deptIds = append(deptIds, d.Id)
+	// Collect the selected dept and all its descendant depts via parent_id (cross-database compatible).
+	var (
+		deptCols  = dao.SysDept.Columns()
+		deptIds   = []int{deptId}
+		parentIds = []int{deptId}
+	)
+	for len(parentIds) > 0 {
+		childValues, err := dao.SysDept.Ctx(ctx).
+			WhereNull(deptCols.DeletedAt).
+			WhereIn(deptCols.ParentId, parentIds).
+			Fields(deptCols.Id).
+			Array()
+		if err != nil {
+			return nil, err
+		}
+		var childIds = gconv.Ints(childValues)
+		deptIds = append(deptIds, childIds...)
+		parentIds = childIds
 	}
 
 	// Query sys_user_dept for user_ids in the subtree
 	var userDepts []*entity.SysUserDept
-	err = dao.SysUserDept.Ctx(ctx).
+	err := dao.SysUserDept.Ctx(ctx).
 		WhereIn(dao.SysUserDept.Columns().DeptId, deptIds).
 		Scan(&userDepts)
 	if err != nil {
@@ -452,7 +454,7 @@ func (s *Service) Users(ctx context.Context, deptId int, keyword string, limit i
 		q = q.Limit(limit)
 	}
 	var users []*entity.SysUser
-	if err = q.Scan(&users); err != nil {
+	if err := q.Scan(&users); err != nil {
 		return nil, err
 	}
 

@@ -2,10 +2,10 @@ package user
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gtime"
+	"github.com/gogf/gf/v2/util/gconv"
 
 	"lina-core/internal/consts"
 	"lina-core/internal/dao"
@@ -166,30 +166,29 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 
 // GetUserIdsByDeptId returns user IDs associated with a dept.
 func (s *Service) GetUserIdsByDeptId(ctx context.Context, deptId int) ([]int, error) {
-	// Collect the selected dept and all its descendant depts via ancestors field.
-	// ancestors stores comma-separated path like "0,1" (no trailing comma),
-	// so we use (',' || ancestors || ',') LIKE '%,{deptId},%' to match reliably.
-	deptCols := dao.SysDept.Columns()
-	var descDepts []*entity.SysDept
-	err := dao.SysDept.Ctx(ctx).
-		WhereNull(deptCols.DeletedAt).
-		Where(
-			fmt.Sprintf("(',' || %s || ',') LIKE ?", deptCols.Ancestors),
-			fmt.Sprintf("%%,%d,%%", deptId),
-		).
-		Fields(deptCols.Id).
-		Scan(&descDepts)
-	if err != nil {
-		return nil, err
-	}
-	deptIds := []int{deptId}
-	for _, d := range descDepts {
-		deptIds = append(deptIds, d.Id)
+	// Collect the selected dept and all its descendant depts via parent_id (cross-database compatible).
+	var (
+		deptCols  = dao.SysDept.Columns()
+		deptIds   = []int{deptId}
+		parentIds = []int{deptId}
+	)
+	for len(parentIds) > 0 {
+		childValues, err := dao.SysDept.Ctx(ctx).
+			WhereNull(deptCols.DeletedAt).
+			WhereIn(deptCols.ParentId, parentIds).
+			Fields(deptCols.Id).
+			Array()
+		if err != nil {
+			return nil, err
+		}
+		var childIds = gconv.Ints(childValues)
+		deptIds = append(deptIds, childIds...)
+		parentIds = childIds
 	}
 
 	// Query users belonging to any of these depts
 	var userDepts []*entity.SysUserDept
-	err = dao.SysUserDept.Ctx(ctx).
+	err := dao.SysUserDept.Ctx(ctx).
 		WhereIn(dao.SysUserDept.Columns().DeptId, deptIds).
 		Scan(&userDepts)
 	if err != nil {
@@ -280,11 +279,17 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 		return 0, err
 	}
 
+	// Default nickname to username if empty
+	nickname := in.Nickname
+	if nickname == "" {
+		nickname = in.Username
+	}
+
 	// Insert user
 	id, err := dao.SysUser.Ctx(ctx).Data(do.SysUser{
 		Username:  in.Username,
 		Password:  hash,
-		Nickname:  in.Nickname,
+		Nickname:  nickname,
 		Email:     in.Email,
 		Phone:     in.Phone,
 		Sex:       in.Sex,

@@ -14,6 +14,7 @@ type GetInfoRes struct {
 	UserId   int      `json:"userId" dc:"用户ID"`
 	Username string   `json:"username" dc:"用户名"`
 	RealName string   `json:"realName" dc:"真实姓名"`
+	Email    string   `json:"email" dc:"邮箱地址"`
 	Avatar   string   `json:"avatar" dc:"头像地址"`
 	Roles    []string `json:"roles" dc:"用户角色"`
 	HomePath string   `json:"homePath" dc:"首页路径"`

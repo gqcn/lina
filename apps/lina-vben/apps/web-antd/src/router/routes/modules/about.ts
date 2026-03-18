@@ -25,7 +25,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('#/views/about/system-info/index.vue'),
         meta: {
           icon: 'lucide:server',
-          title: '系统信息',
+          title: '版本信息',
         },
       },
     ],

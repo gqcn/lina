@@ -28,7 +28,7 @@ const formSchema = computed((): VbenFormSchema[] => {
       fieldName: 'email',
       component: 'Input',
       label: '邮箱',
-      rules: z.string().email('请输入正确的邮箱'),
+      rules: z.string().email('请输入正确的邮箱').optional().or(z.literal('')),
       componentProps: {
         placeholder: '请输入邮箱',
       },
@@ -37,7 +37,11 @@ const formSchema = computed((): VbenFormSchema[] => {
       fieldName: 'phone',
       component: 'Input',
       label: '手机号码',
-      rules: z.string().regex(/^1[3-9]\d{9}$/, '请输入正确的手机号'),
+      rules: z
+        .string()
+        .regex(/^1[3-9]\d{9}$/, '请输入正确的手机号')
+        .optional()
+        .or(z.literal('')),
       componentProps: {
         placeholder: '请输入手机号码',
       },
@@ -46,7 +50,6 @@ const formSchema = computed((): VbenFormSchema[] => {
       fieldName: 'sex',
       component: 'RadioGroup',
       label: '性别',
-      rules: 'required',
       defaultValue: 0,
       componentProps: {
         buttonStyle: 'solid',
