@@ -44,7 +44,7 @@ dev: stop
 	@sleep 1
 	@# ── 启动前端 ────────────────────────────────────────────────
 	@cd $(FRONTEND_DIR) && npx turbo run dev --filter=@lina/web-antd >> /tmp/lina-vben.log 2>&1 & echo $$! > $(FRONTEND_PID)
-	@sleep 2
+	@sleep 3
 	@make status
 
 ## stop: 停止前后端开发服务器
