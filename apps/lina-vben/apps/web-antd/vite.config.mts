@@ -3,6 +3,9 @@ import { join } from 'node:path';
 
 import { defineConfig } from '@vben/vite-config';
 
+// Cache the HTML content to avoid repeated synchronous file reads
+let cachedApidocsHtml: string | undefined;
+
 export default defineConfig(async () => {
   return {
     application: {},
@@ -19,15 +22,22 @@ export default defineConfig(async () => {
             target: 'http://localhost:5666',
             bypass(_req, res) {
               // Serve the static HTML file directly, bypassing Vite's SPA fallback
-              const filePath = join(
-                import.meta.dirname,
-                'public/stoplight/apidocs.html',
-              );
-              const content = readFileSync(filePath, 'utf-8');
+              if (!cachedApidocsHtml) {
+                const filePath = join(
+                  import.meta.dirname,
+                  'public/stoplight/apidocs.html',
+                );
+                cachedApidocsHtml = readFileSync(filePath, 'utf-8');
+              }
               res.setHeader('Content-Type', 'text/html; charset=utf-8');
-              res.end(content);
+              res.end(cachedApidocsHtml);
             },
           },
+        },
+        watch: {
+          // Exclude large Stoplight static assets from Vite's file watcher
+          // to prevent excessive CPU usage during development
+          ignored: ['**/public/stoplight/**'],
         },
       },
     },

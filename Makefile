@@ -51,12 +51,21 @@ dev: stop
 .PHONY: stop
 stop:
 	@echo "正在停止服务..."
-	@if lsof -ti :$(BACKEND_PORT) >/dev/null 2>&1; then \
+	@# ── 停止后端 ────────────────────────────────────────────────
+	@if [ -f $(BACKEND_PID) ] && kill -0 $$(cat $(BACKEND_PID)) 2>/dev/null; then \
+		kill $$(cat $(BACKEND_PID)) 2>/dev/null; rm -f $(BACKEND_PID); echo "✓ 后端已停止"; \
+	elif lsof -ti :$(BACKEND_PORT) >/dev/null 2>&1; then \
 		kill $$(lsof -ti :$(BACKEND_PORT)) 2>/dev/null; rm -f $(BACKEND_PID); echo "✓ 后端已停止"; \
 	else \
 		rm -f $(BACKEND_PID); echo "  后端未在运行"; \
 	fi
-	@if lsof -ti :$(FRONTEND_PORT) >/dev/null 2>&1; then \
+	@# ── 停止前端（杀掉整个进程树：turbo → pnpm → vite）────────
+	@if [ -f $(FRONTEND_PID) ] && kill -0 $$(cat $(FRONTEND_PID)) 2>/dev/null; then \
+		PID=$$(cat $(FRONTEND_PID)); \
+		PGID=$$(ps -o pgid= -p $$PID | tr -d ' '); \
+		if [ -n "$$PGID" ]; then kill -- -$$PGID 2>/dev/null; fi; \
+		rm -f $(FRONTEND_PID); echo "✓ 前端已停止"; \
+	elif lsof -ti :$(FRONTEND_PORT) >/dev/null 2>&1; then \
 		kill $$(lsof -ti :$(FRONTEND_PORT)) 2>/dev/null; rm -f $(FRONTEND_PID); echo "✓ 前端已停止"; \
 	else \
 		rm -f $(FRONTEND_PID); echo "  前端未在运行"; \
