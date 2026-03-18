@@ -121,16 +121,16 @@ CREATE TABLE sys_user (
 
 | 端点 | 方法 | 说明 | 认证 |
 |------|------|------|------|
-| `/api/auth/login` | POST | 登录 | 否 |
-| `/api/auth/logout` | POST | 登出 | 是 |
-| `/api/user` | GET | 用户列表（分页） | 是 |
-| `/api/user` | POST | 创建用户 | 是 |
-| `/api/user/{id}` | GET | 用户详情 | 是 |
-| `/api/user/{id}` | PUT | 更新用户 | 是 |
-| `/api/user/{id}` | DELETE | 删除用户 | 是 |
-| `/api/user/{id}/status` | PUT | 修改用户状态 | 是 |
-| `/api/user/profile` | GET | 当前用户信息 | 是 |
-| `/api/user/profile` | PUT | 更新当前用户信息 | 是 |
+| `/api/v1/auth/login` | POST | 登录 | 否 |
+| `/api/v1/auth/logout` | POST | 登出 | 是 |
+| `/api/v1/user` | GET | 用户列表（分页） | 是 |
+| `/api/v1/user` | POST | 创建用户 | 是 |
+| `/api/v1/user/{id}` | GET | 用户详情 | 是 |
+| `/api/v1/user/{id}` | PUT | 更新用户 | 是 |
+| `/api/v1/user/{id}` | DELETE | 删除用户 | 是 |
+| `/api/v1/user/{id}/status` | PUT | 修改用户状态 | 是 |
+| `/api/v1/user/profile` | GET | 当前用户信息 | 是 |
+| `/api/v1/user/profile` | PUT | 更新当前用户信息 | 是 |
 
 统一响应格式：`{code: 0, message: "ok", data: {...}}`
 

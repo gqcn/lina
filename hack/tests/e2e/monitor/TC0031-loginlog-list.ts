@@ -5,7 +5,7 @@ test.describe('TC0031 登录日志列表查询', () => {
     // Navigate to loginlog page and wait for data to load
     const responsePromise = adminPage.waitForResponse(
       (res) =>
-        res.url().includes('/api/loginlog') &&
+        res.url().includes('/api/v1/loginlog') &&
         res.request().method() === 'GET' &&
         res.status() === 200,
       { timeout: 15000 },
@@ -49,7 +49,7 @@ test.describe('TC0031 登录日志列表查询', () => {
 
     const requestPromise = adminPage.waitForRequest(
       (req) =>
-        req.url().includes('/api/loginlog') &&
+        req.url().includes('/api/v1/loginlog') &&
         req.method() === 'GET' &&
         req.url().includes('userName='),
       { timeout: 10000 },
@@ -76,7 +76,7 @@ test.describe('TC0031 登录日志列表查询', () => {
 
     const requestPromise = adminPage.waitForRequest(
       (req) =>
-        req.url().includes('/api/loginlog') &&
+        req.url().includes('/api/v1/loginlog') &&
         req.method() === 'GET' &&
         req.url().includes('ip='),
       { timeout: 10000 },
@@ -108,7 +108,7 @@ test.describe('TC0031 登录日志列表查询', () => {
     // Click search and verify request includes status parameter
     const requestPromise = adminPage.waitForRequest(
       (req) =>
-        req.url().includes('/api/loginlog') &&
+        req.url().includes('/api/v1/loginlog') &&
         req.method() === 'GET' &&
         req.url().includes('status='),
       { timeout: 10000 },
@@ -136,7 +136,7 @@ test.describe('TC0031 登录日志列表查询', () => {
     // Reset
     const resetResponsePromise = adminPage.waitForResponse(
       (res) =>
-        res.url().includes('/api/loginlog') &&
+        res.url().includes('/api/v1/loginlog') &&
         res.request().method() === 'GET' &&
         res.status() === 200,
       { timeout: 10000 },
@@ -169,7 +169,7 @@ test.describe('TC0031 登录日志列表查询', () => {
     // Click search and verify request includes time range params
     const requestPromise = adminPage.waitForRequest(
       (req) =>
-        req.url().includes('/api/loginlog') &&
+        req.url().includes('/api/v1/loginlog') &&
         req.method() === 'GET' &&
         (req.url().includes('beginTime=') ||
           req.url().includes('endTime=')),

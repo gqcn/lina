@@ -37,7 +37,7 @@
 前端开发环境 SHALL 配置 API 代理，将 `/api` 前缀的请求转发到后端服务。
 
 #### Scenario: API 请求代理
-- **WHEN** 前端发起 `/api/*` 请求
+- **WHEN** 前端发起 `/api/v1/*` 请求
 - **THEN** 请求被代理到后端服务地址（默认 `http://localhost:8080`）
 
 ### Requirement: 开发环境一键启动

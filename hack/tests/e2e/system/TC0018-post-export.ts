@@ -8,7 +8,7 @@ test.describe('TC0018 岗位导出', () => {
 
     // Set up request/response interception for the export API
     const responsePromise = adminPage.waitForResponse(
-      (res) => res.url().includes('/api/post/export'),
+      (res) => res.url().includes('/api/v1/post/export'),
       { timeout: 15000 },
     );
 

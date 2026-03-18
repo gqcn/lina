@@ -15,7 +15,7 @@ test.describe('TC0021 用户管理部门树用户数量累加', () => {
     // Intercept the dept-tree API response during page load
     const treeResponsePromise = adminPage.waitForResponse(
       (resp) =>
-        resp.url().includes('/api/user/dept-tree') && resp.status() === 200,
+        resp.url().includes('/api/v1/user/dept-tree') && resp.status() === 200,
       { timeout: 15000 },
     );
 

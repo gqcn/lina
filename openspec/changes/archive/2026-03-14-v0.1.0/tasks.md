@@ -74,9 +74,9 @@
 - [x] **FB-2**：前端用户管理列表表头支持点击排序（VXE-Grid 列头排序联动后端接口）
 - [x] **FB-3**：后端用户列表接口增强搜索（支持 nickname 模糊搜索、beginTime/endTime 创建时间范围筛选）
 - [x] **FB-4**：前端搜索表单联动后端（确保 nickname、createdAt 时间范围等筛选参数正确传递到后端）
-- [x] **FB-5**：后端实现用户导出接口（GET /api/user/export，返回 Excel 文件）
+- [x] **FB-5**：后端实现用户导出接口（GET /api/v1/user/export，返回 Excel 文件）
 - [x] **FB-6**：前端实现用户导出功能（点击导出按钮下载 Excel 文件）
-- [x] **FB-7**：后端实现用户导入接口（POST /api/user/import，解析 Excel 并批量创建用户）和导入模板下载接口（GET /api/user/import-template）
+- [x] **FB-7**：后端实现用户导入接口（POST /api/v1/user/import，解析 Excel 并批量创建用户）和导入模板下载接口（GET /api/v1/user/import-template）
 - [x] **FB-8**：前端实现用户导入功能（上传 Excel 文件、显示导入结果）
 - [x] **FB-9**：创建 100 条测试用户数据（通过 SQL 初始化脚本，覆盖各种状态和字段）
 - [x] **FB-10**：编写排序功能 E2E 测试用例

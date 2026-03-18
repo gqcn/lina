@@ -11,7 +11,7 @@
 系统 SHALL 提供通知公告的分页列表查询接口。
 
 #### Scenario: 查询通知公告列表
-- **WHEN** 调用 `GET /api/notice` 并传入分页参数 `pageNum` 和 `pageSize`
+- **WHEN** 调用 `GET /api/v1/notice` 并传入分页参数 `pageNum` 和 `pageSize`
 - **THEN** 返回通知公告列表和总数，格式为 `{list: [...], total: number}`
 - **THEN** 列表按创建时间倒序排列
 
@@ -33,18 +33,18 @@
 系统 SHALL 提供通知公告详情查询接口。
 
 #### Scenario: 查询通知公告详情
-- **WHEN** 调用 `GET /api/notice/{id}`
+- **WHEN** 调用 `GET /api/v1/notice/{id}`
 - **THEN** 返回该通知公告的完整信息，包含富文本内容
 
 #### Scenario: 查询不存在的通知公告
-- **WHEN** 调用 `GET /api/notice/{id}` 且该 ID 不存在
+- **WHEN** 调用 `GET /api/v1/notice/{id}` 且该 ID 不存在
 - **THEN** 系统返回错误信息
 
 ### Requirement: 创建通知公告
 系统 SHALL 提供创建通知公告的接口。
 
 #### Scenario: 创建通知公告成功
-- **WHEN** 调用 `POST /api/notice` 并提交 `title`、`type`、`content`、`status` 字段
+- **WHEN** 调用 `POST /api/v1/notice` 并提交 `title`、`type`、`content`、`status` 字段
 - **THEN** 系统创建通知公告并自动记录 `created_by` 为当前登录用户ID
 - **THEN** 返回成功
 
@@ -64,7 +64,7 @@
 系统 SHALL 提供更新通知公告的接口。
 
 #### Scenario: 更新通知公告成功
-- **WHEN** 调用 `PUT /api/notice/{id}` 并提交要更新的字段
+- **WHEN** 调用 `PUT /api/v1/notice/{id}` 并提交要更新的字段
 - **THEN** 系统更新对应通知公告信息，自动记录 `updated_by` 为当前登录用户ID
 
 #### Scenario: 草稿更新为已发布
@@ -83,7 +83,7 @@
 系统 SHALL 提供删除通知公告的接口，支持批量删除。
 
 #### Scenario: 删除通知公告成功
-- **WHEN** 调用 `DELETE /api/notice` 并传入 `ids` 参数（逗号分隔的ID列表）
+- **WHEN** 调用 `DELETE /api/v1/notice` 并传入 `ids` 参数（逗号分隔的ID列表）
 - **THEN** 对应通知公告被软删除（设置 `deleted_at`）
 
 ### Requirement: 通知公告字典数据

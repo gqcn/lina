@@ -12,7 +12,7 @@
 系统 SHALL 提供查询当前用户未读消息数量的接口。
 
 #### Scenario: 获取未读消息数
-- **WHEN** 调用 `GET /api/user/message/count`
+- **WHEN** 调用 `GET /api/v1/user/message/count`
 - **THEN** 返回当前登录用户的未读消息总数 `{count: number}`
 
 #### Scenario: 无未读消息
@@ -23,7 +23,7 @@
 系统 SHALL 提供查询当前用户消息列表的接口。
 
 #### Scenario: 获取消息列表
-- **WHEN** 调用 `GET /api/user/message` 并传入分页参数
+- **WHEN** 调用 `GET /api/v1/user/message` 并传入分页参数
 - **THEN** 返回当前登录用户的消息列表，按创建时间倒序排列
 - **THEN** 每条消息包含：`id`、`title`、`type`、`sourceType`、`sourceId`、`isRead`、`readAt`、`createdAt`
 
@@ -31,24 +31,24 @@
 系统 SHALL 提供标记消息为已读的接口。
 
 #### Scenario: 标记单条消息已读
-- **WHEN** 调用 `PUT /api/user/message/{id}/read`
+- **WHEN** 调用 `PUT /api/v1/user/message/{id}/read`
 - **THEN** 将该消息的 `is_read` 设为 1，`read_at` 设为当前时间
 - **THEN** 仅允许操作当前登录用户自己的消息
 
 #### Scenario: 标记所有消息已读
-- **WHEN** 调用 `PUT /api/user/message/read-all`
+- **WHEN** 调用 `PUT /api/v1/user/message/read-all`
 - **THEN** 将当前登录用户的所有未读消息标记为已读
 
 ### Requirement: 删除消息
 系统 SHALL 提供删除消息的接口。
 
 #### Scenario: 删除单条消息
-- **WHEN** 调用 `DELETE /api/user/message/{id}`
+- **WHEN** 调用 `DELETE /api/v1/user/message/{id}`
 - **THEN** 物理删除该消息记录
 - **THEN** 仅允许删除当前登录用户自己的消息
 
 #### Scenario: 清空所有消息
-- **WHEN** 调用 `DELETE /api/user/message/clear`
+- **WHEN** 调用 `DELETE /api/v1/user/message/clear`
 - **THEN** 物理删除当前登录用户的所有消息记录
 
 ### Requirement: 消息通知铃铛组件

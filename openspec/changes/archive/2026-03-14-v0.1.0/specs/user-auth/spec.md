@@ -4,7 +4,7 @@
 系统 SHALL 支持用户名 + 密码登录，验证成功后返回 JWT Token。
 
 #### Scenario: 登录成功
-- **WHEN** 用户提交正确的用户名和密码到 `POST /api/auth/login`
+- **WHEN** 用户提交正确的用户名和密码到 `POST /api/v1/auth/login`
 - **THEN** 系统返回 JWT Token，响应格式为 `{code: 0, message: "ok", data: {token: "..."}}`
 
 #### Scenario: 用户名不存在
@@ -23,7 +23,7 @@
 系统 SHALL 支持用户登出操作。
 
 #### Scenario: 登出成功
-- **WHEN** 已登录用户调用 `POST /api/auth/logout`
+- **WHEN** 已登录用户调用 `POST /api/v1/auth/logout`
 - **THEN** 系统返回成功响应，前端清除本地存储的 Token
 
 ### Requirement: JWT Token 管理

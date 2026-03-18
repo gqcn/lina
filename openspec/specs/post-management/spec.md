@@ -4,7 +4,7 @@
 系统 SHALL 提供岗位的分页列表查询接口，支持按部门过滤。
 
 #### Scenario: 查询岗位列表
-- **WHEN** 调用 `GET /api/post` 并传入分页参数 `pageNum` 和 `pageSize`
+- **WHEN** 调用 `GET /api/v1/post` 并传入分页参数 `pageNum` 和 `pageSize`
 - **THEN** 返回岗位列表和总数，格式为 `{list: [...], total: number}`
 
 #### Scenario: 按部门过滤岗位
@@ -24,7 +24,7 @@
 系统 SHALL 提供创建岗位的接口。
 
 #### Scenario: 创建岗位成功
-- **WHEN** 调用 `POST /api/post` 并提交 deptId、code、name、sort 等字段
+- **WHEN** 调用 `POST /api/v1/post` 并提交 deptId、code、name、sort 等字段
 - **THEN** 系统创建岗位并返回成功
 
 #### Scenario: 岗位编码重复
@@ -39,7 +39,7 @@
 系统 SHALL 提供更新岗位信息的接口。
 
 #### Scenario: 更新岗位成功
-- **WHEN** 调用 `PUT /api/post/{id}` 并提交要更新的字段
+- **WHEN** 调用 `PUT /api/v1/post/{id}` 并提交要更新的字段
 - **THEN** 系统更新对应岗位信息并返回成功
 
 #### Scenario: 更新不存在的岗位
@@ -50,11 +50,11 @@
 系统 SHALL 提供删除岗位的接口，支持批量删除。
 
 #### Scenario: 删除单个岗位
-- **WHEN** 调用 `DELETE /api/post/{id}`
+- **WHEN** 调用 `DELETE /api/v1/post/{id}`
 - **THEN** 岗位被软删除
 
 #### Scenario: 批量删除岗位
-- **WHEN** 调用 `DELETE /api/post/{ids}`，ids 为逗号分隔的多个 ID
+- **WHEN** 调用 `DELETE /api/v1/post/{ids}`，ids 为逗号分隔的多个 ID
 - **THEN** 所有指定岗位被软删除
 
 #### Scenario: 不能删除有关联用户的岗位
@@ -65,14 +65,14 @@
 系统 SHALL 提供岗位详情查询接口。
 
 #### Scenario: 查询岗位详情
-- **WHEN** 调用 `GET /api/post/{id}`
+- **WHEN** 调用 `GET /api/v1/post/{id}`
 - **THEN** 返回该岗位的完整信息
 
 ### Requirement: 导出岗位
 系统 SHALL 提供将岗位列表导出为 Excel 文件的功能。
 
 #### Scenario: 导出岗位
-- **WHEN** 调用 `GET /api/post/export` 并传入筛选参数
+- **WHEN** 调用 `GET /api/v1/post/export` 并传入筛选参数
 - **THEN** 返回 Excel 文件流
 - **THEN** 导出字段包括：岗位编码、岗位名称、排序、状态、备注、创建时间
 
@@ -80,7 +80,7 @@
 系统 SHALL 提供用于岗位管理左侧筛选的部门树接口，包含"未分配部门"虚拟节点。
 
 #### Scenario: 获取岗位部门树
-- **WHEN** 调用 `GET /api/post/dept-tree`
+- **WHEN** 调用 `GET /api/v1/post/dept-tree`
 - **THEN** 返回部门树形结构数据
 
 #### Scenario: 未分配部门虚拟节点
@@ -95,7 +95,7 @@
 系统 SHALL 提供按部门获取岗位选项的接口，供用户编辑表单使用。
 
 #### Scenario: 获取部门下的岗位选项
-- **WHEN** 调用 `GET /api/post/option-select` 并传入 `deptId` 参数
+- **WHEN** 调用 `GET /api/v1/post/option-select` 并传入 `deptId` 参数
 - **THEN** 返回该部门下所有正常状态的岗位列表，包含 id 和 name
 
 #### Scenario: 部门下无岗位

@@ -4,7 +4,7 @@
 系统 SHALL 提供字典类型的分页列表查询接口。
 
 #### Scenario: 查询字典类型列表
-- **WHEN** 调用 `GET /api/dict/type` 并传入分页参数 `pageNum` 和 `pageSize`
+- **WHEN** 调用 `GET /api/v1/dict/type` 并传入分页参数 `pageNum` 和 `pageSize`
 - **THEN** 返回字典类型列表和总数，格式为 `{list: [...], total: number}`
 
 #### Scenario: 字典类型列表支持条件筛选
@@ -20,7 +20,7 @@
 系统 SHALL 提供创建字典类型的接口。
 
 #### Scenario: 创建字典类型成功
-- **WHEN** 调用 `POST /api/dict/type` 并提交 name（字典名称）和 type（字典类型）
+- **WHEN** 调用 `POST /api/v1/dict/type` 并提交 name（字典名称）和 type（字典类型）
 - **THEN** 系统创建字典类型并返回成功
 
 #### Scenario: 字典类型重复
@@ -35,7 +35,7 @@
 系统 SHALL 提供更新字典类型的接口。
 
 #### Scenario: 更新字典类型成功
-- **WHEN** 调用 `PUT /api/dict/type/{id}` 并提交要更新的字段
+- **WHEN** 调用 `PUT /api/v1/dict/type/{id}` 并提交要更新的字段
 - **THEN** 系统更新对应字典类型信息并返回成功
 
 #### Scenario: 更新不存在的字典类型
@@ -46,7 +46,7 @@
 系统 SHALL 提供删除字典类型的接口。
 
 #### Scenario: 删除字典类型成功
-- **WHEN** 调用 `DELETE /api/dict/type/{id}`
+- **WHEN** 调用 `DELETE /api/v1/dict/type/{id}`
 - **THEN** 字典类型被软删除（设置 deleted_at）
 
 #### Scenario: 删除已关联数据的字典类型
@@ -57,7 +57,7 @@
 系统 SHALL 提供将字典类型列表导出为 Excel 文件的功能。
 
 #### Scenario: 导出字典类型
-- **WHEN** 调用 `GET /api/dict/type/export` 并传入筛选参数
+- **WHEN** 调用 `GET /api/v1/dict/type/export` 并传入筛选参数
 - **THEN** 返回 Excel 文件流
 - **THEN** 导出字段包括：字典名称、字典类型、状态、备注、创建时间
 
@@ -65,14 +65,14 @@
 系统 SHALL 提供获取所有字典类型选项的接口，供下拉选择使用。
 
 #### Scenario: 获取字典类型选项
-- **WHEN** 调用 `GET /api/dict/type/options`
+- **WHEN** 调用 `GET /api/v1/dict/type/options`
 - **THEN** 返回所有正常状态的字典类型列表（不分页）
 
 ### Requirement: 字典数据列表查询
 系统 SHALL 提供按字典类型查询字典数据的分页列表接口。
 
 #### Scenario: 按字典类型查询数据列表
-- **WHEN** 调用 `GET /api/dict/data` 并传入 `dictType` 参数和分页参数
+- **WHEN** 调用 `GET /api/v1/dict/data` 并传入 `dictType` 参数和分页参数
 - **THEN** 返回该字典类型下的数据列表和总数
 
 #### Scenario: 字典数据列表支持标签筛选
@@ -83,7 +83,7 @@
 系统 SHALL 提供创建字典数据的接口。
 
 #### Scenario: 创建字典数据成功
-- **WHEN** 调用 `POST /api/dict/data` 并提交 dictType、label、value、sort 等字段
+- **WHEN** 调用 `POST /api/v1/dict/data` 并提交 dictType、label、value、sort 等字段
 - **THEN** 系统创建字典数据并返回成功
 
 #### Scenario: 必填字段校验
@@ -94,21 +94,21 @@
 系统 SHALL 提供更新字典数据的接口。
 
 #### Scenario: 更新字典数据成功
-- **WHEN** 调用 `PUT /api/dict/data/{id}` 并提交要更新的字段
+- **WHEN** 调用 `PUT /api/v1/dict/data/{id}` 并提交要更新的字段
 - **THEN** 系统更新对应字典数据信息并返回成功
 
 ### Requirement: 删除字典数据
 系统 SHALL 提供删除字典数据的接口。
 
 #### Scenario: 删除字典数据成功
-- **WHEN** 调用 `DELETE /api/dict/data/{id}`
+- **WHEN** 调用 `DELETE /api/v1/dict/data/{id}`
 - **THEN** 字典数据被软删除
 
 ### Requirement: 导出字典数据
 系统 SHALL 提供将字典数据导出为 Excel 文件的功能。
 
 #### Scenario: 导出字典数据
-- **WHEN** 调用 `GET /api/dict/data/export` 并传入 dictType 和筛选参数
+- **WHEN** 调用 `GET /api/v1/dict/data/export` 并传入 dictType 和筛选参数
 - **THEN** 返回 Excel 文件流
 - **THEN** 导出字段包括：字典标签、字典值、排序、Tag 样式、CSS 类、状态、备注、创建时间
 
@@ -116,7 +116,7 @@
 系统 SHALL 提供按字典类型获取选项数据的接口，供全局缓存使用。
 
 #### Scenario: 获取指定类型的字典选项
-- **WHEN** 调用 `GET /api/dict/data/type/{dictType}`
+- **WHEN** 调用 `GET /api/v1/dict/data/type/{dictType}`
 - **THEN** 返回该类型下所有正常状态的字典数据，按 sort 升序排列
 - **THEN** 返回字段包括：label、value、tagStyle、cssClass
 

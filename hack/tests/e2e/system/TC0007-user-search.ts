@@ -70,7 +70,7 @@ test.describe('TC0007 用户列表搜索', () => {
     await userPage.fillSearchField('用户昵称', '测试');
 
     const requestPromise = adminPage.waitForRequest(
-      (req) => req.url().includes('/api/user') && req.method() === 'GET' && req.url().includes('nickname'),
+      (req) => req.url().includes('/api/v1/user') && req.method() === 'GET' && req.url().includes('nickname'),
       { timeout: 10000 },
     );
 

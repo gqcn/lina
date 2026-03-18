@@ -7,7 +7,7 @@ test.describe('TC0014 字典导出', () => {
     await dictPage.goto();
 
     const responsePromise = adminPage.waitForResponse(
-      (res) => res.url().includes('/api/dict/type/export'),
+      (res) => res.url().includes('/api/v1/dict/type/export'),
       { timeout: 15000 },
     );
 
@@ -26,7 +26,7 @@ test.describe('TC0014 字典导出', () => {
     await dictPage.clickTypeRow('sys_normal_disable');
 
     const responsePromise = adminPage.waitForResponse(
-      (res) => res.url().includes('/api/dict/data/export'),
+      (res) => res.url().includes('/api/v1/dict/data/export'),
       { timeout: 15000 },
     );
 

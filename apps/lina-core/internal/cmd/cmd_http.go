@@ -17,6 +17,7 @@ import (
 	"lina-core/internal/controller/notice"
 	"lina-core/internal/controller/operlog"
 	"lina-core/internal/controller/post"
+	"lina-core/internal/controller/sysinfo"
 	"lina-core/internal/controller/user"
 	"lina-core/internal/controller/usermsg"
 	"lina-core/internal/packed"
@@ -35,7 +36,13 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		authCtrl      = auth.NewV1()
 	)
 
-	s.Group("/api", func(group *ghttp.RouterGroup) {
+	// Set OpenAPI info for API documentation
+	oai := s.GetOpenApi()
+	oai.Info.Title = "Lina Admin API"
+	oai.Info.Description = "Lina 管理后台系统 RESTful API 接口文档。基于 GoFrame 框架构建，提供用户管理、部门管理、岗位管理、字典管理、通知公告、操作日志、登录日志等功能模块的完整接口。"
+	oai.Info.Version = "v0.5.0"
+
+	s.Group("/api/v1", func(group *ghttp.RouterGroup) {
 		// Static file serving for uploads (no JSON wrapper)
 		group.Group("/uploads", func(group *ghttp.RouterGroup) {
 			group.Middleware(middlewareSvc.CORS)
@@ -86,6 +93,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				usermsg.NewV1(),
 				loginlog.NewV1(),
 				operlog.NewV1(),
+				sysinfo.NewV1(),
 			)
 		})
 	})

@@ -4,12 +4,12 @@
 系统 SHALL 提供用户列表分页查询接口，支持多字段排序、增强的条件筛选和按部门过滤。
 
 #### Scenario: 用户列表支持字段排序
-- **WHEN** 调用 `GET /api/user` 并传入排序参数 `orderBy`（字段名）和 `orderDirection`（`asc` 或 `desc`）
+- **WHEN** 调用 `GET /api/v1/user` 并传入排序参数 `orderBy`（字段名）和 `orderDirection`（`asc` 或 `desc`）
 - **THEN** 返回按指定字段和方向排序的用户列表
 - **THEN** 支持排序的字段包括：`id`、`username`、`nickname`、`phone`、`email`、`status`、`created_at`
 
 #### Scenario: 默认排序
-- **WHEN** 调用 `GET /api/user` 未传入排序参数
+- **WHEN** 调用 `GET /api/v1/user` 未传入排序参数
 - **THEN** 默认按 `id` 降序排列
 
 #### Scenario: 用户列表支持增强条件筛选
@@ -32,7 +32,7 @@
 系统 SHALL 提供创建用户接口，支持关联部门和岗位。
 
 #### Scenario: 创建用户成功
-- **WHEN** 调用 `POST /api/user` 并提交用户名、密码、昵称等信息
+- **WHEN** 调用 `POST /api/v1/user` 并提交用户名、密码、昵称等信息
 - **THEN** 系统创建用户并返回用户 ID
 
 #### Scenario: 创建用户关联部门
@@ -55,7 +55,7 @@
 系统 SHALL 提供更新用户信息接口，支持更新部门和岗位关联。
 
 #### Scenario: 更新用户成功
-- **WHEN** 调用 `PUT /api/user/{id}` 并提交要更新的字段
+- **WHEN** 调用 `PUT /api/v1/user/{id}` 并提交要更新的字段
 - **THEN** 系统更新对应用户信息并返回成功
 
 #### Scenario: 更新用户部门关联
@@ -74,7 +74,7 @@
 系统 SHALL 提供用户详情查询接口，返回关联的部门和岗位信息。
 
 #### Scenario: 查询用户详情
-- **WHEN** 调用 `GET /api/user/{id}`
+- **WHEN** 调用 `GET /api/v1/user/{id}`
 - **THEN** 返回该用户的完整信息（不含密码）
 - **THEN** 包含 deptId（关联部门 ID）、deptName（部门名称）
 - **THEN** 包含 postIds（关联岗位 ID 数组）
@@ -83,7 +83,7 @@
 系统 SHALL 提供用于用户管理左侧筛选的部门树接口，包含"未分配部门"虚拟节点和各节点用户数量。
 
 #### Scenario: 获取用户部门树
-- **WHEN** 调用 `GET /api/user/dept-tree`
+- **WHEN** 调用 `GET /api/v1/user/dept-tree`
 - **THEN** 返回部门树形结构数据，每个节点包含 id、label、children、userCount
 - **THEN** 每个部门节点的 label 格式为"部门名(N)"，N 为该部门关联的用户数量
 - **THEN** 树的第一层（与根节点同级）包含一个"未分配部门"虚拟节点（id 为 -1）

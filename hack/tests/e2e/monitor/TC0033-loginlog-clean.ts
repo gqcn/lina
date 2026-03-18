@@ -35,7 +35,7 @@ test.describe('TC0033 登录日志清理', () => {
     // Set up response interception before clicking OK
     const responsePromise = adminPage.waitForResponse(
       (res) =>
-        res.url().includes('/api/loginlog/clean') && res.request().method() === 'DELETE',
+        res.url().includes('/api/v1/loginlog/clean') && res.request().method() === 'DELETE',
       { timeout: 10000 },
     );
 

@@ -39,7 +39,7 @@ test.describe('TC0020 用户表单部门岗位字段', () => {
 
     // Set up request interception for post list when dept changes
     const requestPromise = adminPage.waitForRequest(
-      (req) => req.url().includes('/api/post') && req.method() === 'GET',
+      (req) => req.url().includes('/api/v1/post') && req.method() === 'GET',
       { timeout: 15000 },
     );
 
@@ -57,6 +57,6 @@ test.describe('TC0020 用户表单部门岗位字段', () => {
 
     // Verify that a post-related API request was triggered after dept selection
     const request = await requestPromise;
-    expect(request.url()).toContain('/api/post');
+    expect(request.url()).toContain('/api/v1/post');
   });
 });

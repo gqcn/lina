@@ -23,8 +23,8 @@ test.describe('TC0019 用户管理部门过滤', () => {
     // Set up request interception to verify deptId is included
     const requestPromise = adminPage.waitForRequest(
       (req) =>
-        req.url().includes('/api/user') &&
-        !req.url().includes('/api/user/') &&
+        req.url().includes('/api/v1/user') &&
+        !req.url().includes('/api/v1/user/') &&
         req.method() === 'GET',
       { timeout: 15000 },
     );

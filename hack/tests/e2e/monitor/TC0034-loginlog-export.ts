@@ -7,7 +7,7 @@ test.describe('TC0034 登录日志导出', () => {
     await adminPage.waitForTimeout(500);
 
     const responsePromise = adminPage.waitForResponse(
-      (res) => res.url().includes('/api/loginlog/export'),
+      (res) => res.url().includes('/api/v1/loginlog/export'),
       { timeout: 15000 },
     );
 

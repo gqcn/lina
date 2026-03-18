@@ -24,7 +24,7 @@ test.describe('TC0008 用户导出', () => {
     await expect(exportBtn).toBeEnabled();
 
     const requestPromise = adminPage.waitForRequest(
-      (req) => req.url().includes('/api/user/export') && req.method() === 'GET',
+      (req) => req.url().includes('/api/v1/user/export') && req.method() === 'GET',
       { timeout: 15000 },
     );
 
@@ -42,7 +42,7 @@ test.describe('TC0008 用户导出', () => {
     await userPage.selectRow('user001');
 
     const responsePromise = adminPage.waitForResponse(
-      (res) => res.url().includes('/api/user/export'),
+      (res) => res.url().includes('/api/v1/user/export'),
       { timeout: 15000 },
     );
 

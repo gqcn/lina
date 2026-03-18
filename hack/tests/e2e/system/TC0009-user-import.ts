@@ -48,7 +48,7 @@ test.describe('TC0009 用户导入', () => {
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     const responsePromise = adminPage.waitForResponse(
-      (res) => res.url().includes('/api/user/import-template'),
+      (res) => res.url().includes('/api/v1/user/import-template'),
       { timeout: 10000 },
     );
 

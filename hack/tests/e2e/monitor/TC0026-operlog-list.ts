@@ -5,7 +5,7 @@ test.describe('TC0026 操作日志列表查询与筛选', () => {
     // Navigate to operlog page and wait for data to load
     const responsePromise = adminPage.waitForResponse(
       (res) =>
-        res.url().includes('/api/operlog') &&
+        res.url().includes('/api/v1/operlog') &&
         res.request().method() === 'GET' &&
         res.status() === 200,
       { timeout: 15000 },
@@ -35,7 +35,7 @@ test.describe('TC0026 操作日志列表查询与筛选', () => {
     // Wait for API request containing the search param
     const requestPromise = adminPage.waitForRequest(
       (req) =>
-        req.url().includes('/api/operlog') &&
+        req.url().includes('/api/v1/operlog') &&
         req.method() === 'GET' &&
         req.url().includes('title='),
       { timeout: 10000 },
@@ -57,7 +57,7 @@ test.describe('TC0026 操作日志列表查询与筛选', () => {
 
     const requestPromise = adminPage.waitForRequest(
       (req) =>
-        req.url().includes('/api/operlog') &&
+        req.url().includes('/api/v1/operlog') &&
         req.method() === 'GET' &&
         req.url().includes('operName='),
       { timeout: 10000 },
@@ -99,7 +99,7 @@ test.describe('TC0026 操作日志列表查询与筛选', () => {
     // Click search and verify request includes operType parameter
     const requestPromise = adminPage.waitForRequest(
       (req) =>
-        req.url().includes('/api/operlog') &&
+        req.url().includes('/api/v1/operlog') &&
         req.method() === 'GET' &&
         req.url().includes('operType='),
       { timeout: 10000 },
@@ -131,7 +131,7 @@ test.describe('TC0026 操作日志列表查询与筛选', () => {
     // Click search and verify request includes status parameter
     const requestPromise = adminPage.waitForRequest(
       (req) =>
-        req.url().includes('/api/operlog') &&
+        req.url().includes('/api/v1/operlog') &&
         req.method() === 'GET' &&
         req.url().includes('status='),
       { timeout: 10000 },
@@ -162,7 +162,7 @@ test.describe('TC0026 操作日志列表查询与筛选', () => {
     // Reset
     const resetResponsePromise = adminPage.waitForResponse(
       (res) =>
-        res.url().includes('/api/operlog') &&
+        res.url().includes('/api/v1/operlog') &&
         res.request().method() === 'GET' &&
         res.status() === 200,
       { timeout: 10000 },
@@ -201,7 +201,7 @@ test.describe('TC0026 操作日志列表查询与筛选', () => {
     // Click search and verify request includes time range params
     const requestPromise = adminPage.waitForRequest(
       (req) =>
-        req.url().includes('/api/operlog') &&
+        req.url().includes('/api/v1/operlog') &&
         req.method() === 'GET' &&
         (req.url().includes('beginTime=') ||
           req.url().includes('endTime=')),

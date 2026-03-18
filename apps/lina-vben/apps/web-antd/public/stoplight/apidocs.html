@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Documentation</title>
+  <link rel="stylesheet" href="/stoplight/styles.min.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+
+    /* 减少侧边栏顶部空白 */
+    .sl-overflow-y-auto.sl-flex-col.sl-sticky {
+      padding-top: 8px !important;
+    }
+
+    /* 左侧接口分类菜单粗体展示 */
+    .sl-flex.sl-items-center.sl-h-md > .sl-flex-1.sl-truncate {
+      font-weight: 700 !important;
+    }
+  </style>
+</head>
+<body>
+  <elements-api
+    apiDescriptionUrl="/api.json"
+    router="memory"
+    layout="sidebar"
+    tryItCredentialsPolicy="same-origin"
+    hideInternal="true"
+  />
+  <script src="/stoplight/web-components.min.js"></script>
+</body>
+</html>

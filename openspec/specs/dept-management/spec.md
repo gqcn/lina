@@ -4,7 +4,7 @@
 系统 SHALL 提供部门的树形列表查询接口（不分页）。
 
 #### Scenario: 查询部门列表
-- **WHEN** 调用 `GET /api/dept`
+- **WHEN** 调用 `GET /api/v1/dept`
 - **THEN** 返回全部部门数据的平铺列表，前端通过 parentId 构建树形结构
 - **THEN** 按 order_num 升序排列
 
@@ -21,7 +21,7 @@
 系统 SHALL 提供创建部门的接口。
 
 #### Scenario: 创建部门成功
-- **WHEN** 调用 `POST /api/dept` 并提交 parentId、name、orderNum 等字段
+- **WHEN** 调用 `POST /api/v1/dept` 并提交 parentId、name、orderNum 等字段
 - **THEN** 系统创建部门，自动计算 ancestors 字段（如 "0,1,2"），并返回成功
 
 #### Scenario: 创建根部门
@@ -36,7 +36,7 @@
 系统 SHALL 提供更新部门信息的接口。
 
 #### Scenario: 更新部门成功
-- **WHEN** 调用 `PUT /api/dept/{id}` 并提交要更新的字段
+- **WHEN** 调用 `PUT /api/v1/dept/{id}` 并提交要更新的字段
 - **THEN** 系统更新对应部门信息并返回成功
 
 #### Scenario: 不能将部门设为自身的子部门
@@ -51,7 +51,7 @@
 系统 SHALL 提供删除部门的接口。
 
 #### Scenario: 删除部门成功
-- **WHEN** 调用 `DELETE /api/dept/{id}`
+- **WHEN** 调用 `DELETE /api/v1/dept/{id}`
 - **THEN** 部门被软删除
 
 #### Scenario: 不能删除有子部门的部门
@@ -66,18 +66,18 @@
 系统 SHALL 提供部门详情查询接口。
 
 #### Scenario: 查询部门详情
-- **WHEN** 调用 `GET /api/dept/{id}`
+- **WHEN** 调用 `GET /api/v1/dept/{id}`
 - **THEN** 返回该部门的完整信息
 
 ### Requirement: 部门树形结构接口
 系统 SHALL 提供用于 TreeSelect 组件的部门树接口。
 
 #### Scenario: 获取完整部门树
-- **WHEN** 调用 `GET /api/dept/tree`
+- **WHEN** 调用 `GET /api/v1/dept/tree`
 - **THEN** 返回树形结构数据，每个节点包含 id、label（部门名称）、children
 
 #### Scenario: 获取排除指定节点的部门树
-- **WHEN** 调用 `GET /api/dept/exclude/{id}`
+- **WHEN** 调用 `GET /api/v1/dept/exclude/{id}`
 - **THEN** 返回排除该节点及其所有子节点的部门列表
 - **THEN** 用于编辑部门时选择上级部门（避免循环引用）
 

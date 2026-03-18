@@ -4,7 +4,7 @@
 系统 SHALL 提供用户列表分页查询接口。
 
 #### Scenario: 查询用户列表
-- **WHEN** 调用 `GET /api/user` 并传入分页参数 `pageNum` 和 `pageSize`
+- **WHEN** 调用 `GET /api/v1/user` 并传入分页参数 `pageNum` 和 `pageSize`
 - **THEN** 返回用户列表和总数，格式为 `{list: [...], total: number}`
 
 #### Scenario: 用户列表支持条件筛选
@@ -23,7 +23,7 @@
 系统 SHALL 提供创建用户接口。
 
 #### Scenario: 创建用户成功
-- **WHEN** 调用 `POST /api/user` 并提交用户名、密码、昵称等信息
+- **WHEN** 调用 `POST /api/v1/user` 并提交用户名、密码、昵称等信息
 - **THEN** 系统创建用户并返回用户 ID
 
 #### Scenario: 用户名重复
@@ -38,7 +38,7 @@
 系统 SHALL 提供更新用户信息接口。
 
 #### Scenario: 更新用户成功
-- **WHEN** 调用 `PUT /api/user/{id}` 并提交要更新的字段
+- **WHEN** 调用 `PUT /api/v1/user/{id}` 并提交要更新的字段
 - **THEN** 系统更新对应用户信息并返回成功
 
 #### Scenario: 更新不存在的用户
@@ -49,7 +49,7 @@
 系统 SHALL 提供软删除用户接口。
 
 #### Scenario: 删除用户成功
-- **WHEN** 调用 `DELETE /api/user/{id}`
+- **WHEN** 调用 `DELETE /api/v1/user/{id}`
 - **THEN** 用户被软删除（设置 deleted_at），不做物理删除
 
 #### Scenario: 不能删除自己
@@ -64,11 +64,11 @@
 系统 SHALL 提供独立的用户状态修改接口。
 
 #### Scenario: 启用用户
-- **WHEN** 调用 `PUT /api/user/{id}/status` 并设置 status 为 1
+- **WHEN** 调用 `PUT /api/v1/user/{id}/status` 并设置 status 为 1
 - **THEN** 用户状态变为正常
 
 #### Scenario: 停用用户
-- **WHEN** 调用 `PUT /api/user/{id}/status` 并设置 status 为 0
+- **WHEN** 调用 `PUT /api/v1/user/{id}/status` 并设置 status 为 0
 - **THEN** 用户状态变为停用
 
 #### Scenario: 不能停用自己
@@ -79,22 +79,22 @@
 系统 SHALL 提供用户详情查询接口。
 
 #### Scenario: 查询用户详情
-- **WHEN** 调用 `GET /api/user/{id}`
+- **WHEN** 调用 `GET /api/v1/user/{id}`
 - **THEN** 返回该用户的完整信息（不含密码）
 
 ### Requirement: 当前用户个人信息
 系统 SHALL 提供当前登录用户查看和修改自身信息的接口。
 
 #### Scenario: 查看个人信息
-- **WHEN** 调用 `GET /api/user/profile`
+- **WHEN** 调用 `GET /api/v1/user/profile`
 - **THEN** 返回当前登录用户的个人信息
 
 #### Scenario: 修改个人信息
-- **WHEN** 调用 `PUT /api/user/profile` 并提交要修改的字段（昵称、邮箱、手机）
+- **WHEN** 调用 `PUT /api/v1/user/profile` 并提交要修改的字段（昵称、邮箱、手机）
 - **THEN** 系统更新当前用户信息并返回成功
 
 #### Scenario: 修改个人密码
-- **WHEN** 调用 `PUT /api/user/profile` 并提交新密码
+- **WHEN** 调用 `PUT /api/v1/user/profile` 并提交新密码
 - **THEN** 系统使用 bcrypt 哈希新密码并更新
 
 ### Requirement: 用户数据表设计
@@ -114,12 +114,12 @@
 系统 SHALL 提供用户列表分页查询接口，支持多字段排序和增强的条件筛选。
 
 #### Scenario: 用户列表支持字段排序
-- **WHEN** 调用 `GET /api/user` 并传入排序参数 `orderBy`（字段名）和 `orderDirection`（`asc` 或 `desc`）
+- **WHEN** 调用 `GET /api/v1/user` 并传入排序参数 `orderBy`（字段名）和 `orderDirection`（`asc` 或 `desc`）
 - **THEN** 返回按指定字段和方向排序的用户列表
 - **THEN** 支持排序的字段包括：`id`、`username`、`nickname`、`phone`、`email`、`status`、`created_at`
 
 #### Scenario: 默认排序
-- **WHEN** 调用 `GET /api/user` 未传入排序参数
+- **WHEN** 调用 `GET /api/v1/user` 未传入排序参数
 - **THEN** 默认按 `id` 降序排列
 
 #### Scenario: 用户列表支持增强条件筛选
@@ -141,7 +141,7 @@
 - **THEN** 不导出密码字段
 
 #### Scenario: 导出 API
-- **WHEN** 调用 `GET /api/user/export` 并传入与列表查询相同的筛选参数
+- **WHEN** 调用 `GET /api/v1/user/export` 并传入与列表查询相同的筛选参数
 - **THEN** 返回 Excel 文件流（Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet）
 
 ### Requirement: 用户列表导入
@@ -158,11 +158,11 @@
 - **THEN** 返回导入结果，包括成功条数和失败条数及失败原因
 
 #### Scenario: 导入 API
-- **WHEN** 调用 `POST /api/user/import` 并上传 Excel 文件
+- **WHEN** 调用 `POST /api/v1/user/import` 并上传 Excel 文件
 - **THEN** 解析并批量创建用户，返回导入结果 `{success: number, fail: number, failList: [{row, reason}]}`
 
 #### Scenario: 下载导入模板
-- **WHEN** 调用 `GET /api/user/import-template`
+- **WHEN** 调用 `GET /api/v1/user/import-template`
 - **THEN** 返回标准导入模板 Excel 文件，包含表头和示例数据
 
 ### Requirement: 测试数据

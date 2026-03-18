@@ -14,7 +14,7 @@ test.describe('TC0023 岗位管理部门树子部门过滤与数量', () => {
     // Intercept the dept-tree API response during page load
     const treeResponsePromise = adminPage.waitForResponse(
       (resp) =>
-        resp.url().includes('/api/post/dept-tree') && resp.status() === 200,
+        resp.url().includes('/api/v1/post/dept-tree') && resp.status() === 200,
       { timeout: 15000 },
     );
 
@@ -60,8 +60,8 @@ test.describe('TC0023 岗位管理部门树子部门过滤与数量', () => {
     // Click the parent dept node and intercept the post list request
     const requestPromise = adminPage.waitForResponse(
       (resp) =>
-        resp.url().includes('/api/post') &&
-        !resp.url().includes('/api/post/') &&
+        resp.url().includes('/api/v1/post') &&
+        !resp.url().includes('/api/v1/post/') &&
         resp.url().includes(`deptId=${parentDept.id}`) &&
         resp.status() === 200,
       { timeout: 15000 },
@@ -107,7 +107,7 @@ test.describe('TC0023 岗位管理部门树子部门过滤与数量', () => {
   }) => {
     const treeResponsePromise = adminPage.waitForResponse(
       (resp) =>
-        resp.url().includes('/api/post/dept-tree') && resp.status() === 200,
+        resp.url().includes('/api/v1/post/dept-tree') && resp.status() === 200,
       { timeout: 15000 },
     );
 

@@ -35,7 +35,7 @@ test.describe('TC0006 用户列表排序', () => {
 
     // Set up request and response intercept BEFORE clicking
     const responsePromise = adminPage.waitForResponse(
-      (res) => res.url().includes('/api/user') && res.request().method() === 'GET' && res.url().includes('orderBy'),
+      (res) => res.url().includes('/api/v1/user') && res.request().method() === 'GET' && res.url().includes('orderBy'),
       { timeout: 15000 },
     );
 

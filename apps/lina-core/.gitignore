@@ -17,4 +17,5 @@ temp.yaml
 manifest/config/config.yaml
 internal/packed/public/*
 !internal/packed/public/.gitkeep
-lina
+lina-core
+lina-core.exe

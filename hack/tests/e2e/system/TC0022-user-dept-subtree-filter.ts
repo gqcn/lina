@@ -15,7 +15,7 @@ test.describe('TC0022 用户管理部门树含子部门用户', () => {
     // Intercept the dept-tree API response during page load
     const treeResponsePromise = adminPage.waitForResponse(
       (resp) =>
-        resp.url().includes('/api/user/dept-tree') && resp.status() === 200,
+        resp.url().includes('/api/v1/user/dept-tree') && resp.status() === 200,
       { timeout: 15000 },
     );
 
@@ -60,8 +60,8 @@ test.describe('TC0022 用户管理部门树含子部门用户', () => {
     // Click the parent dept node in the tree
     const requestPromise = adminPage.waitForResponse(
       (resp) =>
-        resp.url().includes('/api/user') &&
-        !resp.url().includes('/api/user/') &&
+        resp.url().includes('/api/v1/user') &&
+        !resp.url().includes('/api/v1/user/') &&
         resp.url().includes(`deptId=${parentDept.id}`) &&
         resp.status() === 200,
       { timeout: 15000 },

@@ -4,27 +4,27 @@
 系统 SHALL 通过中间件自动记录所有写操作（POST/PUT/DELETE）以及标记了 `operLog` 标签的查询操作到 `sys_oper_log` 表。普通 GET 查询请求不记录。
 
 #### Scenario: POST 请求自动记录为新增操作
-- **WHEN** 用户发起 `POST` 请求（如创建用户 `POST /api/user`）
+- **WHEN** 用户发起 `POST` 请求（如创建用户 `POST /api/v1/user`）
 - **THEN** 系统自动写入一条操作日志，`oper_type` 为 1（新增），`title` 从 `g.Meta` 的 `tags` 字段获取，`oper_name` 为当前登录用户名
 
 #### Scenario: PUT 请求自动记录为修改操作
-- **WHEN** 用户发起 `PUT` 请求（如修改用户 `PUT /api/user/1`）
+- **WHEN** 用户发起 `PUT` 请求（如修改用户 `PUT /api/v1/user/1`）
 - **THEN** 系统自动写入一条操作日志，`oper_type` 为 2（修改）
 
 #### Scenario: DELETE 请求自动记录为删除操作
-- **WHEN** 用户发起 `DELETE` 请求（如删除用户 `DELETE /api/user/1`）
+- **WHEN** 用户发起 `DELETE` 请求（如删除用户 `DELETE /api/v1/user/1`）
 - **THEN** 系统自动写入一条操作日志，`oper_type` 为 3（删除）
 
 #### Scenario: 标记的 GET 请求记录为导出操作
-- **WHEN** 用户发起带 `operLog` 标签的 GET 请求（如导出用户 `GET /api/user/export`）
+- **WHEN** 用户发起带 `operLog` 标签的 GET 请求（如导出用户 `GET /api/v1/user/export`）
 - **THEN** 系统自动写入一条操作日志，`oper_type` 从 `operLog` 标签值获取（如 4=导出）
 
 #### Scenario: 普通 GET 请求不记录
-- **WHEN** 用户发起未标记 `operLog` 的 GET 请求（如查询用户列表 `GET /api/user`）
+- **WHEN** 用户发起未标记 `operLog` 的 GET 请求（如查询用户列表 `GET /api/v1/user`）
 - **THEN** 系统不写入操作日志
 
 #### Scenario: 导入请求记录为导入操作
-- **WHEN** 用户发起 POST 请求且路径包含 `import`（如 `POST /api/user/import`）
+- **WHEN** 用户发起 POST 请求且路径包含 `import`（如 `POST /api/v1/user/import`）
 - **THEN** 系统自动写入一条操作日志，`oper_type` 为 5（导入）
 
 ### Requirement: 操作日志记录内容
@@ -47,10 +47,10 @@
 - **THEN** 该字段值替换为 `***`
 
 ### Requirement: 操作日志列表查询
-系统 SHALL 提供操作日志分页查询接口 `GET /api/operlog`，支持按操作模块、操作人、操作类型、状态、时间范围筛选。
+系统 SHALL 提供操作日志分页查询接口 `GET /api/v1/operlog`，支持按操作模块、操作人、操作类型、状态、时间范围筛选。
 
 #### Scenario: 分页查询操作日志
-- **WHEN** 管理员请求 `GET /api/operlog?pageNum=1&pageSize=10`
+- **WHEN** 管理员请求 `GET /api/v1/operlog?pageNum=1&pageSize=10`
 - **THEN** 返回操作日志分页列表，按操作时间倒序排列
 
 #### Scenario: 按条件筛选
@@ -58,28 +58,28 @@
 - **THEN** 返回符合所有条件的日志记录
 
 ### Requirement: 操作日志详情查看
-系统 SHALL 提供操作日志详情接口 `GET /api/operlog/{id}`，返回完整的日志信息。
+系统 SHALL 提供操作日志详情接口 `GET /api/v1/operlog/{id}`，返回完整的日志信息。
 
 #### Scenario: 查看日志详情
-- **WHEN** 管理员请求 `GET /api/operlog/1`
+- **WHEN** 管理员请求 `GET /api/v1/operlog/1`
 - **THEN** 返回该日志的所有字段信息，包括完整的请求参数和响应结果
 
 ### Requirement: 操作日志按时间范围清理
-系统 SHALL 提供操作日志清理接口 `DELETE /api/operlog/clean`，支持按时间范围硬删除日志记录。
+系统 SHALL 提供操作日志清理接口 `DELETE /api/v1/operlog/clean`，支持按时间范围硬删除日志记录。
 
 #### Scenario: 按时间范围清理日志
-- **WHEN** 管理员请求 `DELETE /api/operlog/clean?beginTime=2026-01-01&endTime=2026-01-31`
+- **WHEN** 管理员请求 `DELETE /api/v1/operlog/clean?beginTime=2026-01-01&endTime=2026-01-31`
 - **THEN** 硬删除该时间范围内的所有操作日志记录，返回删除的记录数
 
 #### Scenario: 清理全部日志
-- **WHEN** 管理员请求 `DELETE /api/operlog/clean`（不带时间参数）
+- **WHEN** 管理员请求 `DELETE /api/v1/operlog/clean`（不带时间参数）
 - **THEN** 硬删除所有操作日志记录
 
 ### Requirement: 操作日志批量删除
-系统 SHALL 提供操作日志批量删除接口 `DELETE /api/operlog/{ids}`，支持按 ID 列表硬删除日志记录。
+系统 SHALL 提供操作日志批量删除接口 `DELETE /api/v1/operlog/{ids}`，支持按 ID 列表硬删除日志记录。
 
 #### Scenario: 按 ID 批量删除
-- **WHEN** 管理员请求 `DELETE /api/operlog/1,2,3`
+- **WHEN** 管理员请求 `DELETE /api/v1/operlog/1,2,3`
 - **THEN** 硬删除指定 ID 的操作日志记录，返回删除的记录数
 
 #### Scenario: 前端批量删除操作
@@ -87,14 +87,14 @@
 - **THEN** 弹出确认对话框显示选中数量，确认后执行批量删除
 
 ### Requirement: 操作日志导出
-系统 SHALL 提供操作日志导出接口 `GET /api/operlog/export`，按当前筛选条件导出为 xlsx 格式文件。
+系统 SHALL 提供操作日志导出接口 `GET /api/v1/operlog/export`，按当前筛选条件导出为 xlsx 格式文件。
 
 #### Scenario: 按筛选条件导出
-- **WHEN** 管理员请求 `GET /api/operlog/export?title=User&status=0`
+- **WHEN** 管理员请求 `GET /api/v1/operlog/export?title=User&status=0`
 - **THEN** 返回包含符合条件的所有日志记录的 xlsx 文件，包含所有字段
 
 #### Scenario: 导出全部
-- **WHEN** 管理员请求 `GET /api/operlog/export`（不带筛选条件）
+- **WHEN** 管理员请求 `GET /api/v1/operlog/export`（不带筛选条件）
 - **THEN** 返回包含所有操作日志的 xlsx 文件
 
 ### Requirement: 操作日志前端页面

@@ -7,7 +7,7 @@ test.describe('TC0029 操作日志导出', () => {
     await adminPage.waitForTimeout(500);
 
     const responsePromise = adminPage.waitForResponse(
-      (res) => res.url().includes('/api/operlog/export'),
+      (res) => res.url().includes('/api/v1/operlog/export'),
       { timeout: 15000 },
     );
 
