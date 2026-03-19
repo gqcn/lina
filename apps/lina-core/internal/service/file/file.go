@@ -106,11 +106,13 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 	}
 
 	id, _ := result.LastInsertId()
+	// Return full URL with base URL prefix
+	fullUrl := s.getBaseUrl(ctx) + url
 	return &UploadOutput{
 		Id:       id,
 		Name:     storedName,
 		Original: file.Filename,
-		Url:      url,
+		Url:      fullUrl,
 		Suffix:   suffix,
 		Size:     file.Size,
 	}, nil
@@ -200,10 +202,17 @@ func (s *Service) List(ctx context.Context, in *ListInput) (*ListOutput, error) 
 		}
 	}
 
+	// Build full URL prefix from HTTP request context
+	baseUrl := s.getBaseUrl(ctx)
+
 	items := make([]*ListOutputItem, len(files))
 	for i, f := range files {
+		fileCopy := *f
+		if fileCopy.Url != "" && baseUrl != "" {
+			fileCopy.Url = baseUrl + fileCopy.Url
+		}
 		items[i] = &ListOutputItem{
-			SysFile:       f,
+			SysFile:       &fileCopy,
 			CreatedByName: userNameMap[f.CreatedBy],
 		}
 	}
@@ -233,6 +242,15 @@ func (s *Service) InfoByIds(ctx context.Context, ids []int64) ([]*entity.SysFile
 	err := dao.SysFile.Ctx(ctx).WhereIn(dao.SysFile.Columns().Id, ids).Scan(&files)
 	if err != nil {
 		return nil, err
+	}
+	// Build full URL prefix from HTTP request context
+	baseUrl := s.getBaseUrl(ctx)
+	if baseUrl != "" {
+		for _, f := range files {
+			if f.Url != "" {
+				f.Url = baseUrl + f.Url
+			}
+		}
 	}
 	return files, nil
 }
@@ -273,4 +291,17 @@ func (s *Service) Delete(ctx context.Context, idsStr string) error {
 // GetStorage returns the underlying storage backend (for download use).
 func (s *Service) GetStorage() Storage {
 	return s.storage
+}
+
+// getBaseUrl returns the base URL (scheme + host) from the current HTTP request context.
+func (s *Service) getBaseUrl(ctx context.Context) string {
+	r := g.RequestFromCtx(ctx)
+	if r == nil {
+		return ""
+	}
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	return scheme + "://" + r.Host
 }

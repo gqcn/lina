@@ -8,3 +8,5 @@
 - [x] **FB-6**：改造 TiptapEditor 富文本编辑器的图片上传，从 Base64 内嵌改为调用通用文件上传接口
 - [x] **FB-7**：改造用户头像上传，使用通用文件上传接口替代原有独立实现（移除旧的 avatar 上传端点和静态文件服务路由）
 - [x] **FB-8**：编写文件管理模块及改造功能的 E2E 测试用例
+- [x] **FB-9**：下载按钮点击报错，前端 handleDownload 使用 requestClient.get 触发 JSON 响应拦截器解析二进制数据失败，应改用 requestClient.download 方法
+- [x] **FB-10**：文件预览列展示的 URL 为相对路径，后端应在返回文件列表时拼接完整的 HTTP 地址

@@ -112,8 +112,7 @@ function formatFileSize(bytes: number): string {
 
 async function handleDownload(row: FileInfo) {
   try {
-    const data = await requestClient.get<Blob>(`/file/download/${row.id}`, {
-      responseType: 'blob',
+    const data = await requestClient.download(`/file/download/${row.id}`, {
       timeout: 30_000,
     });
     const url = window.URL.createObjectURL(data);

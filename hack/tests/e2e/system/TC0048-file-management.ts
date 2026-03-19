@@ -96,6 +96,54 @@ test.describe('TC0048 文件管理', () => {
     expect(rowCount).toBeGreaterThan(0);
   });
 
+  test('TC0048g: 文件预览列展示完整HTTP地址', async ({ adminPage }) => {
+    const filePage = new FilePage(adminPage);
+    await filePage.goto();
+
+    const rowCount = await filePage.getRowCount();
+    if (rowCount > 0) {
+      // Get the URL cell text from the first row (checkbox=0, name=1, original=2, suffix=3, url=4)
+      const urlCell = adminPage.locator('.vxe-body--row').first().locator('td').nth(4);
+      const urlText = await urlCell.innerText();
+      // The URL should start with http:// or https://
+      expect(urlText).toMatch(/^https?:\/\//);
+    }
+  });
+
+  test('TC0048h: 下载按钮点击不报错', async ({ adminPage }) => {
+    const filePage = new FilePage(adminPage);
+    await filePage.goto();
+
+    const rowCount = await filePage.getRowCount();
+    if (rowCount > 0) {
+      // Listen for console errors
+      const consoleErrors: string[] = [];
+      adminPage.on('console', (msg) => {
+        if (msg.type() === 'error') {
+          consoleErrors.push(msg.text());
+        }
+      });
+
+      // Intercept the download request to verify it succeeds
+      const downloadPromise = adminPage.waitForResponse(
+        (resp) => resp.url().includes('/file/download/') && resp.status() === 200,
+        { timeout: 15000 },
+      );
+
+      // Click download button on first row
+      const firstRow = adminPage.locator('.vxe-body--row').first();
+      await firstRow.getByRole('button', { name: /下\s*载/ }).click();
+
+      // Wait for download response
+      const response = await downloadPromise;
+      expect(response.status()).toBe(200);
+
+      // No download-related console errors
+      const downloadErrors = consoleErrors.filter((e) => e.includes('Download failed'));
+      expect(downloadErrors).toHaveLength(0);
+    }
+  });
+
   test('TC0048f: 删除文件', async ({ adminPage }) => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
