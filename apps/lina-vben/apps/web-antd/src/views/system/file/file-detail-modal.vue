@@ -38,10 +38,10 @@ function formatFileSize(bytes: number): string {
 </script>
 
 <template>
-  <Modal :footer="false" title="文件详情">
+  <Modal :footer="false" title="文件详情" class="w-[650px]">
     <Spin :spinning="loading">
       <template v-if="detail">
-        <Descriptions :column="2" bordered size="middle">
+        <Descriptions :column="2" bordered size="middle" :label-style="{ minWidth: '120px' }" :content-style="{ minWidth: '120px' }">
           <DescriptionsItem label="文件ID">{{ detail.id }}</DescriptionsItem>
           <DescriptionsItem label="存储引擎">{{ detail.engine }}</DescriptionsItem>
           <DescriptionsItem label="原始文件名" :span="2">
@@ -79,6 +79,8 @@ function formatFileSize(bytes: number): string {
               :column="3"
               bordered
               size="small"
+              :label-style="{ minWidth: '60px' }"
+              :content-style="{ minWidth: '80px' }"
               class="mb-2"
             >
               <DescriptionsItem label="场景">

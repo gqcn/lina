@@ -164,14 +164,38 @@ test.describe('TC0048 文件管理', () => {
 
     // The size column header should be sortable - click it
     const sizeHeader = adminPage.locator('.vxe-header--column').filter({ hasText: '文件大小' }).first();
-    await sizeHeader.click();
-    await adminPage.waitForTimeout(1000);
 
-    // Verify the sort indicator appeared (vxe-cell--sort-xxx-icon with active class)
-    const sortIcon = sizeHeader.locator('.vxe-sort--asc-btn, .vxe-sort--desc-btn');
-    const sortActive = sizeHeader.locator('.is--sort-active');
-    // At least the column should now have sort indicators
-    expect(await sortIcon.count()).toBeGreaterThan(0);
+    // Listen for API request with sort params
+    const sortRequestPromise = adminPage.waitForRequest(
+      (req) => req.url().includes('/file?') && req.url().includes('orderBy=size'),
+      { timeout: 10000 },
+    );
+
+    await sizeHeader.click();
+
+    // Verify API request was sent with sort parameters
+    const request = await sortRequestPromise;
+    expect(request.url()).toContain('orderBy=size');
+  });
+
+  test('TC0048m: 上传时间列支持排序', async ({ adminPage }) => {
+    const filePage = new FilePage(adminPage);
+    await filePage.goto();
+
+    // The createdAt column header should be sortable - click it
+    const createdAtHeader = adminPage.locator('.vxe-header--column').filter({ hasText: '上传时间' }).first();
+
+    // Listen for API request with sort params
+    const sortRequestPromise = adminPage.waitForRequest(
+      (req) => req.url().includes('/file?') && req.url().includes('orderBy=createdAt'),
+      { timeout: 10000 },
+    );
+
+    await createdAtHeader.click();
+
+    // Verify API request was sent with sort parameters
+    const request = await sortRequestPromise;
+    expect(request.url()).toContain('orderBy=createdAt');
   });
 
   test('TC0048k: 详情按钮打开文件详情对话框', async ({ adminPage }) => {

@@ -80,7 +80,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
     sortConfig: {
       remote: true,
-      multiple: false,
+      trigger: 'cell',
     },
     id: 'system-file-index',
   },
