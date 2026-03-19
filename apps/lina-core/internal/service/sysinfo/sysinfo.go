@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/gogf/gf/v2"
 	"github.com/gogf/gf/v2/frame/g"
 )
 
@@ -23,19 +24,30 @@ func New() *Service {
 
 // SystemInfo holds the system runtime information.
 type SystemInfo struct {
-	GoVersion   string
-	GfVersion   string
-	Os          string
-	Arch        string
-	DbVersion   string
-	StartTime   string
-	RunDuration string
+	GoVersion          string
+	GfVersion          string
+	Os                 string
+	Arch               string
+	DbVersion          string
+	StartTime          string
+	RunDuration        string
+	BackendComponents  []ComponentInfo
+	FrontendComponents []ComponentInfo
+}
+
+// ComponentInfo holds component display information.
+type ComponentInfo struct {
+	Name        string
+	Version     string
+	Url         string
+	Description string
 }
 
 // GetInfo returns system runtime information.
 func (s *Service) GetInfo(ctx context.Context) (*SystemInfo, error) {
 	info := &SystemInfo{
 		GoVersion: runtime.Version(),
+		GfVersion: gf.VERSION,
 		Os:        runtime.GOOS,
 		Arch:      runtime.GOARCH,
 		StartTime: s.startTime.Format("2006-01-02 15:04:05"),
@@ -54,9 +66,6 @@ func (s *Service) GetInfo(ctx context.Context) (*SystemInfo, error) {
 		info.RunDuration = fmt.Sprintf("%d秒", seconds)
 	}
 
-	// Get GoFrame version
-	info.GfVersion = "v2.10.0"
-
 	// Get database version
 	dbVersion, err := s.getDbVersion(ctx)
 	if err != nil {
@@ -66,7 +75,42 @@ func (s *Service) GetInfo(ctx context.Context) (*SystemInfo, error) {
 		info.DbVersion = dbVersion
 	}
 
+	// Load component info from config
+	info.BackendComponents = s.loadComponents(ctx, "components.backend", dbVersion)
+	info.FrontendComponents = s.loadComponents(ctx, "components.frontend", "")
+
 	return info, nil
+}
+
+// loadComponents reads component configuration from config file.
+func (s *Service) loadComponents(ctx context.Context, configKey string, dbVersion string) []ComponentInfo {
+	cfg := g.Cfg()
+	val, err := cfg.Get(ctx, configKey)
+	if err != nil || val.IsEmpty() {
+		return nil
+	}
+
+	var components []ComponentInfo
+	if err = val.Scan(&components); err != nil {
+		g.Log().Warningf(ctx, "Failed to scan components config '%s': %v", configKey, err)
+		return nil
+	}
+
+	// Replace "auto" versions with runtime values
+	for i := range components {
+		if components[i].Version == "auto" {
+			switch components[i].Name {
+			case "GoFrame":
+				components[i].Version = gf.VERSION
+			case "MySQL":
+				if dbVersion != "" {
+					components[i].Version = dbVersion
+				}
+			}
+		}
+	}
+
+	return components
 }
 
 // getDbVersion retrieves the database version.

@@ -3,13 +3,9 @@ import { h, onMounted, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
-import { getSystemInfo } from '#/api/about';
+import { type ComponentInfo, getSystemInfo } from '#/api/about';
 
-import {
-  BACKEND_COMPONENTS,
-  FRONTEND_COMPONENTS,
-  PROJECT_INFO,
-} from '../config';
+import { PROJECT_INFO } from '../config';
 
 defineOptions({ name: 'SystemInfo' });
 
@@ -25,10 +21,14 @@ const renderLink = (href: string, text: string) =>
     { default: () => text },
   );
 
-// 关于项目
-const projectItems: DescriptionItem[] = [
+// 关于项目 - 第一行：名称 + 介绍
+const projectRow1: DescriptionItem[] = [
   { title: '项目名称', content: PROJECT_INFO.name },
-  { title: '项目描述', content: PROJECT_INFO.description },
+  { title: '项目介绍', content: PROJECT_INFO.description },
+];
+
+// 关于项目 - 第二行：其他信息
+const projectRow2: DescriptionItem[] = [
   { title: '版本号', content: PROJECT_INFO.version },
   { title: '开源许可', content: PROJECT_INFO.license },
   {
@@ -39,7 +39,19 @@ const projectItems: DescriptionItem[] = [
 
 // 基本信息（后端 API 数据）
 const runtimeItems = ref<DescriptionItem[]>([]);
+const backendItems = ref<DescriptionItem[]>([]);
+const frontendItems = ref<DescriptionItem[]>([]);
 const loading = ref(true);
+
+const mapComponents = (components: ComponentInfo[]): DescriptionItem[] =>
+  (components || []).map((item) => ({
+    title: item.name,
+    content: h('div', [
+      h('span', { class: 'text-foreground/80' }, item.version),
+      h('span', { class: 'mx-2 text-foreground/30' }, '|'),
+      renderLink(item.url, item.description),
+    ]),
+  }));
 
 onMounted(async () => {
   try {
@@ -52,56 +64,47 @@ onMounted(async () => {
       { title: '启动时间', content: info.startTime },
       { title: '运行时长', content: info.runDuration },
     ];
+    backendItems.value = mapComponents(info.backendComponents);
+    frontendItems.value = mapComponents(info.frontendComponents);
   } finally {
     loading.value = false;
   }
 });
-
-// 后端组件
-const backendItems: DescriptionItem[] = BACKEND_COMPONENTS.map((item) => ({
-  title: item.name,
-  content: h('div', [
-    h('span', { class: 'text-foreground/80' }, item.version),
-    h('span', { class: 'mx-2 text-foreground/30' }, '|'),
-    renderLink(item.url, item.description),
-  ]),
-}));
-
-// 前端组件
-const frontendItems: DescriptionItem[] = FRONTEND_COMPONENTS.map((item) => ({
-  title: item.name,
-  content: h('div', [
-    h('span', { class: 'text-foreground/80' }, item.version),
-    h('span', { class: 'mx-2 text-foreground/30' }, '|'),
-    renderLink(item.url, item.description),
-  ]),
-}));
 </script>
 
 <template>
-  <Page title="系统信息">
-    <template #description>
-      <p class="mt-3 text-sm/6 text-foreground">
-        <a :href="PROJECT_INFO.homepage" class="vben-link" target="_blank">
-          {{ PROJECT_INFO.name }}
-        </a>
-        {{ PROJECT_INFO.description }}
-      </p>
-    </template>
-
+  <Page>
     <!-- 关于项目 -->
     <div class="card-box p-5">
       <h5 class="text-lg text-foreground">关于项目</h5>
       <div class="mt-4">
-        <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          <template v-for="item in projectItems" :key="item.title">
+        <dl class="grid">
+          <template v-for="item in projectRow1" :key="item.title">
             <div
-              class="border-t border-border px-4 py-6 sm:col-span-1 sm:px-0"
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
             >
               <dt class="text-sm/6 font-medium text-foreground">
                 {{ item.title }}
               </dt>
-              <dd class="mt-1 text-sm/6 text-foreground sm:mt-2">
+              <dd class="mt-1 text-sm/6 text-foreground">
+                <component
+                  :is="item.content"
+                  v-if="typeof item.content === 'object'"
+                />
+                <span v-else>{{ item.content }}</span>
+              </dd>
+            </div>
+          </template>
+        </dl>
+        <dl class="grid grid-cols-2 md:grid-cols-3">
+          <template v-for="item in projectRow2" :key="item.title">
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+            >
+              <dt class="text-sm/6 font-medium text-foreground">
+                {{ item.title }}
+              </dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
                 <component
                   :is="item.content"
                   v-if="typeof item.content === 'object'"
@@ -124,12 +127,12 @@ const frontendItems: DescriptionItem[] = FRONTEND_COMPONENTS.map((item) => ({
         >
           <template v-for="item in runtimeItems" :key="item.title">
             <div
-              class="border-t border-border px-4 py-6 sm:col-span-1 sm:px-0"
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
             >
               <dt class="text-sm/6 font-medium text-foreground">
                 {{ item.title }}
               </dt>
-              <dd class="mt-1 text-sm/6 text-foreground sm:mt-2">
+              <dd class="mt-1 text-sm/6 text-foreground">
                 <component
                   :is="item.content"
                   v-if="typeof item.content === 'object'"
@@ -147,7 +150,10 @@ const frontendItems: DescriptionItem[] = FRONTEND_COMPONENTS.map((item) => ({
     <div class="card-box mt-6 p-5">
       <h5 class="text-lg text-foreground">后端组件</h5>
       <div class="mt-4">
-        <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <dl
+          v-if="!loading"
+          class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+        >
           <template v-for="item in backendItems" :key="item.title">
             <div
               class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
@@ -165,6 +171,7 @@ const frontendItems: DescriptionItem[] = FRONTEND_COMPONENTS.map((item) => ({
             </div>
           </template>
         </dl>
+        <div v-else class="py-8 text-center text-foreground/60">加载中...</div>
       </div>
     </div>
 
@@ -172,7 +179,10 @@ const frontendItems: DescriptionItem[] = FRONTEND_COMPONENTS.map((item) => ({
     <div class="card-box mt-6 p-5">
       <h5 class="text-lg text-foreground">前端组件</h5>
       <div class="mt-4">
-        <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <dl
+          v-if="!loading"
+          class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+        >
           <template v-for="item in frontendItems" :key="item.title">
             <div
               class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
@@ -190,6 +200,7 @@ const frontendItems: DescriptionItem[] = FRONTEND_COMPONENTS.map((item) => ({
             </div>
           </template>
         </dl>
+        <div v-else class="py-8 text-center text-foreground/60">加载中...</div>
       </div>
     </div>
   </Page>

@@ -1,6 +1,6 @@
 ## Context
 
-Lina 是基于 GoFrame + Vue 3 (Vben5) 的管理后台系统。当前已具备用户管理、部门管理、岗位管理、字典管理等基础模块。本次 v0.4.0 迭代新增通知公告管理和用户消息中心功能，同时引入 Tiptap 富文本编辑器作为通用组件。
+Lina 是基于 GoFrame + Vue 3 (Vben5) 的后台管理系统。当前已具备用户管理、部门管理、岗位管理、字典管理等基础模块。本次 v0.4.0 迭代新增通知公告管理和用户消息中心功能，同时引入 Tiptap 富文本编辑器作为通用组件。
 
 现有技术栈：后端 GoFrame v2 + MySQL，前端 Vue 3 + Ant Design Vue + VXE-Grid + Pinia。
 

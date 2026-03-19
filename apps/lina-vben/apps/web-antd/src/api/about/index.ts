@@ -1,5 +1,12 @@
 import { requestClient } from '#/api/request';
 
+export interface ComponentInfo {
+  name: string;
+  version: string;
+  url: string;
+  description: string;
+}
+
 export interface SystemInfoResult {
   goVersion: string;
   gfVersion: string;
@@ -8,6 +15,8 @@ export interface SystemInfoResult {
   dbVersion: string;
   startTime: string;
   runDuration: string;
+  backendComponents: ComponentInfo[];
+  frontendComponents: ComponentInfo[];
 }
 
 /** 获取系统运行信息 */

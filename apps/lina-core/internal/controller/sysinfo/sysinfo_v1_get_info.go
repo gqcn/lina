@@ -11,7 +11,8 @@ func (c *ControllerV1) GetInfo(ctx context.Context, req *v1.GetInfoReq) (res *v1
 	if err != nil {
 		return nil, err
 	}
-	return &v1.GetInfoRes{
+
+	res = &v1.GetInfoRes{
 		GoVersion:   info.GoVersion,
 		GfVersion:   info.GfVersion,
 		Os:          info.Os,
@@ -19,5 +20,27 @@ func (c *ControllerV1) GetInfo(ctx context.Context, req *v1.GetInfoReq) (res *v1
 		DbVersion:   info.DbVersion,
 		StartTime:   info.StartTime,
 		RunDuration: info.RunDuration,
-	}, nil
+	}
+
+	// Map backend components
+	for _, c := range info.BackendComponents {
+		res.BackendComponents = append(res.BackendComponents, v1.ComponentInfo{
+			Name:        c.Name,
+			Version:     c.Version,
+			Url:         c.Url,
+			Description: c.Description,
+		})
+	}
+
+	// Map frontend components
+	for _, c := range info.FrontendComponents {
+		res.FrontendComponents = append(res.FrontendComponents, v1.ComponentInfo{
+			Name:        c.Name,
+			Version:     c.Version,
+			Url:         c.Url,
+			Description: c.Description,
+		})
+	}
+
+	return res, nil
 }
