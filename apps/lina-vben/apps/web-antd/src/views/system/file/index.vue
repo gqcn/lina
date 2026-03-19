@@ -5,10 +5,10 @@ import { computed, onMounted, ref } from 'vue';
 
 import { Page, useVbenModal } from '@vben/common-ui';
 
-import { Image, Modal, Popconfirm, Space, Spin, Switch, Tooltip } from 'ant-design-vue';
+import { Image, Modal, Popconfirm, Space, Spin, Switch, Tag, Tooltip } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { fileList, fileRemove, fileUsageScenes } from '#/api/system/file';
+import { fileList, fileRemove, fileSuffixes, fileUsageScenes } from '#/api/system/file';
 import { requestClient } from '#/api/request';
 
 import { columns, querySchema, supportImageList } from './data';
@@ -97,10 +97,18 @@ const [Grid, gridApi] = useVbenVxeGrid({
 
 const checkedRows = ref<any[]>([]);
 const hasChecked = computed(() => checkedRows.value.length > 0);
+const sceneLabelMap = ref<Record<string, string>>({});
 
 onMounted(async () => {
   try {
-    const scenes = await fileUsageScenes();
+    const [scenes, suffixes] = await Promise.all([
+      fileUsageScenes(),
+      fileSuffixes(),
+    ]);
+    // Build scene label map for table column display
+    for (const s of scenes) {
+      sceneLabelMap.value[s.value] = s.label;
+    }
     gridApi.formApi.updateSchema([
       {
         fieldName: 'scene',
@@ -111,9 +119,18 @@ onMounted(async () => {
           })),
         },
       },
+      {
+        fieldName: 'suffix',
+        componentProps: {
+          options: suffixes.map((s) => ({
+            label: s.label,
+            value: s.value,
+          })),
+        },
+      },
     ]);
   } catch {
-    // ignore error if scenes API fails
+    // ignore error if API fails
   }
 });
 
@@ -240,6 +257,10 @@ function onReload() {
           PDF 预览
         </span>
         <span v-else>{{ row.url }}</span>
+      </template>
+
+      <template #scene="{ row }">
+        <Tag color="blue">{{ sceneLabelMap[row.scene] || row.scene }}</Tag>
       </template>
 
       <template #size="{ row }">

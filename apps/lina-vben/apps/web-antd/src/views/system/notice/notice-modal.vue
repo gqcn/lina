@@ -6,6 +6,7 @@ import { useVbenModal } from '@vben/common-ui';
 import { Form, FormItem, Input, message, RadioGroup } from 'ant-design-vue';
 
 import { noticeAdd, noticeInfo, noticeUpdate } from '#/api/system/notice';
+import { FileUpload } from '#/components/upload';
 import { TiptapEditor } from '#/components/tiptap';
 
 const emit = defineEmits<{ reload: [] }>();
@@ -16,6 +17,7 @@ interface FormData {
   status: number;
   type: number;
   content: string;
+  fileIds: string | string[];
 }
 
 const defaultValues: FormData = {
@@ -24,6 +26,7 @@ const defaultValues: FormData = {
   status: 0,
   type: 1,
   content: '',
+  fileIds: [],
 };
 
 const isEdit = computed(() => !!formData.value.id);
@@ -53,18 +56,22 @@ const [Modal, modalApi] = useVbenModal({
       modalApi.setState({ confirmLoading: true });
       try {
         const record = await noticeInfo(data.id);
+        const fileIds = record.fileIds
+          ? record.fileIds.split(',').filter(Boolean)
+          : [];
         formData.value = {
           id: record.id,
           title: record.title,
           type: record.type,
           status: record.status,
           content: record.content || '',
+          fileIds,
         };
       } finally {
         modalApi.setState({ confirmLoading: false });
       }
     } else {
-      formData.value = { ...defaultValues };
+      formData.value = { ...defaultValues, fileIds: [] };
       resetFields();
     }
   },
@@ -75,12 +82,16 @@ async function handleConfirm() {
     modalApi.lock(true);
     await validate();
 
-    const { id, ...values } = formData.value;
+    const { id, fileIds, ...values } = formData.value;
+    const submitData = {
+      ...values,
+      fileIds: Array.isArray(fileIds) ? fileIds.join(',') : fileIds,
+    };
     if (isEdit.value && id) {
-      await noticeUpdate(id, values);
+      await noticeUpdate(id, submitData);
       message.success('更新成功');
     } else {
-      await noticeAdd(values);
+      await noticeAdd(submitData);
       message.success('创建成功');
     }
     emit('reload');
@@ -128,6 +139,15 @@ async function handleConfirm() {
       </div>
       <FormItem label="公告内容" v-bind="validateInfos.content">
         <TiptapEditor v-model="formData.content" :height="300" scene="notice_image" />
+      </FormItem>
+      <FormItem label="附件">
+        <FileUpload
+          v-model:value="formData.fileIds"
+          :max-count="5"
+          :max-size="10"
+          :enable-drag-upload="true"
+          scene="notice_attachment"
+        />
       </FormItem>
     </Form>
   </Modal>

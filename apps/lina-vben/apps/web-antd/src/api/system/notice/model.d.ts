@@ -3,6 +3,7 @@ export interface Notice {
   title: string;
   type: number;
   content: string;
+  fileIds: string;
   status: number;
   remark: string;
   createdBy: number;

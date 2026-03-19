@@ -8,9 +8,12 @@ export const querySchema: VbenFormSchema[] = [
     label: '原始文件名',
   },
   {
-    component: 'Input',
+    component: 'Select',
     fieldName: 'suffix',
-    label: '文件后缀',
+    label: '文件类型',
+    componentProps: {
+      options: [] as { label: string; value: string }[],
+    },
   },
   {
     component: 'Select',
@@ -33,19 +36,20 @@ export const supportImageList = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 export const columns: VxeGridProps['columns'] = [
   { type: 'checkbox', width: 60 },
   {
-    title: '文件名',
-    field: 'name',
-    showOverflow: true,
-  },
-  {
     title: '原始文件名',
     field: 'original',
     showOverflow: true,
   },
   {
-    title: '文件后缀',
+    title: '文件类型',
     field: 'suffix',
     width: 100,
+  },
+  {
+    title: '使用场景',
+    field: 'scene',
+    width: 120,
+    slots: { default: 'scene' },
   },
   {
     title: '文件预览',

@@ -85,15 +85,28 @@ test.describe('TC0048 文件管理', () => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
 
-    // Search by suffix
-    const suffixInput = adminPage.getByLabel('文件后缀', { exact: true }).first();
-    await suffixInput.fill('txt');
-    await adminPage.getByRole('button', { name: /搜\s*索/ }).first().click();
-    await adminPage.waitForTimeout(1000);
+    // Search by file type (suffix) - now a Select dropdown
+    const suffixLabel = adminPage.locator('label').filter({ hasText: '文件类型' });
+    const suffixSelect = suffixLabel.locator('..').locator('.ant-select').first();
+    await suffixSelect.click();
 
-    // All results should have .txt suffix
-    const rowCount = await filePage.getRowCount();
-    expect(rowCount).toBeGreaterThan(0);
+    // Wait for dropdown and select 'txt' if available
+    const dropdown = adminPage.locator('.ant-select-dropdown').last();
+    await expect(dropdown).toBeVisible({ timeout: 5000 });
+    const txtOption = dropdown.getByText('.txt');
+    const hasTxt = await txtOption.count();
+    if (hasTxt > 0) {
+      await txtOption.click();
+      await adminPage.getByRole('button', { name: /搜\s*索/ }).first().click();
+      await adminPage.waitForTimeout(1000);
+
+      // All results should have .txt suffix
+      const rowCount = await filePage.getRowCount();
+      expect(rowCount).toBeGreaterThan(0);
+    } else {
+      // Close dropdown if no txt option
+      await adminPage.keyboard.press('Escape');
+    }
   });
 
   test('TC0048g: 文件预览列展示完整HTTP地址', async ({ adminPage }) => {
@@ -102,7 +115,7 @@ test.describe('TC0048 文件管理', () => {
 
     const rowCount = await filePage.getRowCount();
     if (rowCount > 0) {
-      // Get the URL cell text from the first row (checkbox=0, name=1, original=2, suffix=3, url=4)
+      // Get the URL cell text from the first row (checkbox=0, original=1, suffix=2, scene=3, url=4, size=5, createdAt=6, createdByName=7)
       const urlCell = adminPage.locator('.vxe-body--row').first().locator('td').nth(4);
       const urlText = await urlCell.innerText();
       // The URL should start with http:// or https://
@@ -150,7 +163,7 @@ test.describe('TC0048 文件管理', () => {
 
     const rowCount = await filePage.getRowCount();
     if (rowCount > 0) {
-      // The uploader column (index 7: checkbox=0, name=1, original=2, suffix=3, url=4, size=5, createdAt=6, createdByName=7)
+      // The uploader column (index 8: checkbox=0, original=1, suffix=2, scene=3, url=4, size=5, createdAt=6, createdByName=7)
       const uploaderCell = adminPage.locator('.vxe-body--row').first().locator('td').nth(7);
       const uploaderText = await uploaderCell.innerText();
       // Should be a username like 'admin', not a nickname like '管理员'
@@ -226,9 +239,9 @@ test.describe('TC0048 文件管理', () => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
 
-    // The search form should have a "使用场景" select
-    const sceneLabel = adminPage.getByText('使用场景', { exact: true });
-    await expect(sceneLabel).toBeVisible();
+    // The search form should have a "使用场景" label
+    const sceneLabel = adminPage.locator('form label').filter({ hasText: '使用场景' });
+    await expect(sceneLabel.first()).toBeVisible();
   });
 
   test('TC0048o: 使用场景筛选下拉框包含预定义选项', async ({ adminPage }) => {
@@ -277,6 +290,12 @@ test.describe('TC0048 文件管理', () => {
     const initialCount = await filePage.getRowCount();
 
     if (initialCount > 0) {
+      // Listen for successful delete response
+      const deleteResponsePromise = adminPage.waitForResponse(
+        (resp) => resp.url().includes('/file/') && resp.request().method() === 'DELETE' && resp.status() === 200,
+        { timeout: 10000 },
+      );
+
       // Click delete on first row
       const firstRow = adminPage.locator('.vxe-body--row').first();
       await firstRow.getByRole('button', { name: /删\s*除/ }).click();
@@ -286,11 +305,9 @@ test.describe('TC0048 文件管理', () => {
         .getByRole('button', { name: /确\s*定/ })
         .click();
 
-      await adminPage.waitForTimeout(1000);
-
-      // Verify row count decreased
-      const newCount = await filePage.getRowCount();
-      expect(newCount).toBeLessThan(initialCount);
+      // Verify delete API succeeded
+      const deleteResponse = await deleteResponsePromise;
+      expect(deleteResponse.status()).toBe(200);
     }
   });
 

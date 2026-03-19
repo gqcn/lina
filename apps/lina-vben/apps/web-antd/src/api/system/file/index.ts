@@ -1,4 +1,9 @@
-import type { FileDetail, FileInfo, FileUsageSceneItem } from './model';
+import type {
+  FileDetail,
+  FileInfo,
+  FileSuffixItem,
+  FileUsageSceneItem,
+} from './model';
 
 import { requestClient } from '#/api/request';
 
@@ -52,4 +57,12 @@ export async function fileUsageScenes() {
 /** Get file detail with usage scenes */
 export async function fileDetail(id: number) {
   return await requestClient.get<FileDetail>(`/file/detail/${id}`);
+}
+
+/** Get file suffix options from database */
+export async function fileSuffixes() {
+  const res = await requestClient.get<{ list: FileSuffixItem[] }>(
+    '/file/suffixes',
+  );
+  return res.list;
 }

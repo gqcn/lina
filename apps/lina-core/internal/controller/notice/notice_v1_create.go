@@ -16,6 +16,7 @@ func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.C
 		Title:   req.Title,
 		Type:    req.Type,
 		Content: req.Content,
+		FileIds: req.FileIds,
 		Status:  status,
 		Remark:  req.Remark,
 	})

@@ -25,6 +25,7 @@ type SysNoticeColumns struct {
 	Title     string // 公告标题
 	Type      string // 公告类型（1通知 2公告）
 	Content   string // 公告内容
+	FileIds   string // 附件文件ID列表，逗号分隔
 	Status    string // 公告状态（0草稿 1已发布）
 	Remark    string // 备注
 	CreatedBy string // 创建者
@@ -40,6 +41,7 @@ var sysNoticeColumns = SysNoticeColumns{
 	Title:     "title",
 	Type:      "type",
 	Content:   "content",
+	FileIds:   "file_ids",
 	Status:    "status",
 	Remark:    "remark",
 	CreatedBy: "created_by",

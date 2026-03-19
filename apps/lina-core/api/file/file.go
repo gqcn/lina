@@ -16,6 +16,7 @@ type IFileV1 interface {
 	Download(ctx context.Context, req *v1.DownloadReq) (res *v1.DownloadRes, err error)
 	InfoByIds(ctx context.Context, req *v1.InfoByIdsReq) (res *v1.InfoByIdsRes, err error)
 	List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error)
+	FileSuffixes(ctx context.Context, req *v1.FileSuffixesReq) (res *v1.FileSuffixesRes, err error)
 	Upload(ctx context.Context, req *v1.UploadReq) (res *v1.UploadRes, err error)
 	UsageScenes(ctx context.Context, req *v1.UsageScenesReq) (res *v1.UsageScenesRes, err error)
 }

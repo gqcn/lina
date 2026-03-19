@@ -11,17 +11,9 @@ func (c *ControllerV1) Detail(ctx context.Context, req *v1.DetailReq) (res *v1.D
 	if err != nil {
 		return nil, err
 	}
-	usageItems := make([]*v1.DetailUsageItem, len(out.UsageScenes))
-	for i, item := range out.UsageScenes {
-		usageItems[i] = &v1.DetailUsageItem{
-			Scene:     item.Scene,
-			Label:     item.Label,
-			CreatedAt: item.CreatedAt,
-		}
-	}
 	return &v1.DetailRes{
 		SysFile:       out.SysFile,
 		CreatedByName: out.CreatedByName,
-		UsageScenes:   usageItems,
+		SceneLabel:    out.SceneLabel,
 	}, nil
 }

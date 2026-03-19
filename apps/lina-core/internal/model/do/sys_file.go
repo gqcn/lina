@@ -16,6 +16,7 @@ type SysFile struct {
 	Name      any         // 存储文件名
 	Original  any         // 原始文件名
 	Suffix    any         // 文件后缀
+	Scene     any         // 使用场景
 	Size      any         // 文件大小（字节）
 	Hash      any         // 文件SHA-256散列值，用于去重
 	Url       any         // 文件访问URL

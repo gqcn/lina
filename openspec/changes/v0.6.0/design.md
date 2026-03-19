@@ -26,21 +26,7 @@ CREATE TABLE sys_file (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文件管理';
 ```
 
-新增 `sys_file_usage` 文件使用场景表（一个文件可被多个业务场景引用）：
-
-```sql
-CREATE TABLE sys_file_usage (
-  id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '记录ID',
-  file_id    BIGINT UNSIGNED NOT NULL DEFAULT 0  COMMENT '文件ID，关联 sys_file.id',
-  scene      VARCHAR(64)     NOT NULL DEFAULT '' COMMENT '使用场景标识：avatar=用户头像 notice_image=通知公告图片 notice_attachment=通知公告附件 other=其他',
-  biz_id     BIGINT UNSIGNED NOT NULL DEFAULT 0  COMMENT '关联的业务记录ID（如用户ID、通知ID等）',
-  created_at DATETIME        NOT NULL COMMENT '创建时间',
-  PRIMARY KEY (id),
-  INDEX idx_file_id (file_id),
-  INDEX idx_scene (scene),
-  INDEX idx_biz_id (biz_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文件使用场景表';
-```
+使用场景直接记录在 `sys_file` 表的 `scene` 字段中。相同散列值的文件如在不同场景使用，则各自创建独立的文件记录。
 
 ### 2. 后端架构
 

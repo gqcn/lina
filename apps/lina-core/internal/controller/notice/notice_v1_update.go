@@ -13,6 +13,7 @@ func (c *ControllerV1) Update(ctx context.Context, req *v1.UpdateReq) (res *v1.U
 		Title:   req.Title,
 		Type:    req.Type,
 		Content: req.Content,
+		FileIds: req.FileIds,
 		Status:  req.Status,
 		Remark:  req.Remark,
 	})

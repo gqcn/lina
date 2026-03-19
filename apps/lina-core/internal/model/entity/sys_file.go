@@ -14,6 +14,7 @@ type SysFile struct {
 	Name      string      `json:"name"      orm:"name"       description:"存储文件名"`
 	Original  string      `json:"original"  orm:"original"   description:"原始文件名"`
 	Suffix    string      `json:"suffix"    orm:"suffix"     description:"文件后缀"`
+	Scene     string      `json:"scene"     orm:"scene"      description:"使用场景"`
 	Size      int64       `json:"size"      orm:"size"       description:"文件大小（字节）"`
 	Hash      string      `json:"hash"      orm:"hash"       description:"文件SHA-256散列值，用于去重"`
 	Url       string      `json:"url"       orm:"url"        description:"文件访问URL"`

@@ -72,7 +72,7 @@ function handleImageUpload() {
       const url = await props.uploadHandler(file);
       props.editor?.chain().focus().setImage({ src: url }).run();
     } else {
-      // Default: upload via file upload API with scene and bizId parameters
+      // Default: upload via file upload API with scene parameter
       try {
         const result = await uploadApi(file, { scene: props.scene || 'other' });
         props.editor?.chain().focus().setImage({ src: result.url }).run();

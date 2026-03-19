@@ -5,7 +5,7 @@ import { ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
-import { Descriptions, DescriptionsItem, Empty, Spin, Tag } from 'ant-design-vue';
+import { Descriptions, DescriptionsItem, Spin, Tag } from 'ant-design-vue';
 
 import { fileDetail } from '#/api/system/file';
 
@@ -50,9 +50,12 @@ function formatFileSize(bytes: number): string {
           <DescriptionsItem label="存储文件名" :span="2">
             {{ detail.name }}
           </DescriptionsItem>
-          <DescriptionsItem label="文件后缀">{{ detail.suffix }}</DescriptionsItem>
+          <DescriptionsItem label="文件类型">{{ detail.suffix }}</DescriptionsItem>
           <DescriptionsItem label="文件大小">
             {{ formatFileSize(detail.size) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="使用场景" :span="2">
+            <Tag color="blue">{{ detail.sceneLabel }}</Tag>
           </DescriptionsItem>
           <DescriptionsItem label="文件URL" :span="2">
             <a :href="detail.url" target="_blank" rel="noopener noreferrer">
@@ -69,30 +72,6 @@ function formatFileSize(bytes: number): string {
             {{ detail.createdAt }}
           </DescriptionsItem>
         </Descriptions>
-
-        <div class="mt-4">
-          <h4 class="mb-2 font-medium">使用场景</h4>
-          <template v-if="detail.usageScenes && detail.usageScenes.length > 0">
-            <Descriptions
-              v-for="(usage, index) in detail.usageScenes"
-              :key="index"
-              :column="2"
-              bordered
-              size="small"
-              :label-style="{ minWidth: '60px' }"
-              :content-style="{ minWidth: '80px' }"
-              class="mb-2"
-            >
-              <DescriptionsItem label="场景">
-                <Tag color="blue">{{ usage.label }}</Tag>
-              </DescriptionsItem>
-              <DescriptionsItem label="关联时间">
-                {{ usage.createdAt || '-' }}
-              </DescriptionsItem>
-            </Descriptions>
-          </template>
-          <Empty v-else description="暂无使用记录" />
-        </div>
       </template>
     </Spin>
   </Modal>

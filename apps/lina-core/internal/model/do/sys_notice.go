@@ -16,6 +16,7 @@ type SysNotice struct {
 	Title     any         // 公告标题
 	Type      any         // 公告类型（1通知 2公告）
 	Content   any         // 公告内容
+	FileIds   any         // 附件文件ID列表，逗号分隔
 	Status    any         // 公告状态（0草稿 1已发布）
 	Remark    any         // 备注
 	CreatedBy any         // 创建者

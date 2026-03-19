@@ -3,6 +3,7 @@ export interface FileInfo {
   name: string;
   original: string;
   suffix: string;
+  scene: string;
   size: number;
   url: string;
   path: string;
@@ -19,12 +20,11 @@ export interface FileUsageSceneItem {
   label: string;
 }
 
-export interface FileDetailUsageItem {
-  scene: string;
+export interface FileSuffixItem {
+  value: string;
   label: string;
-  createdAt: string;
 }
 
 export interface FileDetail extends FileInfo {
-  usageScenes: FileDetailUsageItem[];
+  sceneLabel: string;
 }

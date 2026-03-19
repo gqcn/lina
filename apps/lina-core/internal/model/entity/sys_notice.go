@@ -14,6 +14,7 @@ type SysNotice struct {
 	Title     string      `json:"title"     orm:"title"      description:"公告标题"`
 	Type      int         `json:"type"      orm:"type"       description:"公告类型（1通知 2公告）"`
 	Content   string      `json:"content"   orm:"content"    description:"公告内容"`
+	FileIds   string      `json:"fileIds"   orm:"file_ids"   description:"附件文件ID列表，逗号分隔"`
 	Status    int         `json:"status"    orm:"status"     description:"公告状态（0草稿 1已发布）"`
 	Remark    string      `json:"remark"    orm:"remark"     description:"备注"`
 	CreatedBy int64       `json:"createdBy" orm:"created_by" description:"创建者"`

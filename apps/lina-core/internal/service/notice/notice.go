@@ -164,6 +164,7 @@ type CreateInput struct {
 	Title   string
 	Type    int
 	Content string
+	FileIds string
 	Status  int
 	Remark  string
 }
@@ -180,6 +181,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int64, error) {
 		Title:     in.Title,
 		Type:      in.Type,
 		Content:   in.Content,
+		FileIds:   in.FileIds,
 		Status:    in.Status,
 		Remark:    in.Remark,
 		CreatedBy: createdBy,
@@ -207,6 +209,7 @@ type UpdateInput struct {
 	Title   *string
 	Type    *int
 	Content *string
+	FileIds *string
 	Status  *int
 	Remark  *string
 }
@@ -245,6 +248,9 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	}
 	if in.Content != nil {
 		data.Content = *in.Content
+	}
+	if in.FileIds != nil {
+		data.FileIds = *in.FileIds
 	}
 	if in.Status != nil {
 		data.Status = *in.Status
