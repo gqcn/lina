@@ -4,7 +4,9 @@ import { computed, ref } from 'vue';
 import { IconifyIcon } from '@vben/icons';
 
 import type { Editor } from '@tiptap/vue-3';
-import { Button, Input, Modal, Space, Tooltip } from 'ant-design-vue';
+import { Button, Input, message, Modal, Space, Tooltip } from 'ant-design-vue';
+
+import { uploadApi } from '#/api';
 
 const props = defineProps<{
   editor: Editor | undefined;
@@ -68,13 +70,13 @@ function handleImageUpload() {
       const url = await props.uploadHandler(file);
       props.editor?.chain().focus().setImage({ src: url }).run();
     } else {
-      // Default: Base64 inline
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const src = e.target?.result as string;
-        props.editor?.chain().focus().setImage({ src }).run();
-      };
-      reader.readAsDataURL(file);
+      // Default: upload via file upload API
+      try {
+        const result = await uploadApi(file);
+        props.editor?.chain().focus().setImage({ src: result.url }).run();
+      } catch {
+        message.error('图片上传失败');
+      }
     }
   };
   input.click();

@@ -58,6 +58,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'FileManagement',
+        path: '/system/file',
+        component: () => import('#/views/system/file/index.vue'),
+        meta: {
+          icon: 'lucide:folder-open',
+          title: '文件管理',
+        },
+      },
+      {
         name: 'MessageList',
         path: '/system/message',
         component: () => import('#/views/system/message/index.vue'),

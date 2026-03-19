@@ -14,6 +14,7 @@ import (
 	"lina-core/internal/controller/auth"
 	"lina-core/internal/controller/dept"
 	"lina-core/internal/controller/dict"
+	filectrl "lina-core/internal/controller/file"
 	"lina-core/internal/controller/loginlog"
 	"lina-core/internal/controller/notice"
 	"lina-core/internal/controller/operlog"
@@ -119,6 +120,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				loginlog.NewV1(),
 				operlog.NewV1(),
 				sysinfo.NewV1(),
+				filectrl.NewV1(),
 			)
 		})
 	})

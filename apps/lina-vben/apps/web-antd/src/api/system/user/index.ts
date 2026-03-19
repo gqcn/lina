@@ -149,20 +149,25 @@ export function userResetPassword(id: number, password: string) {
   return requestClient.put(`/user/${id}/reset-password`, { password });
 }
 
-/** 上传头像 */
-export function userUpdateAvatar(fileCallback: {
+/** 上传头像（通过通用文件上传接口上传，再更新头像URL） */
+export async function userUpdateAvatar(fileCallback: {
   file: Blob;
   filename: string;
 }) {
-  let { file } = fileCallback;
-  const { filename } = fileCallback;
+  const { file, filename } = fileCallback;
   const uniqueName = filename || `${Date.now()}_${Math.random().toString(36).slice(2, 10)}.png`;
-  file = new File([file], uniqueName);
-  return requestClient.post(
-    '/user/profile/avatar',
-    { avatarfile: file },
+  const uploadFile = new File([file], uniqueName);
+  // Step 1: Upload file via generic upload API
+  const formData = new FormData();
+  formData.append('file', uploadFile);
+  const uploadResult = await requestClient.post<{ url: string }>(
+    '/file/upload',
+    formData,
     { headers: { 'Content-Type': 'multipart/form-data' } },
   );
+  // Step 2: Update avatar URL
+  await requestClient.put('/user/profile/avatar', { avatar: uploadResult.url });
+  return { url: uploadResult.url };
 }
 
 /** 获取部门树 */
