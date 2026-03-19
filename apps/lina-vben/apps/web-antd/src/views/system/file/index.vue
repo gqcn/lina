@@ -256,7 +256,11 @@ function onReload() {
         >
           PDF 预览
         </span>
-        <span v-else>{{ row.url }}</span>
+        <span v-else>
+          <Tooltip :title="row.url">
+            <span class="block max-w-[300px] truncate">{{ row.url }}</span>
+          </Tooltip>
+        </span>
       </template>
 
       <template #scene="{ row }">

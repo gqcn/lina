@@ -427,23 +427,23 @@ type SuffixesOutput struct {
 
 // Suffixes returns distinct file suffixes from the database.
 func (s *Service) Suffixes(ctx context.Context) ([]*SuffixesOutput, error) {
-	var suffixes []string
-	err := dao.SysFile.Ctx(ctx).
+	result, err := dao.SysFile.Ctx(ctx).
 		Fields(dao.SysFile.Columns().Suffix).
 		Group(dao.SysFile.Columns().Suffix).
 		OrderAsc(dao.SysFile.Columns().Suffix).
-		Scan(&suffixes)
+		Array()
 	if err != nil {
 		return nil, err
 	}
-	items := make([]*SuffixesOutput, 0, len(suffixes))
-	for _, s := range suffixes {
-		if s == "" {
+	items := make([]*SuffixesOutput, 0, len(result))
+	for _, v := range result {
+		suffix := v.String()
+		if suffix == "" {
 			continue
 		}
 		items = append(items, &SuffixesOutput{
-			Value: s,
-			Label: "." + s,
+			Value: suffix,
+			Label: suffix,
 		})
 	}
 	return items, nil

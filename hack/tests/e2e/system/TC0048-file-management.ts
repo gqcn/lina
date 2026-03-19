@@ -90,36 +90,73 @@ test.describe('TC0048 文件管理', () => {
     const suffixSelect = suffixLabel.locator('..').locator('.ant-select').first();
     await suffixSelect.click();
 
-    // Wait for dropdown and select 'txt' if available
+    // Wait for dropdown and select 'png' which should exist
     const dropdown = adminPage.locator('.ant-select-dropdown').last();
     await expect(dropdown).toBeVisible({ timeout: 5000 });
-    const txtOption = dropdown.getByText('.txt');
-    const hasTxt = await txtOption.count();
-    if (hasTxt > 0) {
-      await txtOption.click();
+    const pngOption = dropdown.getByText('png', { exact: true });
+    const hasPng = await pngOption.count();
+    if (hasPng > 0) {
+      await pngOption.click();
       await adminPage.getByRole('button', { name: /搜\s*索/ }).first().click();
       await adminPage.waitForTimeout(1000);
 
-      // All results should have .txt suffix
+      // All results should have png suffix
       const rowCount = await filePage.getRowCount();
       expect(rowCount).toBeGreaterThan(0);
     } else {
-      // Close dropdown if no txt option
+      // Close dropdown if no png option
       await adminPage.keyboard.press('Escape');
     }
   });
 
-  test('TC0048g: 文件预览列展示完整HTTP地址', async ({ adminPage }) => {
+  test('TC0048p: 文件类型下拉框显示正确的后缀格式', async ({ adminPage }) => {
+    const filePage = new FilePage(adminPage);
+    await filePage.goto();
+
+    // Open file type dropdown
+    const suffixLabel = adminPage.locator('label').filter({ hasText: '文件类型' });
+    const suffixSelect = suffixLabel.locator('..').locator('.ant-select').first();
+    await suffixSelect.click();
+
+    const dropdown = adminPage.locator('.ant-select-dropdown').last();
+    await expect(dropdown).toBeVisible({ timeout: 5000 });
+
+    // Get all option texts
+    const options = dropdown.locator('.ant-select-item-option-content');
+    const optionCount = await options.count();
+    expect(optionCount).toBeGreaterThan(0);
+
+    // Each option should be a plain extension without dot (e.g. "png", not ".png")
+    for (let i = 0; i < optionCount; i++) {
+      const text = await options.nth(i).innerText();
+      expect(text).toMatch(/^\w+$/);
+      expect(text).not.toMatch(/^\./);
+    }
+
+    await adminPage.keyboard.press('Escape');
+  });
+
+  test('TC0048g: 文件预览列展示预览或下载链接', async ({ adminPage }) => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
 
     const rowCount = await filePage.getRowCount();
     if (rowCount > 0) {
-      // Get the URL cell text from the first row (checkbox=0, original=1, suffix=2, scene=3, url=4, size=5, createdAt=6, createdByName=7)
-      const urlCell = adminPage.locator('.vxe-body--row').first().locator('td').nth(4);
-      const urlText = await urlCell.innerText();
-      // The URL should start with http:// or https://
-      expect(urlText).toMatch(/^https?:\/\//);
+      // Each row's preview column should show one of:
+      // - Image preview (for images)
+      // - "PDF 预览" link (for PDFs)
+      // - Plain URL text (for other file types, truncated with tooltip)
+      const rows = adminPage.locator('.vxe-body--row');
+      const count = await rows.count();
+      for (let i = 0; i < Math.min(count, 5); i++) {
+        const urlCell = rows.nth(i).locator('td').nth(4);
+        const cellText = await urlCell.innerText();
+        // Should be either an image preview, "PDF 预览", or a URL text
+        const isImagePreview = (await urlCell.locator('.ant-image').count()) > 0;
+        const isPdfPreview = cellText.includes('PDF 预览');
+        const isUrlText = cellText.includes('http');
+        expect(isImagePreview || isPdfPreview || isUrlText).toBeTruthy();
+      }
     }
   });
 
