@@ -17,6 +17,7 @@ type SysFile struct {
 	Original  any         // 原始文件名
 	Suffix    any         // 文件后缀
 	Size      any         // 文件大小（字节）
+	Hash      any         // 文件SHA-256散列值，用于去重
 	Url       any         // 文件访问URL
 	Path      any         // 文件存储路径
 	Engine    any         // 存储引擎：local=本地

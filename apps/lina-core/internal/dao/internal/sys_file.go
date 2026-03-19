@@ -26,6 +26,7 @@ type SysFileColumns struct {
 	Original  string // 原始文件名
 	Suffix    string // 文件后缀
 	Size      string // 文件大小（字节）
+	Hash      string // 文件SHA-256散列值，用于去重
 	Url       string // 文件访问URL
 	Path      string // 文件存储路径
 	Engine    string // 存储引擎：local=本地
@@ -42,6 +43,7 @@ var sysFileColumns = SysFileColumns{
 	Original:  "original",
 	Suffix:    "suffix",
 	Size:      "size",
+	Hash:      "hash",
 	Url:       "url",
 	Path:      "path",
 	Engine:    "engine",

@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import type { FileInfo } from '#/api/system/file/model';
 
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import { Page, useVbenModal } from '@vben/common-ui';
 
 import { Image, Modal, Popconfirm, Space, Spin, Switch, Tooltip } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { fileList, fileRemove } from '#/api/system/file';
+import { fileList, fileRemove, fileUsageScenes } from '#/api/system/file';
 import { requestClient } from '#/api/request';
 
 import { columns, querySchema, supportImageList } from './data';
+import FileDetailModal from './file-detail-modal.vue';
 import FileUploadModal from './file-upload-modal.vue';
 import ImageUploadModal from './image-upload-modal.vue';
 
@@ -45,15 +46,25 @@ const [Grid, gridApi] = useVbenVxeGrid({
     keepSource: true,
     pagerConfig: {},
     proxyConfig: {
+      sort: true,
       ajax: {
         query: async (
-          { page }: { page: { currentPage: number; pageSize: number } },
+          { page, sorts }: any,
           formValues: Record<string, any> = {},
         ) => {
+          const sortParams: Record<string, string> = {};
+          if (sorts && sorts.length > 0) {
+            const sort = sorts[0];
+            if (sort && sort.order) {
+              sortParams.orderBy = sort.field;
+              sortParams.orderDirection = sort.order;
+            }
+          }
           return await fileList({
             pageNum: page.currentPage,
             pageSize: page.pageSize,
             ...formValues,
+            ...sortParams,
           });
         },
       },
@@ -86,6 +97,25 @@ const [Grid, gridApi] = useVbenVxeGrid({
 
 const checkedRows = ref<any[]>([]);
 const hasChecked = computed(() => checkedRows.value.length > 0);
+
+onMounted(async () => {
+  try {
+    const scenes = await fileUsageScenes();
+    gridApi.formApi.updateSchema([
+      {
+        fieldName: 'scene',
+        componentProps: {
+          options: scenes.map((s) => ({
+            label: s.label,
+            value: s.value,
+          })),
+        },
+      },
+    ]);
+  } catch {
+    // ignore error if scenes API fails
+  }
+});
 
 function isImageFile(url: string) {
   if (!url) return false;
@@ -154,6 +184,15 @@ const [ImageUploadModalRef, imageUploadApi] = useVbenModal({
   connectedComponent: ImageUploadModal,
 });
 
+const [FileDetailModalRef, fileDetailApi] = useVbenModal({
+  connectedComponent: FileDetailModal,
+});
+
+function handleDetail(row: FileInfo) {
+  fileDetailApi.setData({ id: row.id });
+  fileDetailApi.open();
+}
+
 function onReload() {
   gridApi.query();
 }
@@ -209,6 +248,7 @@ function onReload() {
 
       <template #action="{ row }">
         <Space>
+          <ghost-button @click.stop="handleDetail(row)">详情</ghost-button>
           <ghost-button @click.stop="handleDownload(row)">下载</ghost-button>
           <Popconfirm
             placement="left"
@@ -221,6 +261,7 @@ function onReload() {
       </template>
     </Grid>
 
+    <FileDetailModalRef />
     <FileUploadModalRef @reload="onReload" />
     <ImageUploadModalRef @reload="onReload" />
   </Page>

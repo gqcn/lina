@@ -13,6 +13,14 @@ export const querySchema: VbenFormSchema[] = [
     label: '文件后缀',
   },
   {
+    component: 'Select',
+    fieldName: 'scene',
+    label: '使用场景',
+    componentProps: {
+      options: [] as { label: string; value: string }[],
+    },
+  },
+  {
     component: 'RangePicker',
     fieldName: 'createTime',
     label: '上传时间',
@@ -49,6 +57,7 @@ export const columns: VxeGridProps['columns'] = [
     title: '文件大小',
     field: 'size',
     width: 120,
+    sortable: true,
     slots: { default: 'size' },
   },
   {

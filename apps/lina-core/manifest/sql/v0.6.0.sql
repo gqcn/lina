@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS sys_file (
     original    VARCHAR(255)  NOT NULL DEFAULT '' COMMENT '原始文件名',
     suffix      VARCHAR(32)   NOT NULL DEFAULT '' COMMENT '文件后缀',
     size        BIGINT        NOT NULL DEFAULT 0  COMMENT '文件大小（字节）',
+    hash        VARCHAR(64)   NOT NULL DEFAULT '' COMMENT '文件SHA-256散列值，用于去重',
     url         VARCHAR(512)  NOT NULL DEFAULT '' COMMENT '文件访问URL',
     path        VARCHAR(512)  NOT NULL DEFAULT '' COMMENT '文件存储路径',
     engine      VARCHAR(32)   NOT NULL DEFAULT 'local' COMMENT '存储引擎：local=本地',
@@ -18,5 +19,20 @@ CREATE TABLE IF NOT EXISTS sys_file (
     deleted_at  DATETIME      NULL     DEFAULT NULL COMMENT '删除时间',
     INDEX idx_engine (engine),
     INDEX idx_created_by (created_by),
-    INDEX idx_suffix (suffix)
+    INDEX idx_suffix (suffix),
+    INDEX idx_hash (hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='文件管理表';
+
+-- ============================================================
+-- 文件使用场景表（一个文件可被多个业务场景引用）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sys_file_usage (
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '记录ID',
+    file_id     BIGINT        NOT NULL DEFAULT 0  COMMENT '文件ID，关联 sys_file.id',
+    scene       VARCHAR(64)   NOT NULL DEFAULT '' COMMENT '使用场景标识：avatar=用户头像 notice_image=通知公告图片 notice_attachment=通知公告附件 other=其他',
+    biz_id      BIGINT        NOT NULL DEFAULT 0  COMMENT '关联的业务记录ID（如用户ID、通知ID等）',
+    created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    INDEX idx_file_id (file_id),
+    INDEX idx_scene (scene),
+    INDEX idx_biz_id (biz_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='文件使用场景表';

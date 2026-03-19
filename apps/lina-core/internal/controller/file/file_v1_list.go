@@ -9,13 +9,16 @@ import (
 
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
 	out, err := c.fileSvc.List(ctx, &filesvc.ListInput{
-		PageNum:   req.PageNum,
-		PageSize:  req.PageSize,
-		Name:      req.Name,
-		Original:  req.Original,
-		Suffix:    req.Suffix,
-		BeginTime: req.BeginTime,
-		EndTime:   req.EndTime,
+		PageNum:        req.PageNum,
+		PageSize:       req.PageSize,
+		Name:           req.Name,
+		Original:       req.Original,
+		Suffix:         req.Suffix,
+		Scene:          req.Scene,
+		BeginTime:      req.BeginTime,
+		EndTime:        req.EndTime,
+		OrderBy:        req.OrderBy,
+		OrderDirection: req.OrderDirection,
 	})
 	if err != nil {
 		return nil, err

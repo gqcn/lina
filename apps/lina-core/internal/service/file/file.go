@@ -2,7 +2,10 @@ package file
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
@@ -51,7 +54,7 @@ type UploadOutput struct {
 	Size     int64  `json:"size"`
 }
 
-// Upload handles file upload: saves file via storage backend and records metadata in DB.
+// Upload handles file upload: computes SHA-256 hash, checks for duplicates, saves file via storage backend and records metadata in DB.
 func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, error) {
 	file := in.File
 	if file == nil {
@@ -70,6 +73,59 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 		return nil, gerror.Wrap(err, "打开上传文件失败")
 	}
 	defer src.Close()
+
+	// Compute SHA-256 hash
+	hasher := sha256.New()
+	if _, err = io.Copy(hasher, src); err != nil {
+		return nil, gerror.Wrap(err, "计算文件散列值失败")
+	}
+	fileHash := hex.EncodeToString(hasher.Sum(nil))
+
+	// Check for duplicate file by hash
+	var existing *entity.SysFile
+	err = dao.SysFile.Ctx(ctx).
+		Where(dao.SysFile.Columns().Hash, fileHash).
+		Scan(&existing)
+	if err != nil {
+		return nil, gerror.Wrap(err, "查询文件散列值失败")
+	}
+	if existing != nil {
+		// Duplicate file found, reuse existing file's storage info but create a new record
+		suffix := gstr.ToLower(gfile.ExtName(file.Filename))
+		var userId int64
+		if bizCtx := s.bizCtxSvc.Get(ctx); bizCtx != nil {
+			userId = int64(bizCtx.UserId)
+		}
+		result, err := dao.SysFile.Ctx(ctx).Data(do.SysFile{
+			Name:      existing.Name,
+			Original:  file.Filename,
+			Suffix:    suffix,
+			Size:      file.Size,
+			Hash:      fileHash,
+			Url:       existing.Url,
+			Path:      existing.Path,
+			Engine:    existing.Engine,
+			CreatedBy: userId,
+		}).Insert()
+		if err != nil {
+			return nil, gerror.Wrap(err, "保存文件记录失败")
+		}
+		id, _ := result.LastInsertId()
+		fullUrl := s.getBaseUrl(ctx) + existing.Url
+		return &UploadOutput{
+			Id:       id,
+			Name:     existing.Name,
+			Original: file.Filename,
+			Url:      fullUrl,
+			Suffix:   suffix,
+			Size:     file.Size,
+		}, nil
+	}
+
+	// Reset file reader position for storage
+	if _, err = src.Seek(0, io.SeekStart); err != nil {
+		return nil, gerror.Wrap(err, "重置文件读取位置失败")
+	}
 
 	// Save via storage backend
 	storagePath, err := s.storage.Put(ctx, file.Filename, src)
@@ -94,6 +150,7 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 		Original:  file.Filename,
 		Suffix:    suffix,
 		Size:      file.Size,
+		Hash:      fileHash,
 		Url:       url,
 		Path:      storagePath,
 		Engine:    EngineLocal,
@@ -120,13 +177,16 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 
 // ListInput defines input for file list query.
 type ListInput struct {
-	PageNum   int
-	PageSize  int
-	Name      string
-	Original  string
-	Suffix    string
-	BeginTime string
-	EndTime   string
+	PageNum        int
+	PageSize       int
+	Name           string
+	Original       string
+	Suffix         string
+	Scene          string
+	BeginTime      string
+	EndTime        string
+	OrderBy        string
+	OrderDirection string
 }
 
 // ListOutput defines output for file list.
@@ -160,15 +220,39 @@ func (s *Service) List(ctx context.Context, in *ListInput) (*ListOutput, error) 
 	if in.EndTime != "" {
 		m = m.WhereLTE(dao.SysFile.Columns().CreatedAt, in.EndTime)
 	}
+	if in.Scene != "" {
+		// Filter files that have the specified usage scene via subquery
+		m = m.Where(
+			dao.SysFile.Columns().Id+" IN (?)",
+			dao.SysFileUsage.Ctx(ctx).Fields(dao.SysFileUsage.Columns().FileId).
+				Where(dao.SysFileUsage.Columns().Scene, in.Scene),
+		)
+	}
 
 	total, err := m.Count()
 	if err != nil {
 		return nil, err
 	}
 
+	cols := dao.SysFile.Columns()
+	orderBy := cols.Id
+	allowedSortFields := map[string]string{
+		"size":      cols.Size,
+		"createdAt": cols.CreatedAt,
+	}
+	if in.OrderBy != "" {
+		if field, ok := allowedSortFields[in.OrderBy]; ok {
+			orderBy = field
+		}
+	}
+	direction := "DESC"
+	if in.OrderDirection == "asc" {
+		direction = "ASC"
+	}
+
 	var files []*entity.SysFile
-	err = m.OrderDesc(dao.SysFile.Columns().Id).
-		Page(in.PageNum, in.PageSize).
+	err = m.Page(in.PageNum, in.PageSize).
+		Order(orderBy + " " + direction).
 		Scan(&files)
 	if err != nil {
 		return nil, err
@@ -193,11 +277,7 @@ func (s *Service) List(ctx context.Context, in *ListInput) (*ListOutput, error) 
 			Scan(&users)
 		if err == nil {
 			for _, u := range users {
-				name := u.Nickname
-				if name == "" {
-					name = u.Username
-				}
-				userNameMap[int64(u.Id)] = name
+				userNameMap[int64(u.Id)] = u.Username
 			}
 		}
 	}
@@ -304,4 +384,151 @@ func (s *Service) getBaseUrl(ctx context.Context) string {
 		scheme = "https"
 	}
 	return scheme + "://" + r.Host
+}
+
+// SceneLabelMap maps scene identifiers to display labels.
+var SceneLabelMap = map[string]string{
+	"avatar":              "用户头像",
+	"notice_image":        "通知公告图片",
+	"notice_attachment":   "通知公告附件",
+	"other":               "其他",
+}
+
+// SceneLabel returns the display label for a scene identifier.
+func SceneLabel(scene string) string {
+	if label, ok := SceneLabelMap[scene]; ok {
+		return label
+	}
+	return scene
+}
+
+// UsageScenesOutput defines output for usage scenes list.
+type UsageScenesOutput struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
+// UsageScenes returns distinct usage scene values from sys_file_usage.
+func (s *Service) UsageScenes(ctx context.Context) ([]*UsageScenesOutput, error) {
+	var scenes []string
+	err := dao.SysFileUsage.Ctx(ctx).
+		Fields(dao.SysFileUsage.Columns().Scene).
+		Group(dao.SysFileUsage.Columns().Scene).
+		Scan(&scenes)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]*UsageScenesOutput, 0, len(scenes))
+	for _, scene := range scenes {
+		items = append(items, &UsageScenesOutput{
+			Value: scene,
+			Label: SceneLabel(scene),
+		})
+	}
+	return items, nil
+}
+
+// DetailOutput defines output for file detail.
+type DetailOutput struct {
+	*entity.SysFile
+	CreatedByName string             `json:"createdByName"`
+	UsageScenes   []*DetailUsageItem `json:"usageScenes"`
+}
+
+// DetailUsageItem defines a single usage scene item in detail output.
+type DetailUsageItem struct {
+	Scene     string `json:"scene"`
+	Label     string `json:"label"`
+	BizId     int64  `json:"bizId"`
+	CreatedAt string `json:"createdAt"`
+}
+
+// Detail returns file info with usage scenes.
+func (s *Service) Detail(ctx context.Context, id int64) (*DetailOutput, error) {
+	// Get file info
+	var file *entity.SysFile
+	err := dao.SysFile.Ctx(ctx).Where(dao.SysFile.Columns().Id, id).Scan(&file)
+	if err != nil {
+		return nil, err
+	}
+	if file == nil {
+		return nil, gerror.New("文件不存在")
+	}
+
+	// Build full URL
+	baseUrl := s.getBaseUrl(ctx)
+	if baseUrl != "" && file.Url != "" {
+		file.Url = baseUrl + file.Url
+	}
+
+	// Get uploader name
+	var createdByName string
+	if file.CreatedBy > 0 {
+		var user *entity.SysUser
+		err = dao.SysUser.Ctx(ctx).
+			Where(dao.SysUser.Columns().Id, file.CreatedBy).
+			Scan(&user)
+		if err == nil && user != nil {
+			createdByName = user.Username
+		}
+	}
+
+	// Get usage scenes
+	var usages []*entity.SysFileUsage
+	err = dao.SysFileUsage.Ctx(ctx).
+		Where(dao.SysFileUsage.Columns().FileId, id).
+		OrderAsc(dao.SysFileUsage.Columns().CreatedAt).
+		Scan(&usages)
+	if err != nil {
+		return nil, err
+	}
+
+	usageItems := make([]*DetailUsageItem, 0, len(usages))
+	for _, u := range usages {
+		createdAtStr := ""
+		if u.CreatedAt != nil {
+			createdAtStr = u.CreatedAt.String()
+		}
+		usageItems = append(usageItems, &DetailUsageItem{
+			Scene:     u.Scene,
+			Label:     SceneLabel(u.Scene),
+			BizId:     u.BizId,
+			CreatedAt: createdAtStr,
+		})
+	}
+
+	return &DetailOutput{
+		SysFile:       file,
+		CreatedByName: createdByName,
+		UsageScenes:   usageItems,
+	}, nil
+}
+
+// RecordUsageInput defines input for recording file usage.
+type RecordUsageInput struct {
+	FileId int64
+	Scene  string
+	BizId  int64
+}
+
+// RecordUsage creates a file usage record linking a file to a business scene.
+func (s *Service) RecordUsage(ctx context.Context, in *RecordUsageInput) error {
+	if in.FileId <= 0 {
+		return nil
+	}
+	_, err := dao.SysFileUsage.Ctx(ctx).Data(do.SysFileUsage{
+		FileId: in.FileId,
+		Scene:  in.Scene,
+		BizId:  in.BizId,
+	}).Insert()
+	return err
+}
+
+// DeleteUsageByBiz deletes file usage records by scene and business ID.
+func (s *Service) DeleteUsageByBiz(ctx context.Context, scene string, bizId int64) error {
+	_, err := dao.SysFileUsage.Ctx(ctx).
+		Where(dao.SysFileUsage.Columns().Scene, scene).
+		Where(dao.SysFileUsage.Columns().BizId, bizId).
+		Delete()
+	return err
 }

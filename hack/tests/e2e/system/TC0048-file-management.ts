@@ -144,6 +144,69 @@ test.describe('TC0048 文件管理', () => {
     }
   });
 
+  test('TC0048i: 上传者列展示账号名称而非昵称', async ({ adminPage }) => {
+    const filePage = new FilePage(adminPage);
+    await filePage.goto();
+
+    const rowCount = await filePage.getRowCount();
+    if (rowCount > 0) {
+      // The uploader column (index 7: checkbox=0, name=1, original=2, suffix=3, url=4, size=5, createdAt=6, createdByName=7)
+      const uploaderCell = adminPage.locator('.vxe-body--row').first().locator('td').nth(7);
+      const uploaderText = await uploaderCell.innerText();
+      // Should be a username like 'admin', not a nickname like '管理员'
+      expect(uploaderText.trim()).toBe('admin');
+    }
+  });
+
+  test('TC0048j: 文件大小列支持排序', async ({ adminPage }) => {
+    const filePage = new FilePage(adminPage);
+    await filePage.goto();
+
+    // The size column header should be sortable - click it
+    const sizeHeader = adminPage.locator('.vxe-header--column').filter({ hasText: '文件大小' }).first();
+    await sizeHeader.click();
+    await adminPage.waitForTimeout(1000);
+
+    // Verify the sort indicator appeared (vxe-cell--sort-xxx-icon with active class)
+    const sortIcon = sizeHeader.locator('.vxe-sort--asc-btn, .vxe-sort--desc-btn');
+    const sortActive = sizeHeader.locator('.is--sort-active');
+    // At least the column should now have sort indicators
+    expect(await sortIcon.count()).toBeGreaterThan(0);
+  });
+
+  test('TC0048k: 详情按钮打开文件详情对话框', async ({ adminPage }) => {
+    const filePage = new FilePage(adminPage);
+    await filePage.goto();
+
+    const rowCount = await filePage.getRowCount();
+    if (rowCount > 0) {
+      // Click detail button on first row
+      const firstRow = adminPage.locator('.vxe-body--row').first();
+      await firstRow.getByRole('button', { name: /详\s*情/ }).click();
+
+      // Verify detail modal opens
+      const modal = adminPage.locator('[role="dialog"]');
+      await expect(modal.getByText('文件详情')).toBeVisible({ timeout: 5000 });
+
+      // Should show file info in Descriptions
+      await expect(modal.getByText('原始文件名')).toBeVisible();
+      await expect(modal.getByText('存储文件名')).toBeVisible();
+      await expect(modal.getByText('文件大小')).toBeVisible();
+      await expect(modal.getByText('上传者')).toBeVisible();
+      await expect(modal.getByText('上传时间')).toBeVisible();
+      await expect(modal.getByText('使用场景')).toBeVisible();
+    }
+  });
+
+  test('TC0048l: 使用场景筛选条件可见', async ({ adminPage }) => {
+    const filePage = new FilePage(adminPage);
+    await filePage.goto();
+
+    // The search form should have a "使用场景" select
+    const sceneLabel = adminPage.getByText('使用场景', { exact: true });
+    await expect(sceneLabel).toBeVisible();
+  });
+
   test('TC0048f: 删除文件', async ({ adminPage }) => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();

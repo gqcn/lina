@@ -1,4 +1,4 @@
-import type { FileInfo } from './model';
+import type { FileDetail, FileInfo, FileUsageSceneItem } from './model';
 
 import { requestClient } from '#/api/request';
 
@@ -9,6 +9,7 @@ export interface FileListParams {
   name?: string;
   original?: string;
   suffix?: string;
+  scene?: string;
   beginTime?: string;
   endTime?: string;
 }
@@ -38,4 +39,17 @@ export function fileRemove(ids: number[]) {
 /** Download file by ID */
 export function fileDownloadUrl(id: number) {
   return `/file/download/${id}`;
+}
+
+/** Get file usage scene options */
+export async function fileUsageScenes() {
+  const res = await requestClient.get<{ list: FileUsageSceneItem[] }>(
+    '/file/scenes',
+  );
+  return res.list;
+}
+
+/** Get file detail with usage scenes */
+export async function fileDetail(id: number) {
+  return await requestClient.get<FileDetail>(`/file/detail/${id}`);
 }

@@ -7,8 +7,25 @@ export interface FileInfo {
   url: string;
   path: string;
   engine: string;
+  hash: string;
   createdBy: number;
   createdByName?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FileUsageSceneItem {
+  value: string;
+  label: string;
+}
+
+export interface FileDetailUsageItem {
+  scene: string;
+  label: string;
+  bizId: number;
+  createdAt: string;
+}
+
+export interface FileDetail extends FileInfo {
+  usageScenes: FileDetailUsageItem[];
 }
