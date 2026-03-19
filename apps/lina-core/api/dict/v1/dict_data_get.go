@@ -9,8 +9,8 @@ import (
 // DictData Get API
 
 type DataGetReq struct {
-	g.Meta `path:"/dict/data/{id}" method:"get" tags:"字典管理" summary:"获取字典数据详情"`
-	Id     int `json:"id" v:"required" dc:"字典数据ID"`
+	g.Meta `path:"/dict/data/{id}" method:"get" tags:"字典管理" summary:"获取字典数据详情" dc:"根据字典数据ID获取字典数据项的详细信息"`
+	Id     int `json:"id" v:"required" dc:"字典数据ID" eg:"1"`
 }
 
 type DataGetRes struct {

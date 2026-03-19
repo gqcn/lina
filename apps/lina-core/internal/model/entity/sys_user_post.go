@@ -6,6 +6,6 @@ package entity
 
 // SysUserPost is the golang structure for table sys_user_post.
 type SysUserPost struct {
-	UserId int `json:"userId" orm:"user_id" description:""`
-	PostId int `json:"postId" orm:"post_id" description:""`
+	UserId int `json:"userId" orm:"user_id" description:"用户ID"`
+	PostId int `json:"postId" orm:"post_id" description:"岗位ID"`
 }

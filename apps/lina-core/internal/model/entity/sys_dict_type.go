@@ -10,12 +10,12 @@ import (
 
 // SysDictType is the golang structure for table sys_dict_type.
 type SysDictType struct {
-	Id        int         `json:"id"        orm:"id"         description:""`
-	Name      string      `json:"name"      orm:"name"       description:""`
-	Type      string      `json:"type"      orm:"type"       description:""`
-	Status    int         `json:"status"    orm:"status"     description:""`
-	Remark    string      `json:"remark"    orm:"remark"     description:""`
-	CreatedAt *gtime.Time `json:"createdAt" orm:"created_at" description:""`
-	UpdatedAt *gtime.Time `json:"updatedAt" orm:"updated_at" description:""`
-	DeletedAt *gtime.Time `json:"deletedAt" orm:"deleted_at" description:""`
+	Id        int         `json:"id"        orm:"id"         description:"字典类型ID"`
+	Name      string      `json:"name"      orm:"name"       description:"字典名称"`
+	Type      string      `json:"type"      orm:"type"       description:"字典类型"`
+	Status    int         `json:"status"    orm:"status"     description:"状态（0停用 1正常）"`
+	Remark    string      `json:"remark"    orm:"remark"     description:"备注"`
+	CreatedAt *gtime.Time `json:"createdAt" orm:"created_at" description:"创建时间"`
+	UpdatedAt *gtime.Time `json:"updatedAt" orm:"updated_at" description:"更新时间"`
+	DeletedAt *gtime.Time `json:"deletedAt" orm:"deleted_at" description:"删除时间"`
 }

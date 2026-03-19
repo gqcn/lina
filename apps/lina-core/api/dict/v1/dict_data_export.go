@@ -7,9 +7,9 @@ import (
 // DictData Export API
 
 type DataExportReq struct {
-	g.Meta   `path:"/dict/data/export" method:"get" tags:"字典管理" summary:"导出字典数据" operLog:"4"`
-	DictType string `json:"dictType" dc:"按字典类型筛选"`
-	Label    string `json:"label" dc:"按标签筛选"`
+	g.Meta   `path:"/dict/data/export" method:"get" tags:"字典管理" summary:"导出字典数据" operLog:"4" dc:"导出字典数据为Excel文件，支持按字典类型和标签筛选导出"`
+	DictType string `json:"dictType" dc:"按字典类型标识筛选" eg:"sys_user_sex"`
+	Label    string `json:"label" dc:"按字典标签筛选（模糊匹配）" eg:"男"`
 }
 
 type DataExportRes struct{}

@@ -21,20 +21,20 @@ type SysUserDao struct {
 
 // SysUserColumns defines and stores column names for the table sys_user.
 type SysUserColumns struct {
-	Id        string //
-	Username  string //
-	Password  string //
-	Nickname  string //
-	Email     string //
-	Phone     string //
-	Sex       string //
-	Avatar    string //
-	Status    string //
-	Remark    string //
-	LoginDate string //
-	CreatedAt string //
-	UpdatedAt string //
-	DeletedAt string //
+	Id        string // 用户ID
+	Username  string // 用户账号
+	Password  string // 密码
+	Nickname  string // 用户昵称
+	Email     string // 邮箱
+	Phone     string // 手机号码
+	Sex       string // 性别（0未知 1男 2女）
+	Avatar    string // 头像地址
+	Status    string // 状态（0停用 1正常）
+	Remark    string // 备注
+	LoginDate string // 最后登录时间
+	CreatedAt string // 创建时间
+	UpdatedAt string // 更新时间
+	DeletedAt string // 删除时间
 }
 
 // sysUserColumns holds the columns for the table sys_user.

@@ -7,8 +7,8 @@ import (
 // UserMsg Delete API
 
 type DeleteReq struct {
-	g.Meta `path:"/user/message/{id}" method:"delete" tags:"用户消息" summary:"删除单条消息"`
-	Id     int64 `json:"id" v:"required" dc:"消息ID"`
+	g.Meta `path:"/user/message/{id}" method:"delete" tags:"用户消息" summary:"删除单条消息" dc:"删除当前用户的指定消息"`
+	Id     int64 `json:"id" v:"required" dc:"消息ID" eg:"1"`
 }
 
 type DeleteRes struct{}

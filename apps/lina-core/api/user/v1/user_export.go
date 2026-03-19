@@ -7,8 +7,8 @@ import (
 // User Export API
 
 type ExportReq struct {
-	g.Meta `path:"/user/export" method:"get" tags:"用户管理" summary:"导出用户数据" operLog:"4"`
-	Ids    []int `json:"ids" dc:"导出指定用户ID列表"`
+	g.Meta `path:"/user/export" method:"get" tags:"用户管理" summary:"导出用户数据" operLog:"4" dc:"导出用户数据为Excel文件，可指定导出特定用户或全部用户"`
+	Ids    []int `json:"ids" dc:"导出指定用户ID列表，为空则导出全部" eg:"[1,2,3]"`
 }
 
 type ExportRes struct{}

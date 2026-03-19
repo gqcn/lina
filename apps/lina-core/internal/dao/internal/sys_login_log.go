@@ -21,14 +21,14 @@ type SysLoginLogDao struct {
 
 // SysLoginLogColumns defines and stores column names for the table sys_login_log.
 type SysLoginLogColumns struct {
-	Id        string //
-	UserName  string //
-	Status    string //
-	Ip        string //
-	Browser   string //
-	Os        string //
-	Msg       string //
-	LoginTime string //
+	Id        string // 日志ID
+	UserName  string // 登录账号
+	Status    string // 登录状态（0成功 1失败）
+	Ip        string // 登录IP地址
+	Browser   string // 浏览器类型
+	Os        string // 操作系统
+	Msg       string // 提示消息
+	LoginTime string // 登录时间
 }
 
 // sysLoginLogColumns holds the columns for the table sys_login_log.

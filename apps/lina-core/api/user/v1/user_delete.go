@@ -7,8 +7,8 @@ import (
 // User Delete API
 
 type DeleteReq struct {
-	g.Meta `path:"/user/{id}" method:"delete" tags:"用户管理" summary:"删除用户"`
-	Id     int `json:"id" v:"required" dc:"用户ID"`
+	g.Meta `path:"/user/{id}" method:"delete" tags:"用户管理" summary:"删除用户" dc:"根据用户ID删除指定用户，不允许删除管理员账号"`
+	Id     int `json:"id" v:"required" dc:"用户ID" eg:"1"`
 }
 
 type DeleteRes struct{}

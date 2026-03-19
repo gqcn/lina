@@ -7,14 +7,14 @@ import (
 // Notice Create API
 
 type CreateReq struct {
-	g.Meta  `path:"/notice" method:"post" tags:"通知公告" summary:"创建通知公告"`
-	Title   string `json:"title" v:"required#请输入公告标题" dc:"公告标题"`
-	Type    int    `json:"type" v:"required|in:1,2#请选择公告类型|公告类型不正确" dc:"公告类型：1=通知 2=公告"`
-	Content string `json:"content" v:"required#请输入公告内容" dc:"公告内容"`
-	Status  *int   `json:"status" d:"0" dc:"公告状态：0=草稿 1=已发布"`
-	Remark  string `json:"remark" dc:"备注"`
+	g.Meta  `path:"/notice" method:"post" tags:"通知公告" summary:"创建通知公告" dc:"创建一条通知或公告，支持设置为草稿或直接发布"`
+	Title   string `json:"title" v:"required#请输入公告标题" dc:"公告标题" eg:"系统维护通知"`
+	Type    int    `json:"type" v:"required|in:1,2#请选择公告类型|公告类型不正确" dc:"公告类型：1=通知 2=公告" eg:"1"`
+	Content string `json:"content" v:"required#请输入公告内容" dc:"公告内容（支持富文本HTML）" eg:"<p>系统将于今晚进行维护升级</p>"`
+	Status  *int   `json:"status" d:"0" dc:"公告状态：0=草稿 1=已发布" eg:"1"`
+	Remark  string `json:"remark" dc:"备注" eg:"紧急通知"`
 }
 
 type CreateRes struct {
-	Id int64 `json:"id" dc:"公告ID"`
+	Id int64 `json:"id" dc:"公告ID" eg:"1"`
 }

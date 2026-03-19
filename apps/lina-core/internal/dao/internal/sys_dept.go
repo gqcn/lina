@@ -21,20 +21,20 @@ type SysDeptDao struct {
 
 // SysDeptColumns defines and stores column names for the table sys_dept.
 type SysDeptColumns struct {
-	Id        string //
-	ParentId  string //
-	Ancestors string //
-	Name      string //
-	Code      string //
-	OrderNum  string //
-	Leader    string //
-	Phone     string //
-	Email     string //
-	Status    string //
-	Remark    string //
-	CreatedAt string //
-	UpdatedAt string //
-	DeletedAt string //
+	Id        string // 部门ID
+	ParentId  string // 父部门ID
+	Ancestors string // 祖级列表
+	Name      string // 部门名称
+	Code      string // 部门编码
+	OrderNum  string // 显示排序
+	Leader    string // 负责人用户ID
+	Phone     string // 联系电话
+	Email     string // 邮箱
+	Status    string // 状态（0停用 1正常）
+	Remark    string // 备注
+	CreatedAt string // 创建时间
+	UpdatedAt string // 更新时间
+	DeletedAt string // 删除时间
 }
 
 // sysDeptColumns holds the columns for the table sys_dept.

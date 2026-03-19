@@ -9,7 +9,7 @@ import (
 // DictType Options API
 
 type TypeOptionsReq struct {
-	g.Meta `path:"/dict/type/options" method:"get" tags:"字典管理" summary:"获取全部字典类型选项"`
+	g.Meta `path:"/dict/type/options" method:"get" tags:"字典管理" summary:"获取全部字典类型选项" dc:"获取所有正常状态的字典类型列表，用于字典数据管理页面的类型选择下拉框"`
 }
 
 type TypeOptionsRes struct {

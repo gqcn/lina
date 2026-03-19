@@ -12,12 +12,12 @@ import (
 // SysDictType is the golang structure of table sys_dict_type for DAO operations like Where/Data.
 type SysDictType struct {
 	g.Meta    `orm:"table:sys_dict_type, do:true"`
-	Id        any         //
-	Name      any         //
-	Type      any         //
-	Status    any         //
-	Remark    any         //
-	CreatedAt *gtime.Time //
-	UpdatedAt *gtime.Time //
-	DeletedAt *gtime.Time //
+	Id        any         // 字典类型ID
+	Name      any         // 字典名称
+	Type      any         // 字典类型
+	Status    any         // 状态（0停用 1正常）
+	Remark    any         // 备注
+	CreatedAt *gtime.Time // 创建时间
+	UpdatedAt *gtime.Time // 更新时间
+	DeletedAt *gtime.Time // 删除时间
 }

@@ -21,16 +21,16 @@ type SysPostDao struct {
 
 // SysPostColumns defines and stores column names for the table sys_post.
 type SysPostColumns struct {
-	Id        string //
-	DeptId    string //
-	Code      string //
-	Name      string //
-	Sort      string //
-	Status    string //
-	Remark    string //
-	CreatedAt string //
-	UpdatedAt string //
-	DeletedAt string //
+	Id        string // 岗位ID
+	DeptId    string // 所属部门ID
+	Code      string // 岗位编码
+	Name      string // 岗位名称
+	Sort      string // 显示排序
+	Status    string // 状态（0停用 1正常）
+	Remark    string // 备注
+	CreatedAt string // 创建时间
+	UpdatedAt string // 更新时间
+	DeletedAt string // 删除时间
 }
 
 // sysPostColumns holds the columns for the table sys_post.

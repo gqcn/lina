@@ -10,10 +10,10 @@ import (
 
 // ExcludeReq returns dept list excluding a node and its children.
 type ExcludeReq struct {
-	g.Meta `path:"/dept/exclude/{id}" method:"get" tags:"部门管理" summary:"获取排除节点后的部门列表"`
-	Id     int `json:"id" v:"required" dc:"需排除的部门ID"`
+	g.Meta `path:"/dept/exclude/{id}" method:"get" tags:"部门管理" summary:"获取排除节点后的部门列表" dc:"获取排除指定部门及其所有子部门后的部门列表，主要用于编辑部门时选择父级部门的下拉列表，防止将部门的父级设置为自身或其子部门造成循环引用"`
+	Id     int `json:"id" v:"required" dc:"需排除的部门ID，该部门及其所有下级部门将从结果中过滤掉" eg:"100"`
 }
 
 type ExcludeRes struct {
-	List []*entity.SysDept `json:"list" dc:"部门列表"`
+	List []*entity.SysDept `json:"list" dc:"排除指定节点及其子节点后的部门列表" eg:"[]"`
 }

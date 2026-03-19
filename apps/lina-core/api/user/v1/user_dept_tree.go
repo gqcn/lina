@@ -7,13 +7,13 @@ import (
 // User DeptTree API
 
 type DeptTreeReq struct {
-	g.Meta `path:"/user/dept-tree" method:"get" tags:"用户管理" summary:"获取用户筛选部门树"`
+	g.Meta `path:"/user/dept-tree" method:"get" tags:"用户管理" summary:"获取用户筛选部门树" dc:"获取部门树结构数据，用于用户列表页面按部门筛选用户，每个节点包含部门下的用户数量"`
 }
 
 type DeptTreeNode struct {
-	Id        int             `json:"id" dc:"部门ID"`
-	Label     string          `json:"label" dc:"部门名称"`
-	UserCount int             `json:"userCount" dc:"部门用户数"`
+	Id        int             `json:"id" dc:"部门ID" eg:"100"`
+	Label     string          `json:"label" dc:"部门名称" eg:"技术部"`
+	UserCount int             `json:"userCount" dc:"部门用户数" eg:"5"`
 	Children  []*DeptTreeNode `json:"children" dc:"子部门列表"`
 }
 

@@ -7,11 +7,11 @@ import (
 // Post Export API
 
 type ExportReq struct {
-	g.Meta `path:"/post/export" method:"get" tags:"岗位管理" summary:"导出岗位数据" operLog:"4"`
-	DeptId *int   `json:"deptId" dc:"按部门ID筛选"`
-	Code   string `json:"code" dc:"按岗位编码筛选"`
-	Name   string `json:"name" dc:"按岗位名称筛选"`
-	Status *int   `json:"status" dc:"按状态筛选"`
+	g.Meta `path:"/post/export" method:"get" tags:"岗位管理" summary:"导出岗位数据" operLog:"4" dc:"导出岗位数据为Excel文件，支持按条件筛选导出"`
+	DeptId *int   `json:"deptId" dc:"按部门ID筛选" eg:"100"`
+	Code   string `json:"code" dc:"按岗位编码筛选" eg:"dev"`
+	Name   string `json:"name" dc:"按岗位名称筛选" eg:"工程师"`
+	Status *int   `json:"status" dc:"按状态筛选：1=正常 0=停用" eg:"1"`
 }
 
 type ExportRes struct{}

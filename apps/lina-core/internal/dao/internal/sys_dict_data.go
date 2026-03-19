@@ -21,18 +21,18 @@ type SysDictDataDao struct {
 
 // SysDictDataColumns defines and stores column names for the table sys_dict_data.
 type SysDictDataColumns struct {
-	Id        string //
-	DictType  string //
-	Label     string //
-	Value     string //
-	Sort      string //
-	TagStyle  string //
-	CssClass  string //
-	Status    string //
-	Remark    string //
-	CreatedAt string //
-	UpdatedAt string //
-	DeletedAt string //
+	Id        string // 字典数据ID
+	DictType  string // 字典类型
+	Label     string // 字典标签
+	Value     string // 字典键值
+	Sort      string // 显示排序
+	TagStyle  string // 标签样式（primary/success/danger/warning等）
+	CssClass  string // CSS样式类名
+	Status    string // 状态（0停用 1正常）
+	Remark    string // 备注
+	CreatedAt string // 创建时间
+	UpdatedAt string // 更新时间
+	DeletedAt string // 删除时间
 }
 
 // sysDictDataColumns holds the columns for the table sys_dict_data.

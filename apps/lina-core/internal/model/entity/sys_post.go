@@ -10,14 +10,14 @@ import (
 
 // SysPost is the golang structure for table sys_post.
 type SysPost struct {
-	Id        int         `json:"id"        orm:"id"         description:""`
-	DeptId    int         `json:"deptId"    orm:"dept_id"    description:""`
-	Code      string      `json:"code"      orm:"code"       description:""`
-	Name      string      `json:"name"      orm:"name"       description:""`
-	Sort      int         `json:"sort"      orm:"sort"       description:""`
-	Status    int         `json:"status"    orm:"status"     description:""`
-	Remark    string      `json:"remark"    orm:"remark"     description:""`
-	CreatedAt *gtime.Time `json:"createdAt" orm:"created_at" description:""`
-	UpdatedAt *gtime.Time `json:"updatedAt" orm:"updated_at" description:""`
-	DeletedAt *gtime.Time `json:"deletedAt" orm:"deleted_at" description:""`
+	Id        int         `json:"id"        orm:"id"         description:"岗位ID"`
+	DeptId    int         `json:"deptId"    orm:"dept_id"    description:"所属部门ID"`
+	Code      string      `json:"code"      orm:"code"       description:"岗位编码"`
+	Name      string      `json:"name"      orm:"name"       description:"岗位名称"`
+	Sort      int         `json:"sort"      orm:"sort"       description:"显示排序"`
+	Status    int         `json:"status"    orm:"status"     description:"状态（0停用 1正常）"`
+	Remark    string      `json:"remark"    orm:"remark"     description:"备注"`
+	CreatedAt *gtime.Time `json:"createdAt" orm:"created_at" description:"创建时间"`
+	UpdatedAt *gtime.Time `json:"updatedAt" orm:"updated_at" description:"更新时间"`
+	DeletedAt *gtime.Time `json:"deletedAt" orm:"deleted_at" description:"删除时间"`
 }

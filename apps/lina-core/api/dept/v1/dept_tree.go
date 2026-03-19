@@ -8,15 +8,15 @@ import (
 
 // TreeReq returns dept tree for TreeSelect component.
 type TreeReq struct {
-	g.Meta `path:"/dept/tree" method:"get" tags:"部门管理" summary:"获取部门树"`
+	g.Meta `path:"/dept/tree" method:"get" tags:"部门管理" summary:"获取部门树" dc:"获取完整的部门树形结构数据，用于前端TreeSelect下拉选择组件展示，仅包含正常状态的部门"`
 }
 
 type TreeNode struct {
-	Id       int         `json:"id" dc:"部门ID"`
-	Label    string      `json:"label" dc:"部门名称"`
-	Children []*TreeNode `json:"children" dc:"子部门列表"`
+	Id       int         `json:"id" dc:"部门ID" eg:"100"`
+	Label    string      `json:"label" dc:"部门名称，用于前端树形组件显示" eg:"总公司"`
+	Children []*TreeNode `json:"children" dc:"子部门列表，递归嵌套结构" eg:"[]"`
 }
 
 type TreeRes struct {
-	List []*TreeNode `json:"list" dc:"部门树"`
+	List []*TreeNode `json:"list" dc:"部门树形结构列表，顶级节点为parentId=0的部门" eg:"[]"`
 }

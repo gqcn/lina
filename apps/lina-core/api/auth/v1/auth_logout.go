@@ -5,7 +5,7 @@ import "github.com/gogf/gf/v2/frame/g"
 // Auth Logout API
 
 type LogoutReq struct {
-	g.Meta `path:"/auth/logout" method:"post" tags:"认证管理" summary:"用户登出"`
+	g.Meta `path:"/auth/logout" method:"post" tags:"认证管理" summary:"用户登出" dc:"退出当前登录状态，清除服务端JWT令牌缓存"`
 }
 
 type LogoutRes struct{}
