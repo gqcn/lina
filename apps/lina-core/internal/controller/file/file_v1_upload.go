@@ -13,7 +13,8 @@ func (c *ControllerV1) Upload(ctx context.Context, req *v1.UploadReq) (res *v1.U
 	r := g.RequestFromCtx(ctx)
 	uploadFile := r.GetUploadFile("file")
 	out, err := c.fileSvc.Upload(ctx, &filesvc.UploadInput{
-		File: uploadFile,
+		File:  uploadFile,
+		Scene: req.Scene,
 	})
 	if err != nil {
 		return nil, err

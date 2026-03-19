@@ -22,7 +22,6 @@ export interface FileUsageSceneItem {
 export interface FileDetailUsageItem {
   scene: string;
   label: string;
-  bizId: number;
   createdAt: string;
 }
 

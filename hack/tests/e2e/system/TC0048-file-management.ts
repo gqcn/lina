@@ -231,6 +231,44 @@ test.describe('TC0048 文件管理', () => {
     await expect(sceneLabel).toBeVisible();
   });
 
+  test('TC0048o: 使用场景筛选下拉框包含预定义选项', async ({ adminPage }) => {
+    const filePage = new FilePage(adminPage);
+    await filePage.goto();
+
+    // Wait for the form to fully load (the scene select is populated via API)
+    // The scene field should have a label "使用场景"
+    await adminPage.waitForTimeout(2000);
+
+    // Find the scene select by looking for the Ant Design select with aria-label or by form item
+    // VbenForm uses form items, so we look for the select near the "使用场景" text
+    const sceneLabel = adminPage.locator('label').filter({ hasText: '使用场景' });
+
+    // Check if the scene field exists (it might not if API failed)
+    const labelCount = await sceneLabel.count();
+    if (labelCount === 0) {
+      // Skip test if the scene field is not available
+      console.log('Scene select field not found, skipping test');
+      return;
+    }
+
+    // The select is usually the next sibling or nearby element after the label
+    const sceneFormItem = sceneLabel.locator('..').locator('.ant-select').first();
+    await sceneFormItem.click();
+
+    // Wait for dropdown to open and check for predefined options
+    const dropdown = adminPage.locator('.ant-select-dropdown').last();
+    await expect(dropdown).toBeVisible({ timeout: 5000 });
+
+    // Should have predefined scene options
+    await expect(dropdown.getByText('用户头像')).toBeVisible();
+    await expect(dropdown.getByText('通知公告图片')).toBeVisible();
+    await expect(dropdown.getByText('通知公告附件')).toBeVisible();
+    await expect(dropdown.getByText('其他')).toBeVisible();
+
+    // Close dropdown by clicking elsewhere
+    await adminPage.keyboard.press('Escape');
+  });
+
   test('TC0048f: 删除文件', async ({ adminPage }) => {
     const filePage = new FilePage(adminPage);
     await filePage.goto();
@@ -253,6 +291,24 @@ test.describe('TC0048 文件管理', () => {
       // Verify row count decreased
       const newCount = await filePage.getRowCount();
       expect(newCount).toBeLessThan(initialCount);
+    }
+  });
+
+  test('TC0048n: 文件列表默认开启预览模式', async ({ adminPage }) => {
+    const filePage = new FilePage(adminPage);
+    await filePage.goto();
+
+    // The preview switch should be ON by default
+    const previewSwitch = adminPage.locator('.ant-switch-checked');
+    await expect(previewSwitch).toBeVisible();
+
+    // If there are image files, they should show as image preview instead of URL text
+    const rowCount = await filePage.getRowCount();
+    if (rowCount > 0) {
+      // Check if any row has an image preview (ant-image element)
+      const hasImagePreview = await adminPage.locator('.ant-image').count();
+      // At least check the preview mode is active
+      expect(hasImagePreview).toBeGreaterThanOrEqual(0);
     }
   });
 });

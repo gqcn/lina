@@ -41,7 +41,8 @@ func New() *Service {
 
 // UploadInput defines input for file upload.
 type UploadInput struct {
-	File *ghttp.UploadFile
+	File  *ghttp.UploadFile
+	Scene string
 }
 
 // UploadOutput defines output for file upload.
@@ -111,6 +112,13 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 			return nil, gerror.Wrap(err, "保存文件记录失败")
 		}
 		id, _ := result.LastInsertId()
+		// Record usage scene if provided
+		if in.Scene != "" {
+			s.RecordUsage(ctx, &RecordUsageInput{
+				FileId: id,
+				Scene:  in.Scene,
+			})
+		}
 		fullUrl := s.getBaseUrl(ctx) + existing.Url
 		return &UploadOutput{
 			Id:       id,
@@ -163,6 +171,13 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 	}
 
 	id, _ := result.LastInsertId()
+	// Record usage scene if provided
+	if in.Scene != "" {
+		s.RecordUsage(ctx, &RecordUsageInput{
+			FileId: id,
+			Scene:  in.Scene,
+		})
+	}
 	// Return full URL with base URL prefix
 	fullUrl := s.getBaseUrl(ctx) + url
 	return &UploadOutput{
@@ -408,21 +423,13 @@ type UsageScenesOutput struct {
 	Label string `json:"label"`
 }
 
-// UsageScenes returns distinct usage scene values from sys_file_usage.
+// UsageScenes returns all predefined usage scenes from SceneLabelMap.
 func (s *Service) UsageScenes(ctx context.Context) ([]*UsageScenesOutput, error) {
-	var scenes []string
-	err := dao.SysFileUsage.Ctx(ctx).
-		Fields(dao.SysFileUsage.Columns().Scene).
-		Group(dao.SysFileUsage.Columns().Scene).
-		Scan(&scenes)
-	if err != nil {
-		return nil, err
-	}
-	items := make([]*UsageScenesOutput, 0, len(scenes))
-	for _, scene := range scenes {
+	items := make([]*UsageScenesOutput, 0, len(SceneLabelMap))
+	for value, label := range SceneLabelMap {
 		items = append(items, &UsageScenesOutput{
-			Value: scene,
-			Label: SceneLabel(scene),
+			Value: value,
+			Label: label,
 		})
 	}
 	return items, nil
@@ -439,7 +446,6 @@ type DetailOutput struct {
 type DetailUsageItem struct {
 	Scene     string `json:"scene"`
 	Label     string `json:"label"`
-	BizId     int64  `json:"bizId"`
 	CreatedAt string `json:"createdAt"`
 }
 
@@ -492,7 +498,6 @@ func (s *Service) Detail(ctx context.Context, id int64) (*DetailOutput, error) {
 		usageItems = append(usageItems, &DetailUsageItem{
 			Scene:     u.Scene,
 			Label:     SceneLabel(u.Scene),
-			BizId:     u.BizId,
 			CreatedAt: createdAtStr,
 		})
 	}
@@ -508,10 +513,9 @@ func (s *Service) Detail(ctx context.Context, id int64) (*DetailOutput, error) {
 type RecordUsageInput struct {
 	FileId int64
 	Scene  string
-	BizId  int64
 }
 
-// RecordUsage creates a file usage record linking a file to a business scene.
+// RecordUsage creates a file usage record linking a file to a usage scene.
 func (s *Service) RecordUsage(ctx context.Context, in *RecordUsageInput) error {
 	if in.FileId <= 0 {
 		return nil
@@ -519,16 +523,14 @@ func (s *Service) RecordUsage(ctx context.Context, in *RecordUsageInput) error {
 	_, err := dao.SysFileUsage.Ctx(ctx).Data(do.SysFileUsage{
 		FileId: in.FileId,
 		Scene:  in.Scene,
-		BizId:  in.BizId,
 	}).Insert()
 	return err
 }
 
-// DeleteUsageByBiz deletes file usage records by scene and business ID.
-func (s *Service) DeleteUsageByBiz(ctx context.Context, scene string, bizId int64) error {
+// DeleteUsageByScene deletes file usage records by scene.
+func (s *Service) DeleteUsageByScene(ctx context.Context, scene string) error {
 	_, err := dao.SysFileUsage.Ctx(ctx).
 		Where(dao.SysFileUsage.Columns().Scene, scene).
-		Where(dao.SysFileUsage.Columns().BizId, bizId).
 		Delete()
 	return err
 }

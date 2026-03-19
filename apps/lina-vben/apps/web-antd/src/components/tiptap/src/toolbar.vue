@@ -12,6 +12,8 @@ const props = defineProps<{
   editor: Editor | undefined;
   disabled?: boolean;
   uploadHandler?: (file: File) => Promise<string>;
+  /** 使用场景标识，用于记录文件用途 */
+  scene?: string;
 }>();
 
 const linkUrl = ref('');
@@ -70,9 +72,9 @@ function handleImageUpload() {
       const url = await props.uploadHandler(file);
       props.editor?.chain().focus().setImage({ src: url }).run();
     } else {
-      // Default: upload via file upload API
+      // Default: upload via file upload API with scene and bizId parameters
       try {
-        const result = await uploadApi(file);
+        const result = await uploadApi(file, { scene: props.scene || 'other' });
         props.editor?.chain().focus().setImage({ src: result.url }).run();
       } catch {
         message.error('图片上传失败');

@@ -59,6 +59,8 @@ export function useUpload(
     accept?: string;
     showSuccessMsg?: boolean;
     abortOnUnmounted?: boolean;
+    /** 使用场景标识（必填） */
+    scene?: string;
   },
   emit: {
     (e: 'change', info: UploadChangeParam): void;
@@ -139,6 +141,7 @@ export function useUpload(
       const res = await props.api(info.file as File, {
         onUploadProgress: progressEvent,
         signal: uploadAbort.signal,
+        scene: props.scene || 'other',
       });
       info.onSuccess!(res);
       if (props.showSuccessMsg !== false) {

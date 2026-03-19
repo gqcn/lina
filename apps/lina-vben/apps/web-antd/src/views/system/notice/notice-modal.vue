@@ -127,7 +127,7 @@ async function handleConfirm() {
         </FormItem>
       </div>
       <FormItem label="公告内容" v-bind="validateInfos.content">
-        <TiptapEditor v-model="formData.content" :height="300" />
+        <TiptapEditor v-model="formData.content" :height="300" scene="notice_image" />
       </FormItem>
     </Form>
   </Modal>

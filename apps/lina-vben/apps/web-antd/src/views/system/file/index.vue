@@ -16,7 +16,7 @@ import FileDetailModal from './file-detail-modal.vue';
 import FileUploadModal from './file-upload-modal.vue';
 import ImageUploadModal from './image-upload-modal.vue';
 
-const preview = ref(false);
+const preview = ref(true);
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {

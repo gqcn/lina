@@ -76,7 +76,7 @@ function formatFileSize(bytes: number): string {
             <Descriptions
               v-for="(usage, index) in detail.usageScenes"
               :key="index"
-              :column="3"
+              :column="2"
               bordered
               size="small"
               :label-style="{ minWidth: '60px' }"
@@ -85,9 +85,6 @@ function formatFileSize(bytes: number): string {
             >
               <DescriptionsItem label="场景">
                 <Tag color="blue">{{ usage.label }}</Tag>
-              </DescriptionsItem>
-              <DescriptionsItem label="业务ID">
-                {{ usage.bizId || '-' }}
               </DescriptionsItem>
               <DescriptionsItem label="关联时间">
                 {{ usage.createdAt || '-' }}

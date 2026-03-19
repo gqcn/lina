@@ -31,6 +31,7 @@ const [BasicModal, modalApi] = useVbenModal({
         v-model:value="fileList"
         :enable-drag-upload="true"
         :max-count="3"
+        scene="other"
       />
     </div>
   </BasicModal>

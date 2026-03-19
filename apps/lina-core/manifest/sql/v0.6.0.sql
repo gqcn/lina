@@ -30,9 +30,7 @@ CREATE TABLE IF NOT EXISTS sys_file_usage (
     id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '记录ID',
     file_id     BIGINT        NOT NULL DEFAULT 0  COMMENT '文件ID，关联 sys_file.id',
     scene       VARCHAR(64)   NOT NULL DEFAULT '' COMMENT '使用场景标识：avatar=用户头像 notice_image=通知公告图片 notice_attachment=通知公告附件 other=其他',
-    biz_id      BIGINT        NOT NULL DEFAULT 0  COMMENT '关联的业务记录ID（如用户ID、通知ID等）',
     created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     INDEX idx_file_id (file_id),
-    INDEX idx_scene (scene),
-    INDEX idx_biz_id (biz_id)
+    INDEX idx_scene (scene)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='文件使用场景表';

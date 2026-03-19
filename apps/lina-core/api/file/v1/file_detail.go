@@ -22,6 +22,5 @@ type DetailRes struct {
 type DetailUsageItem struct {
 	Scene     string `json:"scene" dc:"使用场景标识：avatar=用户头像 notice_image=通知公告图片 notice_attachment=通知公告附件 other=其他" eg:"avatar"`
 	Label     string `json:"label" dc:"使用场景名称" eg:"用户头像"`
-	BizId     int64  `json:"bizId" dc:"关联的业务记录ID" eg:"1"`
 	CreatedAt string `json:"createdAt" dc:"关联时间" eg:"2026-01-01 12:00:00"`
 }

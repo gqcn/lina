@@ -13,6 +13,8 @@ const props = withDefaults(
     height?: number | string;
     placeholder?: string;
     uploadHandler?: (file: File) => Promise<string>;
+    /** 使用场景标识，用于记录文件用途 */
+    scene?: string;
   }>(),
   {
     modelValue: '',
@@ -67,6 +69,7 @@ const heightStyle =
       :editor="editor"
       :disabled="disabled"
       :upload-handler="uploadHandler"
+      :scene="scene"
     />
     <EditorContent
       :editor="editor"

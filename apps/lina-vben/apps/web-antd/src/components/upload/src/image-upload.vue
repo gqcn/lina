@@ -19,6 +19,8 @@ const props = withDefaults(
     maxCount?: number;
     maxSize?: number;
     showSuccessMsg?: boolean;
+    /** 使用场景标识（必填） */
+    scene?: string;
   }>(),
   {
     api: () => uploadApi,
@@ -28,6 +30,7 @@ const props = withDefaults(
     disabled: false,
     listType: 'picture-card',
     showSuccessMsg: true,
+    scene: 'other',
   },
 );
 

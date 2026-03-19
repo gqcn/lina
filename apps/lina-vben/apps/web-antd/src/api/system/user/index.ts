@@ -157,9 +157,10 @@ export async function userUpdateAvatar(fileCallback: {
   const { file, filename } = fileCallback;
   const uniqueName = filename || `${Date.now()}_${Math.random().toString(36).slice(2, 10)}.png`;
   const uploadFile = new File([file], uniqueName);
-  // Step 1: Upload file via generic upload API
+  // Step 1: Upload file via generic upload API with scene=avatar
   const formData = new FormData();
   formData.append('file', uploadFile);
+  formData.append('scene', 'avatar');
   const uploadResult = await requestClient.post<{ url: string }>(
     '/file/upload',
     formData,

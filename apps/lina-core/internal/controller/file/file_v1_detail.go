@@ -16,7 +16,6 @@ func (c *ControllerV1) Detail(ctx context.Context, req *v1.DetailReq) (res *v1.D
 		usageItems[i] = &v1.DetailUsageItem{
 			Scene:     item.Scene,
 			Label:     item.Label,
-			BizId:     item.BizId,
 			CreatedAt: item.CreatedAt,
 		}
 	}
