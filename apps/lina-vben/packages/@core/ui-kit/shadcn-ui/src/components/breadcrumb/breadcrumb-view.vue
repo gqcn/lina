@@ -35,5 +35,10 @@ const forward = useForwardPropsEmits(props, emit);
   :deep(ul) {
     margin-bottom: 0;
   }
+
+  /** 修复Antd全局a标签颜色覆盖面包屑链接颜色的问题 */
+  :deep(a) {
+    color: inherit;
+  }
 }
 </style>
