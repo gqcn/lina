@@ -27,10 +27,3 @@ export async function logoutApi() {
   return requestClient.post('/auth/logout');
 }
 
-/**
- * 获取用户权限码
- */
-export async function getAccessCodesApi() {
-  const res = await requestClient.get<{ codes: string[] }>('/auth/codes');
-  return res.codes || [];
-}

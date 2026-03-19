@@ -24,7 +24,7 @@ upload:
 
 # OpenAPI documentation configuration
 openapi:
-  title: "Lina Admin API"
+  title: "Lina API"
   description: "Lina管理后台系统 RESTful API 接口文档。"
   version: "v0.5.0"
   serverUrl: "http://localhost:8080"

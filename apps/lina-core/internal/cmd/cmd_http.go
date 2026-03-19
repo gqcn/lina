@@ -108,7 +108,6 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 			group.Middleware(middlewareSvc.OperLog)
 			group.ALLMap(g.Map{
 				"POST:/auth/logout": authCtrl.Logout,
-				"GET:/auth/codes":   authCtrl.Codes,
 			})
 			group.Bind(
 				user.NewV1(),

@@ -11,7 +11,6 @@ import (
 )
 
 type IAuthV1 interface {
-	Codes(ctx context.Context, req *v1.CodesReq) (res *v1.CodesRes, err error)
 	Login(ctx context.Context, req *v1.LoginReq) (res *v1.LoginRes, err error)
 	Logout(ctx context.Context, req *v1.LogoutReq) (res *v1.LogoutRes, err error)
 }
