@@ -21,20 +21,20 @@ const renderLink = (href: string, text: string) =>
     { default: () => text },
   );
 
-// 关于项目 - 第一行：名称 + 介绍
+// 关于项目 - 第一行：名称 + 主页 + 版本号 + 许可
 const projectRow1: DescriptionItem[] = [
   { title: '项目名称', content: PROJECT_INFO.name },
-  { title: '项目介绍', content: PROJECT_INFO.description },
-];
-
-// 关于项目 - 第二行：其他信息
-const projectRow2: DescriptionItem[] = [
-  { title: '版本号', content: PROJECT_INFO.version },
-  { title: '开源许可', content: PROJECT_INFO.license },
   {
     title: '项目主页',
     content: renderLink(PROJECT_INFO.homepage, '点击查看'),
   },
+  { title: '版本号', content: PROJECT_INFO.version },
+  { title: '开源许可', content: PROJECT_INFO.license },
+];
+
+// 关于项目 - 第二行：项目介绍
+const projectRow2: DescriptionItem[] = [
+  { title: '项目介绍', content: PROJECT_INFO.description },
 ];
 
 // 基本信息（后端 API 数据）
@@ -78,7 +78,7 @@ onMounted(async () => {
     <div class="card-box p-5">
       <h5 class="text-lg text-foreground">关于项目</h5>
       <div class="mt-4">
-        <dl class="grid">
+        <dl class="grid grid-cols-2 md:grid-cols-4">
           <template v-for="item in projectRow1" :key="item.title">
             <div
               class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
@@ -96,20 +96,16 @@ onMounted(async () => {
             </div>
           </template>
         </dl>
-        <dl class="grid grid-cols-2 md:grid-cols-3">
+        <dl class="grid">
           <template v-for="item in projectRow2" :key="item.title">
             <div
-              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+              class="border-t border-border px-4 py-3 sm:px-0"
             >
               <dt class="text-sm/6 font-medium text-foreground">
                 {{ item.title }}
               </dt>
               <dd class="mt-1 text-sm/6 text-foreground">
-                <component
-                  :is="item.content"
-                  v-if="typeof item.content === 'object'"
-                />
-                <span v-else>{{ item.content }}</span>
+                <span>{{ item.content }}</span>
               </dd>
             </div>
           </template>
