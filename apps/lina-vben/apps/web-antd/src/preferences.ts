@@ -12,4 +12,7 @@ export const overridesPreferences = defineOverridesPreferences({
     enableRefreshToken: false,
     name: import.meta.env.VITE_APP_TITLE,
   },
+  theme: {
+    mode: 'light',
+  },
 });
