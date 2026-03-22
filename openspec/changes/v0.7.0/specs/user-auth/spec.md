@@ -31,11 +31,11 @@
 
 #### Scenario: 携带有效 Token 且会话存在
 - **WHEN** 请求头携带有效的 `Authorization: Bearer <token>` 且 `sys_online_session` 表中存在对应会话记录
-- **THEN** 请求正常处理，用户信息注入到请求上下文中
+- **THEN** 中间件通过 UPDATE 操作更新会话的 `last_active_time` 为当前时间，通过受影响行数（>0）判断会话存在，请求正常处理，用户信息注入到请求上下文中
 
-#### Scenario: 携带有效 Token 但会话不存在（已被强制下线）
-- **WHEN** 请求头携带有效的 JWT Token，但 `sys_online_session` 表中不存在对应会话记录
-- **THEN** 系统返回 401 状态码
+#### Scenario: 携带有效 Token 但会话不存在（已被强制下线或超时清理）
+- **WHEN** 请求头携带有效的 JWT Token，但 `sys_online_session` 表中不存在对应会话记录（已被强制下线或因不活跃超时被自动清理）
+- **THEN** UPDATE 操作受影响行数为 0，系统返回 401 状态码
 
 #### Scenario: 未携带 Token 访问受保护接口
 - **WHEN** 请求未携带 Authorization 头访问受保护 API

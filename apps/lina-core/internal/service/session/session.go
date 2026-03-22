@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"time"
 
 	"github.com/gogf/gf/v2/os/gtime"
 
@@ -12,14 +13,15 @@ import (
 
 // Session represents an online user session.
 type Session struct {
-	TokenId   string
-	UserId    int
-	Username  string
-	DeptName  string
-	Ip        string
-	Browser   string
-	Os        string
-	LoginTime *gtime.Time
+	TokenId        string
+	UserId         int
+	Username       string
+	DeptName       string
+	Ip             string
+	Browser        string
+	Os             string
+	LoginTime      *gtime.Time
+	LastActiveTime *gtime.Time
 }
 
 // ListFilter defines filter options for listing sessions.
@@ -38,6 +40,11 @@ type Store interface {
 	DeleteByUserId(ctx context.Context, userId int) error
 	List(ctx context.Context, filter *ListFilter) ([]*Session, error)
 	Count(ctx context.Context) (int, error)
+	// TouchOrValidate updates last_active_time for the given tokenId.
+	// Returns true if the session exists (affected rows > 0), false otherwise.
+	TouchOrValidate(ctx context.Context, tokenId string) (bool, error)
+	// CleanupInactive deletes sessions whose last_active_time exceeds the given timeout hours.
+	CleanupInactive(ctx context.Context, timeoutHours int) (int64, error)
 }
 
 // DBStore implements Store using MySQL MEMORY engine table.
@@ -50,14 +57,15 @@ func NewDBStore() Store {
 
 func (s *DBStore) Set(ctx context.Context, session *Session) error {
 	_, err := dao.SysOnlineSession.Ctx(ctx).Data(do.SysOnlineSession{
-		TokenId:   session.TokenId,
-		UserId:    session.UserId,
-		Username:  session.Username,
-		DeptName:  session.DeptName,
-		Ip:        session.Ip,
-		Browser:   session.Browser,
-		Os:        session.Os,
-		LoginTime: session.LoginTime,
+		TokenId:        session.TokenId,
+		UserId:         session.UserId,
+		Username:       session.Username,
+		DeptName:       session.DeptName,
+		Ip:             session.Ip,
+		Browser:        session.Browser,
+		Os:             session.Os,
+		LoginTime:      session.LoginTime,
+		LastActiveTime: gtime.Now(),
 	}).Insert()
 	return err
 }
@@ -74,14 +82,15 @@ func (s *DBStore) Get(ctx context.Context, tokenId string) (*Session, error) {
 		return nil, nil
 	}
 	return &Session{
-		TokenId:   e.TokenId,
-		UserId:    e.UserId,
-		Username:  e.Username,
-		DeptName:  e.DeptName,
-		Ip:        e.Ip,
-		Browser:   e.Browser,
-		Os:        e.Os,
-		LoginTime: e.LoginTime,
+		TokenId:        e.TokenId,
+		UserId:         e.UserId,
+		Username:       e.Username,
+		DeptName:       e.DeptName,
+		Ip:             e.Ip,
+		Browser:        e.Browser,
+		Os:             e.Os,
+		LoginTime:      e.LoginTime,
+		LastActiveTime: e.LastActiveTime,
 	}, nil
 }
 
@@ -118,14 +127,15 @@ func (s *DBStore) List(ctx context.Context, filter *ListFilter) ([]*Session, err
 	sessions := make([]*Session, len(entities))
 	for i, e := range entities {
 		sessions[i] = &Session{
-			TokenId:   e.TokenId,
-			UserId:    e.UserId,
-			Username:  e.Username,
-			DeptName:  e.DeptName,
-			Ip:        e.Ip,
-			Browser:   e.Browser,
-			Os:        e.Os,
-			LoginTime: e.LoginTime,
+			TokenId:        e.TokenId,
+			UserId:         e.UserId,
+			Username:       e.Username,
+			DeptName:       e.DeptName,
+			Ip:             e.Ip,
+			Browser:        e.Browser,
+			Os:             e.Os,
+			LoginTime:      e.LoginTime,
+			LastActiveTime: e.LastActiveTime,
 		}
 	}
 	return sessions, nil
@@ -133,4 +143,36 @@ func (s *DBStore) List(ctx context.Context, filter *ListFilter) ([]*Session, err
 
 func (s *DBStore) Count(ctx context.Context) (int, error) {
 	return dao.SysOnlineSession.Ctx(ctx).Count()
+}
+
+func (s *DBStore) TouchOrValidate(ctx context.Context, tokenId string) (bool, error) {
+	// Use Increment trick to ensure MySQL always reports rows affected,
+	// avoiding the issue where UPDATE with same value returns 0 affected rows.
+	_, err := dao.SysOnlineSession.Ctx(ctx).
+		Where(do.SysOnlineSession{TokenId: tokenId}).
+		Data(do.SysOnlineSession{LastActiveTime: gtime.Now()}).
+		Update()
+	if err != nil {
+		return false, err
+	}
+	// Check existence separately since MySQL RowsAffected returns 0
+	// when the updated value is unchanged (same second).
+	count, err := dao.SysOnlineSession.Ctx(ctx).
+		Where(do.SysOnlineSession{TokenId: tokenId}).
+		Count()
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (s *DBStore) CleanupInactive(ctx context.Context, timeoutHours int) (int64, error) {
+	cutoff := gtime.Now().Add(-time.Duration(timeoutHours) * time.Hour)
+	result, err := dao.SysOnlineSession.Ctx(ctx).
+		WhereLT(dao.SysOnlineSession.Columns().LastActiveTime, cutoff).
+		Delete()
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

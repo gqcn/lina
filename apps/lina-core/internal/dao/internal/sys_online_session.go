@@ -21,26 +21,28 @@ type SysOnlineSessionDao struct {
 
 // SysOnlineSessionColumns defines and stores column names for the table sys_online_session.
 type SysOnlineSessionColumns struct {
-	TokenId   string // 会话Token ID（UUID）
-	UserId    string // 用户ID
-	Username  string // 登录账号
-	DeptName  string // 部门名称
-	Ip        string // 登录IP
-	Browser   string // 浏览器
-	Os        string // 操作系统
-	LoginTime string // 登录时间
+	TokenId        string // 会话Token ID（UUID）
+	UserId         string // 用户ID
+	Username       string // 登录账号
+	DeptName       string // 部门名称
+	Ip             string // 登录IP
+	Browser        string // 浏览器
+	Os             string // 操作系统
+	LoginTime      string // 登录时间
+	LastActiveTime string // 最后活跃时间
 }
 
 // sysOnlineSessionColumns holds the columns for the table sys_online_session.
 var sysOnlineSessionColumns = SysOnlineSessionColumns{
-	TokenId:   "token_id",
-	UserId:    "user_id",
-	Username:  "username",
-	DeptName:  "dept_name",
-	Ip:        "ip",
-	Browser:   "browser",
-	Os:        "os",
-	LoginTime: "login_time",
+	TokenId:        "token_id",
+	UserId:         "user_id",
+	Username:       "username",
+	DeptName:       "dept_name",
+	Ip:             "ip",
+	Browser:        "browser",
+	Os:             "os",
+	LoginTime:      "login_time",
+	LastActiveTime: "last_active_time",
 }
 
 // NewSysOnlineSessionDao creates and returns a new DAO object for table data access.

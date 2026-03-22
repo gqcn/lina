@@ -39,3 +39,10 @@
 - [x] 6.3 创建 `hack/tests/e2e/monitor/TC0051-online-user-force-logout.ts`：验证强制下线交互（确认弹窗、下线后列表刷新）
 - [x] 6.4 创建 `hack/tests/e2e/monitor/TC0052-server-monitor-page.ts`：验证服务监控页面展示（各指标卡片、磁盘表格、数据非空）
 - [x] 6.5 运行全部 E2E 测试确认无回归
+
+## Feedback
+
+- [x] **FB-1**：`sys_online_session` 表新增 `last_active_time` 字段，登录时设置为当前时间，重新生成 DAO/DO/Entity
+- [x] **FB-2**：Session Store 新增 `TouchOrValidate` 方法，通过 UPDATE 操作更新 `last_active_time` 并返回受影响行数判断会话是否存在；Auth 中间件改用此方法替代原有的 `Get` 查询
+- [x] **FB-3**：Session Store 新增 `CleanupInactive` 方法，删除 `last_active_time` 超过阈值的会话记录；在 `cmd_http.go` 中启动定时清理任务（默认每5分钟执行一次）
+- [x] **FB-4**：`config.yaml` 新增 `session.timeoutHour`（超时阈值，默认24）和 `session.cleanupMinute`（清理频率，默认5）配置项

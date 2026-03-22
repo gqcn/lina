@@ -64,6 +64,34 @@
 - **WHEN** 管理员点击某用户行的"强制下线"按钮
 - **THEN** 弹出确认对话框，确认后调用强制下线 API，成功后刷新表格数据
 
+### Requirement: 会话活跃时间跟踪
+
+系统 SHALL 跟踪每个在线用户的最后活跃时间，用于判断会话是否超时。
+
+#### Scenario: 登录时初始化活跃时间
+- **WHEN** 用户成功登录，系统创建 `sys_online_session` 会话记录
+- **THEN** `last_active_time` 字段 MUST 设置为当前时间
+
+#### Scenario: 每次请求时更新活跃时间
+- **WHEN** 已登录用户携带有效 Token 访问受保护 API
+- **THEN** 认证中间件 MUST 通过 UPDATE 操作更新该会话的 `last_active_time` 为当前时间，并通过受影响行数判断会话是否存在（>0 存在，=0 不存在或已被清除）
+
+### Requirement: 不活跃会话自动清理
+
+系统 SHALL 提供定时任务自动清理长时间未操作的在线会话，防止会话表无限增长。超时阈值和清理频率 MUST 支持通过配置文件调整。
+
+#### Scenario: 定时清理超时会话
+- **WHEN** 定时清理任务执行时（默认每 5 分钟一次）
+- **THEN** 系统 MUST 查询 `sys_online_session` 表中 `last_active_time` 距当前时间超过超时阈值（默认 24 小时）的记录，并将其删除
+
+#### Scenario: 超时阈值可配置
+- **WHEN** 管理员在 `config.yaml` 中设置 `session.timeoutHour` 配置项
+- **THEN** 系统 MUST 使用该配置值作为会话超时阈值，不设置时默认为 24 小时
+
+#### Scenario: 清理频率可配置
+- **WHEN** 管理员在 `config.yaml` 中设置 `session.cleanupMinute` 配置项
+- **THEN** 系统 MUST 使用该配置值作为清理任务执行间隔，不设置时默认为 5 分钟
+
 ### Requirement: 系统监控菜单
 
 系统 SHALL 在导航菜单中新增"系统监控"一级菜单，包含"在线用户"和"服务监控"两个子菜单项。

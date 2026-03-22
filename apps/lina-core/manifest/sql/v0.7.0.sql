@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS sys_online_session (
     ip          VARCHAR(64)  NOT NULL DEFAULT '' COMMENT '登录IP',
     browser     VARCHAR(100) NOT NULL DEFAULT '' COMMENT '浏览器',
     os          VARCHAR(100) NOT NULL DEFAULT '' COMMENT '操作系统',
-    login_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '登录时间',
+    login_time       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '登录时间',
+    last_active_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '最后活跃时间',
     PRIMARY KEY (token_id),
     INDEX idx_user_id (user_id),
     INDEX idx_username (username)

@@ -10,6 +10,7 @@ import (
 	"lina-core/internal/service/auth"
 	"lina-core/internal/service/bizctx"
 	"lina-core/internal/service/operlog"
+	"lina-core/internal/service/session"
 )
 
 // Service provides middleware operations.
@@ -26,6 +27,11 @@ func New() *Service {
 		bizCtxSvc:  bizctx.New(),
 		operLogSvc: operlog.New(),
 	}
+}
+
+// SessionStore returns the session store for external use (e.g., cleanup tasks).
+func (s *Service) SessionStore() session.Store {
+	return s.authSvc.SessionStore()
 }
 
 // Ctx injects business context into request.
@@ -61,9 +67,9 @@ func (s *Service) Auth(r *ghttp.Request) {
 		return
 	}
 
-	// Check session exists (supports forced logout)
-	sess, err := s.authSvc.SessionStore().Get(r.Context(), claims.TokenId)
-	if err != nil || sess == nil {
+	// Update last active time and validate session exists (supports forced logout and timeout cleanup)
+	exists, err := s.authSvc.SessionStore().TouchOrValidate(r.Context(), claims.TokenId)
+	if err != nil || !exists {
 		r.Response.WriteStatus(http.StatusUnauthorized)
 		return
 	}

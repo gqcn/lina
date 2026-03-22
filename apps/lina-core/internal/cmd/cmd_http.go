@@ -5,11 +5,13 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/net/goai"
 	"github.com/gogf/gf/v2/os/gfile"
+	"github.com/gogf/gf/v2/os/gtimer"
 
 	"lina-core/internal/controller/auth"
 	"lina-core/internal/controller/dept"
@@ -43,6 +45,19 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 
 	// Start server monitor collector
 	serverMonSvc.StartCollector(ctx)
+
+	// Start session cleanup timer
+	cleanupMinute := g.Cfg().MustGet(ctx, "session.cleanupMinute", 5).Int()
+	timeoutHour := g.Cfg().MustGet(ctx, "session.timeoutHour", 24).Int()
+	sessionStore := middlewareSvc.SessionStore()
+	gtimer.Add(ctx, time.Duration(cleanupMinute)*time.Minute, func(ctx context.Context) {
+		cleaned, err := sessionStore.CleanupInactive(ctx, timeoutHour)
+		if err != nil {
+			g.Log().Warningf(ctx, "session cleanup error: %v", err)
+		} else if cleaned > 0 {
+			g.Log().Infof(ctx, "session cleanup: removed %d inactive sessions", cleaned)
+		}
+	})
 
 	// Set OpenAPI info from configuration
 	oai := s.GetOpenApi()
