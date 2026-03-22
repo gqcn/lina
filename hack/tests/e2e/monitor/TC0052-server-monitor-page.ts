@@ -28,6 +28,9 @@ test.describe('TC0052 服务监控页面展示', () => {
     // Should show Goroutines
     await expect(adminPage.getByText('Goroutines')).toBeVisible();
 
+    // Should show merged heap memory (使用/总量)
+    await expect(adminPage.getByText('堆内存')).toBeVisible();
+
     // Should show service start time
     await expect(adminPage.getByText('服务启动时间')).toBeVisible();
   });
@@ -87,5 +90,27 @@ test.describe('TC0052 服务监控页面展示', () => {
 
     // CPU should be visible again
     await expect(adminPage.getByText('CPU').first()).toBeVisible();
+  });
+
+  test('TC0052g: 数据库信息区块展示', async ({ adminPage }) => {
+    // Database info section should be visible
+    await expect(adminPage.getByText('数据库信息')).toBeVisible();
+
+    // Should show database version
+    await expect(adminPage.getByText('数据库版本')).toBeVisible();
+
+    // Should show max connections
+    await expect(adminPage.getByText('最大连接数')).toBeVisible();
+
+    // Should show current open connections
+    await expect(adminPage.getByText('当前打开连接')).toBeVisible();
+
+    // Should show in-use / idle
+    await expect(adminPage.getByText(/使用中\s*\/\s*空闲/)).toBeVisible();
+  });
+
+  test('TC0052h: 采集时间在节点信息中展示', async ({ adminPage }) => {
+    // collectAt should be inside node expanded content, not in service info
+    await expect(adminPage.getByText('采集时间')).toBeVisible();
   });
 });

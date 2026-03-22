@@ -10,7 +10,8 @@ type ServerMonitorReq struct {
 }
 
 type ServerMonitorRes struct {
-	Nodes []*ServerNodeInfo `json:"nodes" dc:"各节点监控数据"`
+	Nodes  []*ServerNodeInfo `json:"nodes" dc:"各节点监控数据"`
+	DBInfo *DBMetrics        `json:"dbInfo" dc:"数据库指标信息"`
 }
 
 type ServerNodeInfo struct {
@@ -70,4 +71,12 @@ type GoMetrics struct {
 	HeapSys    uint64 `json:"heapSys" dc:"堆内存系统分配（字节）" eg:"20971520"`
 	GCPauseNs  uint64 `json:"gcPauseNs" dc:"最近一次GC暂停时间（纳秒）" eg:"150000"`
 	GfVersion  string `json:"gfVersion" dc:"GoFrame版本" eg:"v2.10.0"`
+}
+
+type DBMetrics struct {
+	Version      string `json:"version" dc:"数据库版本" eg:"8.0.35"`
+	MaxOpenConns int    `json:"maxOpenConns" dc:"最大连接数" eg:"100"`
+	OpenConns    int    `json:"openConns" dc:"当前打开连接数" eg:"10"`
+	InUse        int    `json:"inUse" dc:"使用中连接数" eg:"5"`
+	Idle         int    `json:"idle" dc:"空闲连接数" eg:"5"`
 }

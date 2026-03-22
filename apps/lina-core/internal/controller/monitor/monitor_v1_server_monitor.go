@@ -12,6 +12,8 @@ func (c *ControllerV1) ServerMonitor(ctx context.Context, req *v1.ServerMonitorR
 		return nil, err
 	}
 
+	dbInfo := c.serverMonSvc.GetDBInfo(ctx)
+
 	items := make([]*v1.ServerNodeInfo, 0, len(nodes))
 	for _, n := range nodes {
 		item := &v1.ServerNodeInfo{
@@ -77,5 +79,14 @@ func (c *ControllerV1) ServerMonitor(ctx context.Context, req *v1.ServerMonitorR
 		items = append(items, item)
 	}
 
-	return &v1.ServerMonitorRes{Nodes: items}, nil
+	return &v1.ServerMonitorRes{
+		Nodes: items,
+		DBInfo: &v1.DBMetrics{
+			Version:      dbInfo.Version,
+			MaxOpenConns: dbInfo.MaxOpenConns,
+			OpenConns:    dbInfo.OpenConns,
+			InUse:        dbInfo.InUse,
+			Idle:         dbInfo.Idle,
+		},
+	}, nil
 }

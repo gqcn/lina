@@ -47,6 +47,13 @@ export interface ServerNodeInfo {
 
 export interface ServerMonitorResult {
   nodes: ServerNodeInfo[];
+  dbInfo: {
+    version: string;
+    maxOpenConns: number;
+    openConns: number;
+    inUse: number;
+    idle: number;
+  };
 }
 
 export interface ServerMonitorParams {

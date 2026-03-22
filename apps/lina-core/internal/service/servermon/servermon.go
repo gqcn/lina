@@ -81,6 +81,15 @@ type GoRuntimeInfo struct {
 	GfVersion  string `json:"gfVersion"`
 }
 
+// DBInfo represents database metrics.
+type DBInfo struct {
+	Version          string `json:"version"`
+	MaxOpenConns     int    `json:"maxOpenConns"`
+	OpenConns        int    `json:"openConns"`
+	InUse            int    `json:"inUse"`
+	Idle             int    `json:"idle"`
+}
+
 // Service provides server monitoring operations.
 type Service struct {
 	configSvc     *config.Service
@@ -195,6 +204,23 @@ func (s *Service) collectMemory() *MemoryInfo {
 	}
 }
 
+// virtualFsTypes lists filesystem types to exclude (common in containers).
+var virtualFsTypes = map[string]bool{
+	"overlay":   true,
+	"tmpfs":     true,
+	"devtmpfs":  true,
+	"devfs":     true,
+	"proc":      true,
+	"sysfs":     true,
+	"cgroup":    true,
+	"cgroup2":   true,
+	"squashfs":  true,
+	"aufs":      true,
+	"shm":       true,
+	"nsfs":      true,
+	"fuse":      true,
+}
+
 func (s *Service) collectDisks() []*DiskInfo {
 	partitions, err := disk.Partitions(false)
 	if err != nil {
@@ -202,6 +228,10 @@ func (s *Service) collectDisks() []*DiskInfo {
 	}
 	var disks []*DiskInfo
 	for _, p := range partitions {
+		// Skip virtual/pseudo filesystems
+		if virtualFsTypes[p.Fstype] {
+			continue
+		}
 		usage, err := disk.Usage(p.Mountpoint)
 		if err != nil || usage.Total == 0 {
 			continue
@@ -253,6 +283,29 @@ func (s *Service) collectGoRuntime() *GoRuntimeInfo {
 		GCPauseNs:  m.PauseNs[(m.NumGC+255)%256],
 		GfVersion:  "v2.10.0",
 	}
+}
+
+// GetDBInfo collects database metrics on-demand.
+func (s *Service) GetDBInfo(ctx context.Context) *DBInfo {
+	info := &DBInfo{}
+
+	// Get database version
+	result, err := g.DB().GetValue(ctx, "SELECT VERSION()")
+	if err == nil {
+		info.Version = result.String()
+	}
+
+	// Get connection pool stats
+	statsItems := g.DB().GetCore().Stats(ctx)
+	if len(statsItems) > 0 {
+		stats := statsItems[0].Stats()
+		info.MaxOpenConns = stats.MaxOpenConnections
+		info.OpenConns = stats.OpenConnections
+		info.InUse = stats.InUse
+		info.Idle = stats.Idle
+	}
+
+	return info
 }
 
 // GetLatest returns the latest monitor records for each node.

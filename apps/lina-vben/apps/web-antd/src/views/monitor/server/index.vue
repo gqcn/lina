@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import type { ServerNodeInfo } from '#/api/monitor/server/model';
+import type {
+  ServerMonitorResult,
+  ServerNodeInfo,
+} from '#/api/monitor/server/model';
 
 import { computed, onMounted, ref } from 'vue';
 
@@ -12,6 +15,7 @@ import { getServerMonitor } from '#/api/monitor/server';
 defineOptions({ name: 'ServerMonitor' });
 
 const nodes = ref<ServerNodeInfo[]>([]);
+const dbInfo = ref<ServerMonitorResult['dbInfo'] | null>(null);
 const loading = ref(false);
 const expandedNodes = ref<Set<string>>(new Set());
 
@@ -26,6 +30,7 @@ async function loadData() {
   try {
     const resp = await getServerMonitor();
     nodes.value = resp.nodes ?? [];
+    dbInfo.value = resp.dbInfo ?? null;
     // Auto-expand all nodes
     expandedNodes.value = new Set(
       nodes.value.map((n) => `${n.nodeName}|${n.nodeIp}`),
@@ -110,6 +115,11 @@ const diskColumns = [
 
 <template>
   <Page>
+    <template #extra>
+      <Button size="small" @click="loadData">
+        <span class="icon-[charm--refresh]"></span>
+      </Button>
+    </template>
     <template v-if="firstNode">
       <!-- 服务信息 -->
       <div class="card-box p-5">
@@ -145,16 +155,9 @@ const diskColumns = [
             <div
               class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
             >
-              <dt class="text-sm/6 font-medium text-foreground">堆内存分配</dt>
+              <dt class="text-sm/6 font-medium text-foreground">堆内存</dt>
               <dd class="mt-1 text-sm/6 text-foreground">
-                {{ formatBytes(firstNode.goInfo?.heapAlloc ?? 0) }}
-              </dd>
-            </div>
-            <div
-              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
-            >
-              <dt class="text-sm/6 font-medium text-foreground">堆内存系统</dt>
-              <dd class="mt-1 text-sm/6 text-foreground">
+                {{ formatBytes(firstNode.goInfo?.heapAlloc ?? 0) }} /
                 {{ formatBytes(firstNode.goInfo?.heapSys ?? 0) }}
               </dd>
             </div>
@@ -181,12 +184,49 @@ const diskColumns = [
                 {{ firstNode.server?.startTime }}
               </dd>
             </div>
+          </dl>
+        </div>
+      </div>
+
+      <!-- 数据库信息 -->
+      <div v-if="dbInfo" class="card-box mt-6 p-5">
+        <h5 class="text-lg text-foreground">数据库信息</h5>
+        <div class="mt-4">
+          <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             <div
               class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
             >
-              <dt class="text-sm/6 font-medium text-foreground">采集时间</dt>
+              <dt class="text-sm/6 font-medium text-foreground">数据库版本</dt>
               <dd class="mt-1 text-sm/6 text-foreground">
-                {{ firstNode.collectAt }}
+                {{ dbInfo.version }}
+              </dd>
+            </div>
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+            >
+              <dt class="text-sm/6 font-medium text-foreground">最大连接数</dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
+                {{ dbInfo.maxOpenConns }}
+              </dd>
+            </div>
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+            >
+              <dt class="text-sm/6 font-medium text-foreground">
+                当前打开连接
+              </dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
+                {{ dbInfo.openConns }}
+              </dd>
+            </div>
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+            >
+              <dt class="text-sm/6 font-medium text-foreground">
+                使用中 / 空闲
+              </dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
+                {{ dbInfo.inUse }} / {{ dbInfo.idle }}
               </dd>
             </div>
           </dl>
@@ -197,16 +237,11 @@ const diskColumns = [
       <div class="card-box mt-6 p-5">
         <div class="flex items-center gap-2">
           <h5 class="text-lg text-foreground">服务器信息</h5>
-          <Tooltip title="Lina 支持多节点高可用部署，每个节点独立采集并上报自身的服务器指标数据">
+          <Tooltip title="Lina 支持多节点高可用部署，每个节点具有独立的服务器指标信息">
             <span
               class="icon-[ant-design--question-circle-outlined] cursor-help text-foreground/40"
             ></span>
           </Tooltip>
-          <div class="ml-auto">
-            <Button size="small" @click="loadData">
-              <span class="icon-[charm--refresh]"></span>
-            </Button>
-          </div>
         </div>
         <div class="mt-4">
           <div
@@ -306,6 +341,16 @@ const diskColumns = [
                       {{ node.server?.bootTime }}
                     </dd>
                   </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      采集时间
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ node.collectAt }}
+                    </dd>
+                  </div>
                 </dl>
               </div>
 
@@ -397,6 +442,7 @@ const diskColumns = [
                         :percent="Number(record.usagePercent.toFixed(1))"
                         :stroke-color="getProgressColor(record.usagePercent)"
                         size="small"
+                        status="active"
                       />
                     </template>
                   </template>
