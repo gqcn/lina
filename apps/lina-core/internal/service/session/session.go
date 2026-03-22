@@ -1,0 +1,136 @@
+package session
+
+import (
+	"context"
+
+	"github.com/gogf/gf/v2/os/gtime"
+
+	"lina-core/internal/dao"
+	"lina-core/internal/model/do"
+	"lina-core/internal/model/entity"
+)
+
+// Session represents an online user session.
+type Session struct {
+	TokenId   string
+	UserId    int
+	Username  string
+	DeptName  string
+	Ip        string
+	Browser   string
+	Os        string
+	LoginTime *gtime.Time
+}
+
+// ListFilter defines filter options for listing sessions.
+type ListFilter struct {
+	Username string
+	Ip       string
+}
+
+// Store defines the session storage interface.
+// Current implementation uses MySQL MEMORY engine.
+// Future implementations may use gcache + Redis.
+type Store interface {
+	Set(ctx context.Context, session *Session) error
+	Get(ctx context.Context, tokenId string) (*Session, error)
+	Delete(ctx context.Context, tokenId string) error
+	DeleteByUserId(ctx context.Context, userId int) error
+	List(ctx context.Context, filter *ListFilter) ([]*Session, error)
+	Count(ctx context.Context) (int, error)
+}
+
+// DBStore implements Store using MySQL MEMORY engine table.
+type DBStore struct{}
+
+// NewDBStore creates a new DBStore instance.
+func NewDBStore() Store {
+	return &DBStore{}
+}
+
+func (s *DBStore) Set(ctx context.Context, session *Session) error {
+	_, err := dao.SysOnlineSession.Ctx(ctx).Data(do.SysOnlineSession{
+		TokenId:   session.TokenId,
+		UserId:    session.UserId,
+		Username:  session.Username,
+		DeptName:  session.DeptName,
+		Ip:        session.Ip,
+		Browser:   session.Browser,
+		Os:        session.Os,
+		LoginTime: session.LoginTime,
+	}).Insert()
+	return err
+}
+
+func (s *DBStore) Get(ctx context.Context, tokenId string) (*Session, error) {
+	var e *entity.SysOnlineSession
+	err := dao.SysOnlineSession.Ctx(ctx).
+		Where(do.SysOnlineSession{TokenId: tokenId}).
+		Scan(&e)
+	if err != nil {
+		return nil, err
+	}
+	if e == nil {
+		return nil, nil
+	}
+	return &Session{
+		TokenId:   e.TokenId,
+		UserId:    e.UserId,
+		Username:  e.Username,
+		DeptName:  e.DeptName,
+		Ip:        e.Ip,
+		Browser:   e.Browser,
+		Os:        e.Os,
+		LoginTime: e.LoginTime,
+	}, nil
+}
+
+func (s *DBStore) Delete(ctx context.Context, tokenId string) error {
+	_, err := dao.SysOnlineSession.Ctx(ctx).
+		Where(do.SysOnlineSession{TokenId: tokenId}).
+		Delete()
+	return err
+}
+
+func (s *DBStore) DeleteByUserId(ctx context.Context, userId int) error {
+	_, err := dao.SysOnlineSession.Ctx(ctx).
+		Where(do.SysOnlineSession{UserId: userId}).
+		Delete()
+	return err
+}
+
+func (s *DBStore) List(ctx context.Context, filter *ListFilter) ([]*Session, error) {
+	m := dao.SysOnlineSession.Ctx(ctx)
+	if filter != nil {
+		cols := dao.SysOnlineSession.Columns()
+		if filter.Username != "" {
+			m = m.WhereLike(cols.Username, "%"+filter.Username+"%")
+		}
+		if filter.Ip != "" {
+			m = m.WhereLike(cols.Ip, "%"+filter.Ip+"%")
+		}
+	}
+	var entities []*entity.SysOnlineSession
+	err := m.OrderDesc(dao.SysOnlineSession.Columns().LoginTime).Scan(&entities)
+	if err != nil {
+		return nil, err
+	}
+	sessions := make([]*Session, len(entities))
+	for i, e := range entities {
+		sessions[i] = &Session{
+			TokenId:   e.TokenId,
+			UserId:    e.UserId,
+			Username:  e.Username,
+			DeptName:  e.DeptName,
+			Ip:        e.Ip,
+			Browser:   e.Browser,
+			Os:        e.Os,
+			LoginTime: e.LoginTime,
+		}
+	}
+	return sessions, nil
+}
+
+func (s *DBStore) Count(ctx context.Context) (int, error) {
+	return dao.SysOnlineSession.Ctx(ctx).Count()
+}

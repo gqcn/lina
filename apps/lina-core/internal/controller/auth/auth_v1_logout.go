@@ -7,10 +7,9 @@ import (
 )
 
 func (c *ControllerV1) Logout(ctx context.Context, req *v1.LogoutReq) (res *v1.LogoutRes, err error) {
-	// Record logout log
+	// Record logout log and delete session
 	if bizCtx := c.bizCtxSvc.Get(ctx); bizCtx != nil {
-		c.authSvc.Logout(ctx, bizCtx.Username)
+		c.authSvc.Logout(ctx, bizCtx.Username, bizCtx.TokenId)
 	}
-	// JWT is stateless, logout is handled on frontend by clearing token.
 	return &v1.LogoutRes{}, nil
 }

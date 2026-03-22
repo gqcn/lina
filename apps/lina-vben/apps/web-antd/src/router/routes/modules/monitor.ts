@@ -11,6 +11,24 @@ const routes: RouteRecordRaw[] = [
     path: '/monitor',
     children: [
       {
+        name: 'OnlineUser',
+        path: '/monitor/online',
+        component: () => import('#/views/monitor/online/index.vue'),
+        meta: {
+          icon: 'lucide:users',
+          title: '在线用户',
+        },
+      },
+      {
+        name: 'ServerMonitor',
+        path: '/monitor/server',
+        component: () => import('#/views/monitor/server/index.vue'),
+        meta: {
+          icon: 'lucide:activity',
+          title: '服务监控',
+        },
+      },
+      {
         name: 'OperLog',
         path: '/monitor/operlog',
         component: () => import('#/views/monitor/operlog/index.vue'),

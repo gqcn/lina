@@ -1,0 +1,54 @@
+export interface ServerNodeInfo {
+  nodeName: string;
+  nodeIp: string;
+  collectAt: string;
+  server: {
+    hostname: string;
+    os: string;
+    arch: string;
+    bootTime: string;
+    uptime: number;
+    startTime: string;
+  };
+  cpu: {
+    cores: number;
+    modelName: string;
+    usagePercent: number;
+  };
+  memory: {
+    total: number;
+    used: number;
+    available: number;
+    usagePercent: number;
+  };
+  disks: Array<{
+    path: string;
+    fsType: string;
+    total: number;
+    used: number;
+    free: number;
+    usagePercent: number;
+  }>;
+  network: {
+    bytesSent: number;
+    bytesRecv: number;
+    sendRate: number;
+    recvRate: number;
+  };
+  goInfo: {
+    version: string;
+    goroutines: number;
+    heapAlloc: number;
+    heapSys: number;
+    gcPauseNs: number;
+    gfVersion: string;
+  };
+}
+
+export interface ServerMonitorResult {
+  nodes: ServerNodeInfo[];
+}
+
+export interface ServerMonitorParams {
+  nodeName?: string;
+}

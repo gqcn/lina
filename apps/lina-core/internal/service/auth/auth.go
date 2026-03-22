@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
+	"github.com/gogf/gf/v2/util/guid"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mssola/useragent"
 	"golang.org/x/crypto/bcrypt"
@@ -16,22 +17,31 @@ import (
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/loginlog"
+	"lina-core/internal/service/session"
 )
 
 // Service provides authentication operations.
 type Service struct {
-	loginLogSvc *loginlog.Service
+	loginLogSvc  *loginlog.Service
+	sessionStore session.Store
 }
 
 // New creates and returns a new Service instance.
 func New() *Service {
 	return &Service{
-		loginLogSvc: loginlog.New(),
+		loginLogSvc:  loginlog.New(),
+		sessionStore: session.NewDBStore(),
 	}
+}
+
+// SessionStore returns the session store instance.
+func (s *Service) SessionStore() session.Store {
+	return s.sessionStore
 }
 
 // Claims defines JWT token claims.
 type Claims struct {
+	TokenId  string `json:"tokenId"`
 	UserId   int    `json:"userId"`
 	Username string `json:"username"`
 	Status   int    `json:"status"`
@@ -100,7 +110,7 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 	}
 
 	// Generate JWT token
-	token, err := s.generateToken(ctx, user)
+	token, tokenId, err := s.generateToken(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -110,6 +120,19 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 		Where(do.SysUser{Id: user.Id}).
 		Data(do.SysUser{LoginDate: gtime.Now()}).
 		Update()
+
+	// Create online session
+	deptName := s.getUserDeptName(ctx, user.Id)
+	_ = s.sessionStore.Set(ctx, &session.Session{
+		TokenId:   tokenId,
+		UserId:    user.Id,
+		Username:  user.Username,
+		DeptName:  deptName,
+		Ip:        ip,
+		Browser:   browser,
+		Os:        osName,
+		LoginTime: gtime.Now(),
+	})
 
 	recordLoginLog(in.Username, 0, "登录成功")
 	return &LoginOutput{AccessToken: token}, nil
@@ -139,8 +162,8 @@ func (s *Service) HashPassword(password string) (string, error) {
 	return string(hash), nil
 }
 
-// Logout records logout login log.
-func (s *Service) Logout(ctx context.Context, username string) {
+// Logout records logout login log and removes session.
+func (s *Service) Logout(ctx context.Context, username string, tokenId string) {
 	var ip, browser, osName string
 	if r := g.RequestFromCtx(ctx); r != nil {
 		ip = r.GetClientIp()
@@ -148,6 +171,10 @@ func (s *Service) Logout(ctx context.Context, username string) {
 		browserName, browserVersion := ua.Browser()
 		browser = browserName + " " + browserVersion
 		osName = ua.OS()
+	}
+	// Delete session
+	if tokenId != "" {
+		_ = s.sessionStore.Delete(ctx, tokenId)
 	}
 	_ = s.loginLogSvc.Create(ctx, loginlog.CreateInput{
 		UserName: username,
@@ -159,13 +186,15 @@ func (s *Service) Logout(ctx context.Context, username string) {
 	})
 }
 
-// generateToken generates JWT token for given user.
-func (s *Service) generateToken(ctx context.Context, user *entity.SysUser) (string, error) {
+// generateToken generates JWT token for given user, returns token string and tokenId.
+func (s *Service) generateToken(ctx context.Context, user *entity.SysUser) (string, string, error) {
 	var (
 		secret     = g.Cfg().MustGet(ctx, "jwt.secret").String()
 		expireHour = g.Cfg().MustGet(ctx, "jwt.expireHour").Int()
+		tokenId    = guid.S()
 	)
 	claims := Claims{
+		TokenId:  tokenId,
 		UserId:   user.Id,
 		Username: user.Username,
 		Status:   user.Status,
@@ -175,5 +204,30 @@ func (s *Service) generateToken(ctx context.Context, user *entity.SysUser) (stri
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
+	signed, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return "", "", err
+	}
+	return signed, tokenId, nil
+}
+
+// getUserDeptName queries the department name for a user by userId.
+func (s *Service) getUserDeptName(ctx context.Context, userId int) string {
+	var userDept *entity.SysUserDept
+	err := dao.SysUserDept.Ctx(ctx).
+		Where(dao.SysUserDept.Columns().UserId, userId).
+		Scan(&userDept)
+	if err != nil || userDept == nil {
+		return ""
+	}
+	var dept *entity.SysDept
+	deptCols := dao.SysDept.Columns()
+	err = dao.SysDept.Ctx(ctx).
+		Where(deptCols.Id, userDept.DeptId).
+		WhereNull(deptCols.DeletedAt).
+		Scan(&dept)
+	if err != nil || dept == nil {
+		return ""
+	}
+	return dept.Name
 }

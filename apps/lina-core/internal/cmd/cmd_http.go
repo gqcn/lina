@@ -16,6 +16,7 @@ import (
 	"lina-core/internal/controller/dict"
 	filectrl "lina-core/internal/controller/file"
 	"lina-core/internal/controller/loginlog"
+	monitorctrl "lina-core/internal/controller/monitor"
 	"lina-core/internal/controller/notice"
 	"lina-core/internal/controller/operlog"
 	"lina-core/internal/controller/post"
@@ -24,6 +25,7 @@ import (
 	"lina-core/internal/controller/usermsg"
 	"lina-core/internal/packed"
 	"lina-core/internal/service/middleware"
+	"lina-core/internal/service/servermon"
 )
 
 type HttpInput struct {
@@ -36,7 +38,11 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		s             = g.Server()
 		middlewareSvc = middleware.New()
 		authCtrl      = auth.NewV1()
+		serverMonSvc  = servermon.New()
 	)
+
+	// Start server monitor collector
+	serverMonSvc.StartCollector(ctx)
 
 	// Set OpenAPI info from configuration
 	oai := s.GetOpenApi()
@@ -121,6 +127,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				operlog.NewV1(),
 				sysinfo.NewV1(),
 				filectrl.NewV1(),
+				monitorctrl.NewV1(),
 			)
 		})
 	})

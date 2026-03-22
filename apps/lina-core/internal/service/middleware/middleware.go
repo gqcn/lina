@@ -61,7 +61,14 @@ func (s *Service) Auth(r *ghttp.Request) {
 		return
 	}
 
+	// Check session exists (supports forced logout)
+	sess, err := s.authSvc.SessionStore().Get(r.Context(), claims.TokenId)
+	if err != nil || sess == nil {
+		r.Response.WriteStatus(http.StatusUnauthorized)
+		return
+	}
+
 	// Inject user info into business context
-	s.bizCtxSvc.SetUser(r.Context(), claims.UserId, claims.Username, claims.Status)
+	s.bizCtxSvc.SetUser(r.Context(), claims.TokenId, claims.UserId, claims.Username, claims.Status)
 	r.Middleware.Next()
 }

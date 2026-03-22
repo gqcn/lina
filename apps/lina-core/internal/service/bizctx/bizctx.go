@@ -35,8 +35,9 @@ func (s *Service) Get(ctx context.Context) *model.Context {
 }
 
 // SetUser sets user info into business context.
-func (s *Service) SetUser(ctx context.Context, userId int, username string, status int) {
+func (s *Service) SetUser(ctx context.Context, tokenId string, userId int, username string, status int) {
 	if c := s.Get(ctx); c != nil {
+		c.TokenId = tokenId
 		c.UserId = userId
 		c.Username = username
 		c.Status = status
