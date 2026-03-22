@@ -5,13 +5,11 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/net/goai"
 	"github.com/gogf/gf/v2/os/gfile"
-	"github.com/gogf/gf/v2/os/gtimer"
 
 	"lina-core/internal/controller/auth"
 	"lina-core/internal/controller/dept"
@@ -26,8 +24,9 @@ import (
 	"lina-core/internal/controller/user"
 	"lina-core/internal/controller/usermsg"
 	"lina-core/internal/packed"
+	"lina-core/internal/service/config"
+	"lina-core/internal/service/cron"
 	"lina-core/internal/service/middleware"
-	"lina-core/internal/service/servermon"
 )
 
 type HttpInput struct {
@@ -38,39 +37,28 @@ type HttpOutput struct{}
 func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err error) {
 	var (
 		s             = g.Server()
+		configSvc    = config.New()
 		middlewareSvc = middleware.New()
 		authCtrl      = auth.NewV1()
-		serverMonSvc  = servermon.New()
+		cronSvc       = cron.New(middlewareSvc.SessionStore())
 	)
 
-	// Start server monitor collector
-	serverMonSvc.StartCollector(ctx)
-
-	// Start session cleanup timer
-	cleanupMinute := g.Cfg().MustGet(ctx, "session.cleanupMinute", 5).Int()
-	timeoutHour := g.Cfg().MustGet(ctx, "session.timeoutHour", 24).Int()
-	sessionStore := middlewareSvc.SessionStore()
-	gtimer.Add(ctx, time.Duration(cleanupMinute)*time.Minute, func(ctx context.Context) {
-		cleaned, err := sessionStore.CleanupInactive(ctx, timeoutHour)
-		if err != nil {
-			g.Log().Warningf(ctx, "session cleanup error: %v", err)
-		} else if cleaned > 0 {
-			g.Log().Infof(ctx, "session cleanup: removed %d inactive sessions", cleaned)
-		}
-	})
+	// Start all cron jobs (session cleanup, server monitor, etc.)
+	cronSvc.Start(ctx)
 
 	// Set OpenAPI info from configuration
+	oaiCfg := configSvc.GetOpenApi(ctx)
 	oai := s.GetOpenApi()
-	oai.Info.Title = g.Cfg().MustGet(ctx, "openapi.title", "Lina Admin API").String()
-	oai.Info.Description = g.Cfg().MustGet(ctx, "openapi.description").String()
-	oai.Info.Version = g.Cfg().MustGet(ctx, "openapi.version", "v1.0.0").String()
+	oai.Info.Title = oaiCfg.Title
+	oai.Info.Description = oaiCfg.Description
+	oai.Info.Version = oaiCfg.Version
 
 	// Set API server URL so documentation shows the correct backend address
-	if serverUrl := g.Cfg().MustGet(ctx, "openapi.serverUrl").String(); serverUrl != "" {
+	if oaiCfg.ServerUrl != "" {
 		oai.Servers = &goai.Servers{
 			{
-				URL:         serverUrl,
-				Description: g.Cfg().MustGet(ctx, "openapi.serverDescription", "API Server").String(),
+				URL:         oaiCfg.ServerUrl,
+				Description: oaiCfg.ServerDescription,
 			},
 		}
 	}
@@ -96,9 +84,9 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 			group.Middleware(middlewareSvc.CORS)
 			group.ALL("/*any", func(r *ghttp.Request) {
 				var (
-					basePath   = g.Cfg().MustGet(r.Context(), "upload.path", "upload").String()
+					uploadCfg  = configSvc.GetUpload(r.Context())
 					pathSuffix = r.GetRouter("any").String()
-					filePath   = gfile.Join(basePath, pathSuffix)
+					filePath   = gfile.Join(uploadCfg.Path, pathSuffix)
 				)
 				if !gfile.Exists(filePath) {
 					r.Response.WriteStatus(404)

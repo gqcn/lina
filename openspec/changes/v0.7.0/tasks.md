@@ -46,3 +46,8 @@
 - [x] **FB-2**：Session Store 新增 `TouchOrValidate` 方法，通过 UPDATE 操作更新 `last_active_time` 并返回受影响行数判断会话是否存在；Auth 中间件改用此方法替代原有的 `Get` 查询
 - [x] **FB-3**：Session Store 新增 `CleanupInactive` 方法，删除 `last_active_time` 超过阈值的会话记录；在 `cmd_http.go` 中启动定时清理任务（默认每5分钟执行一次）
 - [x] **FB-4**：`config.yaml` 新增 `session.timeoutHour`（超时阈值，默认24）和 `session.cleanupMinute`（清理频率，默认5）配置项
+- [x] **FB-5**：将所有定时任务从 gtimer 迁移到 gcron 组件（cmd_http.go 的会话清理、servermon.go 的指标采集），使用 crontab 表达式
+- [x] **FB-6**：将所有 g.Cfg().MustGet(ctx, "key") 硬编码配置读取改为 struct 维护，按配置分组（jwt、session、upload、openapi、monitor、init）创建配置结构体，通过 struct 读取配置值
+- [x] **FB-7**：将 `internal/config/` 迁移到 `internal/service/config/`，遵循 Service 对象封装规范（Service struct + New() 构造函数），并按模块拆分为独立 Go 文件（jwt.go、session.go、upload.go、openapi.go、monitor.go、init.go），更新所有 import 引用
+- [x] **FB-8**：service 目录下的源文件命名应使用组件名作为前缀加下划线分割子模块，如 config 组件下的文件应命名为 config_session.go、config_openapi.go 等，而非 session.go、openapi.go
+- [x] **FB-9**：将 cmd_http.go 中的定时任务逻辑（会话清理、服务监控采集启动）提取到 service/cron 独立组件中封装，保证 cmd_http.go 只负责路由注册和服务启动

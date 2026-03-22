@@ -18,6 +18,7 @@ import (
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/bizctx"
+	"lina-core/internal/service/config"
 )
 
 const (
@@ -26,6 +27,7 @@ const (
 
 // Service provides file management operations.
 type Service struct {
+	configSvc *config.Service
 	storage   Storage
 	bizCtxSvc *bizctx.Service
 }
@@ -34,6 +36,7 @@ type Service struct {
 func New() *Service {
 	ctx := context.Background()
 	return &Service{
+		configSvc: config.New(),
 		storage:   NewLocalStorage(ctx, ""),
 		bizCtxSvc: bizctx.New(),
 	}
@@ -64,9 +67,9 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 	}
 
 	// Validate file size (max from config, default 10MB)
-	maxSize := g.Cfg().MustGet(ctx, "upload.maxSize", 10).Int64()
-	if file.Size > maxSize*1024*1024 {
-		return nil, gerror.Newf("文件大小不能超过%dMB", maxSize)
+	uploadCfg := s.configSvc.GetUpload(ctx)
+	if file.Size > uploadCfg.MaxSize*1024*1024 {
+		return nil, gerror.Newf("文件大小不能超过%dMB", uploadCfg.MaxSize)
 	}
 
 	// Open uploaded file

@@ -2,6 +2,7 @@ package servermon
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"runtime"
@@ -9,14 +10,15 @@ import (
 
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gcron"
 	"github.com/gogf/gf/v2/os/gtime"
-	"github.com/gogf/gf/v2/os/gtimer"
 	cpuutil "github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/mem"
 	netutil "github.com/shirou/gopsutil/v4/net"
 
+	"lina-core/internal/service/config"
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
@@ -81,6 +83,7 @@ type GoRuntimeInfo struct {
 
 // Service provides server monitoring operations.
 type Service struct {
+	configSvc     *config.Service
 	startTime     time.Time
 	lastNetBytes  *netutil.IOCountersStat
 	lastCollectAt time.Time
@@ -89,22 +92,26 @@ type Service struct {
 // New creates a new Service.
 func New() *Service {
 	return &Service{
+		configSvc: config.New(),
 		startTime: time.Now(),
 	}
 }
 
 // StartCollector starts the periodic metrics collector.
 func (s *Service) StartCollector(ctx context.Context) {
-	interval := g.Cfg().MustGet(ctx, "monitor.intervalSeconds", 30).Int()
-	retention := g.Cfg().MustGet(ctx, "monitor.retentionMinutes", 60).Int()
+	monCfg := s.configSvc.GetMonitor(ctx)
 
 	// Collect immediately on startup
-	s.collectAndStore(ctx, retention)
+	s.collectAndStore(ctx, monCfg.RetentionMinutes)
 
-	// Then collect periodically
-	gtimer.Add(ctx, time.Duration(interval)*time.Second, func(ctx context.Context) {
-		s.collectAndStore(ctx, retention)
-	})
+	// Then collect periodically via gcron
+	cronPattern := fmt.Sprintf("*/%d * * * * *", monCfg.IntervalSeconds)
+	_, err := gcron.Add(ctx, cronPattern, func(ctx context.Context) {
+		s.collectAndStore(ctx, monCfg.RetentionMinutes)
+	}, "server-monitor-collector")
+	if err != nil {
+		g.Log().Warningf(ctx, "failed to start server monitor cron: %v", err)
+	}
 }
 
 // collectAndStore collects metrics and stores them in the database.

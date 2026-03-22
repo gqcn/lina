@@ -6,6 +6,8 @@ import (
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gfile"
+
+	"lina-core/internal/service/config"
 )
 
 type InitInput struct {
@@ -14,7 +16,7 @@ type InitInput struct {
 type InitOutput struct{}
 
 func (m *Main) Init(ctx context.Context, in InitInput) (out *InitOutput, err error) {
-	sqlDir := g.Cfg().MustGet(ctx, "init.sqlDir", "manifest/sql").String()
+	sqlDir := config.New().GetInit(ctx).SqlDir
 	if !gfile.Exists(sqlDir) {
 		g.Log().Warningf(ctx, "SQL directory does not exist: %s", sqlDir)
 		return

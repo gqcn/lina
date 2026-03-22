@@ -16,12 +16,14 @@ import (
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	"lina-core/internal/service/config"
 	"lina-core/internal/service/loginlog"
 	"lina-core/internal/service/session"
 )
 
 // Service provides authentication operations.
 type Service struct {
+	configSvc    *config.Service
 	loginLogSvc  *loginlog.Service
 	sessionStore session.Store
 }
@@ -29,6 +31,7 @@ type Service struct {
 // New creates and returns a new Service instance.
 func New() *Service {
 	return &Service{
+		configSvc:    config.New(),
 		loginLogSvc:  loginlog.New(),
 		sessionStore: session.NewDBStore(),
 	}
@@ -140,9 +143,9 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 
 // ParseToken parses and validates JWT token, returns claims.
 func (s *Service) ParseToken(ctx context.Context, tokenString string) (*Claims, error) {
-	secret := g.Cfg().MustGet(ctx, "jwt.secret").String()
+	jwtCfg := s.configSvc.GetJwt(ctx)
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
+		return []byte(jwtCfg.Secret), nil
 	})
 	if err != nil {
 		return nil, gerror.New("无效的Token")
@@ -189,9 +192,8 @@ func (s *Service) Logout(ctx context.Context, username string, tokenId string) {
 // generateToken generates JWT token for given user, returns token string and tokenId.
 func (s *Service) generateToken(ctx context.Context, user *entity.SysUser) (string, string, error) {
 	var (
-		secret     = g.Cfg().MustGet(ctx, "jwt.secret").String()
-		expireHour = g.Cfg().MustGet(ctx, "jwt.expireHour").Int()
-		tokenId    = guid.S()
+		jwtCfg  = s.configSvc.GetJwt(ctx)
+		tokenId = guid.S()
 	)
 	claims := Claims{
 		TokenId:  tokenId,
@@ -199,12 +201,12 @@ func (s *Service) generateToken(ctx context.Context, user *entity.SysUser) (stri
 		Username: user.Username,
 		Status:   user.Status,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expireHour) * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(jwtCfg.ExpireHour) * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString([]byte(secret))
+	signed, err := token.SignedString([]byte(jwtCfg.Secret))
 	if err != nil {
 		return "", "", err
 	}

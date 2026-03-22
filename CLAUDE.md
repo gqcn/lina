@@ -178,6 +178,9 @@ pnpm report            # 查看 HTML 报告
 服务层代码（`internal/service/`）必须遵循以下模式：
 
 - **结构化封装**：使用`Service`作为服务实现的默认结构体名称，当服务层逻辑较复杂时应当解耦拆分为多个结构体来封装业务逻辑
+- **文件命名规范**：`service/`目录下每个组件（子目录）的源文件必须以组件名作为前缀，使用下划线`_`分割子模块。例如：`config`组件下的文件应命名为`config.go`（主文件）、`config_session.go`、`config_jwt.go`、`config_upload.go`等；`file`组件下应命名为`file.go`、`file_storage.go`、`file_storage_local.go`等。禁止使用无前缀的子模块文件名（如直接命名为`session.go`、`storage.go`）
+- **子模块拆分**：同一`service`组件下不同子模块的业务逻辑必须拆分到独立的`Go`文件中实现，不要将所有逻辑都写在单个文件中。例如：`config`组件应按配置分组拆分为`config_jwt.go`、`config_session.go`、`config_upload.go`等，每个文件只负责一个子模块的配置读取逻辑
+- **定时任务管理**：所有定时任务（`cron job`）必须在`service/cron`独立组件中统一管理，禁止在`cmd/`或其他`service`组件中直接编写定时任务逻辑。`cron`组件提供统一的`Start(ctx)`入口方法，由`cmd`层一次性调用启动所有定时任务。每个定时任务的具体实现拆分到独立文件中（如`cron_session.go`、`cron_servermon.go`），使用`GoFrame`的`gcron`组件注册定时任务
 - **上下文管理**：第一个参数始终传入 `ctx context.Context`
 - **数据库操作**：
   - **数据交互**：与数据库交互式，必须使用`DO`对象，不使用 `g.Map`来传递`Data`参数
