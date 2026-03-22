@@ -51,3 +51,7 @@
 - [x] **FB-7**：将 `internal/config/` 迁移到 `internal/service/config/`，遵循 Service 对象封装规范（Service struct + New() 构造函数），并按模块拆分为独立 Go 文件（jwt.go、session.go、upload.go、openapi.go、monitor.go、init.go），更新所有 import 引用
 - [x] **FB-8**：service 目录下的源文件命名应使用组件名作为前缀加下划线分割子模块，如 config 组件下的文件应命名为 config_session.go、config_openapi.go 等，而非 session.go、openapi.go
 - [x] **FB-9**：将 cmd_http.go 中的定时任务逻辑（会话清理、服务监控采集启动）提取到 service/cron 独立组件中封装，保证 cmd_http.go 只负责路由注册和服务启动
+- [x] **FB-10**：服务监控页面整体重构为 card-box + dl/dt/dd 网格布局，与版本信息页面样式保持一致
+- [x] **FB-11**：页面顶部新增"服务信息"区块（Go版本、GoFrame版本、Goroutines、堆内存、GC暂停、服务启动时间），移除原有 Go 运行时独立卡片
+- [x] **FB-12**：将"服务器信息"改为列表展示，每个服务器节点可展开/收起查看 CPU、内存、磁盘、网络详情，节点标题左侧增加树形展开图标，页面增加?图标提示"Lina 支持多节点高可用部署"
+- [x] **FB-13**：sys_server_monitor 表改为每个节点只保留最新一条记录（UPSERT 策略），删除定时清理旧数据逻辑，避免历史数据堆积

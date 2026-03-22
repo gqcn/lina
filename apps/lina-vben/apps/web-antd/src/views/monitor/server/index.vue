@@ -5,37 +5,17 @@ import { computed, onMounted, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
-import {
-  Button,
-  Card,
-  Col,
-  Descriptions,
-  DescriptionsItem,
-  Progress,
-  Row,
-  Select,
-  SelectOption,
-  Table,
-} from 'ant-design-vue';
+import { Button, Progress, Table, Tooltip } from 'ant-design-vue';
 
 import { getServerMonitor } from '#/api/monitor/server';
 
+defineOptions({ name: 'ServerMonitor' });
+
 const nodes = ref<ServerNodeInfo[]>([]);
-const selectedNode = ref<string>('');
 const loading = ref(false);
+const expandedNodes = ref<Set<string>>(new Set());
 
-const currentNode = computed(() => {
-  if (!selectedNode.value || nodes.value.length === 0) {
-    return nodes.value[0] ?? null;
-  }
-  return (
-    nodes.value.find(
-      (n) => `${n.nodeName}|${n.nodeIp}` === selectedNode.value,
-    ) ?? nodes.value[0]
-  );
-});
-
-const showNodeSelector = computed(() => nodes.value.length > 1);
+const firstNode = computed(() => nodes.value[0] ?? null);
 
 onMounted(async () => {
   await loadData();
@@ -46,13 +26,27 @@ async function loadData() {
   try {
     const resp = await getServerMonitor();
     nodes.value = resp.nodes ?? [];
-    if (nodes.value.length > 0 && !selectedNode.value) {
-      const first = nodes.value[0]!;
-      selectedNode.value = `${first.nodeName}|${first.nodeIp}`;
-    }
+    // Auto-expand all nodes
+    expandedNodes.value = new Set(
+      nodes.value.map((n) => `${n.nodeName}|${n.nodeIp}`),
+    );
   } finally {
     loading.value = false;
   }
+}
+
+function toggleNode(key: string) {
+  const set = new Set(expandedNodes.value);
+  if (set.has(key)) {
+    set.delete(key);
+  } else {
+    set.add(key);
+  }
+  expandedNodes.value = set;
+}
+
+function isExpanded(key: string): boolean {
+  return expandedNodes.value.has(key);
 }
 
 function formatBytes(bytes: number): string {
@@ -116,184 +110,357 @@ const diskColumns = [
 
 <template>
   <Page>
-    <div v-if="currentNode" class="flex flex-col gap-4">
-      <!-- Node Selector + Refresh -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <span v-if="showNodeSelector" class="text-sm text-gray-500">
-            节点：
-          </span>
-          <Select
-            v-if="showNodeSelector"
-            v-model:value="selectedNode"
-            style="width: 260px"
-          >
-            <SelectOption
-              v-for="node in nodes"
-              :key="`${node.nodeName}|${node.nodeIp}`"
-              :value="`${node.nodeName}|${node.nodeIp}`"
+    <template v-if="firstNode">
+      <!-- 服务信息 -->
+      <div class="card-box p-5">
+        <h5 class="text-lg text-foreground">服务信息</h5>
+        <div class="mt-4">
+          <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
             >
-              {{ node.nodeName }} ({{ node.nodeIp }})
-            </SelectOption>
-          </Select>
-        </div>
-        <div class="flex items-center gap-2 text-xs text-gray-400">
-          <span>采集时间：{{ currentNode.collectAt }}</span>
-          <Button size="small" @click="loadData">
-            <span class="icon-[charm--refresh]"></span>
-          </Button>
+              <dt class="text-sm/6 font-medium text-foreground">Go 版本</dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
+                {{ firstNode.goInfo?.version }}
+              </dd>
+            </div>
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+            >
+              <dt class="text-sm/6 font-medium text-foreground">
+                GoFrame 版本
+              </dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
+                {{ firstNode.goInfo?.gfVersion }}
+              </dd>
+            </div>
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+            >
+              <dt class="text-sm/6 font-medium text-foreground">Goroutines</dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
+                {{ firstNode.goInfo?.goroutines }}
+              </dd>
+            </div>
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+            >
+              <dt class="text-sm/6 font-medium text-foreground">堆内存分配</dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
+                {{ formatBytes(firstNode.goInfo?.heapAlloc ?? 0) }}
+              </dd>
+            </div>
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+            >
+              <dt class="text-sm/6 font-medium text-foreground">堆内存系统</dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
+                {{ formatBytes(firstNode.goInfo?.heapSys ?? 0) }}
+              </dd>
+            </div>
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+            >
+              <dt class="text-sm/6 font-medium text-foreground">GC 暂停</dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
+                {{
+                  (
+                    (firstNode.goInfo?.gcPauseNs ?? 0) / 1_000_000
+                  ).toFixed(2)
+                }}
+                ms
+              </dd>
+            </div>
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+            >
+              <dt class="text-sm/6 font-medium text-foreground">
+                服务启动时间
+              </dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
+                {{ firstNode.server?.startTime }}
+              </dd>
+            </div>
+            <div
+              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
+            >
+              <dt class="text-sm/6 font-medium text-foreground">采集时间</dt>
+              <dd class="mt-1 text-sm/6 text-foreground">
+                {{ firstNode.collectAt }}
+              </dd>
+            </div>
+          </dl>
         </div>
       </div>
 
-      <!-- Server Info -->
-      <Card size="small" title="服务器信息">
-        <Descriptions :column="{ xs: 1, sm: 2, md: 3, lg: 4 }" size="small">
-          <DescriptionsItem label="主机名">
-            {{ currentNode.server?.hostname }}
-          </DescriptionsItem>
-          <DescriptionsItem label="操作系统">
-            {{ currentNode.server?.os }}
-          </DescriptionsItem>
-          <DescriptionsItem label="系统架构">
-            {{ currentNode.server?.arch }}
-          </DescriptionsItem>
-          <DescriptionsItem label="系统运行时长">
-            {{ formatUptime(currentNode.server?.uptime ?? 0) }}
-          </DescriptionsItem>
-          <DescriptionsItem label="系统启动时间">
-            {{ currentNode.server?.bootTime }}
-          </DescriptionsItem>
-          <DescriptionsItem label="服务启动时间">
-            {{ currentNode.server?.startTime }}
-          </DescriptionsItem>
-          <DescriptionsItem label="节点IP">
-            {{ currentNode.nodeIp }}
-          </DescriptionsItem>
-        </Descriptions>
-      </Card>
+      <!-- 服务器信息 -->
+      <div class="card-box mt-6 p-5">
+        <div class="flex items-center gap-2">
+          <h5 class="text-lg text-foreground">服务器信息</h5>
+          <Tooltip title="Lina 支持多节点高可用部署，每个节点独立采集并上报自身的服务器指标数据">
+            <span
+              class="icon-[ant-design--question-circle-outlined] cursor-help text-foreground/40"
+            ></span>
+          </Tooltip>
+          <div class="ml-auto">
+            <Button size="small" @click="loadData">
+              <span class="icon-[charm--refresh]"></span>
+            </Button>
+          </div>
+        </div>
+        <div class="mt-4">
+          <div
+            v-for="(node, index) in nodes"
+            :key="`${node.nodeName}|${node.nodeIp}`"
+            :class="{ 'mt-3': index > 0 }"
+          >
+            <!-- Node header (tree-like) -->
+            <div
+              class="flex cursor-pointer items-center gap-2 rounded px-2 py-2 hover:bg-accent"
+              @click="toggleNode(`${node.nodeName}|${node.nodeIp}`)"
+            >
+              <span
+                :class="
+                  isExpanded(`${node.nodeName}|${node.nodeIp}`)
+                    ? 'icon-[ant-design--caret-down-outlined]'
+                    : 'icon-[ant-design--caret-right-outlined]'
+                "
+                class="text-foreground/50"
+              ></span>
+              <span class="font-medium text-foreground">
+                {{ node.nodeName }}
+              </span>
+              <span class="text-sm text-foreground/50">
+                ({{ node.nodeIp }})
+              </span>
+            </div>
 
-      <!-- CPU + Memory + Go Runtime -->
-      <Row :gutter="[16, 16]">
-        <Col :xs="24" :sm="24" :md="8">
-          <Card size="small" title="CPU">
-            <div class="flex flex-col items-center gap-3 py-2">
-              <Progress
-                :percent="
-                  Number((currentNode.cpu?.usagePercent ?? 0).toFixed(1))
-                "
-                :stroke-color="
-                  getProgressColor(currentNode.cpu?.usagePercent ?? 0)
-                "
-                :width="120"
-                type="circle"
-              />
-              <div class="text-center text-xs text-gray-500">
-                <div>{{ currentNode.cpu?.cores }} 核</div>
-                <div class="mt-1 max-w-[200px] truncate">
-                  {{ currentNode.cpu?.modelName }}
+            <!-- Expanded content -->
+            <div
+              v-if="isExpanded(`${node.nodeName}|${node.nodeIp}`)"
+              class="ml-6 border-l border-border pl-4"
+            >
+              <!-- 基本信息 -->
+              <div class="py-2">
+                <h6 class="mb-2 text-sm font-medium text-foreground/70">
+                  基本信息
+                </h6>
+                <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      主机名
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ node.server?.hostname }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      操作系统
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ node.server?.os }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      系统架构
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ node.server?.arch }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      节点IP
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ node.nodeIp }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      系统运行时长
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ formatUptime(node.server?.uptime ?? 0) }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      系统启动时间
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ node.server?.bootTime }}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <!-- CPU + 内存 -->
+              <div class="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <!-- CPU -->
+                <div class="rounded-lg border border-border p-4">
+                  <h6 class="mb-3 text-sm font-medium text-foreground/70">
+                    CPU
+                  </h6>
+                  <div class="flex items-center gap-6">
+                    <Progress
+                      :percent="
+                        Number((node.cpu?.usagePercent ?? 0).toFixed(1))
+                      "
+                      :stroke-color="
+                        getProgressColor(node.cpu?.usagePercent ?? 0)
+                      "
+                      :width="80"
+                      type="circle"
+                    />
+                    <dl class="flex-1">
+                      <div class="py-1">
+                        <dt class="text-xs text-foreground/50">核心数</dt>
+                        <dd class="text-sm text-foreground">
+                          {{ node.cpu?.cores }} 核
+                        </dd>
+                      </div>
+                      <div class="py-1">
+                        <dt class="text-xs text-foreground/50">型号</dt>
+                        <dd class="max-w-[300px] truncate text-sm text-foreground">
+                          {{ node.cpu?.modelName }}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+
+                <!-- 内存 -->
+                <div class="rounded-lg border border-border p-4">
+                  <h6 class="mb-3 text-sm font-medium text-foreground/70">
+                    内存
+                  </h6>
+                  <div class="flex items-center gap-6">
+                    <Progress
+                      :percent="
+                        Number((node.memory?.usagePercent ?? 0).toFixed(1))
+                      "
+                      :stroke-color="
+                        getProgressColor(node.memory?.usagePercent ?? 0)
+                      "
+                      :width="80"
+                      type="circle"
+                    />
+                    <dl class="flex-1">
+                      <div class="py-1">
+                        <dt class="text-xs text-foreground/50">已用 / 总量</dt>
+                        <dd class="text-sm text-foreground">
+                          {{ formatBytes(node.memory?.used ?? 0) }} /
+                          {{ formatBytes(node.memory?.total ?? 0) }}
+                        </dd>
+                      </div>
+                      <div class="py-1">
+                        <dt class="text-xs text-foreground/50">可用</dt>
+                        <dd class="text-sm text-foreground">
+                          {{ formatBytes(node.memory?.available ?? 0) }}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Card>
-        </Col>
-        <Col :xs="24" :sm="24" :md="8">
-          <Card size="small" title="内存">
-            <div class="flex flex-col items-center gap-3 py-2">
-              <Progress
-                :percent="
-                  Number((currentNode.memory?.usagePercent ?? 0).toFixed(1))
-                "
-                :stroke-color="
-                  getProgressColor(currentNode.memory?.usagePercent ?? 0)
-                "
-                :width="120"
-                type="circle"
-              />
-              <div class="text-center text-xs text-gray-500">
-                <div>
-                  {{ formatBytes(currentNode.memory?.used ?? 0) }} /
-                  {{ formatBytes(currentNode.memory?.total ?? 0) }}
-                </div>
-                <div class="mt-1">
-                  可用：{{ formatBytes(currentNode.memory?.available ?? 0) }}
-                </div>
+
+              <!-- 磁盘 -->
+              <div class="mt-3">
+                <h6 class="mb-2 text-sm font-medium text-foreground/70">
+                  磁盘使用
+                </h6>
+                <Table
+                  :columns="diskColumns"
+                  :data-source="node.disks"
+                  :pagination="false"
+                  row-key="path"
+                  size="small"
+                >
+                  <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'usagePercent'">
+                      <Progress
+                        :percent="Number(record.usagePercent.toFixed(1))"
+                        :stroke-color="getProgressColor(record.usagePercent)"
+                        size="small"
+                      />
+                    </template>
+                  </template>
+                </Table>
+              </div>
+
+              <!-- 网络 -->
+              <div class="mt-3 pb-2">
+                <h6 class="mb-2 text-sm font-medium text-foreground/70">
+                  网络流量
+                </h6>
+                <dl class="grid grid-cols-2 md:grid-cols-4">
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      总发送
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ formatBytes(node.network?.bytesSent ?? 0) }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      总接收
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ formatBytes(node.network?.bytesRecv ?? 0) }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      发送速率
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ formatRate(node.network?.sendRate ?? 0) }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      接收速率
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ formatRate(node.network?.recvRate ?? 0) }}
+                    </dd>
+                  </div>
+                </dl>
               </div>
             </div>
-          </Card>
-        </Col>
-        <Col :xs="24" :sm="24" :md="8">
-          <Card size="small" title="Go 运行时">
-            <Descriptions :column="1" size="small" class="py-2">
-              <DescriptionsItem label="Go版本">
-                {{ currentNode.goInfo?.version }}
-              </DescriptionsItem>
-              <DescriptionsItem label="GoFrame版本">
-                {{ currentNode.goInfo?.gfVersion }}
-              </DescriptionsItem>
-              <DescriptionsItem label="Goroutines">
-                {{ currentNode.goInfo?.goroutines }}
-              </DescriptionsItem>
-              <DescriptionsItem label="堆内存分配">
-                {{ formatBytes(currentNode.goInfo?.heapAlloc ?? 0) }}
-              </DescriptionsItem>
-              <DescriptionsItem label="堆内存系统">
-                {{ formatBytes(currentNode.goInfo?.heapSys ?? 0) }}
-              </DescriptionsItem>
-              <DescriptionsItem label="GC暂停">
-                {{
-                  ((currentNode.goInfo?.gcPauseNs ?? 0) / 1_000_000).toFixed(2)
-                }}
-                ms
-              </DescriptionsItem>
-            </Descriptions>
-          </Card>
-        </Col>
-      </Row>
-
-      <!-- Disk Usage -->
-      <Card size="small" title="磁盘使用">
-        <Table
-          :columns="diskColumns"
-          :data-source="currentNode.disks"
-          :pagination="false"
-          row-key="path"
-          size="small"
-        >
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'usagePercent'">
-              <Progress
-                :percent="Number(record.usagePercent.toFixed(1))"
-                :stroke-color="getProgressColor(record.usagePercent)"
-                size="small"
-              />
-            </template>
-          </template>
-        </Table>
-      </Card>
-
-      <!-- Network -->
-      <Card size="small" title="网络流量">
-        <Descriptions :column="{ xs: 1, sm: 2, md: 4 }" size="small">
-          <DescriptionsItem label="总发送">
-            {{ formatBytes(currentNode.network?.bytesSent ?? 0) }}
-          </DescriptionsItem>
-          <DescriptionsItem label="总接收">
-            {{ formatBytes(currentNode.network?.bytesRecv ?? 0) }}
-          </DescriptionsItem>
-          <DescriptionsItem label="发送速率">
-            {{ formatRate(currentNode.network?.sendRate ?? 0) }}
-          </DescriptionsItem>
-          <DescriptionsItem label="接收速率">
-            {{ formatRate(currentNode.network?.recvRate ?? 0) }}
-          </DescriptionsItem>
-        </Descriptions>
-      </Card>
-    </div>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- Empty State -->
     <div
       v-else-if="!loading"
-      class="flex h-[300px] items-center justify-center text-gray-400"
+      class="flex h-[300px] items-center justify-center text-foreground/40"
     >
       暂无监控数据，请等待数据采集...
     </div>

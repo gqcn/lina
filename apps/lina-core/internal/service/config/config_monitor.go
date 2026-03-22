@@ -8,15 +8,13 @@ import (
 
 // MonitorConfig holds server monitoring configuration.
 type MonitorConfig struct {
-	IntervalSeconds  int `json:"intervalSeconds"`
-	RetentionMinutes int `json:"retentionMinutes"`
+	IntervalSeconds int `json:"intervalSeconds"`
 }
 
 // GetMonitor reads monitor config from configuration file.
 func (s *Service) GetMonitor(ctx context.Context) *MonitorConfig {
 	cfg := &MonitorConfig{
-		IntervalSeconds:  30,
-		RetentionMinutes: 60,
+		IntervalSeconds: 30,
 	}
 	_ = g.Cfg().MustGet(ctx, "monitor").Scan(cfg)
 	return cfg

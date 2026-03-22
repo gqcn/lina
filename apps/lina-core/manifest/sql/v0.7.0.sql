@@ -27,6 +27,5 @@ CREATE TABLE IF NOT EXISTS sys_server_monitor (
     node_ip     VARCHAR(64)  NOT NULL DEFAULT '' COMMENT '节点IP地址',
     data        JSON         NOT NULL             COMMENT '监控数据（JSON格式，包含CPU、内存、磁盘、网络、Go运行时等指标）',
     created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '采集时间',
-    INDEX idx_node_name (node_name),
-    INDEX idx_created_at (created_at)
+    UNIQUE INDEX uk_node (node_name, node_ip)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='服务器监控表';

@@ -102,12 +102,12 @@ func (s *Service) StartCollector(ctx context.Context) {
 	monCfg := s.configSvc.GetMonitor(ctx)
 
 	// Collect immediately on startup
-	s.collectAndStore(ctx, monCfg.RetentionMinutes)
+	s.collectAndStore(ctx)
 
 	// Then collect periodically via gcron
 	cronPattern := fmt.Sprintf("*/%d * * * * *", monCfg.IntervalSeconds)
 	_, err := gcron.Add(ctx, cronPattern, func(ctx context.Context) {
-		s.collectAndStore(ctx, monCfg.RetentionMinutes)
+		s.collectAndStore(ctx)
 	}, "server-monitor-collector")
 	if err != nil {
 		g.Log().Warningf(ctx, "failed to start server monitor cron: %v", err)
@@ -115,7 +115,7 @@ func (s *Service) StartCollector(ctx context.Context) {
 }
 
 // collectAndStore collects metrics and stores them in the database.
-func (s *Service) collectAndStore(ctx context.Context, retentionMinutes int) {
+func (s *Service) collectAndStore(ctx context.Context) {
 	data := s.Collect(ctx)
 	jsonData, err := gjson.Encode(data)
 	if err != nil {
@@ -131,16 +131,10 @@ func (s *Service) collectAndStore(ctx context.Context, retentionMinutes int) {
 		NodeIp:    nodeIp,
 		Data:      string(jsonData),
 		CreatedAt: gtime.Now(),
-	}).Insert()
+	}).Save()
 	if err != nil {
 		g.Log().Errorf(ctx, "Failed to store monitor data: %v", err)
 	}
-
-	// Clean old data
-	cutoff := gtime.Now().Add(-time.Duration(retentionMinutes) * time.Minute)
-	_, _ = dao.SysServerMonitor.Ctx(ctx).
-		WhereLT(dao.SysServerMonitor.Columns().CreatedAt, cutoff).
-		Delete()
 }
 
 // Collect gathers all server metrics.
