@@ -19,19 +19,23 @@ jwt:
   secret: "lina-jwt-secret-key-change-in-production"
   expireHour: 24
 
+session:
+  timeoutHour: 24     # Session inactive timeout (hours), sessions with no activity beyond this will be cleaned up
+  cleanupMinute: 5    # Session cleanup task interval (minutes)
+
 upload:
   path: "temp/upload"
+  maxSize: 10  # Maximum upload file size in MB
 
 # OpenAPI documentation configuration
 openapi:
-  title: "Lina API"
-  description: "Lina管理后台系统 RESTful API 接口文档。"
+  title: "Lina Admin API"
+  description: "Lina后台管理系统接口文档。"
   version: "v0.5.0"
   serverUrl: "http://localhost:8080"
   serverDescription: "BackEndpoint"
 
 # System info page component configuration
-# version: "auto" means the version is detected at runtime
 components:
   backend:
     - name: "GoFrame"
@@ -48,12 +52,8 @@ components:
       description: "身份认证"
     - name: "Excelize"
       version: "v2.10.1"
-      url: "https://github.com/xuri/excelize"
+      url: "https://github.com/qax-os/excelize"
       description: "Excel文件处理库"
-    - name: "bcrypt"
-      version: "-"
-      url: "https://pkg.go.dev/golang.org/x/crypto/bcrypt"
-      description: "密码加密"
   frontend:
     - name: "Vue"
       version: "3.x"
