@@ -10,7 +10,7 @@ import (
 
 // FileSuffixesReq 返回数据库中已有的文件后缀列表
 type FileSuffixesReq struct {
-	g.Meta `path:"/file/suffixes" method:"get" summary:"获取文件类型列表" dc:"查询数据库中已存在的文件后缀列表，用于前端下拉选择"`
+	g.Meta `path:"/file/suffixes" method:"get" tags:"文件管理" summary:"获取文件类型列表" dc:"查询数据库中已存在的文件后缀列表，用于前端下拉选择"`
 }
 
 // FileSuffixesRes 文件类型列表响应
