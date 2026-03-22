@@ -8,7 +8,7 @@ import { computed, onMounted, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
-import { Button, Progress, Table, Tooltip } from 'ant-design-vue';
+import { Progress, Table, Tooltip } from 'ant-design-vue';
 
 import { getServerMonitor } from '#/api/monitor/server';
 
@@ -19,7 +19,7 @@ const dbInfo = ref<ServerMonitorResult['dbInfo'] | null>(null);
 const loading = ref(false);
 const expandedNodes = ref<Set<string>>(new Set());
 
-const firstNode = computed(() => nodes.value[0] ?? null);
+const hasData = computed(() => nodes.value.length > 0);
 
 onMounted(async () => {
   await loadData();
@@ -115,81 +115,9 @@ const diskColumns = [
 
 <template>
   <Page>
-    <template #extra>
-      <Button size="small" @click="loadData">
-        <span class="icon-[charm--refresh]"></span>
-      </Button>
-    </template>
-    <template v-if="firstNode">
-      <!-- 服务信息 -->
-      <div class="card-box p-5">
-        <h5 class="text-lg text-foreground">服务信息</h5>
-        <div class="mt-4">
-          <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            <div
-              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
-            >
-              <dt class="text-sm/6 font-medium text-foreground">Go 版本</dt>
-              <dd class="mt-1 text-sm/6 text-foreground">
-                {{ firstNode.goInfo?.version }}
-              </dd>
-            </div>
-            <div
-              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
-            >
-              <dt class="text-sm/6 font-medium text-foreground">
-                GoFrame 版本
-              </dt>
-              <dd class="mt-1 text-sm/6 text-foreground">
-                {{ firstNode.goInfo?.gfVersion }}
-              </dd>
-            </div>
-            <div
-              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
-            >
-              <dt class="text-sm/6 font-medium text-foreground">Goroutines</dt>
-              <dd class="mt-1 text-sm/6 text-foreground">
-                {{ firstNode.goInfo?.goroutines }}
-              </dd>
-            </div>
-            <div
-              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
-            >
-              <dt class="text-sm/6 font-medium text-foreground">堆内存</dt>
-              <dd class="mt-1 text-sm/6 text-foreground">
-                {{ formatBytes(firstNode.goInfo?.heapAlloc ?? 0) }} /
-                {{ formatBytes(firstNode.goInfo?.heapSys ?? 0) }}
-              </dd>
-            </div>
-            <div
-              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
-            >
-              <dt class="text-sm/6 font-medium text-foreground">GC 暂停</dt>
-              <dd class="mt-1 text-sm/6 text-foreground">
-                {{
-                  (
-                    (firstNode.goInfo?.gcPauseNs ?? 0) / 1_000_000
-                  ).toFixed(2)
-                }}
-                ms
-              </dd>
-            </div>
-            <div
-              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
-            >
-              <dt class="text-sm/6 font-medium text-foreground">
-                服务启动时间
-              </dt>
-              <dd class="mt-1 text-sm/6 text-foreground">
-                {{ firstNode.server?.startTime }}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </div>
-
+    <template v-if="hasData">
       <!-- 数据库信息 -->
-      <div v-if="dbInfo" class="card-box mt-6 p-5">
+      <div v-if="dbInfo" class="card-box p-5">
         <h5 class="text-lg text-foreground">数据库信息</h5>
         <div class="mt-4">
           <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -275,6 +203,100 @@ const diskColumns = [
               v-if="isExpanded(`${node.nodeName}|${node.nodeIp}`)"
               class="ml-6 border-l border-border pl-4"
             >
+              <!-- 服务信息 -->
+              <div class="py-2">
+                <h6 class="mb-2 text-sm font-medium text-foreground/70">
+                  服务信息
+                </h6>
+                <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      Go 版本
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ node.goInfo?.version }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      GoFrame 版本
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ node.goInfo?.gfVersion }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      Goroutines
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ node.goInfo?.goroutines }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      服务 CPU
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ (node.goInfo?.processCpu ?? 0).toFixed(1) }}%
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      服务内存
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ (node.goInfo?.processMemory ?? 0).toFixed(1) }}%
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      GC 暂停
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{
+                        (
+                          (node.goInfo?.gcPauseNs ?? 0) / 1_000_000
+                        ).toFixed(2)
+                      }}
+                      ms
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      服务启动时间
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ node.server?.startTime }}
+                    </dd>
+                  </div>
+                  <div
+                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
+                  >
+                    <dt class="text-sm/6 font-medium text-foreground">
+                      服务运行时长
+                    </dt>
+                    <dd class="mt-1 text-sm/6 text-foreground">
+                      {{ node.goInfo?.serviceUptime }}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
               <!-- 基本信息 -->
               <div class="py-2">
                 <h6 class="mb-2 text-sm font-medium text-foreground/70">

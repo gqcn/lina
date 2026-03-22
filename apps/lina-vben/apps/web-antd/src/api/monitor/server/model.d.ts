@@ -38,10 +38,11 @@ export interface ServerNodeInfo {
   goInfo: {
     version: string;
     goroutines: number;
-    heapAlloc: number;
-    heapSys: number;
+    processCpu: number;
+    processMemory: number;
     gcPauseNs: number;
     gfVersion: string;
+    serviceUptime: string;
   };
 }
 

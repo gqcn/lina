@@ -65,12 +65,13 @@ type NetMetrics struct {
 }
 
 type GoMetrics struct {
-	Version    string `json:"version" dc:"Go版本" eg:"go1.22.0"`
-	Goroutines int    `json:"goroutines" dc:"Goroutine数量" eg:"42"`
-	HeapAlloc  uint64 `json:"heapAlloc" dc:"堆内存分配量（字节）" eg:"10485760"`
-	HeapSys    uint64 `json:"heapSys" dc:"堆内存系统分配（字节）" eg:"20971520"`
-	GCPauseNs  uint64 `json:"gcPauseNs" dc:"最近一次GC暂停时间（纳秒）" eg:"150000"`
-	GfVersion  string `json:"gfVersion" dc:"GoFrame版本" eg:"v2.10.0"`
+	Version       string  `json:"version" dc:"Go版本" eg:"go1.22.0"`
+	Goroutines    int     `json:"goroutines" dc:"Goroutine数量" eg:"42"`
+	ProcessCPU    float64 `json:"processCpu" dc:"服务CPU使用率（百分比）" eg:"2.5"`
+	ProcessMemory float64 `json:"processMemory" dc:"服务内存使用率（百分比）" eg:"1.8"`
+	GCPauseNs     uint64  `json:"gcPauseNs" dc:"最近一次GC暂停时间（纳秒）" eg:"150000"`
+	GfVersion     string  `json:"gfVersion" dc:"GoFrame版本" eg:"v2.10.0"`
+	ServiceUptime string  `json:"serviceUptime" dc:"服务运行时长" eg:"3天 2小时 15分钟"`
 }
 
 type DBMetrics struct {

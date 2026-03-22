@@ -37,8 +37,6 @@ const projectRow2: DescriptionItem[] = [
   { title: '项目介绍', content: PROJECT_INFO.description },
 ];
 
-// 基本信息（后端 API 数据）
-const runtimeItems = ref<DescriptionItem[]>([]);
 const backendItems = ref<DescriptionItem[]>([]);
 const frontendItems = ref<DescriptionItem[]>([]);
 const loading = ref(true);
@@ -56,14 +54,6 @@ const mapComponents = (components: ComponentInfo[]): DescriptionItem[] =>
 onMounted(async () => {
   try {
     const info = await getSystemInfo();
-    runtimeItems.value = [
-      { title: 'Go 版本', content: info.goVersion },
-      { title: 'GoFrame 版本', content: info.gfVersion },
-      { title: '操作系统', content: `${info.os}/${info.arch}` },
-      { title: '数据库版本', content: `MySQL ${info.dbVersion}` },
-      { title: '启动时间', content: info.startTime },
-      { title: '运行时长', content: info.runDuration },
-    ];
     backendItems.value = mapComponents(info.backendComponents);
     frontendItems.value = mapComponents(info.frontendComponents);
   } finally {
@@ -110,35 +100,6 @@ onMounted(async () => {
             </div>
           </template>
         </dl>
-      </div>
-    </div>
-
-    <!-- 基本信息 -->
-    <div class="card-box mt-6 p-5">
-      <h5 class="text-lg text-foreground">基本信息</h5>
-      <div class="mt-4">
-        <dl
-          v-if="!loading"
-          class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-        >
-          <template v-for="item in runtimeItems" :key="item.title">
-            <div
-              class="border-t border-border px-4 py-3 sm:col-span-1 sm:px-0"
-            >
-              <dt class="text-sm/6 font-medium text-foreground">
-                {{ item.title }}
-              </dt>
-              <dd class="mt-1 text-sm/6 text-foreground">
-                <component
-                  :is="item.content"
-                  v-if="typeof item.content === 'object'"
-                />
-                <span v-else>{{ item.content }}</span>
-              </dd>
-            </div>
-          </template>
-        </dl>
-        <div v-else class="py-8 text-center text-foreground/60">加载中...</div>
       </div>
     </div>
 

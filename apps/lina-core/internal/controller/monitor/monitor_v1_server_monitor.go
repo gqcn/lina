@@ -68,12 +68,13 @@ func (c *ControllerV1) ServerMonitor(ctx context.Context, req *v1.ServerMonitorR
 		}
 		if n.Data.GoInfo != nil {
 			item.GoInfo = &v1.GoMetrics{
-				Version:    n.Data.GoInfo.Version,
-				Goroutines: n.Data.GoInfo.Goroutines,
-				HeapAlloc:  n.Data.GoInfo.HeapAlloc,
-				HeapSys:    n.Data.GoInfo.HeapSys,
-				GCPauseNs:  n.Data.GoInfo.GCPauseNs,
-				GfVersion:  n.Data.GoInfo.GfVersion,
+				Version:       n.Data.GoInfo.Version,
+				Goroutines:    n.Data.GoInfo.Goroutines,
+				ProcessCPU:    n.Data.GoInfo.ProcessCPU,
+				ProcessMemory: n.Data.GoInfo.ProcessMemory,
+				GCPauseNs:     n.Data.GoInfo.GCPauseNs,
+				GfVersion:     n.Data.GoInfo.GfVersion,
+				ServiceUptime: n.Data.GoInfo.ServiceUptime,
 			}
 		}
 		items = append(items, item)

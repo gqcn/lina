@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/gogf/gf/v2/encoding/gjson"
@@ -17,6 +18,7 @@ import (
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/mem"
 	netutil "github.com/shirou/gopsutil/v4/net"
+	"github.com/shirou/gopsutil/v4/process"
 
 	"lina-core/internal/service/config"
 	"lina-core/internal/dao"
@@ -73,12 +75,13 @@ type NetworkInfo struct {
 }
 
 type GoRuntimeInfo struct {
-	Version    string `json:"version"`
-	Goroutines int    `json:"goroutines"`
-	HeapAlloc  uint64 `json:"heapAlloc"`
-	HeapSys    uint64 `json:"heapSys"`
-	GCPauseNs  uint64 `json:"gcPauseNs"`
-	GfVersion  string `json:"gfVersion"`
+	Version         string  `json:"version"`
+	Goroutines      int     `json:"goroutines"`
+	ProcessCPU      float64 `json:"processCpu"`
+	ProcessMemory   float64 `json:"processMemory"`
+	GCPauseNs       uint64  `json:"gcPauseNs"`
+	GfVersion       string  `json:"gfVersion"`
+	ServiceUptime   string  `json:"serviceUptime"`
 }
 
 // DBInfo represents database metrics.
@@ -275,14 +278,46 @@ func (s *Service) collectNetwork() *NetworkInfo {
 func (s *Service) collectGoRuntime() *GoRuntimeInfo {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	return &GoRuntimeInfo{
+	info := &GoRuntimeInfo{
 		Version:    runtime.Version(),
 		Goroutines: runtime.NumGoroutine(),
-		HeapAlloc:  m.HeapAlloc,
-		HeapSys:    m.HeapSys,
 		GCPauseNs:  m.PauseNs[(m.NumGC+255)%256],
 		GfVersion:  "v2.10.0",
 	}
+
+	// Collect process CPU and memory usage
+	proc, err := process.NewProcess(int32(os.Getpid()))
+	if err == nil {
+		if cpuPercent, err := proc.CPUPercent(); err == nil {
+			info.ProcessCPU = cpuPercent
+		}
+		if memPercent, err := proc.MemoryPercent(); err == nil {
+			info.ProcessMemory = float64(memPercent)
+		}
+	}
+
+	// Calculate service uptime
+	duration := time.Since(s.startTime)
+	days := int(duration.Hours()) / 24
+	hours := int(duration.Hours()) % 24
+	mins := int(duration.Minutes()) % 60
+	parts := make([]string, 0, 3)
+	if days > 0 {
+		parts = append(parts, fmt.Sprintf("%d天", days))
+	}
+	if hours > 0 {
+		parts = append(parts, fmt.Sprintf("%d小时", hours))
+	}
+	if mins > 0 {
+		parts = append(parts, fmt.Sprintf("%d分钟", mins))
+	}
+	if len(parts) == 0 {
+		info.ServiceUptime = "刚启动"
+	} else {
+		info.ServiceUptime = strings.Join(parts, " ")
+	}
+
+	return info
 }
 
 // GetDBInfo collects database metrics on-demand.

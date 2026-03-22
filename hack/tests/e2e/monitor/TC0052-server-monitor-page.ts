@@ -14,8 +14,8 @@ test.describe('TC0052 服务监控页面展示', () => {
     await adminPage.waitForTimeout(1000);
   });
 
-  test('TC0052a: 服务信息区块展示Go运行时信息', async ({ adminPage }) => {
-    // Service info section should be visible
+  test('TC0052a: 服务信息在节点展开内容中展示', async ({ adminPage }) => {
+    // Service info section should be visible inside expanded node
     await expect(adminPage.getByText('服务信息')).toBeVisible();
 
     // Should show Go version
@@ -28,11 +28,15 @@ test.describe('TC0052 服务监控页面展示', () => {
     // Should show Goroutines
     await expect(adminPage.getByText('Goroutines')).toBeVisible();
 
-    // Should show merged heap memory (使用/总量)
-    await expect(adminPage.getByText('堆内存')).toBeVisible();
+    // Should show process CPU and memory usage
+    await expect(adminPage.getByText('服务 CPU')).toBeVisible();
+    await expect(adminPage.getByText('服务内存')).toBeVisible();
 
     // Should show service start time
     await expect(adminPage.getByText('服务启动时间')).toBeVisible();
+
+    // Should show service uptime
+    await expect(adminPage.getByText('服务运行时长')).toBeVisible();
   });
 
   test('TC0052b: 服务器信息区块展示带提示图标', async ({ adminPage }) => {
