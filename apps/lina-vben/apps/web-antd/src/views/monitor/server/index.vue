@@ -243,26 +243,6 @@ const diskColumns = [
                     class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
                   >
                     <dt class="text-sm/6 font-medium text-foreground">
-                      服务 CPU
-                    </dt>
-                    <dd class="mt-1 text-sm/6 text-foreground">
-                      {{ (node.goInfo?.processCpu ?? 0).toFixed(1) }}%
-                    </dd>
-                  </div>
-                  <div
-                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
-                  >
-                    <dt class="text-sm/6 font-medium text-foreground">
-                      服务内存
-                    </dt>
-                    <dd class="mt-1 text-sm/6 text-foreground">
-                      {{ (node.goInfo?.processMemory ?? 0).toFixed(1) }}%
-                    </dd>
-                  </div>
-                  <div
-                    class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
-                  >
-                    <dt class="text-sm/6 font-medium text-foreground">
                       GC 暂停
                     </dt>
                     <dd class="mt-1 text-sm/6 text-foreground">
@@ -295,6 +275,96 @@ const diskColumns = [
                     </dd>
                   </div>
                 </dl>
+
+                <!-- 服务 CPU + 服务内存 -->
+                <div class="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <!-- 服务 CPU -->
+                  <div class="rounded-lg border border-border p-4">
+                    <h6 class="mb-3 text-sm font-medium text-foreground/70">
+                      服务 CPU
+                    </h6>
+                    <div class="flex items-center gap-6">
+                      <Progress
+                        :percent="
+                          Number(
+                            (node.goInfo?.processCpu ?? 0).toFixed(1),
+                          )
+                        "
+                        :stroke-color="
+                          getProgressColor(node.goInfo?.processCpu ?? 0)
+                        "
+                        :width="80"
+                        type="circle"
+                      />
+                      <dl class="flex-1">
+                        <div class="py-1">
+                          <dt class="text-xs text-foreground/50">已使用</dt>
+                          <dd class="text-sm text-foreground">
+                            {{
+                              (
+                                ((node.goInfo?.processCpu ?? 0) *
+                                  (node.cpu?.cores ?? 0)) /
+                                100
+                              ).toFixed(2)
+                            }}
+                            核
+                          </dd>
+                        </div>
+                        <div class="py-1">
+                          <dt class="text-xs text-foreground/50">总核心数</dt>
+                          <dd class="text-sm text-foreground">
+                            {{ node.cpu?.cores }} 核
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+
+                  <!-- 服务内存 -->
+                  <div class="rounded-lg border border-border p-4">
+                    <h6 class="mb-3 text-sm font-medium text-foreground/70">
+                      服务内存
+                    </h6>
+                    <div class="flex items-center gap-6">
+                      <Progress
+                        :percent="
+                          Number(
+                            (node.goInfo?.processMemory ?? 0).toFixed(1),
+                          )
+                        "
+                        :stroke-color="
+                          getProgressColor(
+                            node.goInfo?.processMemory ?? 0,
+                          )
+                        "
+                        :width="80"
+                        type="circle"
+                      />
+                      <dl class="flex-1">
+                        <div class="py-1">
+                          <dt class="text-xs text-foreground/50">已使用</dt>
+                          <dd class="text-sm text-foreground">
+                            {{
+                              formatBytes(
+                                (node.memory?.total ?? 0) *
+                                  (node.goInfo?.processMemory ?? 0) /
+                                  100,
+                              )
+                            }}
+                          </dd>
+                        </div>
+                        <div class="py-1">
+                          <dt class="text-xs text-foreground/50">
+                            总内存量
+                          </dt>
+                          <dd class="text-sm text-foreground">
+                            {{ formatBytes(node.memory?.total ?? 0) }}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- 基本信息 -->

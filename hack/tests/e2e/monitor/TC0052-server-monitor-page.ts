@@ -53,7 +53,7 @@ test.describe('TC0052 服务监控页面展示', () => {
   test('TC0052c: CPU和内存指标显示', async ({ adminPage }) => {
     // CPU section should be visible inside expanded node
     await expect(adminPage.getByText('CPU').first()).toBeVisible();
-    await expect(adminPage.getByText(/\d+\s*核/)).toBeVisible();
+    await expect(adminPage.getByText(/\d+\s*核/).first()).toBeVisible();
 
     // Memory section should be visible
     await expect(adminPage.getByText('内存').first()).toBeVisible();
