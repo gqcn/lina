@@ -451,7 +451,7 @@ const diskColumns = [
                 <!-- CPU -->
                 <div class="rounded-lg border border-border p-4">
                   <h6 class="mb-3 text-sm font-medium text-foreground/70">
-                    CPU
+                  系统CPU
                   </h6>
                   <div class="flex items-center gap-6">
                     <Progress
@@ -484,7 +484,7 @@ const diskColumns = [
                 <!-- 内存 -->
                 <div class="rounded-lg border border-border p-4">
                   <h6 class="mb-3 text-sm font-medium text-foreground/70">
-                    内存
+                    系统内存
                   </h6>
                   <div class="flex items-center gap-6">
                     <Progress
