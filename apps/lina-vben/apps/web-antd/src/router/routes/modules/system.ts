@@ -67,6 +67,24 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'Job',
+        path: '/system/job',
+        component: () => import('#/views/system/job/index.vue'),
+        meta: {
+          icon: 'lucide:clock',
+          title: '定时任务',
+        },
+      },
+      {
+        name: 'JobLog',
+        path: '/system/job/log',
+        component: () => import('#/views/system/job/log.vue'),
+        meta: {
+          hideInMenu: true,
+          title: '执行日志',
+        },
+      },
+      {
         name: 'MessageList',
         path: '/system/message',
         component: () => import('#/views/system/message/index.vue'),

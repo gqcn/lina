@@ -11,7 +11,7 @@ import (
 // startSessionCleanup registers the session cleanup cron job.
 func (s *Service) startSessionCleanup(ctx context.Context) {
 	sessionCfg := s.configSvc.GetSession(ctx)
-	cronPattern := fmt.Sprintf("*/%d * * * *", sessionCfg.CleanupMinute)
+	cronPattern := fmt.Sprintf("0 */%d * * * *", sessionCfg.CleanupMinute)
 	_, err := gcron.Add(ctx, cronPattern, func(ctx context.Context) {
 		cleaned, cleanErr := s.sessionStore.CleanupInactive(ctx, sessionCfg.TimeoutHour)
 		if cleanErr != nil {
