@@ -58,6 +58,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'ConfigManagement',
+        path: '/system/config',
+        component: () => import('#/views/system/config/index.vue'),
+        meta: {
+          icon: 'lucide:sliders-horizontal',
+          title: '参数设置',
+        },
+      },
+      {
         name: 'FileManagement',
         path: '/system/file',
         component: () => import('#/views/system/file/index.vue'),

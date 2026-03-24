@@ -12,6 +12,7 @@ import (
 	"github.com/gogf/gf/v2/os/gfile"
 
 	"lina-core/internal/controller/auth"
+	configctrl "lina-core/internal/controller/config"
 	"lina-core/internal/controller/dept"
 	"lina-core/internal/controller/dict"
 	filectrl "lina-core/internal/controller/file"
@@ -131,6 +132,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				sysinfo.NewV1(),
 				filectrl.NewV1(),
 				monitorctrl.NewV1(),
+				configctrl.NewV1(),
 			)
 		})
 	})
