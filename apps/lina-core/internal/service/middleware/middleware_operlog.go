@@ -21,9 +21,11 @@ func (s *Service) OperLog(r *ghttp.Request) {
 	r.Middleware.Next()
 
 	// Collect all data synchronously (r.Response buffer is only available now)
-	method := r.Method
-	handler := r.GetServeHandler()
-	operLogTag := ""
+	var (
+		method     = r.Method
+		handler    = r.GetServeHandler()
+		operLogTag = ""
+	)
 	if handler != nil {
 		operLogTag = handler.GetMetaTag("operLog")
 	}
@@ -51,7 +53,6 @@ func (s *Service) OperLog(r *ghttp.Request) {
 	}
 
 	operType := inferOperType(method, r.URL.Path, operLogTag)
-
 	operName := ""
 	if bizCtx := s.bizCtxSvc.Get(r.Context()); bizCtx != nil {
 		operName = bizCtx.Username

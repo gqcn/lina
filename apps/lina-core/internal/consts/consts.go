@@ -6,6 +6,7 @@ const (
 
 	// UserStatusNormal represents a normal user status.
 	UserStatusNormal = 1
+
 	// UserStatusDisabled represents a disabled user status.
 	UserStatusDisabled = 0
 

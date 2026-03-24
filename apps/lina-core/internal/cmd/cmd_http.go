@@ -50,10 +50,20 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	// Enhance OpenAPI documentation with config values and JWT security scheme.
 	m.enhanceOpenAPIDocs(ctx, s, configSvc)
 
+	// =============================================================================================
+	// Dynamic routes registering.
+	// =============================================================================================
+
 	s.Group("/api/v1", func(group *ghttp.RouterGroup) {
-		// Static file serving for uploads (no JSON wrapper)
+		group.Middleware(
+			ghttp.MiddlewareNeverDoneCtx,
+			ghttp.MiddlewareHandlerResponse,
+			middlewareSvc.CORS,
+			middlewareSvc.Ctx,
+		)
+
+		// Static file serving for uploads.
 		group.Group("/uploads", func(group *ghttp.RouterGroup) {
-			group.Middleware(middlewareSvc.CORS)
 			group.ALL("/*any", func(r *ghttp.Request) {
 				var (
 					uploadCfg  = configSvc.GetUpload(r.Context())
@@ -70,28 +80,19 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 			})
 		})
 
-		group.Middleware(
-			ghttp.MiddlewareNeverDoneCtx,
-			ghttp.MiddlewareHandlerResponse,
-			middlewareSvc.CORS,
-			middlewareSvc.Ctx,
-		)
-
 		// Public routes (no auth required)
 		group.Group("/", func(group *ghttp.RouterGroup) {
-			group.ALLMap(g.Map{
-				"POST:/auth/login": authCtrl.Login,
-			})
+			group.Bind(authCtrl.Login)
 		})
 
 		// Protected routes (auth required)
 		group.Group("/", func(group *ghttp.RouterGroup) {
-			group.Middleware(middlewareSvc.Auth)
-			group.Middleware(middlewareSvc.OperLog)
-			group.ALLMap(g.Map{
-				"POST:/auth/logout": authCtrl.Logout,
-			})
+			group.Middleware(
+				middlewareSvc.Auth,
+				middlewareSvc.OperLog,
+			)
 			group.Bind(
+				authCtrl.Logout,
 				user.NewV1(),
 				dict.NewV1(),
 				dept.NewV1(),
@@ -107,6 +108,10 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 			)
 		})
 	})
+
+	// =============================================================================================
+	// Static service for frontend assets.
+	// =============================================================================================
 
 	// Serve embedded frontend static files
 	subFS, _ := fs.Sub(packed.Files, "public")
