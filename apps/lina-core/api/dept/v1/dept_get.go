@@ -13,6 +13,7 @@ type GetReq struct {
 	Id     int `json:"id" v:"required" dc:"部门ID" eg:"100"`
 }
 
+// GetRes 部门详情响应
 type GetRes struct {
-	*entity.SysDept `dc:"部门详细信息，包含部门的所有字段数据"`
+	*entity.SysDept `dc:"部门详细信息，包含部门的所有字段数据" eg:""`
 }

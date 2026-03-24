@@ -14,7 +14,8 @@ type ListReq struct {
 	PageSize int `json:"pageSize" d:"10" v:"min:1|max:100" dc:"每页条数" eg:"10"`
 }
 
+// ListRes 用户消息列表响应
 type ListRes struct {
-	List  []*entity.SysUserMessage `json:"list" dc:"消息列表"`
+	List  []*entity.SysUserMessage `json:"list" dc:"消息列表" eg:"[]"`
 	Total int                      `json:"total" dc:"总条数" eg:"20"`
 }

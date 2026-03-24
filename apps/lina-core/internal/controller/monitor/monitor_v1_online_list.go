@@ -7,6 +7,7 @@ import (
 	"lina-core/internal/service/session"
 )
 
+// OnlineList 查询在线用户列表
 func (c *ControllerV1) OnlineList(ctx context.Context, req *v1.OnlineListReq) (res *v1.OnlineListRes, err error) {
 	sessions, err := c.sessionStore().List(ctx, &session.ListFilter{
 		Username: req.Username,

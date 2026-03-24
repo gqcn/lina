@@ -10,6 +10,7 @@ type LoginReq struct {
 	Password string `json:"password" v:"required#请输入密码" dc:"密码" eg:"admin123"`
 }
 
+// LoginRes 登录响应
 type LoginRes struct {
 	AccessToken string `json:"accessToken" dc:"JWT令牌" eg:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 }

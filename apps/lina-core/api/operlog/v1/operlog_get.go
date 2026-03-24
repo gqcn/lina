@@ -13,6 +13,7 @@ type GetReq struct {
 	Id     int `json:"id" v:"required" dc:"操作日志ID" eg:"1"`
 }
 
+// GetRes 操作日志详情响应
 type GetRes struct {
 	*entity.SysOperLog
 }

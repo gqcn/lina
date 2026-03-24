@@ -8,8 +8,8 @@ import (
 
 // SessionConfig holds session management configuration.
 type SessionConfig struct {
-	TimeoutHour   int `json:"timeoutHour"`
-	CleanupMinute int `json:"cleanupMinute"`
+	TimeoutHour   int `json:"timeoutHour"`   // 会话超时时间（小时）
+	CleanupMinute int `json:"cleanupMinute"` // 清理间隔（分钟）
 }
 
 // GetSession reads session config from configuration file.

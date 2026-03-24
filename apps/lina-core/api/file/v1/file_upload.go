@@ -11,6 +11,7 @@ type UploadReq struct {
 	Scene  string `json:"scene" v:"required" dc:"使用场景标识（必填）：avatar=用户头像 notice_image=通知公告图片 notice_attachment=通知公告附件 other=其他" eg:"avatar"`
 }
 
+// UploadRes 文件上传响应
 type UploadRes struct {
 	Id       int64  `json:"id" dc:"文件ID" eg:"1"`
 	Name     string `json:"name" dc:"存储文件名" eg:"20260319_abc12345.png"`

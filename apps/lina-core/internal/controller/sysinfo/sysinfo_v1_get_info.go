@@ -6,6 +6,7 @@ import (
 	"lina-core/api/sysinfo/v1"
 )
 
+// GetInfo 获取系统信息
 func (c *ControllerV1) GetInfo(ctx context.Context, req *v1.GetInfoReq) (res *v1.GetInfoRes, err error) {
 	info, err := c.sysInfoSvc.GetInfo(ctx)
 	if err != nil {

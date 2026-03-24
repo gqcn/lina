@@ -11,4 +11,5 @@ type ReadReq struct {
 	Id     int64 `json:"id" v:"required" dc:"消息ID" eg:"1"`
 }
 
+// ReadRes 标记消息已读响应
 type ReadRes struct{}

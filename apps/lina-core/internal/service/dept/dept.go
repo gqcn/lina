@@ -24,28 +24,28 @@ func New() *Service {
 
 // TreeNode defines the tree structure for dept.
 type TreeNode struct {
-	Id        int         `json:"id"`
-	Label     string      `json:"label"`
-	UserCount int         `json:"userCount"`
-	Children  []*TreeNode `json:"children"`
+	Id        int         `json:"id"`        // 部门ID
+	Label     string      `json:"label"`     // 部门名称（含用户数）
+	UserCount int         `json:"userCount"` // 用户数量
+	Children  []*TreeNode `json:"children"`  // 子部门列表
 }
 
 // DeptUser defines the user info in a dept.
 type DeptUser struct {
-	Id       int    `json:"id"`
-	Username string `json:"username"`
-	Nickname string `json:"nickname"`
+	Id       int    `json:"id"`       // 用户ID
+	Username string `json:"username"` // 用户名
+	Nickname string `json:"nickname"` // 昵称
 }
 
 // ListInput defines input for List function.
 type ListInput struct {
-	Name   string
-	Status *int
+	Name   string // 部门名称，支持模糊查询
+	Status *int   // 状态：1=正常 0=停用
 }
 
 // ListOutput defines output for List function.
 type ListOutput struct {
-	List []*entity.SysDept
+	List []*entity.SysDept // 部门列表
 }
 
 // List queries dept list with filters.
@@ -77,15 +77,15 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 
 // CreateInput defines input for Create function.
 type CreateInput struct {
-	ParentId int
-	Name     string
-	Code     string
-	OrderNum int
-	Leader   int
-	Phone    string
-	Email    string
-	Status   int
-	Remark   string
+	ParentId int    // 父部门ID，0表示顶级部门
+	Name     string // 部门名称
+	Code     string // 部门编码
+	OrderNum int    // 显示顺序
+	Leader   int    // 负责人用户ID
+	Phone    string // 联系电话
+	Email    string // 邮箱
+	Status   int    // 状态：1=正常 0=停用
+	Remark   string // 备注
 }
 
 // Create creates a new dept.
@@ -150,16 +150,16 @@ func (s *Service) GetById(ctx context.Context, id int) (*entity.SysDept, error) 
 
 // UpdateInput defines input for Update function.
 type UpdateInput struct {
-	Id       int
-	ParentId *int
-	Name     *string
-	Code     *string
-	OrderNum *int
-	Leader   *int
-	Phone    *string
-	Email    *string
-	Status   *int
-	Remark   *string
+	Id       int     // 部门ID
+	ParentId *int    // 父部门ID
+	Name     *string // 部门名称
+	Code     *string // 部门编码
+	OrderNum *int    // 显示顺序
+	Leader   *int    // 负责人用户ID
+	Phone    *string // 联系电话
+	Email    *string // 邮箱
+	Status   *int    // 状态：1=正常 0=停用
+	Remark   *string // 备注
 }
 
 // Update updates dept information.
@@ -331,7 +331,7 @@ func (s *Service) Tree(ctx context.Context) ([]*TreeNode, error) {
 
 // ExcludeInput defines input for Exclude function.
 type ExcludeInput struct {
-	Id int
+	Id int // 要排除的部门ID
 }
 
 // Exclude returns dept list excluding specified dept and its descendants.

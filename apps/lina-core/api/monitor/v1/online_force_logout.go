@@ -9,4 +9,5 @@ type OnlineForceLogoutReq struct {
 	TokenId string `json:"tokenId" v:"required#请指定会话ID" dc:"要强制下线的会话Token ID" eg:"abc123"`
 }
 
+// OnlineForceLogoutRes 强制下线响应
 type OnlineForceLogoutRes struct{}

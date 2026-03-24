@@ -8,6 +8,7 @@ import (
 	v1 "lina-core/api/user/v1"
 )
 
+// ImportTemplate 下载用户导入模板
 func (c *ControllerV1) ImportTemplate(ctx context.Context, req *v1.ImportTemplateReq) (res *v1.ImportTemplateRes, err error) {
 	data, err := c.userSvc.GenerateImportTemplate()
 	if err != nil {

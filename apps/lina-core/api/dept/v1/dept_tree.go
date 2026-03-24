@@ -11,6 +11,7 @@ type TreeReq struct {
 	g.Meta `path:"/dept/tree" method:"get" tags:"部门管理" summary:"获取部门树" dc:"获取完整的部门树形结构数据，用于前端TreeSelect下拉选择组件展示，仅包含正常状态的部门"`
 }
 
+// TreeNode 部门树节点
 type TreeNode struct {
 	Id       int         `json:"id" dc:"部门ID" eg:"100"`
 	Label    string      `json:"label" dc:"部门名称，用于前端树形组件显示" eg:"总公司"`

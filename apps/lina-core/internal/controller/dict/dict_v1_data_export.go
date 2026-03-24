@@ -10,6 +10,7 @@ import (
 	dictsvc "lina-core/internal/service/dict"
 )
 
+// DataExport 导出字典数据
 func (c *ControllerV1) DataExport(ctx context.Context, req *v1.DataExportReq) (res *v1.DataExportRes, err error) {
 	data, err := c.dictSvc.DataExport(ctx, dictsvc.DataExportInput{
 		DictType: req.DictType,

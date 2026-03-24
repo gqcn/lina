@@ -18,4 +18,5 @@ type ExportReq struct {
 	OrderDirection string `json:"orderDirection" d:"desc" dc:"排序方向：asc或desc" eg:"desc"`
 }
 
+// ExportRes 操作日志导出响应
 type ExportRes struct{}

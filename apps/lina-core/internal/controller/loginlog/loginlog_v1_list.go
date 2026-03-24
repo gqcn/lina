@@ -7,6 +7,7 @@ import (
 	loginlogsvc "lina-core/internal/service/loginlog"
 )
 
+// List 查询登录日志列表
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
 	out, err := c.loginLogSvc.List(ctx, loginlogsvc.ListInput{
 		PageNum:        req.PageNum,

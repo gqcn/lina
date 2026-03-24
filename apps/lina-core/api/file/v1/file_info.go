@@ -13,6 +13,7 @@ type InfoByIdsReq struct {
 	Ids    string `json:"ids" v:"required" dc:"文件ID，多个用逗号分隔" eg:"1,2,3"`
 }
 
+// InfoByIdsRes 文件信息响应
 type InfoByIdsRes struct {
-	List []*entity.SysFile `json:"list" dc:"文件信息列表"`
+	List []*entity.SysFile `json:"list" dc:"文件信息列表" eg:"[]"`
 }

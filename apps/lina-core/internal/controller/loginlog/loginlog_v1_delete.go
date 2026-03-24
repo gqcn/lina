@@ -9,6 +9,7 @@ import (
 	v1 "lina-core/api/loginlog/v1"
 )
 
+// Delete 删除登录日志
 func (c *ControllerV1) Delete(ctx context.Context, req *v1.DeleteReq) (res *v1.DeleteRes, err error) {
 	idStrs := gstr.SplitAndTrim(req.Ids, ",")
 	ids := make([]int, 0, len(idStrs))

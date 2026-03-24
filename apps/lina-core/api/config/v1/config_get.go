@@ -14,7 +14,7 @@ type GetReq struct {
 	Id     int `json:"id" v:"required" dc:"参数ID" eg:"1"`
 }
 
-// GetRes defines the response for getting config detail.
+// GetRes 参数设置详情响应
 type GetRes struct {
-	*entity.SysConfig `dc:"参数设置信息"`
+	*entity.SysConfig `dc:"参数设置信息" eg:""`
 }

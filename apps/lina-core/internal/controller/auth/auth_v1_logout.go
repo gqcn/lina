@@ -6,6 +6,7 @@ import (
 	v1 "lina-core/api/auth/v1"
 )
 
+// Logout 用户登出
 func (c *ControllerV1) Logout(ctx context.Context, req *v1.LogoutReq) (res *v1.LogoutRes, err error) {
 	// Record logout log and delete session
 	if bizCtx := c.bizCtxSvc.Get(ctx); bizCtx != nil {

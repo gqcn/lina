@@ -11,4 +11,5 @@ type DeleteReq struct {
 	Id     int64 `json:"id" v:"required" dc:"消息ID" eg:"1"`
 }
 
+// DeleteRes 删除消息响应
 type DeleteRes struct{}

@@ -9,10 +9,12 @@ import (
 	operlogsvc "lina-core/internal/service/operlog"
 )
 
+// ControllerV1 操作日志控制器
 type ControllerV1 struct {
-	operLogSvc *operlogsvc.Service
+	operLogSvc *operlogsvc.Service // 操作日志服务
 }
 
+// NewV1 创建操作日志控制器实例
 func NewV1() operlog.IOperlogV1 {
 	return &ControllerV1{
 		operLogSvc: operlogsvc.New(),

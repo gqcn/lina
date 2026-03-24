@@ -9,10 +9,12 @@ import (
 	loginlogsvc "lina-core/internal/service/loginlog"
 )
 
+// ControllerV1 登录日志控制器
 type ControllerV1 struct {
-	loginLogSvc *loginlogsvc.Service
+	loginLogSvc *loginlogsvc.Service // 登录日志服务
 }
 
+// NewV1 创建登录日志控制器实例
 func NewV1() loginlog.ILoginlogV1 {
 	return &ControllerV1{
 		loginLogSvc: loginlogsvc.New(),

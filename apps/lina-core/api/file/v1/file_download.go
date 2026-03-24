@@ -11,6 +11,7 @@ type DownloadReq struct {
 	Id     int64 `json:"id" v:"required" dc:"文件ID" eg:"1"`
 }
 
+// DownloadRes 文件下载响应
 type DownloadRes struct {
 	g.Meta `mime:"application/octet-stream"`
 }

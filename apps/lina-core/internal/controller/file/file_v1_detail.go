@@ -6,6 +6,7 @@ import (
 	v1 "lina-core/api/file/v1"
 )
 
+// Detail 获取文件详情
 func (c *ControllerV1) Detail(ctx context.Context, req *v1.DetailReq) (res *v1.DetailRes, err error) {
 	out, err := c.fileSvc.Detail(ctx, req.Id)
 	if err != nil {

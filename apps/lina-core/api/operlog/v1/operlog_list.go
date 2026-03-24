@@ -22,7 +22,8 @@ type ListReq struct {
 	OrderDirection string `json:"orderDirection" d:"desc" dc:"排序方向：asc或desc" eg:"desc"`
 }
 
+// ListRes 操作日志列表响应
 type ListRes struct {
-	Items []*entity.SysOperLog `json:"items" dc:"操作日志列表"`
+	Items []*entity.SysOperLog `json:"items" dc:"操作日志列表" eg:"[]"`
 	Total int                  `json:"total" dc:"总条数" eg:"500"`
 }

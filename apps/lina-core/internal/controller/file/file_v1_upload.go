@@ -9,6 +9,7 @@ import (
 	filesvc "lina-core/internal/service/file"
 )
 
+// Upload 上传文件
 func (c *ControllerV1) Upload(ctx context.Context, req *v1.UploadReq) (res *v1.UploadRes, err error) {
 	r := g.RequestFromCtx(ctx)
 	uploadFile := r.GetUploadFile("file")

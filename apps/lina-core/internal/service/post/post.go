@@ -24,18 +24,18 @@ func New() *Service {
 
 // ListInput defines input for List function.
 type ListInput struct {
-	PageNum  int
-	PageSize int
-	DeptId   *int
-	Code     string
-	Name     string
-	Status   *int
+	PageNum  int    // 页码，从1开始
+	PageSize int    // 每页数量
+	DeptId   *int   // 部门ID，0表示未分配部门
+	Code     string // 岗位编码，支持模糊查询
+	Name     string // 岗位名称，支持模糊查询
+	Status   *int   // 状态：1=正常 0=停用
 }
 
 // ListOutput defines output for List function.
 type ListOutput struct {
-	List  []*entity.SysPost
-	Total int
+	List  []*entity.SysPost // 岗位列表
+	Total int               // 总数
 }
 
 // List queries post list with pagination and filters.
@@ -92,12 +92,12 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 
 // CreateInput defines input for Create function.
 type CreateInput struct {
-	DeptId int
-	Code   string
-	Name   string
-	Sort   int
-	Status int
-	Remark string
+	DeptId int    // 部门ID，0表示未分配部门
+	Code   string // 岗位编码
+	Name   string // 岗位名称
+	Sort   int    // 显示顺序
+	Status int    // 状态：1=正常 0=停用
+	Remark string // 备注
 }
 
 // Create creates a new post.
@@ -152,13 +152,13 @@ func (s *Service) GetById(ctx context.Context, id int) (*entity.SysPost, error) 
 
 // UpdateInput defines input for Update function.
 type UpdateInput struct {
-	Id     int
-	DeptId *int
-	Code   *string
-	Name   *string
-	Sort   *int
-	Status *int
-	Remark *string
+	Id     int      // 岗位ID
+	DeptId *int     // 部门ID
+	Code   *string  // 岗位编码
+	Name   *string  // 岗位名称
+	Sort   *int     // 显示顺序
+	Status *int     // 状态：1=正常 0=停用
+	Remark *string  // 备注
 }
 
 // Update updates post information.
@@ -237,10 +237,10 @@ func (s *Service) Delete(ctx context.Context, ids string) error {
 
 // DeptTreeNode defines a department tree node.
 type DeptTreeNode struct {
-	Id        int             `json:"id"`
-	Label     string          `json:"label"`
-	PostCount int             `json:"postCount"`
-	Children  []*DeptTreeNode `json:"children"`
+	Id        int             `json:"id"`        // 部门ID
+	Label     string          `json:"label"`     // 部门名称（含岗位数）
+	PostCount int             `json:"postCount"` // 岗位数量
+	Children  []*DeptTreeNode `json:"children"`  // 子部门列表
 }
 
 // DeptTree returns department tree structure with "未分配部门" virtual node.
@@ -285,8 +285,8 @@ func (s *Service) DeptTree(ctx context.Context) ([]*DeptTreeNode, error) {
 
 	// Count posts per dept
 	type DeptCount struct {
-		DeptId int `json:"dept_id"`
-		Cnt    int `json:"cnt"`
+		DeptId int `json:"dept_id"` // 部门ID
+		Cnt    int `json:"cnt"`     // 岗位数量
 	}
 	var counts []DeptCount
 	postCols := dao.SysPost.Columns()
@@ -327,13 +327,13 @@ func (s *Service) DeptTree(ctx context.Context) ([]*DeptTreeNode, error) {
 
 // PostOption defines a post option for select dropdown.
 type PostOption struct {
-	PostId   int    `json:"postId"`
-	PostName string `json:"postName"`
+	PostId   int    `json:"postId"`   // 岗位ID
+	PostName string `json:"postName"` // 岗位名称
 }
 
 // OptionSelectInput defines input for OptionSelect function.
 type OptionSelectInput struct {
-	DeptId *int
+	DeptId *int // 部门ID
 }
 
 // OptionSelect returns post options for select dropdown.

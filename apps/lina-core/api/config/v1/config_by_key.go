@@ -14,7 +14,7 @@ type ByKeyReq struct {
 	Key    string `json:"key" v:"required" dc:"参数键名" eg:"sys.user.initPassword"`
 }
 
-// ByKeyRes defines the response for getting config by key name.
+// ByKeyRes 按键名查询参数响应
 type ByKeyRes struct {
-	*entity.SysConfig `dc:"参数设置信息"`
+	*entity.SysConfig `dc:"参数设置信息" eg:""`
 }

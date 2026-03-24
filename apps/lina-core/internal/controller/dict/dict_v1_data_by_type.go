@@ -6,6 +6,7 @@ import (
 	v1 "lina-core/api/dict/v1"
 )
 
+// DataByType 根据字典类型获取字典数据
 func (c *ControllerV1) DataByType(ctx context.Context, req *v1.DataByTypeReq) (res *v1.DataByTypeRes, err error) {
 	list, err := c.dictSvc.DataByType(ctx, req.DictType)
 	if err != nil {

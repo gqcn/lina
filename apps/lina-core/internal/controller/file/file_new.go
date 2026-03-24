@@ -9,10 +9,12 @@ import (
 	filesvc "lina-core/internal/service/file"
 )
 
+// ControllerV1 文件控制器
 type ControllerV1 struct {
-	fileSvc *filesvc.Service
+	fileSvc *filesvc.Service // 文件服务
 }
 
+// NewV1 创建文件控制器实例
 func NewV1() file.IFileV1 {
 	return &ControllerV1{
 		fileSvc: filesvc.New(),

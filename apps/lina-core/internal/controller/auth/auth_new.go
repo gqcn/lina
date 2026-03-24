@@ -10,11 +10,13 @@ import (
 	"lina-core/internal/service/bizctx"
 )
 
+// ControllerV1 认证控制器
 type ControllerV1 struct {
-	authSvc   *authsvc.Service
-	bizCtxSvc *bizctx.Service
+	authSvc   *authsvc.Service  // 认证服务
+	bizCtxSvc *bizctx.Service   // 业务上下文服务
 }
 
+// NewV1 创建认证控制器实例
 func NewV1() authapi.IAuthV1 {
 	return &ControllerV1{
 		authSvc:   authsvc.New(),

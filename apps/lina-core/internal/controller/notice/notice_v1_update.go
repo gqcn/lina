@@ -7,6 +7,7 @@ import (
 	noticesvc "lina-core/internal/service/notice"
 )
 
+// Update 更新公告
 func (c *ControllerV1) Update(ctx context.Context, req *v1.UpdateReq) (res *v1.UpdateRes, err error) {
 	err = c.noticeSvc.Update(ctx, noticesvc.UpdateInput{
 		Id:      req.Id,

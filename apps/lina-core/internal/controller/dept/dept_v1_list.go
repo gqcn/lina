@@ -7,6 +7,7 @@ import (
 	deptsvc "lina-core/internal/service/dept"
 )
 
+// List 查询部门列表
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
 	out, err := c.deptSvc.List(ctx, deptsvc.ListInput{
 		Name:   req.Name,

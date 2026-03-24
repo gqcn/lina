@@ -16,6 +16,7 @@ type CreateReq struct {
 	Remark  string `json:"remark" dc:"备注" eg:"紧急通知"`
 }
 
+// CreateRes 通知公告创建响应
 type CreateRes struct {
 	Id int64 `json:"id" dc:"公告ID" eg:"1"`
 }

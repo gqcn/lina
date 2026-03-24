@@ -10,11 +10,13 @@ type OnlineListReq struct {
 	Ip       string `json:"ip" dc:"按IP地址模糊过滤，不传则查询全部" eg:"127.0.0.1"`
 }
 
+// OnlineListRes 在线用户列表响应
 type OnlineListRes struct {
-	Items []*OnlineUserItem `json:"items" dc:"在线用户列表"`
+	Items []*OnlineUserItem `json:"items" dc:"在线用户列表" eg:"[]"`
 	Total int               `json:"total" dc:"在线用户总数" eg:"5"`
 }
 
+// OnlineUserItem 在线用户项
 type OnlineUserItem struct {
 	TokenId   string `json:"tokenId" dc:"会话Token ID" eg:"abc123"`
 	Username  string `json:"username" dc:"登录账号" eg:"admin"`

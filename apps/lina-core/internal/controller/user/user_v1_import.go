@@ -9,6 +9,7 @@ import (
 	v1 "lina-core/api/user/v1"
 )
 
+// Import 导入用户
 func (c *ControllerV1) Import(ctx context.Context, req *v1.ImportReq) (res *v1.ImportRes, err error) {
 	r := g.RequestFromCtx(ctx)
 	file := r.GetUploadFile("file")

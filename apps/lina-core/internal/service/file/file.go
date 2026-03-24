@@ -22,14 +22,14 @@ import (
 )
 
 const (
-	EngineLocal = "local"
+	EngineLocal = "local" // 本地存储引擎标识
 )
 
 // Service provides file management operations.
 type Service struct {
-	configSvc *config.Service
-	storage   Storage
-	bizCtxSvc *bizctx.Service
+	configSvc *config.Service   // 配置服务
+	storage   Storage           // 存储后端
+	bizCtxSvc *bizctx.Service   // 业务上下文服务
 }
 
 // New creates and returns a new Service instance with local storage.
@@ -44,18 +44,18 @@ func New() *Service {
 
 // UploadInput defines input for file upload.
 type UploadInput struct {
-	File  *ghttp.UploadFile
-	Scene string
+	File  *ghttp.UploadFile // 上传的文件
+	Scene string            // 使用场景
 }
 
 // UploadOutput defines output for file upload.
 type UploadOutput struct {
-	Id       int64  `json:"id"`
-	Name     string `json:"name"`
-	Original string `json:"original"`
-	Url      string `json:"url"`
-	Suffix   string `json:"suffix"`
-	Size     int64  `json:"size"`
+	Id       int64  `json:"id"`       // 文件ID
+	Name     string `json:"name"`     // 存储文件名
+	Original string `json:"original"` // 原始文件名
+	Url      string `json:"url"`      // 文件访问URL
+	Suffix   string `json:"suffix"`   // 文件后缀
+	Size     int64  `json:"size"`     // 文件大小（字节）
 }
 
 // Upload handles file upload: computes SHA-256 hash, checks for duplicates, saves file via storage backend and records metadata in DB.
@@ -184,28 +184,28 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 
 // ListInput defines input for file list query.
 type ListInput struct {
-	PageNum        int
-	PageSize       int
-	Name           string
-	Original       string
-	Suffix         string
-	Scene          string
-	BeginTime      string
-	EndTime        string
-	OrderBy        string
-	OrderDirection string
+	PageNum        int    // 页码，从1开始
+	PageSize       int    // 每页数量
+	Name           string // 存储文件名，支持模糊查询
+	Original       string // 原始文件名，支持模糊查询
+	Suffix         string // 文件后缀
+	Scene          string // 使用场景
+	BeginTime      string // 创建时间起始
+	EndTime        string // 创建时间结束
+	OrderBy        string // 排序字段
+	OrderDirection string // 排序方向：asc/desc
 }
 
 // ListOutput defines output for file list.
 type ListOutput struct {
-	List  []*ListOutputItem `json:"list"`
-	Total int               `json:"total"`
+	List  []*ListOutputItem `json:"list"`  // 文件列表
+	Total int               `json:"total"` // 总数
 }
 
 // ListOutputItem defines a single file item in list output.
 type ListOutputItem struct {
-	*entity.SysFile
-	CreatedByName string `json:"createdByName"`
+	*entity.SysFile                 // 文件实体
+	CreatedByName    string `json:"createdByName"` // 上传者用户名
 }
 
 // List returns paginated file records.
@@ -406,8 +406,8 @@ func SceneLabel(scene string) string {
 
 // UsageScenesOutput defines output for usage scenes list.
 type UsageScenesOutput struct {
-	Value string `json:"value"`
-	Label string `json:"label"`
+	Value string `json:"value"` // 场景标识
+	Label string `json:"label"` // 场景名称
 }
 
 // UsageScenes returns all predefined usage scenes from SceneLabelMap.
@@ -424,8 +424,8 @@ func (s *Service) UsageScenes(ctx context.Context) ([]*UsageScenesOutput, error)
 
 // SuffixesOutput defines output for file suffix list.
 type SuffixesOutput struct {
-	Value string `json:"value"`
-	Label string `json:"label"`
+	Value string `json:"value"` // 后缀名
+	Label string `json:"label"` // 显示名称
 }
 
 // Suffixes returns distinct file suffixes from the database.
@@ -454,9 +454,9 @@ func (s *Service) Suffixes(ctx context.Context) ([]*SuffixesOutput, error) {
 
 // DetailOutput defines output for file detail.
 type DetailOutput struct {
-	*entity.SysFile
-	CreatedByName string `json:"createdByName"`
-	SceneLabel    string `json:"sceneLabel"`
+	*entity.SysFile                    // 文件实体
+	CreatedByName    string `json:"createdByName"` // 上传者用户名
+	SceneLabel       string `json:"sceneLabel"`    // 使用场景名称
 }
 
 // Detail returns file info with scene label.

@@ -24,13 +24,15 @@ type ListReq struct {
 	OrderDirection string `json:"orderDirection" d:"desc" dc:"排序方向：asc或desc" eg:"desc"`
 }
 
+// ListItem 用户列表项
 type ListItem struct {
 	*entity.SysUser
 	DeptId   int    `json:"deptId" dc:"部门ID" eg:"100"`
 	DeptName string `json:"deptName" dc:"部门名称" eg:"技术部"`
 }
 
+// ListRes 用户列表响应
 type ListRes struct {
-	List  []*ListItem `json:"list" dc:"用户列表"`
+	List  []*ListItem `json:"list" dc:"用户列表" eg:"[]"`
 	Total int         `json:"total" dc:"总条数" eg:"100"`
 }

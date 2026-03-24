@@ -11,4 +11,5 @@ type DeleteReq struct {
 	Ids    string `json:"ids" v:"required" dc:"公告ID，多个用逗号分隔" eg:"1,2,3"`
 }
 
+// DeleteRes 通知公告删除响应
 type DeleteRes struct{}

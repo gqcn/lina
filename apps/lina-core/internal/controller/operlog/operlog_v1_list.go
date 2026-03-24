@@ -7,6 +7,7 @@ import (
 	operlogsvc "lina-core/internal/service/operlog"
 )
 
+// List 查询操作日志列表
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
 	out, err := c.operLogSvc.List(ctx, operlogsvc.ListInput{
 		PageNum:        req.PageNum,

@@ -7,6 +7,7 @@ import (
 	usersvc "lina-core/internal/service/user"
 )
 
+// Create 创建用户
 func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.CreateRes, err error) {
 	status := 1
 	if req.Status != nil {

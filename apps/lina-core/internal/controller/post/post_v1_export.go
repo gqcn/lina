@@ -10,6 +10,7 @@ import (
 	postsvc "lina-core/internal/service/post"
 )
 
+// Export 导出岗位
 func (c *ControllerV1) Export(ctx context.Context, req *v1.ExportReq) (res *v1.ExportRes, err error) {
 	data, err := c.postSvc.Export(ctx, postsvc.ExportInput{
 		DeptId: req.DeptId,

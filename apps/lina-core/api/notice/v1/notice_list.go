@@ -17,11 +17,13 @@ type ListReq struct {
 	CreatedBy string `json:"createdBy" dc:"按创建人用户名筛选" eg:"admin"`
 }
 
+// ListRes 通知公告列表响应
 type ListRes struct {
-	List  []*ListItem `json:"list" dc:"通知公告列表"`
+	List  []*ListItem `json:"list" dc:"通知公告列表" eg:"[]"`
 	Total int         `json:"total" dc:"总条数" eg:"20"`
 }
 
+// ListItem 通知公告列表项
 type ListItem struct {
 	*entity.SysNotice
 	CreatedByName string `json:"createdByName" dc:"创建者用户名" eg:"admin"`

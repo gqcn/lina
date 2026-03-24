@@ -16,7 +16,7 @@ import (
 
 // Service provides notice management operations.
 type Service struct {
-	bizCtxSvc *bizctx.Service
+	bizCtxSvc *bizctx.Service // 业务上下文服务
 }
 
 // New creates and returns a new Service instance.
@@ -28,23 +28,23 @@ func New() *Service {
 
 // ListInput defines input for List function.
 type ListInput struct {
-	PageNum   int
-	PageSize  int
-	Title     string
-	Type      int
-	CreatedBy string
+	PageNum   int    // 页码，从1开始
+	PageSize  int    // 每页数量
+	Title     string // 标题，支持模糊查询
+	Type      int    // 类型：1=通知 2=公告
+	CreatedBy string // 创建者用户名，支持模糊查询
 }
 
 // ListItem defines a single list item.
 type ListItem struct {
-	*entity.SysNotice
-	CreatedByName string
+	*entity.SysNotice              // 通知公告实体
+	CreatedByName    string `json:"createdByName"` // 创建者用户名
 }
 
 // ListOutput defines output for List function.
 type ListOutput struct {
-	List  []*ListItem
-	Total int
+	List  []*ListItem // 列表
+	Total int         // 总数
 }
 
 // List queries notice list with pagination and filters.
@@ -161,12 +161,12 @@ func (s *Service) GetById(ctx context.Context, id int64) (*ListItem, error) {
 
 // CreateInput defines input for Create function.
 type CreateInput struct {
-	Title   string
-	Type    int
-	Content string
-	FileIds string
-	Status  int
-	Remark  string
+	Title   string // 标题
+	Type    int    // 类型：1=通知 2=公告
+	Content string // 内容
+	FileIds string // 附件文件ID，逗号分隔
+	Status  int    // 状态：0=草稿 1=已发布
+	Remark  string // 备注
 }
 
 // Create creates a new notice.
@@ -205,13 +205,13 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int64, error) {
 
 // UpdateInput defines input for Update function.
 type UpdateInput struct {
-	Id      int64
-	Title   *string
-	Type    *int
-	Content *string
-	FileIds *string
-	Status  *int
-	Remark  *string
+	Id      int64   // 通知公告ID
+	Title   *string // 标题
+	Type    *int    // 类型：1=通知 2=公告
+	Content *string // 内容
+	FileIds *string // 附件文件ID，逗号分隔
+	Status  *int    // 状态：0=草稿 1=已发布
+	Remark  *string // 备注
 }
 
 // Update updates notice information.

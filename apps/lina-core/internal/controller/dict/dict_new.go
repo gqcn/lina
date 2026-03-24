@@ -9,10 +9,12 @@ import (
 	dictsvc "lina-core/internal/service/dict"
 )
 
+// ControllerV1 字典控制器
 type ControllerV1 struct {
-	dictSvc *dictsvc.Service
+	dictSvc *dictsvc.Service // 字典服务
 }
 
+// NewV1 创建字典控制器实例
 func NewV1() dict.IDictV1 {
 	return &ControllerV1{
 		dictSvc: dictsvc.New(),

@@ -15,5 +15,5 @@ type ExportReq struct {
 	EndTime   string `json:"endTime" dc:"创建时间范围-结束时间，格式YYYY-MM-DD" eg:"2025-12-31"`
 }
 
-// ExportRes defines the response for exporting configs.
+// ExportRes 参数设置导出响应
 type ExportRes struct{}

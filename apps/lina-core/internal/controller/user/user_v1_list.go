@@ -7,6 +7,7 @@ import (
 	usersvc "lina-core/internal/service/user"
 )
 
+// List 查询用户列表
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
 	out, err := c.userSvc.List(ctx, usersvc.ListInput{
 		PageNum:        req.PageNum,

@@ -9,10 +9,12 @@ import (
 	usermsgsvc "lina-core/internal/service/usermsg"
 )
 
+// ControllerV1 用户消息控制器
 type ControllerV1 struct {
-	usermsgSvc *usermsgsvc.Service
+	usermsgSvc *usermsgsvc.Service // 用户消息服务
 }
 
+// NewV1 创建用户消息控制器实例
 func NewV1() usermsg.IUsermsgV1 {
 	return &ControllerV1{
 		usermsgSvc: usermsgsvc.New(),

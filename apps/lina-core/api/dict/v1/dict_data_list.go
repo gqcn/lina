@@ -16,7 +16,8 @@ type DataListReq struct {
 	Label    string `json:"label" dc:"按字典标签筛选（模糊匹配）" eg:"男"`
 }
 
+// DataListRes 字典数据列表响应
 type DataListRes struct {
-	List  []*entity.SysDictData `json:"list" dc:"字典数据列表"`
+	List  []*entity.SysDictData `json:"list" dc:"字典数据列表" eg:"[]"`
 	Total int                   `json:"total" dc:"总条数" eg:"3"`
 }

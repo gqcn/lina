@@ -9,10 +9,12 @@ import (
 	usersvc "lina-core/internal/service/user"
 )
 
+// ControllerV1 用户控制器
 type ControllerV1 struct {
-	userSvc *usersvc.Service
+	userSvc *usersvc.Service // 用户服务
 }
 
+// NewV1 创建用户控制器实例
 func NewV1() userapi.IUserV1 {
 	return &ControllerV1{
 		userSvc: usersvc.New(),

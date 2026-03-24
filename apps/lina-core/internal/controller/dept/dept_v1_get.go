@@ -6,6 +6,7 @@ import (
 	v1 "lina-core/api/dept/v1"
 )
 
+// Get 获取部门详情
 func (c *ControllerV1) Get(ctx context.Context, req *v1.GetReq) (res *v1.GetRes, err error) {
 	dept, err := c.deptSvc.GetById(ctx, req.Id)
 	if err != nil {

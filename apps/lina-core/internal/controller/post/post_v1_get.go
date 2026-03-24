@@ -6,6 +6,7 @@ import (
 	v1 "lina-core/api/post/v1"
 )
 
+// Get 获取岗位详情
 func (c *ControllerV1) Get(ctx context.Context, req *v1.GetReq) (res *v1.GetRes, err error) {
 	post, err := c.postSvc.GetById(ctx, req.Id)
 	if err != nil {

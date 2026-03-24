@@ -7,6 +7,7 @@ import (
 	postsvc "lina-core/internal/service/post"
 )
 
+// Update 更新岗位
 func (c *ControllerV1) Update(ctx context.Context, req *v1.UpdateReq) (res *v1.UpdateRes, err error) {
 	err = c.postSvc.Update(ctx, postsvc.UpdateInput{
 		Id:     req.Id,

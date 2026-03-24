@@ -10,9 +10,9 @@ import (
 
 // Service manages all scheduled/cron tasks.
 type Service struct {
-	configSvc    *config.Service
-	serverMonSvc *servermon.Service
-	sessionStore session.Store
+	configSvc    *config.Service    // 配置服务
+	serverMonSvc *servermon.Service // 服务器监控服务
+	sessionStore session.Store      // 会话存储
 }
 
 // New creates and returns a new Service instance.

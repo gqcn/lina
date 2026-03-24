@@ -7,6 +7,7 @@ import (
 	usersvc "lina-core/internal/service/user"
 )
 
+// Update 更新用户
 func (c *ControllerV1) Update(ctx context.Context, req *v1.UpdateReq) (res *v1.UpdateRes, err error) {
 	return nil, c.userSvc.Update(ctx, usersvc.UpdateInput{
 		Id:       req.Id,

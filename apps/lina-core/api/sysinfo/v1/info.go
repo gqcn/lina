@@ -10,6 +10,7 @@ type GetInfoReq struct {
 	g.Meta `path:"/system/info" method:"get" tags:"系统信息" summary:"获取系统运行信息" dc:"获取系统运行时信息，包括Go版本、GoFrame版本、操作系统、数据库版本、启动时间、运行时长以及前后端组件列表"`
 }
 
+// ComponentInfo 组件信息
 type ComponentInfo struct {
 	Name        string `json:"name" dc:"组件名称" eg:"GoFrame"`
 	Version     string `json:"version" dc:"组件版本" eg:"v2.10.0"`
@@ -17,6 +18,7 @@ type ComponentInfo struct {
 	Description string `json:"description" dc:"组件描述" eg:"Go语言应用开发框架"`
 }
 
+// GetInfoRes 系统运行信息响应
 type GetInfoRes struct {
 	GoVersion          string          `json:"goVersion" dc:"Go版本" eg:"go1.22.0"`
 	GfVersion          string          `json:"gfVersion" dc:"GoFrame版本" eg:"v2.10.0"`

@@ -15,9 +15,9 @@ import (
 
 // Service provides middleware operations.
 type Service struct {
-	authSvc    *auth.Service
-	bizCtxSvc  *bizctx.Service
-	operLogSvc *operlog.Service
+	authSvc    *auth.Service   // 认证服务
+	bizCtxSvc  *bizctx.Service // 业务上下文服务
+	operLogSvc *operlog.Service // 操作日志服务
 }
 
 // New creates and returns a new Service instance.

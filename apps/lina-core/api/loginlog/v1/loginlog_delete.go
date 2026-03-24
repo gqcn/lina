@@ -11,6 +11,7 @@ type DeleteReq struct {
 	Ids    string `json:"ids" v:"required" dc:"日志ID，多个用逗号分隔" eg:"1,2,3"`
 }
 
+// DeleteRes 登录日志删除响应
 type DeleteRes struct {
 	Deleted int `json:"deleted" dc:"实际删除的记录数" eg:"3"`
 }

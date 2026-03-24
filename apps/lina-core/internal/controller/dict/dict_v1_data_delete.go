@@ -6,6 +6,7 @@ import (
 	v1 "lina-core/api/dict/v1"
 )
 
+// DataDelete 删除字典数据
 func (c *ControllerV1) DataDelete(ctx context.Context, req *v1.DataDeleteReq) (res *v1.DataDeleteRes, err error) {
 	err = c.dictSvc.DataDelete(ctx, req.Id)
 	if err != nil {

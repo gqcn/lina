@@ -13,6 +13,7 @@ type DataGetReq struct {
 	Id     int `json:"id" v:"required" dc:"字典数据ID" eg:"1"`
 }
 
+// DataGetRes 字典数据详情响应
 type DataGetRes struct {
-	*entity.SysDictData `dc:"字典数据信息"`
+	*entity.SysDictData `dc:"字典数据信息" eg:""`
 }

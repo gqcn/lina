@@ -10,6 +10,7 @@ type CountReq struct {
 	g.Meta `path:"/user/message/count" method:"get" tags:"用户消息" summary:"获取未读消息数量" dc:"获取当前登录用户的未读消息数量，用于前端消息图标角标展示"`
 }
 
+// CountRes 未读消息数量响应
 type CountRes struct {
 	Count int `json:"count" dc:"未读消息数量" eg:"5"`
 }

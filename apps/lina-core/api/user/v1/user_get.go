@@ -13,8 +13,9 @@ type GetReq struct {
 	Id     int `json:"id" v:"required" dc:"用户ID" eg:"1"`
 }
 
+// GetRes 用户详情响应
 type GetRes struct {
-	*entity.SysUser `dc:"用户信息"`
+	*entity.SysUser `dc:"用户信息" eg:""`
 	DeptId          int    `json:"deptId" dc:"部门ID" eg:"100"`
 	DeptName        string `json:"deptName" dc:"部门名称" eg:"技术部"`
 	PostIds         []int  `json:"postIds" dc:"岗位ID列表" eg:"[1,2]"`

@@ -15,7 +15,7 @@ type FileSuffixesReq struct {
 
 // FileSuffixesRes 文件类型列表响应
 type FileSuffixesRes struct {
-	List []*FileSuffixItem `json:"list"`
+	List []*FileSuffixItem `json:"list" dc:"文件后缀列表" eg:"[]"`
 }
 
 // FileSuffixItem 文件类型项

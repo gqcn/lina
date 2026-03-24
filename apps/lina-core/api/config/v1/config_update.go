@@ -16,5 +16,5 @@ type UpdateReq struct {
 	Remark *string `json:"remark" dc:"备注" eg:"蓝色 skin-blue、绿色 skin-green"`
 }
 
-// UpdateRes defines the response for updating a config.
+// UpdateRes 参数设置更新响应
 type UpdateRes struct{}

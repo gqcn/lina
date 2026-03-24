@@ -9,10 +9,12 @@ import (
 	postsvc "lina-core/internal/service/post"
 )
 
+// ControllerV1 岗位控制器
 type ControllerV1 struct {
-	postSvc *postsvc.Service
+	postSvc *postsvc.Service // 岗位服务
 }
 
+// NewV1 创建岗位控制器实例
 func NewV1() post.IPostV1 {
 	return &ControllerV1{
 		postSvc: postsvc.New(),

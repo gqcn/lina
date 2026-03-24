@@ -23,18 +23,18 @@ func New() *Service {
 
 // ListInput defines input for List function.
 type ListInput struct {
-	PageNum   int
-	PageSize  int
-	Name      string
-	Key       string
-	BeginTime string
-	EndTime   string
+	PageNum   int    // 页码，从1开始
+	PageSize  int    // 每页数量
+	Name      string // 参数名称，支持模糊查询
+	Key       string // 参数键名，支持模糊查询
+	BeginTime string // 创建时间起始
+	EndTime   string // 创建时间结束
 }
 
 // ListOutput defines output for List function.
 type ListOutput struct {
-	List  []*entity.SysConfig
-	Total int
+	List  []*entity.SysConfig // 配置列表
+	Total int                 // 总数
 }
 
 // List queries config list with pagination and filters.
@@ -98,10 +98,10 @@ func (s *Service) GetById(ctx context.Context, id int) (*entity.SysConfig, error
 
 // CreateInput defines input for Create function.
 type CreateInput struct {
-	Name   string
-	Key    string
-	Value  string
-	Remark string
+	Name   string // 参数名称
+	Key    string // 参数键名
+	Value  string // 参数键值
+	Remark string // 备注
 }
 
 // Create creates a new config record.
@@ -137,11 +137,11 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 
 // UpdateInput defines input for Update function.
 type UpdateInput struct {
-	Id     int
-	Name   *string
-	Key    *string
-	Value  *string
-	Remark *string
+	Id     int      // 参数ID
+	Name   *string  // 参数名称
+	Key    *string  // 参数键名
+	Value  *string  // 参数键值
+	Remark *string  // 备注
 }
 
 // Update updates config information.
@@ -221,10 +221,10 @@ func (s *Service) GetByKey(ctx context.Context, key string) (*entity.SysConfig, 
 
 // ExportInput defines input for Export function.
 type ExportInput struct {
-	Name      string
-	Key       string
-	BeginTime string
-	EndTime   string
+	Name      string // 参数名称，支持模糊查询
+	Key       string // 参数键名，支持模糊查询
+	BeginTime string // 创建时间起始
+	EndTime   string // 创建时间结束
 }
 
 // Export generates an Excel file with config data.

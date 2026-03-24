@@ -7,6 +7,7 @@ import (
 	noticesvc "lina-core/internal/service/notice"
 )
 
+// Create 创建公告
 func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.CreateRes, err error) {
 	status := 0
 	if req.Status != nil {

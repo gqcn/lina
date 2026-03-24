@@ -10,4 +10,5 @@ type ClearReq struct {
 	g.Meta `path:"/user/message/clear" method:"delete" tags:"用户消息" summary:"清空全部消息" dc:"清空当前用户的所有消息记录，包括已读和未读"`
 }
 
+// ClearRes 清空消息响应
 type ClearRes struct{}

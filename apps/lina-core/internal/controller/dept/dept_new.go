@@ -9,10 +9,12 @@ import (
 	deptsvc "lina-core/internal/service/dept"
 )
 
+// ControllerV1 部门控制器
 type ControllerV1 struct {
-	deptSvc *deptsvc.Service
+	deptSvc *deptsvc.Service // 部门服务
 }
 
+// NewV1 创建部门控制器实例
 func NewV1() dept.IDeptV1 {
 	return &ControllerV1{
 		deptSvc: deptsvc.New(),

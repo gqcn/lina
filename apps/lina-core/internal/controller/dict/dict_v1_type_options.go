@@ -7,6 +7,7 @@ import (
 	"lina-core/internal/model/entity"
 )
 
+// TypeOptions 获取字典类型选项列表
 func (c *ControllerV1) TypeOptions(ctx context.Context, req *v1.TypeOptionsReq) (res *v1.TypeOptionsRes, err error) {
 	options, err := c.dictSvc.Options(ctx)
 	if err != nil {

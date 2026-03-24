@@ -12,5 +12,5 @@ type DeleteReq struct {
 	Id     int `json:"id" v:"required" dc:"参数ID" eg:"1"`
 }
 
-// DeleteRes defines the response for deleting a config.
+// DeleteRes 参数设置删除响应
 type DeleteRes struct{}

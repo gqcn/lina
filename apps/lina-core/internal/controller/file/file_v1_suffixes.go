@@ -6,6 +6,7 @@ import (
 	v1 "lina-core/api/file/v1"
 )
 
+// FileSuffixes 获取文件后缀列表
 func (c *ControllerV1) FileSuffixes(ctx context.Context, req *v1.FileSuffixesReq) (res *v1.FileSuffixesRes, err error) {
 	out, err := c.fileSvc.Suffixes(ctx)
 	if err != nil {

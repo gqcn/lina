@@ -13,6 +13,7 @@ type GetReq struct {
 	Id     int `json:"id" v:"required" dc:"岗位ID" eg:"1"`
 }
 
+// GetRes 岗位详情响应
 type GetRes struct {
-	*entity.SysPost `dc:"岗位信息"`
+	*entity.SysPost `dc:"岗位信息" eg:""`
 }

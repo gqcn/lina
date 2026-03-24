@@ -10,6 +10,7 @@ import (
 	v1 "lina-core/api/file/v1"
 )
 
+// Download 下载文件
 func (c *ControllerV1) Download(ctx context.Context, req *v1.DownloadReq) (res *v1.DownloadRes, err error) {
 	r := g.RequestFromCtx(ctx)
 
@@ -36,6 +37,7 @@ func (c *ControllerV1) Download(ctx context.Context, req *v1.DownloadReq) (res *
 	return nil, nil
 }
 
+// isPreviewable 判断文件是否可预览
 func isPreviewable(suffix string) bool {
 	switch suffix {
 	case "jpg", "jpeg", "png", "gif", "webp", "svg", "pdf":
@@ -44,6 +46,7 @@ func isPreviewable(suffix string) bool {
 	return false
 }
 
+// mimeTypeByExt 根据文件扩展名获取MIME类型
 func mimeTypeByExt(suffix string) string {
 	mimeTypes := map[string]string{
 		"jpg":  "image/jpeg",

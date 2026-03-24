@@ -7,6 +7,7 @@ import (
 	usersvc "lina-core/internal/service/user"
 )
 
+// UpdateProfile 更新用户个人资料
 func (c *ControllerV1) UpdateProfile(ctx context.Context, req *v1.UpdateProfileReq) (res *v1.UpdateProfileRes, err error) {
 	return nil, c.userSvc.UpdateProfile(ctx, usersvc.UpdateProfileInput{
 		Nickname: req.Nickname,
