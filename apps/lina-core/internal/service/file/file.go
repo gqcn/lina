@@ -6,7 +6,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"path/filepath"
+	"strings"
 
+	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
@@ -22,7 +25,8 @@ import (
 )
 
 const (
-	EngineLocal = "local" // Local storage engine identifier
+	EngineLocal    = "local" // Local storage engine identifier
+	MaxExportRows  = 10000   // Maximum rows for export
 )
 
 // Service provides file management operations.
@@ -66,6 +70,9 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 		return nil, gerror.New("请上传文件")
 	}
 
+	// Sanitize filename to prevent path traversal attacks
+	sanitizedFilename := sanitizeFilename(file.Filename)
+
 	// Validate file size (max from config, default 10MB)
 	uploadCfg := s.configSvc.GetUpload(ctx)
 	if file.Size > uploadCfg.MaxSize*1024*1024 {
@@ -96,90 +103,128 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 	if scene == "" {
 		scene = "other"
 	}
-	suffix := gstr.ToLower(gfile.ExtName(file.Filename))
+	suffix := gstr.ToLower(gfile.ExtName(sanitizedFilename))
 
-	// Check for duplicate file by hash
-	var existing *entity.SysFile
-	err = dao.SysFile.Ctx(ctx).
-		Where(dao.SysFile.Columns().Hash, fileHash).
-		Scan(&existing)
-	if err != nil {
-		return nil, gerror.Wrap(err, "查询文件散列值失败")
-	}
-	if existing != nil {
-		// Duplicate file found, reuse storage but create a new record with its own scene
+	var output *UploadOutput
+
+	// Use transaction for database operations
+	err = dao.SysFile.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		// Check for duplicate file by hash
+		var existing *entity.SysFile
+		err := dao.SysFile.Ctx(ctx).
+			Where(dao.SysFile.Columns().Hash, fileHash).
+			Scan(&existing)
+		if err != nil {
+			return gerror.Wrap(err, "查询文件散列值失败")
+		}
+
+		if existing != nil {
+			// Duplicate file found, reuse storage but create a new record with its own scene
+			result, err := dao.SysFile.Ctx(ctx).Data(do.SysFile{
+				Name:      existing.Name,
+				Original:  sanitizedFilename,
+				Suffix:    suffix,
+				Scene:     scene,
+				Size:      file.Size,
+				Hash:      fileHash,
+				Url:       existing.Url,
+				Path:      existing.Path,
+				Engine:    existing.Engine,
+				CreatedBy: userId,
+			}).Insert()
+			if err != nil {
+				return gerror.Wrap(err, "保存文件记录失败")
+			}
+			id, _ := result.LastInsertId()
+			fullUrl := s.getBaseUrl(ctx) + existing.Url
+			output = &UploadOutput{
+				Id:       id,
+				Name:     existing.Name,
+				Original: sanitizedFilename,
+				Url:      fullUrl,
+				Suffix:   suffix,
+				Size:     file.Size,
+			}
+			return nil
+		}
+
+		// Reset file reader position for storage
+		if _, err = src.Seek(0, io.SeekStart); err != nil {
+			return gerror.Wrap(err, "重置文件读取位置失败")
+		}
+
+		// Save via storage backend
+		storagePath, err := s.storage.Put(ctx, sanitizedFilename, src)
+		if err != nil {
+			return gerror.Wrap(err, "保存文件失败")
+		}
+
+		// Build file metadata
+		storedName := gfile.Basename(storagePath)
+		url := s.storage.Url(ctx, storagePath)
+
+		// Insert file record
 		result, err := dao.SysFile.Ctx(ctx).Data(do.SysFile{
-			Name:      existing.Name,
-			Original:  file.Filename,
+			Name:      storedName,
+			Original:  sanitizedFilename,
 			Suffix:    suffix,
 			Scene:     scene,
 			Size:      file.Size,
 			Hash:      fileHash,
-			Url:       existing.Url,
-			Path:      existing.Path,
-			Engine:    existing.Engine,
+			Url:       url,
+			Path:      storagePath,
+			Engine:    EngineLocal,
 			CreatedBy: userId,
 		}).Insert()
 		if err != nil {
-			return nil, gerror.Wrap(err, "保存文件记录失败")
+			// Clean up stored file on DB error
+			s.storage.Delete(ctx, storagePath)
+			return gerror.Wrap(err, "保存文件记录失败")
 		}
+
 		id, _ := result.LastInsertId()
-		fullUrl := s.getBaseUrl(ctx) + existing.Url
-		return &UploadOutput{
+		// Return full URL with base URL prefix
+		fullUrl := s.getBaseUrl(ctx) + url
+		output = &UploadOutput{
 			Id:       id,
-			Name:     existing.Name,
-			Original: file.Filename,
+			Name:     storedName,
+			Original: sanitizedFilename,
 			Url:      fullUrl,
 			Suffix:   suffix,
 			Size:     file.Size,
-		}, nil
-	}
+		}
+		return nil
+	})
 
-	// Reset file reader position for storage
-	if _, err = src.Seek(0, io.SeekStart); err != nil {
-		return nil, gerror.Wrap(err, "重置文件读取位置失败")
-	}
-
-	// Save via storage backend
-	storagePath, err := s.storage.Put(ctx, file.Filename, src)
 	if err != nil {
-		return nil, gerror.Wrap(err, "保存文件失败")
+		return nil, err
 	}
 
-	// Build file metadata
-	storedName := gfile.Basename(storagePath)
-	url := s.storage.Url(ctx, storagePath)
+	return output, nil
+}
 
-	// Insert file record
-	result, err := dao.SysFile.Ctx(ctx).Data(do.SysFile{
-		Name:      storedName,
-		Original:  file.Filename,
-		Suffix:    suffix,
-		Scene:     scene,
-		Size:      file.Size,
-		Hash:      fileHash,
-		Url:       url,
-		Path:      storagePath,
-		Engine:    EngineLocal,
-		CreatedBy: userId,
-	}).Insert()
-	if err != nil {
-		// Clean up stored file on DB error
-		s.storage.Delete(ctx, storagePath)
-		return nil, gerror.Wrap(err, "保存文件记录失败")
+// sanitizeFilename removes path traversal characters and dangerous patterns from filename.
+func sanitizeFilename(filename string) string {
+	// Get the base name (remove any directory components)
+	filename = filepath.Base(filename)
+
+	// Remove null bytes and other control characters
+	filename = strings.ReplaceAll(filename, "\x00", "")
+
+	// Remove dangerous patterns
+	dangerous := []string{"../", "..\\", "/", "\\", ":", "*", "?", "\"", "<", ">", "|"}
+	for _, d := range dangerous {
+		filename = strings.ReplaceAll(filename, d, "_")
 	}
 
-	id, _ := result.LastInsertId()
-	// Return full URL with base URL prefix
-	fullUrl := s.getBaseUrl(ctx) + url
-	return &UploadOutput{
-		Id:       id,
-		Name:     storedName,
-		Original: file.Filename,
-		Url:      fullUrl,
-		Suffix:   suffix,
-		Size:     file.Size,
-	}, nil
+	// Limit filename length
+	if len(filename) > 255 {
+		ext := filepath.Ext(filename)
+		name := filename[:255-len(ext)]
+		filename = name + ext
+	}
+
+	return filename
 }
 
 // ListInput defines input for file list query.

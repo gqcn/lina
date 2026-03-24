@@ -13,6 +13,8 @@ import (
 	"lina-core/internal/model/entity"
 )
 
+const MaxExportRows = 10000 // Maximum rows for export
+
 // Service provides login log operations.
 type Service struct{}
 
@@ -199,7 +201,7 @@ type ExportInput struct {
 	OrderDirection string
 }
 
-// Export generates an Excel file with login log data.
+// Export generates an Excel file with login log data (max 10000 rows).
 func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	cols := dao.SysLoginLog.Columns()
 	m := dao.SysLoginLog.Ctx(ctx)
@@ -223,6 +225,9 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 		}
 		m = m.WhereLTE(cols.LoginTime, endTime)
 	}
+
+	// Limit export to prevent memory issues
+	m = m.Limit(MaxExportRows)
 
 	orderBy := cols.LoginTime
 	direction := "DESC"

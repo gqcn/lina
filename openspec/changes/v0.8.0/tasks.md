@@ -113,3 +113,17 @@ Toolbar: 导出, 批量删除, 新增
 
 **Files**:
 - `hack/tests/e2e/system/TC0020-config.ts` (create — check existing TC numbers first)
+
+---
+
+## Feedback
+
+- [x] **FB-1**：user/dept/file 服务的事务管理缺失，Create/Update 方法应使用事务确保数据一致性
+- [x] **FB-2**：user 和 post 服务中存在重复的部门树遍历逻辑，应抽取到 dept 服务复用
+- [x] **FB-3**：错误处理不一致，部分忽略删除关联错误，应统一使用 gerror 并记录日志
+- [x] **FB-4**：Session TouchOrValidate 执行两次查询，优化为先验证存在性再更新
+- [x] **FB-5**：文件上传添加文件名清洗防止路径遍历攻击（MIME类型校验已移除）
+- [x] **FB-6**：字典类型更新时未校验 Type 字段唯一性，可能导致重复
+- [x] **FB-7**：日志导出方法无条数限制，大数据量可能导致内存溢出
+- [x] **FB-8**：操作类型映射和文件场景标签保持硬编码（用户确认不使用字典模块）
+- [x] **FB-9**：用户列表查询存在 N+1 问题，应批量查询部门信息

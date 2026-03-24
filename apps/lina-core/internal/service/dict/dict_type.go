@@ -150,6 +150,21 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		data.Name = *in.Name
 	}
 	if in.Type != nil {
+		// Check type uniqueness when updating the type field
+		if *in.Type != "" {
+			cols := dao.SysDictType.Columns()
+			count, err := dao.SysDictType.Ctx(ctx).
+				Where(cols.Type, *in.Type).
+				WhereNull(cols.DeletedAt).
+				WhereNot(cols.Id, in.Id).
+				Count()
+			if err != nil {
+				return err
+			}
+			if count > 0 {
+				return gerror.New("字典类型已存在")
+			}
+		}
 		data.Type = *in.Type
 	}
 	if in.Status != nil {
@@ -198,7 +213,7 @@ type ExportInput struct {
 	Type string // Dictionary type, supports fuzzy search
 }
 
-// Export generates an Excel file with dict type data.
+// Export generates an Excel file with dict type data (max 10000 rows).
 func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	cols := dao.SysDictType.Columns()
 	m := dao.SysDictType.Ctx(ctx).WhereNull(cols.DeletedAt)
@@ -209,6 +224,9 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	if in.Type != "" {
 		m = m.WhereLike(cols.Type, "%"+in.Type+"%")
 	}
+
+	// Limit export to prevent memory issues
+	m = m.Limit(10000)
 
 	var list []*entity.SysDictType
 	err := m.Order(cols.Id + " ASC").Scan(&list)

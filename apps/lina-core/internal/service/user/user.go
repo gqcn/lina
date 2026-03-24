@@ -3,9 +3,10 @@ package user
 import (
 	"context"
 
+	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
-	"github.com/gogf/gf/v2/util/gconv"
 
 	"lina-core/internal/consts"
 	"lina-core/internal/dao"
@@ -13,12 +14,14 @@ import (
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/auth"
 	"lina-core/internal/service/bizctx"
+	"lina-core/internal/service/dept"
 )
 
 // Service provides user management operations.
 type Service struct {
 	authSvc   *auth.Service   // Authentication service
 	bizCtxSvc *bizctx.Service // Business context service
+	deptSvc   *dept.Service   // Department service
 }
 
 // New creates and returns a new Service instance.
@@ -26,6 +29,7 @@ func New() *Service {
 	return &Service{
 		authSvc:   auth.New(),
 		bizCtxSvc: bizctx.New(),
+		deptSvc:   dept.New(),
 	}
 }
 
@@ -147,14 +151,62 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 		return nil, err
 	}
 
-	// Build output with dept info
+	// Batch query dept info to avoid N+1 problem
 	items := make([]*ListOutputItem, 0, len(list))
+	if len(list) == 0 {
+		return &ListOutput{List: items, Total: total}, nil
+	}
+
+	// Collect all user IDs
+	userIds := make([]int, 0, len(list))
+	for _, u := range list {
+		userIds = append(userIds, u.Id)
+	}
+
+	// Batch query user-dept associations
+	udCols := dao.SysUserDept.Columns()
+	var userDepts []*entity.SysUserDept
+	err = dao.SysUserDept.Ctx(ctx).
+		WhereIn(udCols.UserId, userIds).
+		Scan(&userDepts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build userId -> deptId map
+	userDeptMap := make(map[int]int)
+	deptIds := make([]int, 0)
+	for _, ud := range userDepts {
+		userDeptMap[ud.UserId] = ud.DeptId
+		deptIds = append(deptIds, ud.DeptId)
+	}
+
+	// Batch query dept info
+	deptCols := dao.SysDept.Columns()
+	var depts []*entity.SysDept
+	if len(deptIds) > 0 {
+		err = dao.SysDept.Ctx(ctx).
+			WhereIn(deptCols.Id, deptIds).
+			WhereNull(deptCols.DeletedAt).
+			Scan(&depts)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Build deptId -> deptName map
+	deptNameMap := make(map[int]string)
+	for _, d := range depts {
+		deptNameMap[d.Id] = d.Name
+	}
+
+	// Build output with dept info
 	for _, u := range list {
 		item := &ListOutputItem{SysUser: u}
-		// Get dept info from association table
-		deptId, deptName, _ := s.GetUserDeptInfo(ctx, u.Id)
-		item.DeptId = deptId
-		item.DeptName = deptName
+		if deptId, ok := userDeptMap[u.Id]; ok {
+			item.DeptId = deptId
+			item.DeptName = deptNameMap[deptId]
+		}
 		items = append(items, item)
 	}
 
@@ -164,31 +216,17 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	}, nil
 }
 
-// GetUserIdsByDeptId returns user IDs associated with a dept.
+// GetUserIdsByDeptId returns user IDs associated with a dept and all its descendants.
 func (s *Service) GetUserIdsByDeptId(ctx context.Context, deptId int) ([]int, error) {
-	// Collect the selected dept and all its descendant depts via parent_id (cross-database compatible).
-	var (
-		deptCols  = dao.SysDept.Columns()
-		deptIds   = []int{deptId}
-		parentIds = []int{deptId}
-	)
-	for len(parentIds) > 0 {
-		childValues, err := dao.SysDept.Ctx(ctx).
-			WhereNull(deptCols.DeletedAt).
-			WhereIn(deptCols.ParentId, parentIds).
-			Fields(deptCols.Id).
-			Array()
-		if err != nil {
-			return nil, err
-		}
-		var childIds = gconv.Ints(childValues)
-		deptIds = append(deptIds, childIds...)
-		parentIds = childIds
+	// Use shared method from dept service to get dept and descendant IDs
+	deptIds, err := s.deptSvc.GetDeptAndDescendantIds(ctx, deptId)
+	if err != nil {
+		return nil, err
 	}
 
 	// Query users belonging to any of these depts
 	var userDepts []*entity.SysUserDept
-	err := dao.SysUserDept.Ctx(ctx).
+	err = dao.SysUserDept.Ctx(ctx).
 		WhereIn(dao.SysUserDept.Columns().DeptId, deptIds).
 		Scan(&userDepts)
 	if err != nil {
@@ -258,7 +296,7 @@ type CreateInput struct {
 	PostIds  []int  // Post ID list
 }
 
-// Create creates a new user.
+// Create creates a new user with transaction support.
 func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 	// Check username uniqueness
 	cols := dao.SysUser.Columns()
@@ -285,45 +323,56 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 		nickname = in.Username
 	}
 
-	// Insert user
-	id, err := dao.SysUser.Ctx(ctx).Data(do.SysUser{
-		Username:  in.Username,
-		Password:  hash,
-		Nickname:  nickname,
-		Email:     in.Email,
-		Phone:     in.Phone,
-		Sex:       in.Sex,
-		Status:    in.Status,
-		Remark:    in.Remark,
-		CreatedAt: gtime.Now(),
-		UpdatedAt: gtime.Now(),
-	}).InsertAndGetId()
+	var userId int
+
+	// Use transaction to ensure atomicity
+	err = dao.SysUser.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		// Insert user
+		id, err := dao.SysUser.Ctx(ctx).Data(do.SysUser{
+			Username:  in.Username,
+			Password:  hash,
+			Nickname:  nickname,
+			Email:     in.Email,
+			Phone:     in.Phone,
+			Sex:       in.Sex,
+			Status:    in.Status,
+			Remark:    in.Remark,
+			CreatedAt: gtime.Now(),
+			UpdatedAt: gtime.Now(),
+		}).InsertAndGetId()
+		if err != nil {
+			return err
+		}
+
+		userId = int(id)
+
+		// Save dept association
+		if in.DeptId != nil && *in.DeptId > 0 {
+			_, err = dao.SysUserDept.Ctx(ctx).Data(do.SysUserDept{
+				UserId: userId,
+				DeptId: *in.DeptId,
+			}).Insert()
+			if err != nil {
+				return err
+			}
+		}
+
+		// Save post associations
+		for _, postId := range in.PostIds {
+			_, err = dao.SysUserPost.Ctx(ctx).Data(do.SysUserPost{
+				UserId: userId,
+				PostId: postId,
+			}).Insert()
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return 0, err
-	}
-
-	userId := int(id)
-
-	// Save dept association
-	if in.DeptId != nil && *in.DeptId > 0 {
-		_, err = dao.SysUserDept.Ctx(ctx).Data(do.SysUserDept{
-			UserId: userId,
-			DeptId: *in.DeptId,
-		}).Insert()
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	// Save post associations
-	for _, postId := range in.PostIds {
-		_, err = dao.SysUserPost.Ctx(ctx).Data(do.SysUserPost{
-			UserId: userId,
-			PostId: postId,
-		}).Insert()
-		if err != nil {
-			return 0, err
-		}
 	}
 
 	return userId, nil
@@ -362,7 +411,7 @@ type UpdateInput struct {
 	PostIds  []int    // Post ID list
 }
 
-// Update updates user information.
+// Update updates user information with transaction support.
 func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	// Cannot edit self via admin panel
 	bizCtx := s.bizCtxSvc.Get(ctx)
@@ -407,40 +456,50 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		data.Remark = *in.Remark
 	}
 
-	_, err := dao.SysUser.Ctx(ctx).Where(do.SysUser{Id: in.Id}).Data(data).Update()
-	if err != nil {
-		return err
-	}
+	// Use transaction to ensure atomicity
+	return dao.SysUser.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		// Update user
+		_, err := dao.SysUser.Ctx(ctx).Where(do.SysUser{Id: in.Id}).Data(data).Update()
+		if err != nil {
+			return err
+		}
 
-	// Update dept association (delete and re-insert)
-	if in.DeptId != nil {
-		_, _ = dao.SysUserDept.Ctx(ctx).Where(dao.SysUserDept.Columns().UserId, in.Id).Delete()
-		if *in.DeptId > 0 {
-			_, err = dao.SysUserDept.Ctx(ctx).Data(do.SysUserDept{
-				UserId: in.Id,
-				DeptId: *in.DeptId,
-			}).Insert()
+		// Update dept association (delete and re-insert)
+		if in.DeptId != nil {
+			_, err = dao.SysUserDept.Ctx(ctx).Where(dao.SysUserDept.Columns().UserId, in.Id).Delete()
 			if err != nil {
-				return err
+				g.Log().Warningf(ctx, "failed to delete user dept association: %v", err)
+			}
+			if *in.DeptId > 0 {
+				_, err = dao.SysUserDept.Ctx(ctx).Data(do.SysUserDept{
+					UserId: in.Id,
+					DeptId: *in.DeptId,
+				}).Insert()
+				if err != nil {
+					return err
+				}
 			}
 		}
-	}
 
-	// Update post associations (delete and re-insert)
-	if in.PostIds != nil {
-		_, _ = dao.SysUserPost.Ctx(ctx).Where(dao.SysUserPost.Columns().UserId, in.Id).Delete()
-		for _, postId := range in.PostIds {
-			_, err = dao.SysUserPost.Ctx(ctx).Data(do.SysUserPost{
-				UserId: in.Id,
-				PostId: postId,
-			}).Insert()
+		// Update post associations (delete and re-insert)
+		if in.PostIds != nil {
+			_, err = dao.SysUserPost.Ctx(ctx).Where(dao.SysUserPost.Columns().UserId, in.Id).Delete()
 			if err != nil {
-				return err
+				g.Log().Warningf(ctx, "failed to delete user post association: %v", err)
+			}
+			for _, postId := range in.PostIds {
+				_, err = dao.SysUserPost.Ctx(ctx).Data(do.SysUserPost{
+					UserId: in.Id,
+					PostId: postId,
+				}).Insert()
+				if err != nil {
+					return err
+				}
 			}
 		}
-	}
 
-	return nil
+		return nil
+	})
 }
 
 // Delete soft-deletes a user.
@@ -465,9 +524,13 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		return err
 	}
 
-	// Clean up dept and post associations
-	_, _ = dao.SysUserDept.Ctx(ctx).Where(dao.SysUserDept.Columns().UserId, id).Delete()
-	_, _ = dao.SysUserPost.Ctx(ctx).Where(dao.SysUserPost.Columns().UserId, id).Delete()
+	// Clean up dept and post associations (log errors but don't fail)
+	if _, err := dao.SysUserDept.Ctx(ctx).Where(dao.SysUserDept.Columns().UserId, id).Delete(); err != nil {
+		g.Log().Warningf(ctx, "failed to delete user dept association for user %d: %v", id, err)
+	}
+	if _, err := dao.SysUserPost.Ctx(ctx).Where(dao.SysUserPost.Columns().UserId, id).Delete(); err != nil {
+		g.Log().Warningf(ctx, "failed to delete user post association for user %d: %v", id, err)
+	}
 
 	return nil
 }

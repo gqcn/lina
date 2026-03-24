@@ -146,24 +146,27 @@ func (s *DBStore) Count(ctx context.Context) (int, error) {
 }
 
 func (s *DBStore) TouchOrValidate(ctx context.Context, tokenId string) (bool, error) {
-	// Use Increment trick to ensure MySQL always reports rows affected,
-	// avoiding the issue where UPDATE with same value returns 0 affected rows.
-	_, err := dao.SysOnlineSession.Ctx(ctx).
-		Where(do.SysOnlineSession{TokenId: tokenId}).
-		Data(do.SysOnlineSession{LastActiveTime: gtime.Now()}).
-		Update()
-	if err != nil {
-		return false, err
-	}
-	// Check existence separately since MySQL RowsAffected returns 0
-	// when the updated value is unchanged (same second).
+	// First check existence with a lightweight count query
 	count, err := dao.SysOnlineSession.Ctx(ctx).
 		Where(do.SysOnlineSession{TokenId: tokenId}).
 		Count()
 	if err != nil {
 		return false, err
 	}
-	return count > 0, nil
+	if count == 0 {
+		return false, nil
+	}
+
+	// Session exists, update last_active_time
+	_, err = dao.SysOnlineSession.Ctx(ctx).
+		Where(do.SysOnlineSession{TokenId: tokenId}).
+		Data(do.SysOnlineSession{LastActiveTime: gtime.Now()}).
+		Update()
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (s *DBStore) CleanupInactive(ctx context.Context, timeoutHours int) (int64, error) {

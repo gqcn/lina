@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/text/gstr"
@@ -162,7 +163,7 @@ type UpdateInput struct {
 	Remark   *string // Remark
 }
 
-// Update updates dept information.
+// Update updates dept information with transaction support.
 func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	// Check dept exists
 	dept, err := s.GetById(ctx, in.Id)
@@ -221,7 +222,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		data.ParentId = newParentId
 		data.Ancestors = newAncestors
 
-		// Update children's ancestors
+		// Update children's ancestors within transaction
 		oldPrefix := fmt.Sprintf("%s,%d", oldAncestors, in.Id)
 		newPrefix := fmt.Sprintf("%s,%d", newAncestors, in.Id)
 
@@ -239,15 +240,24 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 			return err
 		}
 
-		for _, child := range children {
-			childNewAncestors := gstr.Replace(child.Ancestors, oldPrefix, newPrefix, 1)
-			_, err = dao.SysDept.Ctx(ctx).
-				Where(do.SysDept{Id: child.Id}).
-				Data(do.SysDept{
-					Ancestors: childNewAncestors,
-					UpdatedAt: gtime.Now(),
-				}).
-				Update()
+		// Use transaction for updating children
+		if len(children) > 0 {
+			err = dao.SysDept.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+				for _, child := range children {
+					childNewAncestors := gstr.Replace(child.Ancestors, oldPrefix, newPrefix, 1)
+					_, err = dao.SysDept.Ctx(ctx).
+						Where(do.SysDept{Id: child.Id}).
+						Data(do.SysDept{
+							Ancestors: childNewAncestors,
+							UpdatedAt: gtime.Now(),
+						}).
+						Update()
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			})
 			if err != nil {
 				return err
 			}
@@ -563,4 +573,28 @@ func (s *Service) checkCodeUnique(ctx context.Context, code string, excludeId in
 		return gerror.New("部门编码已存在")
 	}
 	return nil
+}
+
+// GetDeptAndDescendantIds returns the given deptId plus all descendant dept IDs (cross-database compatible).
+// This is a shared utility method for traversing department hierarchies.
+func (s *Service) GetDeptAndDescendantIds(ctx context.Context, deptId int) ([]int, error) {
+	var (
+		deptCols  = dao.SysDept.Columns()
+		deptIds   = []int{deptId}
+		parentIds = []int{deptId}
+	)
+	for len(parentIds) > 0 {
+		childValues, err := dao.SysDept.Ctx(ctx).
+			WhereNull(deptCols.DeletedAt).
+			WhereIn(deptCols.ParentId, parentIds).
+			Fields(deptCols.Id).
+			Array()
+		if err != nil {
+			return nil, err
+		}
+		childIds := gconv.Ints(childValues)
+		deptIds = append(deptIds, childIds...)
+		parentIds = childIds
+	}
+	return deptIds, nil
 }

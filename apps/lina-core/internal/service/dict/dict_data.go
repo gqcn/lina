@@ -186,7 +186,7 @@ type DataExportInput struct {
 	Label    string
 }
 
-// DataExport generates an Excel file with dict data.
+// DataExport generates an Excel file with dict data (max 10000 rows).
 func (s *Service) DataExport(ctx context.Context, in DataExportInput) ([]byte, error) {
 	cols := dao.SysDictData.Columns()
 	m := dao.SysDictData.Ctx(ctx).WhereNull(cols.DeletedAt)
@@ -197,6 +197,9 @@ func (s *Service) DataExport(ctx context.Context, in DataExportInput) ([]byte, e
 	if in.Label != "" {
 		m = m.WhereLike(cols.Label, "%"+in.Label+"%")
 	}
+
+	// Limit export to prevent memory issues
+	m = m.Limit(10000)
 
 	var list []*entity.SysDictData
 	err := m.Order(cols.Sort + " ASC").Scan(&list)

@@ -12,14 +12,19 @@ import (
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	"lina-core/internal/service/dept"
 )
 
 // Service provides post management operations.
-type Service struct{}
+type Service struct {
+	deptSvc *dept.Service // Department service
+}
 
 // New creates and returns a new Service instance.
 func New() *Service {
-	return &Service{}
+	return &Service{
+		deptSvc: dept.New(),
+	}
 }
 
 // ListInput defines input for List function.
@@ -368,25 +373,7 @@ func (s *Service) OptionSelect(ctx context.Context, in OptionSelectInput) ([]Pos
 	return options, nil
 }
 
-// getDeptAndDescendantIds returns the given deptId plus all descendant dept IDs.
+// getDeptAndDescendantIds returns the given deptId plus all descendant dept IDs using shared dept service method.
 func (s *Service) getDeptAndDescendantIds(ctx context.Context, deptId int) ([]int, error) {
-	var (
-		deptCols  = dao.SysDept.Columns()
-		deptIds   = []int{deptId}
-		parentIds = []int{deptId}
-	)
-	for len(parentIds) > 0 {
-		childValues, err := dao.SysDept.Ctx(ctx).
-			WhereNull(deptCols.DeletedAt).
-			WhereIn(deptCols.ParentId, parentIds).
-			Fields(deptCols.Id).
-			Array()
-		if err != nil {
-			return nil, err
-		}
-		var childIds = gconv.Ints(childValues)
-		deptIds = append(deptIds, childIds...)
-		parentIds = childIds
-	}
-	return deptIds, nil
+	return s.deptSvc.GetDeptAndDescendantIds(ctx, deptId)
 }
