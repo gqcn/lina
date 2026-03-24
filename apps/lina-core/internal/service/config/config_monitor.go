@@ -8,7 +8,7 @@ import (
 
 // MonitorConfig holds server monitoring configuration.
 type MonitorConfig struct {
-	IntervalSeconds int `json:"intervalSeconds"` // 采集间隔（秒）
+	IntervalSeconds int `json:"intervalSeconds"` // Collection interval (seconds)
 }
 
 // GetMonitor reads monitor config from configuration file.

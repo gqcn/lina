@@ -11,5 +11,5 @@ type DeleteReq struct {
 	Ids    string `json:"ids" v:"required" dc:"文件ID，多个用逗号分隔" eg:"1,2,3"`
 }
 
-// DeleteRes 文件删除响应
+// DeleteRes File delete response
 type DeleteRes struct{}

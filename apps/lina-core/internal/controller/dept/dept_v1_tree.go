@@ -7,7 +7,7 @@ import (
 	deptsvc "lina-core/internal/service/dept"
 )
 
-// Tree 获取部门树形结构
+// Tree returns department tree structure.
 func (c *ControllerV1) Tree(ctx context.Context, req *v1.TreeReq) (res *v1.TreeRes, err error) {
 	nodes, err := c.deptSvc.Tree(ctx)
 	if err != nil {
@@ -18,7 +18,7 @@ func (c *ControllerV1) Tree(ctx context.Context, req *v1.TreeReq) (res *v1.TreeR
 	}, nil
 }
 
-// convertTreeNodes 将服务层TreeNode切片转换为API层TreeNode切片
+// convertTreeNodes converts service layer TreeNode slice to API layer TreeNode slice.
 func convertTreeNodes(nodes []*deptsvc.TreeNode) []*v1.TreeNode {
 	if nodes == nil {
 		return nil

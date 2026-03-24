@@ -18,7 +18,7 @@ import (
 
 // ExportInput defines input for Export function.
 type ExportInput struct {
-	Ids []int // 用户ID列表，为空则导出全部
+	Ids []int // User ID list, empty means export all
 }
 
 // Export generates an Excel file with user data based on IDs.
@@ -83,15 +83,15 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 
 // ImportResult defines the result of import operation.
 type ImportResult struct {
-	Success  int              // 成功导入数量
-	Fail     int              // 失败数量
-	FailList []ImportFailItem // 失败列表
+	Success  int              // Number of successful imports
+	Fail     int              // Number of failed imports
+	FailList []ImportFailItem // Failure list
 }
 
 // ImportFailItem defines a single import failure.
 type ImportFailItem struct {
-	Row    int    // 行号
-	Reason string // 失败原因
+	Row    int    // Row number
+	Reason string // Failure reason
 }
 
 // Import reads an Excel file and creates users from it.

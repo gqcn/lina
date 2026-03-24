@@ -6,7 +6,7 @@ import (
 	v1 "lina-core/api/monitor/v1"
 )
 
-// ServerMonitor 获取服务器监控信息
+// ServerMonitor returns server monitor information
 func (c *ControllerV1) ServerMonitor(ctx context.Context, req *v1.ServerMonitorReq) (res *v1.ServerMonitorRes, err error) {
 	nodes, err := c.serverMonSvc.GetLatest(ctx, req.NodeName)
 	if err != nil {

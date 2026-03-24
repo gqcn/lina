@@ -13,7 +13,7 @@ type DetailReq struct {
 	Id     int64 `json:"id" v:"required" dc:"文件ID" eg:"1"`
 }
 
-// DetailRes 文件详情响应
+// DetailRes File detail response
 type DetailRes struct {
 	*entity.SysFile
 	CreatedByName string `json:"createdByName" dc:"上传者用户名" eg:"admin"`

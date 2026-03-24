@@ -10,7 +10,7 @@ import (
 	dictsvc "lina-core/internal/service/dict"
 )
 
-// TypeExport 导出字典类型
+// TypeExport exports dictionary types to Excel.
 func (c *ControllerV1) TypeExport(ctx context.Context, req *v1.TypeExportReq) (res *v1.TypeExportRes, err error) {
 	data, err := c.dictSvc.Export(ctx, dictsvc.ExportInput{
 		Name: req.Name,

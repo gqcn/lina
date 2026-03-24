@@ -12,7 +12,7 @@ import (
 
 // Service provides system information operations.
 type Service struct {
-	startTime time.Time // 服务启动时间
+	startTime time.Time // Service start time
 }
 
 // New creates and returns a new Service instance.
@@ -24,23 +24,23 @@ func New() *Service {
 
 // SystemInfo holds the system runtime information.
 type SystemInfo struct {
-	GoVersion          string          // Go版本
-	GfVersion          string          // GoFrame版本
-	Os                 string          // 操作系统
-	Arch               string          // 系统架构
-	DbVersion          string          // 数据库版本
-	StartTime          string          // 服务启动时间
-	RunDuration        string          // 运行时长
-	BackendComponents  []ComponentInfo // 后端组件列表
-	FrontendComponents []ComponentInfo // 前端组件列表
+	GoVersion          string          // Go version
+	GfVersion          string          // GoFrame version
+	Os                 string          // Operating system
+	Arch               string          // System architecture
+	DbVersion          string          // Database version
+	StartTime          string          // Service start time
+	RunDuration        string          // Run duration
+	BackendComponents  []ComponentInfo // Backend component list
+	FrontendComponents []ComponentInfo // Frontend component list
 }
 
 // ComponentInfo holds component display information.
 type ComponentInfo struct {
-	Name        string // 组件名称
-	Version     string // 组件版本
-	Url         string // 组件链接
-	Description string // 组件描述
+	Name        string // Component name
+	Version     string // Component version
+	Url         string // Component URL
+	Description string // Component description
 }
 
 // GetInfo returns system runtime information.

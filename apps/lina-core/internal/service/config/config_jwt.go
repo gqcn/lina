@@ -8,8 +8,8 @@ import (
 
 // JwtConfig holds JWT authentication configuration.
 type JwtConfig struct {
-	Secret     string `json:"secret"`     // JWT密钥
-	ExpireHour int    `json:"expireHour"` // 过期时间（小时）
+	Secret     string `json:"secret"`     // JWT secret key
+	ExpireHour int    `json:"expireHour"` // Expiration time (hours)
 }
 
 // GetJwt reads JWT config from configuration file.

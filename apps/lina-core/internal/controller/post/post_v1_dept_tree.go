@@ -7,7 +7,7 @@ import (
 	postsvc "lina-core/internal/service/post"
 )
 
-// DeptTree 获取部门树形结构（含岗位数量）
+// DeptTree returns department tree structure (with post count)
 func (c *ControllerV1) DeptTree(ctx context.Context, req *v1.DeptTreeReq) (res *v1.DeptTreeRes, err error) {
 	nodes, err := c.postSvc.DeptTree(ctx)
 	if err != nil {
@@ -18,7 +18,7 @@ func (c *ControllerV1) DeptTree(ctx context.Context, req *v1.DeptTreeReq) (res *
 	}, nil
 }
 
-// convertDeptTreeNodes 将服务层DeptTreeNode切片转换为API层DeptTreeNode切片
+// convertDeptTreeNodes converts service layer DeptTreeNode slice to API layer DeptTreeNode slice
 func convertDeptTreeNodes(nodes []*postsvc.DeptTreeNode) []*v1.DeptTreeNode {
 	if nodes == nil {
 		return nil

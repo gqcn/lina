@@ -9,12 +9,12 @@ import (
 	usermsgsvc "lina-core/internal/service/usermsg"
 )
 
-// ControllerV1 用户消息控制器
+// ControllerV1 is the user message controller.
 type ControllerV1 struct {
-	usermsgSvc *usermsgsvc.Service // 用户消息服务
+	usermsgSvc *usermsgsvc.Service // user message service
 }
 
-// NewV1 创建用户消息控制器实例
+// NewV1 creates and returns a new user message controller instance.
 func NewV1() usermsg.IUsermsgV1 {
 	return &ControllerV1{
 		usermsgSvc: usermsgsvc.New(),

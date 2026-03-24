@@ -16,7 +16,7 @@ type TypeListReq struct {
 	Type     string `json:"type" dc:"按字典类型标识筛选（模糊匹配）" eg:"sys_user_sex"`
 }
 
-// TypeListRes 字典类型列表响应
+// TypeListRes dictionary type list response
 type TypeListRes struct {
 	List  []*entity.SysDictType `json:"list" dc:"字典类型列表" eg:"[]"`
 	Total int                   `json:"total" dc:"总条数" eg:"10"`

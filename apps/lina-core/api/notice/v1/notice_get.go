@@ -13,7 +13,7 @@ type GetReq struct {
 	Id     int64 `json:"id" v:"required" dc:"公告ID" eg:"1"`
 }
 
-// GetRes 通知公告详情响应
+// GetRes Notice detail response
 type GetRes struct {
 	*entity.SysNotice
 	CreatedByName string `json:"createdByName" dc:"创建者用户名" eg:"admin"`

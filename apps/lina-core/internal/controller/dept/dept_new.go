@@ -9,12 +9,12 @@ import (
 	deptsvc "lina-core/internal/service/dept"
 )
 
-// ControllerV1 部门控制器
+// ControllerV1 is the department controller.
 type ControllerV1 struct {
-	deptSvc *deptsvc.Service // 部门服务
+	deptSvc *deptsvc.Service // department service
 }
 
-// NewV1 创建部门控制器实例
+// NewV1 creates and returns a new department controller instance.
 func NewV1() dept.IDeptV1 {
 	return &ControllerV1{
 		deptSvc: deptsvc.New(),

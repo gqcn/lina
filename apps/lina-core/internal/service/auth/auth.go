@@ -23,9 +23,9 @@ import (
 
 // Service provides authentication operations.
 type Service struct {
-	configSvc    *config.Service    // 配置服务
-	loginLogSvc  *loginlog.Service  // 登录日志服务
-	sessionStore session.Store      // 会话存储
+	configSvc    *config.Service    // Configuration service
+	loginLogSvc  *loginlog.Service  // Login log service
+	sessionStore session.Store      // Session store
 }
 
 // New creates and returns a new Service instance.
@@ -44,22 +44,22 @@ func (s *Service) SessionStore() session.Store {
 
 // Claims defines JWT token claims.
 type Claims struct {
-	TokenId  string `json:"tokenId"`  // 令牌唯一标识
-	UserId   int    `json:"userId"`   // 用户ID
-	Username string `json:"username"` // 用户名
-	Status   int    `json:"status"`   // 状态
+	TokenId  string `json:"tokenId"`  // Unique token identifier
+	UserId   int    `json:"userId"`   // User ID
+	Username string `json:"username"` // Username
+	Status   int    `json:"status"`   // Status
 	jwt.RegisteredClaims
 }
 
 // LoginInput defines input for Login function.
 type LoginInput struct {
-	Username string // 用户名
-	Password string // 密码
+	Username string // Username
+	Password string // Password
 }
 
 // LoginOutput defines output for Login function.
 type LoginOutput struct {
-	AccessToken string // JWT访问令牌
+	AccessToken string // JWT access token
 }
 
 // Login verifies credentials and issues JWT token.

@@ -11,13 +11,13 @@ type OptionSelectReq struct {
 	DeptId *int `json:"deptId" dc:"部门ID，不传则返回所有岗位" eg:"100"`
 }
 
-// PostOption 岗位选项
+// PostOption represents a post option for selection
 type PostOption struct {
 	PostId   int    `json:"postId" dc:"岗位ID" eg:"1"`
 	PostName string `json:"postName" dc:"岗位名称" eg:"开发工程师"`
 }
 
-// OptionSelectRes 岗位选项响应
+// OptionSelectRes is the response for post option selection
 type OptionSelectRes struct {
 	List []*PostOption `json:"list" dc:"岗位选项列表" eg:"[]"`
 }

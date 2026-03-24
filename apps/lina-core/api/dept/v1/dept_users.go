@@ -15,7 +15,7 @@ type UsersReq struct {
 	Limit   int    `json:"limit" d:"10" dc:"最大返回条数，默认为10，用于限制下拉列表的数据量" eg:"10"`
 }
 
-// DeptUser 部门用户
+// DeptUser represents a user in a department.
 type DeptUser struct {
 	Id       int    `json:"id" dc:"用户ID" eg:"1"`
 	Username string `json:"username" dc:"用户登录账号" eg:"zhangsan"`

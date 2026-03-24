@@ -6,7 +6,7 @@ import (
 	v1 "lina-core/api/dept/v1"
 )
 
-// Users 获取部门用户列表
+// Users returns the list of users in a department.
 func (c *ControllerV1) Users(ctx context.Context, req *v1.UsersReq) (res *v1.UsersRes, err error) {
 	users, err := c.deptSvc.Users(ctx, req.Id, req.Keyword, req.Limit)
 	if err != nil {

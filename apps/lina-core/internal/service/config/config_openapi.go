@@ -8,11 +8,11 @@ import (
 
 // OpenApiConfig holds OpenAPI documentation configuration.
 type OpenApiConfig struct {
-	Title             string `json:"title"`             // API标题
-	Description       string `json:"description"`       // API描述
-	Version           string `json:"version"`           // API版本
-	ServerUrl         string `json:"serverUrl"`         // 服务器URL
-	ServerDescription string `json:"serverDescription"` // 服务器描述
+	Title             string `json:"title"`             // API title
+	Description       string `json:"description"`       // API description
+	Version           string `json:"version"`           // API version
+	ServerUrl         string `json:"serverUrl"`         // Server URL
+	ServerDescription string `json:"serverDescription"` // Server description
 }
 
 // GetOpenApi reads OpenAPI config from configuration file.

@@ -22,13 +22,13 @@ type ListReq struct {
 	OrderDirection string `json:"orderDirection" dc:"排序方向：asc=升序 desc=降序" eg:"desc"`
 }
 
-// ListRes 文件列表响应
+// ListRes File list response
 type ListRes struct {
 	List  []*ListItem `json:"list" dc:"文件列表" eg:"[]"`
 	Total int         `json:"total" dc:"总条数" eg:"20"`
 }
 
-// ListItem 文件列表项
+// ListItem File list item
 type ListItem struct {
 	*entity.SysFile
 	CreatedByName string `json:"createdByName" dc:"上传者用户名" eg:"admin"`

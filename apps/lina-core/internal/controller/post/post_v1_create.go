@@ -7,7 +7,7 @@ import (
 	postsvc "lina-core/internal/service/post"
 )
 
-// Create 创建岗位
+// Create creates a post
 func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.CreateRes, err error) {
 	sort := 0
 	if req.Sort != nil {

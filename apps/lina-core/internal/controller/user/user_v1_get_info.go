@@ -6,7 +6,7 @@ import (
 	v1 "lina-core/api/user/v1"
 )
 
-// GetInfo 获取当前登录用户信息
+// GetInfo returns current logged-in user information
 func (c *ControllerV1) GetInfo(ctx context.Context, req *v1.GetInfoReq) (res *v1.GetInfoRes, err error) {
 	user, err := c.userSvc.GetProfile(ctx)
 	if err != nil {

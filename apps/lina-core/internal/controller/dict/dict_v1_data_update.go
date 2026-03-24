@@ -7,7 +7,7 @@ import (
 	dictsvc "lina-core/internal/service/dict"
 )
 
-// DataUpdate 更新字典数据
+// DataUpdate updates a dictionary data entry.
 func (c *ControllerV1) DataUpdate(ctx context.Context, req *v1.DataUpdateReq) (res *v1.DataUpdateRes, err error) {
 	err = c.dictSvc.DataUpdate(ctx, dictsvc.DataUpdateInput{
 		Id:       req.Id,

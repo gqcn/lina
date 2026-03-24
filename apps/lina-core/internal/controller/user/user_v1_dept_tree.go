@@ -7,7 +7,7 @@ import (
 	deptsvc "lina-core/internal/service/dept"
 )
 
-// DeptTree 获取用户部门树形结构
+// DeptTree returns user department tree structure
 func (c *ControllerV1) DeptTree(ctx context.Context, req *v1.DeptTreeReq) (res *v1.DeptTreeRes, err error) {
 	svc := deptsvc.New()
 	nodes, err := svc.UserDeptTree(ctx)
@@ -17,7 +17,7 @@ func (c *ControllerV1) DeptTree(ctx context.Context, req *v1.DeptTreeReq) (res *
 	return &v1.DeptTreeRes{List: convertDeptTreeNodes(nodes)}, nil
 }
 
-// convertDeptTreeNodes 将服务层TreeNode切片转换为API层DeptTreeNode切片
+// convertDeptTreeNodes converts service layer TreeNode slice to API layer DeptTreeNode slice
 func convertDeptTreeNodes(nodes []*deptsvc.TreeNode) []*v1.DeptTreeNode {
 	if nodes == nil {
 		return nil

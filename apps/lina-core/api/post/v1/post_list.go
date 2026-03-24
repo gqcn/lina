@@ -18,7 +18,7 @@ type ListReq struct {
 	Status   *int   `json:"status" dc:"按状态筛选：1=正常 0=停用" eg:"1"`
 }
 
-// ListRes 岗位列表响应
+// ListRes is the response for post list
 type ListRes struct {
 	List  []*entity.SysPost `json:"list" dc:"岗位列表" eg:"[]"`
 	Total int               `json:"total" dc:"总条数" eg:"20"`

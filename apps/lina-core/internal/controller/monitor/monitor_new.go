@@ -11,13 +11,13 @@ import (
 	"lina-core/internal/service/session"
 )
 
-// ControllerV1 系统监控控制器
+// ControllerV1 is the system monitor controller.
 type ControllerV1 struct {
-	authSvc      *auth.Service      // 认证服务
-	serverMonSvc *servermon.Service // 服务器监控服务
+	authSvc      *auth.Service      // auth service
+	serverMonSvc *servermon.Service // server monitor service
 }
 
-// NewV1 创建系统监控控制器实例
+// NewV1 creates and returns a new system monitor controller instance.
 func NewV1() monitor.IMonitorV1 {
 	return &ControllerV1{
 		authSvc:      auth.New(),

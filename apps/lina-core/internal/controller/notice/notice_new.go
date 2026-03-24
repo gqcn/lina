@@ -9,12 +9,12 @@ import (
 	noticesvc "lina-core/internal/service/notice"
 )
 
-// ControllerV1 公告控制器
+// ControllerV1 is the notice controller.
 type ControllerV1 struct {
-	noticeSvc *noticesvc.Service // 公告服务
+	noticeSvc *noticesvc.Service // notice service
 }
 
-// NewV1 创建公告控制器实例
+// NewV1 creates and returns a new notice controller instance.
 func NewV1() notice.INoticeV1 {
 	return &ControllerV1{
 		noticeSvc: noticesvc.New(),

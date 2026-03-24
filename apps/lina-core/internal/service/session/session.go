@@ -13,21 +13,21 @@ import (
 
 // Session represents an online user session.
 type Session struct {
-	TokenId        string       // 令牌唯一标识
-	UserId         int          // 用户ID
-	Username       string       // 用户名
-	DeptName       string       // 部门名称
-	Ip             string       // 登录IP
-	Browser        string       // 浏览器信息
-	Os             string       // 操作系统
-	LoginTime      *gtime.Time  // 登录时间
-	LastActiveTime *gtime.Time  // 最后活跃时间
+	TokenId        string       // Unique token identifier
+	UserId         int          // User ID
+	Username       string       // Username
+	DeptName       string       // Department name
+	Ip             string       // Login IP address
+	Browser        string       // Browser information
+	Os             string       // Operating system
+	LoginTime      *gtime.Time  // Login time
+	LastActiveTime *gtime.Time  // Last active time
 }
 
 // ListFilter defines filter options for listing sessions.
 type ListFilter struct {
-	Username string // 用户名，支持模糊查询
-	Ip       string // 登录IP，支持模糊查询
+	Username string // Username, supports fuzzy search
+	Ip       string // Login IP, supports fuzzy search
 }
 
 // Store defines the session storage interface.

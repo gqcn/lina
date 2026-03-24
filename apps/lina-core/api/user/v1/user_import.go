@@ -10,14 +10,14 @@ type ImportReq struct {
 	g.Meta `path:"/user/import" method:"post" mime:"multipart/form-data" tags:"用户管理" summary:"导入用户数据" dc:"通过Excel文件批量导入用户数据，需使用系统提供的导入模板"`
 }
 
-// ImportRes 用户导入响应
+// ImportRes is the response structure for user import.
 type ImportRes struct {
 	Success  int              `json:"success" dc:"成功条数" eg:"10"`
 	Fail     int              `json:"fail" dc:"失败条数" eg:"2"`
 	FailList []ImportFailItem `json:"failList" dc:"失败详情" eg:"[]"`
 }
 
-// ImportFailItem 导入失败项
+// ImportFailItem represents a failed import record.
 type ImportFailItem struct {
 	Row    int    `json:"row" dc:"行号" eg:"3"`
 	Reason string `json:"reason" dc:"失败原因" eg:"用户名已存在"`

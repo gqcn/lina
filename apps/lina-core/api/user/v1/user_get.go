@@ -13,7 +13,7 @@ type GetReq struct {
 	Id     int `json:"id" v:"required" dc:"用户ID" eg:"1"`
 }
 
-// GetRes 用户详情响应
+// GetRes is the response structure for user detail.
 type GetRes struct {
 	*entity.SysUser `dc:"用户信息" eg:""`
 	DeptId          int    `json:"deptId" dc:"部门ID" eg:"100"`

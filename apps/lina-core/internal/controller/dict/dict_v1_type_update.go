@@ -7,7 +7,7 @@ import (
 	dictsvc "lina-core/internal/service/dict"
 )
 
-// TypeUpdate 更新字典类型
+// TypeUpdate updates a dictionary type.
 func (c *ControllerV1) TypeUpdate(ctx context.Context, req *v1.TypeUpdateReq) (res *v1.TypeUpdateRes, err error) {
 	err = c.dictSvc.Update(ctx, dictsvc.UpdateInput{
 		Id:     req.Id,

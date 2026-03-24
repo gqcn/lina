@@ -9,7 +9,7 @@ import (
 	operlogsvc "lina-core/internal/service/operlog"
 )
 
-// Export 导出操作日志
+// Export exports operation logs
 func (c *ControllerV1) Export(ctx context.Context, req *v1.ExportReq) (res *v1.ExportRes, err error) {
 	data, err := c.operLogSvc.Export(ctx, operlogsvc.ExportInput{
 		Title:          req.Title,

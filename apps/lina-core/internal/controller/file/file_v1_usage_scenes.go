@@ -6,7 +6,7 @@ import (
 	v1 "lina-core/api/file/v1"
 )
 
-// UsageScenes 获取文件使用场景列表
+// UsageScenes returns file usage scene list
 func (c *ControllerV1) UsageScenes(ctx context.Context, req *v1.UsageScenesReq) (res *v1.UsageScenesRes, err error) {
 	out, err := c.fileSvc.UsageScenes(ctx)
 	if err != nil {

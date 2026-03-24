@@ -9,12 +9,12 @@ import (
 	sysinfosvc "lina-core/internal/service/sysinfo"
 )
 
-// ControllerV1 系统信息控制器
+// ControllerV1 is the system info controller.
 type ControllerV1 struct {
-	sysInfoSvc *sysinfosvc.Service // 系统信息服务
+	sysInfoSvc *sysinfosvc.Service // system info service
 }
 
-// NewV1 创建系统信息控制器实例
+// NewV1 creates and returns a new system info controller instance.
 func NewV1() sysinfo.ISysinfoV1 {
 	return &ControllerV1{
 		sysInfoSvc: sysinfosvc.New(),

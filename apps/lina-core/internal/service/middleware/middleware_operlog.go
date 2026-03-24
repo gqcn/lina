@@ -13,7 +13,7 @@ import (
 	"lina-core/internal/service/operlog"
 )
 
-const maxParamLen = 2000 // 参数和结果的最大长度限制
+const maxParamLen = 2000 // Max length for parameters and results
 
 // OperLog records operation logs for write operations and specially tagged GET operations.
 func (s *Service) OperLog(r *ghttp.Request) {

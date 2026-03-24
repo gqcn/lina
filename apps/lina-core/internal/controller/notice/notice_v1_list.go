@@ -7,7 +7,7 @@ import (
 	noticesvc "lina-core/internal/service/notice"
 )
 
-// List 查询公告列表
+// List queries notice list
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
 	out, err := c.noticeSvc.List(ctx, noticesvc.ListInput{
 		PageNum:   req.PageNum,

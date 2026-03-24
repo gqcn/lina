@@ -10,13 +10,13 @@ import (
 	"lina-core/internal/service/bizctx"
 )
 
-// ControllerV1 认证控制器
+// ControllerV1 is the authentication controller.
 type ControllerV1 struct {
-	authSvc   *authsvc.Service  // 认证服务
-	bizCtxSvc *bizctx.Service   // 业务上下文服务
+	authSvc   *authsvc.Service  // auth service
+	bizCtxSvc *bizctx.Service   // business context service
 }
 
-// NewV1 创建认证控制器实例
+// NewV1 creates and returns a new authentication controller instance.
 func NewV1() authapi.IAuthV1 {
 	return &ControllerV1{
 		authSvc:   authsvc.New(),

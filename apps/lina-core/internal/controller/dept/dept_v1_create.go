@@ -7,7 +7,7 @@ import (
 	deptsvc "lina-core/internal/service/dept"
 )
 
-// Create 创建部门
+// Create creates a new department.
 func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.CreateRes, err error) {
 	orderNum := 0
 	if req.OrderNum != nil {

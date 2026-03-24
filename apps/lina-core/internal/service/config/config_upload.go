@@ -8,8 +8,8 @@ import (
 
 // UploadConfig holds file upload configuration.
 type UploadConfig struct {
-	Path    string `json:"path"`    // 上传目录
-	MaxSize int64  `json:"maxSize"` // 最大文件大小（MB）
+	Path    string `json:"path"`    // Upload directory
+	MaxSize int64  `json:"maxSize"` // Max file size (MB)
 }
 
 // GetUpload reads upload config from configuration file.

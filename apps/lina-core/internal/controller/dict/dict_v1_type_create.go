@@ -7,7 +7,7 @@ import (
 	dictsvc "lina-core/internal/service/dict"
 )
 
-// TypeCreate 创建字典类型
+// TypeCreate creates a new dictionary type.
 func (c *ControllerV1) TypeCreate(ctx context.Context, req *v1.TypeCreateReq) (res *v1.TypeCreateRes, err error) {
 	id, err := c.dictSvc.Create(ctx, dictsvc.CreateInput{
 		Name:   req.Name,

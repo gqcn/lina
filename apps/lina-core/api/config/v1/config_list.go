@@ -19,7 +19,7 @@ type ListReq struct {
 	EndTime   string `json:"endTime" dc:"创建时间范围-结束时间，格式YYYY-MM-DD" eg:"2025-12-31"`
 }
 
-// ListRes 参数设置列表响应
+// ListRes is the config list response.
 type ListRes struct {
 	List  []*entity.SysConfig `json:"list" dc:"参数设置列表" eg:"[]"`
 	Total int                 `json:"total" dc:"总条数" eg:"10"`

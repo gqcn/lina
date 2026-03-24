@@ -23,18 +23,18 @@ func New() *Service {
 
 // ListInput defines input for List function.
 type ListInput struct {
-	PageNum   int    // 页码，从1开始
-	PageSize  int    // 每页数量
-	Name      string // 参数名称，支持模糊查询
-	Key       string // 参数键名，支持模糊查询
-	BeginTime string // 创建时间起始
-	EndTime   string // 创建时间结束
+	PageNum   int    // Page number, starting from 1
+	PageSize  int    // Page size
+	Name      string // Parameter name, supports fuzzy search
+	Key       string // Parameter key, supports fuzzy search
+	BeginTime string // Creation time start
+	EndTime   string // Creation time end
 }
 
 // ListOutput defines output for List function.
 type ListOutput struct {
-	List  []*entity.SysConfig // 配置列表
-	Total int                 // 总数
+	List  []*entity.SysConfig // Config list
+	Total int                 // Total count
 }
 
 // List queries config list with pagination and filters.
@@ -98,10 +98,10 @@ func (s *Service) GetById(ctx context.Context, id int) (*entity.SysConfig, error
 
 // CreateInput defines input for Create function.
 type CreateInput struct {
-	Name   string // 参数名称
-	Key    string // 参数键名
-	Value  string // 参数键值
-	Remark string // 备注
+	Name   string // Parameter name
+	Key    string // Parameter key
+	Value  string // Parameter value
+	Remark string // Remark
 }
 
 // Create creates a new config record.
@@ -137,11 +137,11 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 
 // UpdateInput defines input for Update function.
 type UpdateInput struct {
-	Id     int      // 参数ID
-	Name   *string  // 参数名称
-	Key    *string  // 参数键名
-	Value  *string  // 参数键值
-	Remark *string  // 备注
+	Id     int      // Parameter ID
+	Name   *string  // Parameter name
+	Key    *string  // Parameter key
+	Value  *string  // Parameter value
+	Remark *string  // Remark
 }
 
 // Update updates config information.
@@ -221,10 +221,10 @@ func (s *Service) GetByKey(ctx context.Context, key string) (*entity.SysConfig, 
 
 // ExportInput defines input for Export function.
 type ExportInput struct {
-	Name      string // 参数名称，支持模糊查询
-	Key       string // 参数键名，支持模糊查询
-	BeginTime string // 创建时间起始
-	EndTime   string // 创建时间结束
+	Name      string // Parameter name, supports fuzzy search
+	Key       string // Parameter key, supports fuzzy search
+	BeginTime string // Creation time start
+	EndTime   string // Creation time end
 }
 
 // Export generates an Excel file with config data.

@@ -28,83 +28,83 @@ import (
 
 // MonitorData represents all collected server metrics.
 type MonitorData struct {
-	Server   *ServerInfo     `json:"server"`   // 服务器信息
-	CPU      *CPUInfo        `json:"cpu"`       // CPU信息
-	Memory   *MemoryInfo     `json:"memory"`    // 内存信息
-	Disks    []*DiskInfo     `json:"disks"`     // 磁盘列表
-	Network  *NetworkInfo    `json:"network"`   // 网络信息
-	GoInfo   *GoRuntimeInfo  `json:"goInfo"`    // Go运行时信息
+	Server   *ServerInfo     `json:"server"`   // Server information
+	CPU      *CPUInfo        `json:"cpu"`       // CPU information
+	Memory   *MemoryInfo     `json:"memory"`    // Memory information
+	Disks    []*DiskInfo     `json:"disks"`     // Disk list
+	Network  *NetworkInfo    `json:"network"`   // Network information
+	GoInfo   *GoRuntimeInfo  `json:"goInfo"`    // Go runtime information
 }
 
 // ServerInfo represents server basic information.
 type ServerInfo struct {
-	Hostname  string `json:"hostname"`  // 主机名
-	OS        string `json:"os"`        // 操作系统
-	Arch      string `json:"arch"`      // 系统架构
-	BootTime  string `json:"bootTime"`  // 系统启动时间
-	Uptime    uint64 `json:"uptime"`    // 系统运行时长（秒）
-	StartTime string `json:"startTime"` // 服务启动时间
+	Hostname  string `json:"hostname"`  // Hostname
+	OS        string `json:"os"`        // Operating system
+	Arch      string `json:"arch"`      // System architecture
+	BootTime  string `json:"bootTime"`  // System boot time
+	Uptime    uint64 `json:"uptime"`    // System uptime (seconds)
+	StartTime string `json:"startTime"` // Service start time
 }
 
 // CPUInfo represents CPU metrics.
 type CPUInfo struct {
-	Cores        int     `json:"cores"`        // CPU核心数
-	ModelName    string  `json:"modelName"`    // CPU型号
-	UsagePercent float64 `json:"usagePercent"` // CPU使用率（百分比）
+	Cores        int     `json:"cores"`        // Number of CPU cores
+	ModelName    string  `json:"modelName"`    // CPU model name
+	UsagePercent float64 `json:"usagePercent"` // CPU usage percentage
 }
 
 // MemoryInfo represents memory metrics.
 type MemoryInfo struct {
-	Total        uint64  `json:"total"`        // 总内存（字节）
-	Used         uint64  `json:"used"`         // 已用内存（字节）
-	Available    uint64  `json:"available"`    // 可用内存（字节）
-	UsagePercent float64 `json:"usagePercent"` // 内存使用率（百分比）
+	Total        uint64  `json:"total"`        // Total memory (bytes)
+	Used         uint64  `json:"used"`         // Used memory (bytes)
+	Available    uint64  `json:"available"`    // Available memory (bytes)
+	UsagePercent float64 `json:"usagePercent"` // Memory usage percentage
 }
 
 // DiskInfo represents disk metrics.
 type DiskInfo struct {
-	Path         string  `json:"path"`         // 挂载路径
-	FsType       string  `json:"fsType"`       // 文件系统类型
-	Total        uint64  `json:"total"`        // 总空间（字节）
-	Used         uint64  `json:"used"`         // 已用空间（字节）
-	Free         uint64  `json:"free"`         // 可用空间（字节）
-	UsagePercent float64 `json:"usagePercent"` // 使用率（百分比）
+	Path         string  `json:"path"`         // Mount path
+	FsType       string  `json:"fsType"`       // Filesystem type
+	Total        uint64  `json:"total"`        // Total space (bytes)
+	Used         uint64  `json:"used"`         // Used space (bytes)
+	Free         uint64  `json:"free"`         // Free space (bytes)
+	UsagePercent float64 `json:"usagePercent"` // Usage percentage
 }
 
 // NetworkInfo represents network metrics.
 type NetworkInfo struct {
-	BytesSent uint64  `json:"bytesSent"` // 发送字节数
-	BytesRecv uint64  `json:"bytesRecv"` // 接收字节数
-	SendRate  float64 `json:"sendRate"`  // 发送速率（字节/秒）
-	RecvRate  float64 `json:"recvRate"`  // 接收速率（字节/秒）
+	BytesSent uint64  `json:"bytesSent"` // Bytes sent
+	BytesRecv uint64  `json:"bytesRecv"` // Bytes received
+	SendRate  float64 `json:"sendRate"`  // Send rate (bytes/second)
+	RecvRate  float64 `json:"recvRate"`  // Receive rate (bytes/second)
 }
 
 // GoRuntimeInfo represents Go runtime metrics.
 type GoRuntimeInfo struct {
-	Version       string  `json:"version"`       // Go版本
-	Goroutines    int     `json:"goroutines"`    // Goroutine数量
-	ProcessCPU    float64 `json:"processCpu"`    // 进程CPU使用率
-	ProcessMemory float64 `json:"processMemory"` // 进程内存使用率
-	GCPauseNs     uint64  `json:"gcPauseNs"`     // GC暂停时间（纳秒）
-	GfVersion     string  `json:"gfVersion"`     // GoFrame版本
-	ServiceUptime string  `json:"serviceUptime"` // 服务运行时长
+	Version       string  `json:"version"`       // Go version
+	Goroutines    int     `json:"goroutines"`    // Number of goroutines
+	ProcessCPU    float64 `json:"processCpu"`    // Process CPU usage
+	ProcessMemory float64 `json:"processMemory"` // Process memory usage
+	GCPauseNs     uint64  `json:"gcPauseNs"`     // GC pause time (nanoseconds)
+	GfVersion     string  `json:"gfVersion"`     // GoFrame version
+	ServiceUptime string  `json:"serviceUptime"` // Service uptime
 }
 
 // DBInfo represents database metrics.
 type DBInfo struct {
-	Version      string `json:"version"`      // 数据库版本
-	MaxOpenConns int    `json:"maxOpenConns"` // 最大连接数
-	OpenConns    int    `json:"openConns"`    // 已打开连接数
-	InUse        int    `json:"inUse"`        // 正在使用的连接数
-	Idle         int    `json:"idle"`         // 空闲连接数
+	Version      string `json:"version"`      // Database version
+	MaxOpenConns int    `json:"maxOpenConns"` // Max connections
+	OpenConns    int    `json:"openConns"`    // Open connections
+	InUse        int    `json:"inUse"`        // Connections in use
+	Idle         int    `json:"idle"`         // Idle connections
 }
 
 // Service provides server monitoring operations.
 type Service struct {
-	configSvc     *config.Service       // 配置服务
-	startTime     time.Time             // 服务启动时间
-	lastNetBytes  *netutil.IOCountersStat // 上次网络统计数据
-	lastCollectAt time.Time             // 上次采集时间
+	configSvc     *config.Service       // Configuration service
+	startTime     time.Time             // Service start time
+	lastNetBytes  *netutil.IOCountersStat // Last network statistics
+	lastCollectAt time.Time             // Last collection time
 }
 
 // New creates a new Service.
@@ -390,10 +390,10 @@ func (s *Service) GetLatest(ctx context.Context, nodeName string) ([]*NodeMonito
 
 // NodeMonitorData wraps monitor data with node info.
 type NodeMonitorData struct {
-	NodeName  string       `json:"nodeName"`  // 节点名称
-	NodeIp    string       `json:"nodeIp"`    // 节点IP
-	Data      *MonitorData `json:"data"`      // 监控数据
-	CollectAt string       `json:"collectAt"` // 采集时间
+	NodeName  string       `json:"nodeName"`  // Node name
+	NodeIp    string       `json:"nodeIp"`    // Node IP address
+	Data      *MonitorData `json:"data"`      // Monitor data
+	CollectAt string       `json:"collectAt"` // Collection time
 }
 
 // getLocalIP returns the first non-loopback IPv4 address.

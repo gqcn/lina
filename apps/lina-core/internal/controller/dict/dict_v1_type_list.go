@@ -7,7 +7,7 @@ import (
 	dictsvc "lina-core/internal/service/dict"
 )
 
-// TypeList 查询字典类型列表
+// TypeList returns dictionary type list.
 func (c *ControllerV1) TypeList(ctx context.Context, req *v1.TypeListReq) (res *v1.TypeListRes, err error) {
 	out, err := c.dictSvc.List(ctx, dictsvc.ListInput{
 		PageNum:  req.PageNum,

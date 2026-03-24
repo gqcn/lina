@@ -17,8 +17,8 @@ import (
 
 // Service provides user management operations.
 type Service struct {
-	authSvc   *auth.Service   // 认证服务
-	bizCtxSvc *bizctx.Service // 业务上下文服务
+	authSvc   *auth.Service   // Authentication service
+	bizCtxSvc *bizctx.Service // Business context service
 }
 
 // New creates and returns a new Service instance.
@@ -31,31 +31,31 @@ func New() *Service {
 
 // ListInput defines input for List function.
 type ListInput struct {
-	PageNum        int    // 页码，从1开始
-	PageSize       int    // 每页数量
-	Username       string // 用户名，支持模糊查询
-	Nickname       string // 昵称，支持模糊查询
-	Status         *int   // 状态：1=正常 0=停用
-	Phone          string // 手机号，支持模糊查询
-	Sex            *int   // 性别：0=未知 1=男 2=女
-	DeptId         *int   // 部门ID，0表示未分配部门
-	BeginTime      string // 创建时间起始
-	EndTime        string // 创建时间结束
-	OrderBy        string // 排序字段
-	OrderDirection string // 排序方向：asc/desc
+	PageNum        int    // Page number, starting from 1
+	PageSize       int    // Items per page
+	Username       string // Username, supports fuzzy search
+	Nickname       string // Nickname, supports fuzzy search
+	Status         *int   // Status: 1=Normal 0=Disabled
+	Phone          string // Phone number, supports fuzzy search
+	Sex            *int   // Gender: 0=Unknown 1=Male 2=Female
+	DeptId         *int   // Department ID, 0 means unassigned
+	BeginTime      string // Creation time start
+	EndTime        string // Creation time end
+	OrderBy        string // Sort field
+	OrderDirection string // Sort direction: asc/desc
 }
 
 // ListOutputItem defines a single item in list output with dept info.
 type ListOutputItem struct {
-	SysUser  *entity.SysUser // 用户实体
-	DeptId   int             // 部门ID
-	DeptName string          // 部门名称
+	SysUser  *entity.SysUser // User entity
+	DeptId   int             // Department ID
+	DeptName string          // Department name
 }
 
 // ListOutput defines output for List function.
 type ListOutput struct {
-	List  []*ListOutputItem // 用户列表
-	Total int               // 总数
+	List  []*ListOutputItem // User list
+	Total int               // Total count
 }
 
 // List queries user list with pagination and filters.
@@ -246,16 +246,16 @@ func (s *Service) GetUserDeptInfo(ctx context.Context, userId int) (int, string,
 
 // CreateInput defines input for Create function.
 type CreateInput struct {
-	Username string // 用户名
-	Password string // 密码
-	Nickname string // 昵称
-	Email    string // 邮箱
-	Phone    string // 手机号
-	Sex      int    // 性别：0=未知 1=男 2=女
-	Status   int    // 状态：1=正常 0=停用
-	Remark   string // 备注
-	DeptId   *int   // 部门ID
-	PostIds  []int  // 岗位ID列表
+	Username string // Username
+	Password string // Password
+	Nickname string // Nickname
+	Email    string // Email
+	Phone    string // Phone number
+	Sex      int    // Gender: 0=Unknown 1=Male 2=Female
+	Status   int    // Status: 1=Normal 0=Disabled
+	Remark   string // Remark
+	DeptId   *int   // Department ID
+	PostIds  []int  // Post ID list
 }
 
 // Create creates a new user.
@@ -349,17 +349,17 @@ func (s *Service) GetById(ctx context.Context, id int) (*entity.SysUser, error) 
 
 // UpdateInput defines input for Update function.
 type UpdateInput struct {
-	Id       int      // 用户ID
-	Username *string  // 用户名
-	Password *string  // 密码
-	Nickname *string  // 昵称
-	Email    *string  // 邮箱
-	Phone    *string  // 手机号
-	Sex      *int     // 性别：0=未知 1=男 2=女
-	Status   *int     // 状态：1=正常 0=停用
-	Remark   *string  // 备注
-	DeptId   *int     // 部门ID
-	PostIds  []int    // 岗位ID列表
+	Id       int      // User ID
+	Username *string  // Username
+	Password *string  // Password
+	Nickname *string  // Nickname
+	Email    *string  // Email
+	Phone    *string  // Phone number
+	Sex      *int     // Gender: 0=Unknown 1=Male 2=Female
+	Status   *int     // Status: 1=Normal 0=Disabled
+	Remark   *string  // Remark
+	DeptId   *int     // Department ID
+	PostIds  []int    // Post ID list
 }
 
 // Update updates user information.
@@ -501,11 +501,11 @@ func (s *Service) GetProfile(ctx context.Context) (*entity.SysUser, error) {
 
 // UpdateProfileInput defines input for UpdateProfile function.
 type UpdateProfileInput struct {
-	Nickname *string // 昵称
-	Email    *string // 邮箱
-	Phone    *string // 手机号
-	Sex      *int    // 性别：0=未知 1=男 2=女
-	Password *string // 密码
+	Nickname *string // Nickname
+	Email    *string // Email
+	Phone    *string // Phone number
+	Sex      *int    // Gender: 0=Unknown 1=Male 2=Female
+	Password *string // Password
 }
 
 // UpdateProfile updates current user profile.

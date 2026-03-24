@@ -14,7 +14,7 @@ import (
 
 // Service provides user message operations.
 type Service struct {
-	bizCtxSvc *bizctx.Service // 业务上下文服务
+	bizCtxSvc *bizctx.Service // Business context service
 }
 
 // New creates and returns a new Service instance.
@@ -53,14 +53,14 @@ func (s *Service) UnreadCount(ctx context.Context) (int, error) {
 
 // ListInput defines input for List function.
 type ListInput struct {
-	PageNum  int // 页码，从1开始
-	PageSize int // 每页数量
+	PageNum  int // Page number, starting from 1
+	PageSize int // Page size
 }
 
 // ListOutput defines output for List function.
 type ListOutput struct {
-	List  []*entity.SysUserMessage // 消息列表
-	Total int                      // 总数
+	List  []*entity.SysUserMessage // Message list
+	Total int                      // Total count
 }
 
 // List queries message list for current user with pagination.

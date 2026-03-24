@@ -7,7 +7,7 @@ import (
 	dictsvc "lina-core/internal/service/dict"
 )
 
-// DataList 查询字典数据列表
+// DataList returns dictionary data list.
 func (c *ControllerV1) DataList(ctx context.Context, req *v1.DataListReq) (res *v1.DataListRes, err error) {
 	out, err := c.dictSvc.DataList(ctx, dictsvc.DataListInput{
 		PageNum:  req.PageNum,

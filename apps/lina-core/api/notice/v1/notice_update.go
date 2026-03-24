@@ -17,5 +17,5 @@ type UpdateReq struct {
 	Remark  *string `json:"remark" dc:"备注" eg:"已更新"`
 }
 
-// UpdateRes 通知公告更新响应
+// UpdateRes Notice update response
 type UpdateRes struct{}

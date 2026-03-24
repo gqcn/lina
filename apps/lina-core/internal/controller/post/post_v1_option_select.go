@@ -7,7 +7,7 @@ import (
 	postsvc "lina-core/internal/service/post"
 )
 
-// OptionSelect 获取岗位选项列表
+// OptionSelect returns post option list
 func (c *ControllerV1) OptionSelect(ctx context.Context, req *v1.OptionSelectReq) (res *v1.OptionSelectRes, err error) {
 	options, err := c.postSvc.OptionSelect(ctx, postsvc.OptionSelectInput{
 		DeptId: req.DeptId,

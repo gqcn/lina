@@ -7,7 +7,7 @@ import (
 	deptsvc "lina-core/internal/service/dept"
 )
 
-// Update 更新部门
+// Update updates a department.
 func (c *ControllerV1) Update(ctx context.Context, req *v1.UpdateReq) (res *v1.UpdateRes, err error) {
 	return nil, c.deptSvc.Update(ctx, deptsvc.UpdateInput{
 		Id:       req.Id,

@@ -7,7 +7,7 @@ import (
 	operlogsvc "lina-core/internal/service/operlog"
 )
 
-// Clean 清空操作日志
+// Clean clears operation logs
 func (c *ControllerV1) Clean(ctx context.Context, req *v1.CleanReq) (res *v1.CleanRes, err error) {
 	deleted, err := c.operLogSvc.Clean(ctx, operlogsvc.CleanInput{
 		BeginTime: req.BeginTime,

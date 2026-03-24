@@ -6,7 +6,7 @@ import (
 	v1 "lina-core/api/usermsg/v1"
 )
 
-// Clear 清空用户消息
+// Clear clears user messages
 func (c *ControllerV1) Clear(ctx context.Context, req *v1.ClearReq) (res *v1.ClearRes, err error) {
 	err = c.usermsgSvc.Clear(ctx)
 	if err != nil {

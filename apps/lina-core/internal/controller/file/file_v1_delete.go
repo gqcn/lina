@@ -6,7 +6,7 @@ import (
 	v1 "lina-core/api/file/v1"
 )
 
-// Delete 删除文件
+// Delete deletes a file
 func (c *ControllerV1) Delete(ctx context.Context, req *v1.DeleteReq) (res *v1.DeleteRes, err error) {
 	err = c.fileSvc.Delete(ctx, req.Ids)
 	return nil, err

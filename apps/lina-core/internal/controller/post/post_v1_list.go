@@ -7,7 +7,7 @@ import (
 	postsvc "lina-core/internal/service/post"
 )
 
-// List 查询岗位列表
+// List queries post list
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
 	out, err := c.postSvc.List(ctx, postsvc.ListInput{
 		PageNum:  req.PageNum,

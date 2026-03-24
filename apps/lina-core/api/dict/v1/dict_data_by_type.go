@@ -13,7 +13,7 @@ type DataByTypeReq struct {
 	DictType string `json:"dictType" v:"required" dc:"字典类型标识" eg:"sys_user_sex"`
 }
 
-// DataByTypeRes 按类型查询字典数据响应
+// DataByTypeRes dictionary data by type response
 type DataByTypeRes struct {
 	List []*entity.SysDictData `json:"list" dc:"字典数据列表" eg:"[]"`
 }

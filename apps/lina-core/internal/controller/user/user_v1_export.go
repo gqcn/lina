@@ -10,7 +10,7 @@ import (
 	usersvc "lina-core/internal/service/user"
 )
 
-// Export 导出用户
+// Export exports users
 func (c *ControllerV1) Export(ctx context.Context, req *v1.ExportReq) (res *v1.ExportRes, err error) {
 	data, err := c.userSvc.Export(ctx, usersvc.ExportInput{
 		Ids: req.Ids,

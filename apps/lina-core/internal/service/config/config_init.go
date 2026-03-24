@@ -8,7 +8,7 @@ import (
 
 // InitConfig holds database initialization configuration.
 type InitConfig struct {
-	SqlDir string `json:"sqlDir"` // SQL文件目录
+	SqlDir string `json:"sqlDir"` // SQL file directory
 }
 
 // GetInit reads initialization config from configuration file.

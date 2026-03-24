@@ -6,7 +6,7 @@ import (
 	v1 "lina-core/api/notice/v1"
 )
 
-// Delete 删除公告
+// Delete deletes a notice
 func (c *ControllerV1) Delete(ctx context.Context, req *v1.DeleteReq) (res *v1.DeleteRes, err error) {
 	err = c.noticeSvc.Delete(ctx, req.Ids)
 	if err != nil {

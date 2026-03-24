@@ -7,7 +7,7 @@ import (
 	dictsvc "lina-core/internal/service/dict"
 )
 
-// DataCreate 创建字典数据
+// DataCreate creates a new dictionary data entry.
 func (c *ControllerV1) DataCreate(ctx context.Context, req *v1.DataCreateReq) (res *v1.DataCreateRes, err error) {
 	id, err := c.dictSvc.DataCreate(ctx, dictsvc.DataCreateInput{
 		DictType: req.DictType,

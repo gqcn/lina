@@ -12,7 +12,7 @@ type CleanReq struct {
 	EndTime   string `json:"endTime" dc:"清理截止时间" eg:"2025-06-30"`
 }
 
-// CleanRes 操作日志清空响应
+// CleanRes Operation log clean response
 type CleanRes struct {
 	Deleted int `json:"deleted" dc:"实际删除的记录数" eg:"1000"`
 }

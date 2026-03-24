@@ -15,7 +15,7 @@ type CreateReq struct {
 	Remark string `json:"remark" dc:"备注" eg:"蓝色 skin-blue、绿色 skin-green"`
 }
 
-// CreateRes 参数设置创建响应
+// CreateRes is the config creation response.
 type CreateRes struct {
 	Id int `json:"id" dc:"参数ID" eg:"1"`
 }

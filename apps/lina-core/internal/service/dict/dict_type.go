@@ -23,16 +23,16 @@ func New() *Service {
 
 // ListInput defines input for List function.
 type ListInput struct {
-	PageNum  int    // 页码，从1开始
-	PageSize int    // 每页数量
-	Name     string // 字典名称，支持模糊查询
-	Type     string // 字典类型，支持模糊查询
+	PageNum  int    // Page number, starting from 1
+	PageSize int    // Page size
+	Name     string // Dictionary name, supports fuzzy search
+	Type     string // Dictionary type, supports fuzzy search
 }
 
 // ListOutput defines output for List function.
 type ListOutput struct {
-	List  []*entity.SysDictType // 字典类型列表
-	Total int                   // 总数
+	List  []*entity.SysDictType // Dictionary type list
+	Total int                   // Total count
 }
 
 // List queries dict type list with pagination and filters.
@@ -73,10 +73,10 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 
 // CreateInput defines input for Create function.
 type CreateInput struct {
-	Name   string // 字典名称
-	Type   string // 字典类型
-	Status int    // 状态：1=正常 0=停用
-	Remark string // 备注
+	Name   string // Dictionary name
+	Type   string // Dictionary type
+	Status int    // Status: 1=Normal 0=Disabled
+	Remark string // Remark
 }
 
 // Create creates a new dict type.
@@ -129,11 +129,11 @@ func (s *Service) GetById(ctx context.Context, id int) (*entity.SysDictType, err
 
 // UpdateInput defines input for Update function.
 type UpdateInput struct {
-	Id     int      // 字典类型ID
-	Name   *string  // 字典名称
-	Type   *string  // 字典类型
-	Status *int     // 状态：1=正常 0=停用
-	Remark *string  // 备注
+	Id     int      // Dictionary type ID
+	Name   *string  // Dictionary name
+	Type   *string  // Dictionary type
+	Status *int     // Status: 1=Normal 0=Disabled
+	Remark *string  // Remark
 }
 
 // Update updates dict type information.
@@ -194,8 +194,8 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 
 // ExportInput defines input for Export function.
 type ExportInput struct {
-	Name string // 字典名称，支持模糊查询
-	Type string // 字典类型，支持模糊查询
+	Name string // Dictionary name, supports fuzzy search
+	Type string // Dictionary type, supports fuzzy search
 }
 
 // Export generates an Excel file with dict type data.
@@ -251,9 +251,9 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 
 // OptionItem defines a single option item.
 type OptionItem struct {
-	Id   int    `json:"id"`   // 字典类型ID
-	Name string `json:"name"` // 字典名称
-	Type string `json:"type"` // 字典类型
+	Id   int    `json:"id"`   // Dictionary type ID
+	Name string `json:"name"` // Dictionary name
+	Type string `json:"type"` // Dictionary type
 }
 
 // Options returns all non-deleted dict types with status=1.
