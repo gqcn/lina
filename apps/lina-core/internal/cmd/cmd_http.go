@@ -38,7 +38,7 @@ type HttpOutput struct{}
 func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err error) {
 	var (
 		s             = g.Server()
-		configSvc    = config.New()
+		configSvc     = config.New()
 		middlewareSvc = middleware.New()
 		authCtrl      = auth.NewV1()
 		cronSvc       = cron.New(middlewareSvc.SessionStore())
@@ -47,37 +47,8 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	// Start all cron jobs (session cleanup, server monitor, etc.)
 	cronSvc.Start(ctx)
 
-	// Set OpenAPI info from configuration
-	oaiCfg := configSvc.GetOpenApi(ctx)
-	oai := s.GetOpenApi()
-	oai.Info.Title = oaiCfg.Title
-	oai.Info.Description = oaiCfg.Description
-	oai.Info.Version = oaiCfg.Version
-
-	// Set API server URL so documentation shows the correct backend address
-	if oaiCfg.ServerUrl != "" {
-		oai.Servers = &goai.Servers{
-			{
-				URL:         oaiCfg.ServerUrl,
-				Description: oaiCfg.ServerDescription,
-			},
-		}
-	}
-
-	// Add JWT Bearer security scheme for API documentation
-	oai.Components.SecuritySchemes = goai.SecuritySchemes{
-		"BearerAuth": goai.SecuritySchemeRef{
-			Value: &goai.SecurityScheme{
-				Type:         "http",
-				Scheme:       "bearer",
-				BearerFormat: "JWT",
-				Description:  "JWT Bearer Token 认证",
-			},
-		},
-	}
-	oai.Security = &goai.SecurityRequirements{
-		{"BearerAuth": {}},
-	}
+	// Enhance OpenAPI documentation with config values and JWT security scheme.
+	m.enhanceOpenAPIDocs(ctx, s, configSvc)
 
 	s.Group("/api/v1", func(group *ghttp.RouterGroup) {
 		// Static file serving for uploads (no JSON wrapper)
@@ -160,4 +131,46 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 
 	s.Run()
 	return
+}
+
+func (m *Main) enhanceOpenAPIDocs(
+	ctx context.Context,
+	server *ghttp.Server,
+	configSvc *config.Service,
+) {
+	// Set OpenAPI info from configuration
+	oaiCfg := configSvc.GetOpenApi(ctx)
+	oai := server.GetOpenApi()
+	oai.Info.Title = oaiCfg.Title
+	oai.Info.Description = oaiCfg.Description
+	oai.Info.Version = oaiCfg.Version
+	oai.Config.CommonResponse = ghttp.DefaultHandlerResponse{}
+	oai.Config.CommonResponseDataField = "Data"
+
+	// Set API server URL so documentation shows the correct backend address
+	if oaiCfg.ServerUrl != "" {
+		oai.Servers = &goai.Servers{
+			{
+				URL:         oaiCfg.ServerUrl,
+				Description: oaiCfg.ServerDescription,
+			},
+		}
+	}
+
+	// Add JWT Bearer security scheme for API documentation
+	oai.Components.SecuritySchemes = goai.SecuritySchemes{
+		"BearerAuth": goai.SecuritySchemeRef{
+			Value: &goai.SecurityScheme{
+				Type:         "http",
+				Scheme:       "bearer",
+				BearerFormat: "JWT",
+				Description:  "JWT Bearer Token Authentication",
+				In:           "header",
+				Name:         "Authorization",
+			},
+		},
+	}
+	oai.Security = &goai.SecurityRequirements{
+		{"BearerAuth": {}},
+	}
 }
