@@ -19,6 +19,12 @@ const MaxExportRows = 10000 // Maximum rows for export
 // Dict type used in login log
 const DictTypeLoginStatus = "sys_login_status" // Login status dictionary
 
+// Login status values (matching sys_login_status dictionary)
+const (
+	LoginStatusSuccess = 0 // 成功
+	LoginStatusFail    = 1 // 失败
+)
+
 // Service provides login log operations.
 type Service struct {
 	dictSvc *dictsvc.Service // dictionary service for label lookups

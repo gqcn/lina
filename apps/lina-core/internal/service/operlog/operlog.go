@@ -22,6 +22,22 @@ const (
 	DictTypeOperStatus = "sys_oper_status" // Operation status dictionary
 )
 
+// Operation type values (matching sys_oper_type dictionary)
+const (
+	OperTypeCreate = 1 // 新增
+	OperTypeUpdate = 2 // 修改
+	OperTypeDelete = 3 // 删除
+	OperTypeExport = 4 // 导出
+	OperTypeImport = 5 // 导入
+	OperTypeOther  = 6 // 其他
+)
+
+// Operation status values (matching sys_oper_status dictionary)
+const (
+	OperStatusSuccess = 0 // 成功
+	OperStatusFail    = 1 // 失败
+)
+
 // Service provides operation log operations.
 type Service struct {
 	dictSvc *dictsvc.Service // dictionary service for label lookups

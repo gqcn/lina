@@ -14,6 +14,24 @@ import (
 	"lina-core/internal/service/bizctx"
 )
 
+// Dict types used in notice
+const (
+	DictTypeNoticeType   = "sys_notice_type"   // Notice type dictionary
+	DictTypeNoticeStatus = "sys_notice_status" // Notice status dictionary
+)
+
+// Notice type values (matching sys_notice_type dictionary)
+const (
+	NoticeTypeNotice       = 1 // 通知
+	NoticeTypeAnnouncement = 2 // 公告
+)
+
+// Notice status values (matching sys_notice_status dictionary)
+const (
+	NoticeStatusDraft     = 0 // 草稿
+	NoticeStatusPublished = 1 // 已发布
+)
+
 // Service provides notice management operations.
 type Service struct {
 	bizCtxSvc *bizctx.Service // Business context service
@@ -31,7 +49,7 @@ type ListInput struct {
 	PageNum   int    // Page number, starting from 1
 	PageSize  int    // Page size
 	Title     string // Title, supports fuzzy search
-	Type      int    // Type: 1=Notice 2=Announcement
+	Type      int    // Type: 1=Notice 2=Announcement (see NoticeType* constants)
 	CreatedBy string // Creator username, supports fuzzy search
 }
 
@@ -162,10 +180,10 @@ func (s *Service) GetById(ctx context.Context, id int64) (*ListItem, error) {
 // CreateInput defines input for Create function.
 type CreateInput struct {
 	Title   string // Title
-	Type    int    // Type: 1=Notice 2=Announcement
+	Type    int    // Type: 1=Notice 2=Announcement (see NoticeType* constants)
 	Content string // Content
 	FileIds string // Attachment file IDs, comma-separated
-	Status  int    // Status: 0=Draft 1=Published
+	Status  int    // Status: 0=Draft 1=Published (see NoticeStatus* constants)
 	Remark  string // Remark
 }
 
@@ -194,7 +212,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int64, error) {
 	}
 
 	// If published, fan-out messages to all active users
-	if in.Status == 1 {
+	if in.Status == NoticeStatusPublished {
 		if err := s.fanOutMessages(ctx, id, in.Title, in.Type, createdBy); err != nil {
 			g.Log().Errorf(ctx, "fanOutMessages failed for notice %d: %v", id, err)
 		}
@@ -207,10 +225,10 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int64, error) {
 type UpdateInput struct {
 	Id      int64   // Notice ID
 	Title   *string // Title
-	Type    *int    // Type: 1=Notice 2=Announcement
+	Type    *int    // Type: 1=Notice 2=Announcement (see NoticeType* constants)
 	Content *string // Content
 	FileIds *string // Attachment file IDs, comma-separated
-	Status  *int    // Status: 0=Draft 1=Published
+	Status  *int    // Status: 0=Draft 1=Published (see NoticeStatus* constants)
 	Remark  *string // Remark
 }
 
@@ -265,7 +283,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	}
 
 	// If status changed from draft(0) to published(1), fan-out messages
-	if in.Status != nil && *in.Status == 1 && oldNotice.Status == 0 {
+	if in.Status != nil && *in.Status == NoticeStatusPublished && oldNotice.Status == NoticeStatusDraft {
 		title := oldNotice.Title
 		if in.Title != nil {
 			title = *in.Title

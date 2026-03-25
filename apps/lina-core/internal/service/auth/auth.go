@@ -96,19 +96,19 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 		return nil, err
 	}
 	if user == nil {
-		recordLoginLog(in.Username, 1, "用户名或密码错误")
+		recordLoginLog(in.Username, loginlog.LoginStatusFail, "用户名或密码错误")
 		return nil, gerror.New("用户名或密码错误")
 	}
 
 	// Verify password
 	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(in.Password)); err != nil {
-		recordLoginLog(in.Username, 1, "用户名或密码错误")
+		recordLoginLog(in.Username, loginlog.LoginStatusFail, "用户名或密码错误")
 		return nil, gerror.New("用户名或密码错误")
 	}
 
 	// Check status
 	if user.Status == consts.UserStatusDisabled {
-		recordLoginLog(in.Username, 1, "用户已停用")
+		recordLoginLog(in.Username, loginlog.LoginStatusFail, "用户已停用")
 		return nil, gerror.New("用户已停用")
 	}
 
@@ -137,7 +137,7 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 		LoginTime: gtime.Now(),
 	})
 
-	recordLoginLog(in.Username, 0, "登录成功")
+	recordLoginLog(in.Username, loginlog.LoginStatusSuccess, "登录成功")
 	return &LoginOutput{AccessToken: token}, nil
 }
 
@@ -181,7 +181,7 @@ func (s *Service) Logout(ctx context.Context, username string, tokenId string) {
 	}
 	_ = s.loginLogSvc.Create(ctx, loginlog.CreateInput{
 		UserName: username,
-		Status:   0,
+		Status:   loginlog.LoginStatusSuccess,
 		Ip:       ip,
 		Browser:  browser,
 		Os:       osName,

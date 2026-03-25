@@ -11,7 +11,6 @@ import (
 
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gcron"
 	"github.com/gogf/gf/v2/os/gtime"
 	cpuutil "github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
@@ -20,7 +19,6 @@ import (
 	netutil "github.com/shirou/gopsutil/v4/net"
 	"github.com/shirou/gopsutil/v4/process"
 
-	"lina-core/internal/service/config"
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
@@ -101,39 +99,21 @@ type DBInfo struct {
 
 // Service provides server monitoring operations.
 type Service struct {
-	configSvc     *config.Service       // Configuration service
-	startTime     time.Time             // Service start time
+	startTime     time.Time              // Service start time
 	lastNetBytes  *netutil.IOCountersStat // Last network statistics
-	lastCollectAt time.Time             // Last collection time
+	lastCollectAt time.Time              // Last collection time
 }
 
 // New creates a new Service.
 func New() *Service {
 	return &Service{
-		configSvc: config.New(),
 		startTime: time.Now(),
 	}
 }
 
-// StartCollector starts the periodic metrics collector.
-func (s *Service) StartCollector(ctx context.Context) {
-	monCfg := s.configSvc.GetMonitor(ctx)
-
-	// Collect immediately on startup
-	s.collectAndStore(ctx)
-
-	// Then collect periodically via gcron
-	cronPattern := fmt.Sprintf("*/%d * * * * *", monCfg.IntervalSeconds)
-	_, err := gcron.Add(ctx, cronPattern, func(ctx context.Context) {
-		s.collectAndStore(ctx)
-	}, "server-monitor-collector")
-	if err != nil {
-		g.Log().Warningf(ctx, "failed to start server monitor cron: %v", err)
-	}
-}
-
-// collectAndStore collects metrics and stores them in the database.
-func (s *Service) collectAndStore(ctx context.Context) {
+// CollectAndStore collects metrics and stores them in the database.
+// This method is designed to be called by the cron service.
+func (s *Service) CollectAndStore(ctx context.Context) {
 	data := s.Collect(ctx)
 	jsonData, err := gjson.Encode(data)
 	if err != nil {

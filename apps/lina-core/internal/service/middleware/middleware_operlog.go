@@ -76,10 +76,10 @@ func (s *Service) OperLog(r *ghttp.Request) {
 		jsonResult = truncate(r.Response.BufferString(), maxParamLen)
 	}
 
-	status := 0
+	status := operlog.OperStatusSuccess
 	errorMsg := ""
 	if r.Response.Status >= 400 || r.GetError() != nil {
-		status = 1
+		status = operlog.OperStatusFail
 		if r.GetError() != nil {
 			errorMsg = r.GetError().Error()
 		}
@@ -118,32 +118,32 @@ func inferOperType(method, path, operLogTag string) int {
 	if operLogTag != "" {
 		switch operLogTag {
 		case "1":
-			return 1
+			return operlog.OperTypeCreate
 		case "2":
-			return 2
+			return operlog.OperTypeUpdate
 		case "3":
-			return 3
+			return operlog.OperTypeDelete
 		case "4":
-			return 4
+			return operlog.OperTypeExport
 		case "5":
-			return 5
+			return operlog.OperTypeImport
 		default:
-			return 6
+			return operlog.OperTypeOther
 		}
 	}
 
 	switch method {
 	case "POST":
 		if strings.Contains(strings.ToLower(path), "import") {
-			return 5 // Import
+			return operlog.OperTypeImport
 		}
-		return 1 // Create
+		return operlog.OperTypeCreate
 	case "PUT":
-		return 2 // Update
+		return operlog.OperTypeUpdate
 	case "DELETE":
-		return 3 // Delete
+		return operlog.OperTypeDelete
 	default:
-		return 6 // Other
+		return operlog.OperTypeOther
 	}
 }
 
