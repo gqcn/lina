@@ -65,8 +65,9 @@ test.describe('TC0044 系统接口页面', () => {
       .first();
     await expect(moduleText).toHaveCSS('font-weight', '700');
     // Endpoint name should not be bold (font-weight 400)
+    // Use "用户登录" endpoint which exists in auth module
     const endpointText = frame
-      .locator('[title="获取权限码"] .sl-flex-1')
+      .locator('[title="用户登录"] .sl-flex-1')
       .first();
     await expect(endpointText).toBeVisible();
     const fontWeight = await endpointText.evaluate(
@@ -82,11 +83,11 @@ test.describe('TC0044 系统接口页面', () => {
     const frame = adminPage.frameLocator('iframe.api-docs-iframe');
     await expect(frame.getByText('Overview')).toBeVisible({ timeout: 15_000 });
     // Expand module and click endpoint
-    await frame.locator('[title="认证管理"]').click();
-    await frame.locator('[title="获取权限码"]').click();
+    await frame.locator('[title="用户管理"]').click();
+    await frame.locator('[title="获取用户列表"]').click();
     // Find the method/path block
     const pathBlock = frame.locator(
-      'div[title*="/api/v1/auth/codes"]',
+      'div[title*="/api/v1/user"]',
     );
     await expect(pathBlock).toBeVisible({ timeout: 10_000 });
     // Block should be full width (display: flex, not inline-flex)

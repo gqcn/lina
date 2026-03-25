@@ -1,7 +1,7 @@
 import { test, expect } from '../../fixtures/auth';
 import { config } from '../../fixtures/config';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = `${config.baseURL}/api/v1`;
 
 async function apiLogin(
   username: string,
@@ -11,6 +11,7 @@ async function apiLogin(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
+    redirect: 'manual',
   });
   const data = await resp.json();
   return data.data.accessToken;

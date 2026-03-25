@@ -2,7 +2,7 @@ import { test, expect } from '../../fixtures/auth';
 import { NoticePage } from '../../pages/NoticePage';
 import { config } from '../../fixtures/config';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = `${config.baseURL}/api/v1`;
 
 /** Login via API and return accessToken */
 async function apiLogin(
@@ -13,6 +13,7 @@ async function apiLogin(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
+    redirect: 'manual',
   });
   const data = await resp.json();
   return data.data.accessToken;
