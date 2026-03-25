@@ -9,18 +9,29 @@ import (
 	"github.com/xuri/excelize/v2"
 
 	"lina-core/internal/dao"
+	dictsvc "lina-core/internal/service/dict"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 )
 
 const MaxExportRows = 10000 // Maximum rows for export
 
+// Dict types used in operation log
+const (
+	DictTypeOperType   = "sys_oper_type"   // Operation type dictionary
+	DictTypeOperStatus = "sys_oper_status" // Operation status dictionary
+)
+
 // Service provides operation log operations.
-type Service struct{}
+type Service struct {
+	dictSvc *dictsvc.Service // dictionary service for label lookups
+}
 
 // New creates and returns a new Service instance.
 func New() *Service {
-	return &Service{}
+	return &Service{
+		dictSvc: dictsvc.New(),
+	}
 }
 
 // CreateInput defines input for Create function.
@@ -279,17 +290,18 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 		f.SetCellValue(sheet, cell, h)
 	}
 
-	operTypeMap := map[int]string{
-		1: "新增", 2: "修改", 3: "删除", 4: "导出", 5: "导入", 6: "其他",
-	}
+	// Build label maps from dictionary for batch lookups
+	operTypeMap := s.dictSvc.BuildIntLabelMap(ctx, DictTypeOperType)
+	statusMap := s.dictSvc.BuildIntLabelMap(ctx, DictTypeOperStatus)
 
 	for i, log := range list {
 		row := i + 2
 		f.SetCellValue(sheet, cellName(1, row), log.Title)
 		f.SetCellValue(sheet, cellName(2, row), log.OperSummary)
-		operTypeText := operTypeMap[log.OperType]
-		if operTypeText == "" {
-			operTypeText = "其他"
+		// Use dictionary lookup for operation type
+		operTypeText, ok := operTypeMap[log.OperType]
+		if !ok {
+			operTypeText = s.dictSvc.GetLabelByIntValue(ctx, DictTypeOperType, 6) // fallback to "其他"
 		}
 		f.SetCellValue(sheet, cellName(3, row), operTypeText)
 		f.SetCellValue(sheet, cellName(4, row), log.OperName)
@@ -298,9 +310,10 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 		f.SetCellValue(sheet, cellName(7, row), log.OperIp)
 		f.SetCellValue(sheet, cellName(8, row), log.OperParam)
 		f.SetCellValue(sheet, cellName(9, row), log.JsonResult)
-		statusText := "成功"
-		if log.Status == 1 {
-			statusText = "失败"
+		// Use dictionary lookup for status
+		statusText, ok := statusMap[log.Status]
+		if !ok {
+			statusText = s.dictSvc.GetLabelByIntValue(ctx, DictTypeOperStatus, 0) // fallback to "成功"
 		}
 		f.SetCellValue(sheet, cellName(10, row), statusText)
 		f.SetCellValue(sheet, cellName(11, row), log.ErrorMsg)

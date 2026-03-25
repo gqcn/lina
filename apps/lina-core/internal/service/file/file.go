@@ -18,6 +18,7 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 
 	"lina-core/internal/dao"
+	dictsvc "lina-core/internal/service/dict"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/bizctx"
@@ -29,11 +30,15 @@ const (
 	MaxExportRows  = 10000   // Maximum rows for export
 )
 
+// Dict type used in file management
+const DictTypeFileScene = "sys_file_scene" // File scene dictionary
+
 // Service provides file management operations.
 type Service struct {
 	configSvc *config.Service   // Configuration service
 	storage   Storage           // Storage backend
 	bizCtxSvc *bizctx.Service   // Business context service
+	dictSvc   *dictsvc.Service  // Dictionary service for scene labels
 }
 
 // New creates and returns a new Service instance with local storage.
@@ -43,6 +48,7 @@ func New() *Service {
 		configSvc: config.New(),
 		storage:   NewLocalStorage(ctx, ""),
 		bizCtxSvc: bizctx.New(),
+		dictSvc:   dictsvc.New(),
 	}
 }
 
@@ -433,35 +439,23 @@ func (s *Service) getBaseUrl(ctx context.Context) string {
 	return scheme + "://" + r.Host
 }
 
-// SceneLabelMap maps scene identifiers to display labels.
-var SceneLabelMap = map[string]string{
-	"avatar":            "用户头像",
-	"notice_image":      "通知公告图片",
-	"notice_attachment": "通知公告附件",
-	"other":             "其他",
-}
-
-// SceneLabel returns the display label for a scene identifier.
-func SceneLabel(scene string) string {
-	if label, ok := SceneLabelMap[scene]; ok {
-		return label
-	}
-	return scene
-}
-
 // UsageScenesOutput defines output for usage scenes list.
 type UsageScenesOutput struct {
 	Value string `json:"value"` // Scene identifier
 	Label string `json:"label"` // Scene name
 }
 
-// UsageScenes returns all predefined usage scenes from SceneLabelMap.
+// UsageScenes returns all usage scenes from dictionary.
 func (s *Service) UsageScenes(ctx context.Context) ([]*UsageScenesOutput, error) {
-	items := make([]*UsageScenesOutput, 0, len(SceneLabelMap))
-	for value, label := range SceneLabelMap {
+	list, err := s.dictSvc.DataByType(ctx, DictTypeFileScene)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]*UsageScenesOutput, 0, len(list))
+	for _, item := range list {
 		items = append(items, &UsageScenesOutput{
-			Value: value,
-			Label: label,
+			Value: item.Value,
+			Label: item.Label,
 		})
 	}
 	return items, nil
@@ -534,9 +528,15 @@ func (s *Service) Detail(ctx context.Context, id int64) (*DetailOutput, error) {
 		}
 	}
 
+	// Get scene label from dictionary
+	sceneLabel := s.dictSvc.GetLabelByValue(ctx, dictsvc.GetLabelByValueInput{
+		DictType: DictTypeFileScene,
+		Value:    file.Scene,
+	})
+
 	return &DetailOutput{
 		SysFile:       file,
 		CreatedByName: createdByName,
-		SceneLabel:    SceneLabel(file.Scene),
+		SceneLabel:    sceneLabel,
 	}, nil
 }

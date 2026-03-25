@@ -9,18 +9,26 @@ import (
 	"github.com/xuri/excelize/v2"
 
 	"lina-core/internal/dao"
+	dictsvc "lina-core/internal/service/dict"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 )
 
 const MaxExportRows = 10000 // Maximum rows for export
 
+// Dict type used in login log
+const DictTypeLoginStatus = "sys_login_status" // Login status dictionary
+
 // Service provides login log operations.
-type Service struct{}
+type Service struct {
+	dictSvc *dictsvc.Service // dictionary service for label lookups
+}
 
 // New creates and returns a new Service instance.
 func New() *Service {
-	return &Service{}
+	return &Service{
+		dictSvc: dictsvc.New(),
+	}
 }
 
 // CreateInput defines input for Create function.
@@ -256,12 +264,16 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 		f.SetCellValue(sheet, cell, h)
 	}
 
+	// Build label map from dictionary for batch lookups
+	statusMap := s.dictSvc.BuildIntLabelMap(ctx, DictTypeLoginStatus)
+
 	for i, log := range list {
 		row := i + 2
 		f.SetCellValue(sheet, cellName(1, row), log.UserName)
-		statusText := "成功"
-		if log.Status == 1 {
-			statusText = "失败"
+		// Use dictionary lookup for status
+		statusText, ok := statusMap[log.Status]
+		if !ok {
+			statusText = s.dictSvc.GetLabelByIntValue(ctx, DictTypeLoginStatus, 0) // fallback to "成功"
 		}
 		f.SetCellValue(sheet, cellName(2, row), statusText)
 		f.SetCellValue(sheet, cellName(3, row), log.Ip)
