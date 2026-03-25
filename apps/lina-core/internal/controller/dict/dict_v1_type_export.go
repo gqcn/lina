@@ -2,7 +2,6 @@ package dict
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gogf/gf/v2/frame/g"
 
@@ -21,8 +20,9 @@ func (c *ControllerV1) TypeExport(ctx context.Context, req *v1.TypeExportReq) (r
 		return nil, err
 	}
 	r := g.RequestFromCtx(ctx)
+	// Use RFC 5987 format for Chinese filename support
 	r.Response.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	r.Response.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=dict_types.xlsx"))
+	r.Response.Header().Set("Content-Disposition", "attachment; filename*=UTF-8''%E5%AD%97%E5%85%B8%E7%B1%BB%E5%9E%8B%E5%AF%BC%E5%87%BA.xlsx")
 	r.Response.WriteOver(data)
 	r.ExitAll()
 	return nil, nil

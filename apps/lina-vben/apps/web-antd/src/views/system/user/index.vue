@@ -236,7 +236,7 @@ async function handleExport() {
       try {
         const ids = checkedRows.value.map((row: any) => row.id);
         const data = await userExport({ ids });
-        downloadBlob(data, 'users.xlsx');
+        downloadBlob(data, '用户数据导出.xlsx');
         message.success('导出成功');
       } catch {
         message.error('导出失败');

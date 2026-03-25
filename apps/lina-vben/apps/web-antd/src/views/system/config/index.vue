@@ -134,7 +134,7 @@ async function handleExport() {
           params.ids = checkedRows.value.map((row: SysConfig) => row.id);
         }
         const data = await configExport(params);
-        downloadBlob(data, '参数设置.xlsx');
+        downloadBlob(data, '参数设置导出.xlsx');
         message.success('导出成功');
       } catch {
         message.error('导出失败');

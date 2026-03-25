@@ -192,7 +192,7 @@ async function handleExport() {
         }
 
         const data = await operLogExport(params);
-        downloadBlob(data, '操作日志.xlsx');
+        downloadBlob(data, '操作日志导出.xlsx');
         message.success('导出成功');
       } catch {
         message.error('导出失败');

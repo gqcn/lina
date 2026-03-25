@@ -3,22 +3,19 @@ import type { DictData } from '#/api/system/dict/dict-data-model';
 
 import { computed, ref } from 'vue';
 
-import { useVbenDrawer, useVbenModal } from '@vben/common-ui';
+import { useVbenDrawer } from '@vben/common-ui';
 
 import { message, Modal, Popconfirm, Space } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   dictDataDelete,
-  dictDataExport,
   dictDataList,
 } from '#/api/system/dict/dict-data';
 import { useDictStore } from '#/store/dict';
-import { downloadBlob } from '#/utils/download';
 
 import { emitter } from '../mitt';
 import { columns, querySchema } from './data';
-import DictDataImportModal from './dict-data-import-modal.vue';
 import dictDataDrawer from './dict-data-drawer.vue';
 
 const dictType = ref('');
@@ -81,10 +78,6 @@ const [DictDataDrawer, drawerApi] = useVbenDrawer({
   connectedComponent: dictDataDrawer,
 });
 
-const [ImportModal, importModalApi] = useVbenModal({
-  connectedComponent: DictDataImportModal,
-});
-
 function handleAdd() {
   drawerApi.setData({ dictType: dictType.value });
   drawerApi.open();
@@ -121,52 +114,8 @@ function handleMultiDelete() {
 }
 
 function onReload() {
-  tableApi.query();
-}
-
-function onImportReload() {
   dictStore.resetCache();
   tableApi.query();
-}
-
-async function handleExport() {
-  if (!dictType.value) {
-    message.warning('请先选择字典类型');
-    return;
-  }
-
-  const content = checkedRows.value.length > 0
-    ? '是否导出选中的记录？'
-    : '是否导出全部数据？';
-
-  Modal.confirm({
-    title: '提示',
-    okType: 'primary',
-    content,
-    okText: '确认',
-    cancelText: '取消',
-    onOk: async () => {
-      try {
-        const formValues = tableApi.formApi.form.values;
-        const params: Record<string, any> = {
-          dictType: dictType.value,
-          ...formValues,
-        };
-        if (checkedRows.value.length > 0) {
-          params.ids = checkedRows.value.map((row: DictData) => row.id);
-        }
-        const data = await dictDataExport(params);
-        downloadBlob(data, '字典数据.xlsx');
-        message.success('导出成功');
-      } catch {
-        message.error('导出失败');
-      }
-    },
-  });
-}
-
-function handleImport() {
-  importModalApi.open();
 }
 
 emitter.on('rowClick', async (value: string) => {
@@ -180,8 +129,6 @@ emitter.on('rowClick', async (value: string) => {
     <BasicTable id="dict-data" table-title="字典数据列表">
       <template #toolbar-tools>
         <Space>
-          <a-button :disabled="dictType === ''" @click="handleExport">导 出</a-button>
-          <a-button :disabled="dictType === ''" @click="handleImport">导 入</a-button>
           <a-button
             :disabled="!hasChecked"
             danger
@@ -213,6 +160,5 @@ emitter.on('rowClick', async (value: string) => {
       </template>
     </BasicTable>
     <DictDataDrawer @reload="onReload" />
-    <ImportModal @reload="onImportReload" />
   </div>
 </template>

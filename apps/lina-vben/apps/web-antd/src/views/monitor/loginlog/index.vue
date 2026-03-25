@@ -180,7 +180,7 @@ async function handleExport() {
         }
 
         const data = await loginLogExport(params);
-        downloadBlob(data, '登录日志.xlsx');
+        downloadBlob(data, '登录日志导出.xlsx');
         message.success('导出成功');
       } catch {
         message.error('导出失败');

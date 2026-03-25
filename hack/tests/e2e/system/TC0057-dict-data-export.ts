@@ -1,8 +1,8 @@
 import { test, expect } from '../../fixtures/auth';
 import { DictPage } from '../../pages/DictPage';
 
-test.describe('TC0057 字典数据导出', () => {
-  test('TC0057a: 导出全部数据', async ({ adminPage }) => {
+test.describe('TC0057 字典数据面板无独立导出导入功能', () => {
+  test('TC0057a: 字典数据面板没有导出按钮', async ({ adminPage }) => {
     const dictPage = new DictPage(adminPage);
     await dictPage.goto();
 
@@ -12,29 +12,39 @@ test.describe('TC0057 字典数据导出', () => {
     // Wait for data to load
     await adminPage.waitForTimeout(500);
 
-    // Click export button in data panel (second one, since there are two export buttons)
-    const exportBtns = adminPage.getByRole('button', { name: /导\s*出/ });
-    const exportBtn = exportBtns.nth(1); // Data panel is second
-    await expect(exportBtn).toBeVisible({ timeout: 10000 });
-    await exportBtn.click();
+    // Data panel should NOT have export button
+    const dataPanel = adminPage.locator('#dict-data');
+    await expect(dataPanel.getByRole('button', { name: /导\s*出/ })).not.toBeVisible();
+  });
 
-    // Verify modal appears
-    const modalContent = adminPage.locator('.ant-modal-content');
-    await expect(modalContent).toBeVisible({ timeout: 5000 });
-    await expect(modalContent.getByText(/是否导出全部数据/)).toBeVisible();
+  test('TC0057b: 字典数据面板没有导入按钮', async ({ adminPage }) => {
+    const dictPage = new DictPage(adminPage);
+    await dictPage.goto();
 
-    // Set up response listener
-    const responsePromise = adminPage.waitForResponse(
-      (resp) => resp.url().includes('dict/data/export'),
-      { timeout: 15000 }
-    );
+    // Select a dict type row to load dict data in right panel
+    await dictPage.clickTypeRow('sys_oper_type');
 
-    // Click confirm button
-    const confirmBtn = modalContent.getByRole('button', { name: /确\s*认/ });
-    await confirmBtn.click();
+    // Wait for data to load
+    await adminPage.waitForTimeout(500);
 
-    // Wait for response and verify
-    const response = await responsePromise;
-    expect(response.status()).toBe(200);
+    // Data panel should NOT have import button
+    const dataPanel = adminPage.locator('#dict-data');
+    await expect(dataPanel.getByRole('button', { name: /导\s*入/ })).not.toBeVisible();
+  });
+
+  test('TC0057c: 字典数据面板有新增和删除按钮', async ({ adminPage }) => {
+    const dictPage = new DictPage(adminPage);
+    await dictPage.goto();
+
+    // Select a dict type row to load dict data in right panel
+    await dictPage.clickTypeRow('sys_oper_type');
+
+    // Wait for data to load
+    await adminPage.waitForTimeout(500);
+
+    // Data panel should have add and delete buttons
+    const dataPanel = adminPage.locator('#dict-data');
+    await expect(dataPanel.getByRole('button', { name: /新\s*增/ })).toBeVisible();
+    await expect(dataPanel.getByRole('button', { name: /删\s*除/ })).toBeVisible();
   });
 });

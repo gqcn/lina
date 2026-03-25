@@ -9,8 +9,8 @@ import { message, Modal, Popconfirm, Space } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
+  dictExport,
   dictTypeDelete,
-  dictTypeExport,
   dictTypeList,
 } from '#/api/system/dict/dict-type';
 import { downloadBlob } from '#/utils/download';
@@ -132,8 +132,8 @@ function onImportReload() {
 
 async function handleExport() {
   const content = checkedRows.value.length > 0
-    ? '是否导出选中的记录？'
-    : '是否导出全部数据？';
+    ? '是否导出选中的字典类型及其关联的字典数据？'
+    : '是否导出全部字典类型和字典数据？';
 
   Modal.confirm({
     title: '提示',
@@ -148,8 +148,8 @@ async function handleExport() {
         if (checkedRows.value.length > 0) {
           params.ids = checkedRows.value.map((row: DictType) => row.id);
         }
-        const data = await dictTypeExport(params);
-        downloadBlob(data, '字典类型.xlsx');
+        const data = await dictExport(params);
+        downloadBlob(data, '字典管理导出.xlsx');
         message.success('导出成功');
       } catch {
         message.error('导出失败');

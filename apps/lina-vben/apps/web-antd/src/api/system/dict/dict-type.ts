@@ -63,3 +63,29 @@ export function dictTypeImport(file: File, updateSupport?: boolean) {
 export function dictTypeImportTemplate() {
   return requestClient.download<Blob>('/dict/type/import-template');
 }
+
+/** 导出字典管理数据（合并导出：类型+数据） */
+export function dictExport(params?: DictTypeListParams) {
+  return requestClient.download<Blob>('/dict/export', { params });
+}
+
+/** 导入字典管理数据（合并导入：类型+数据） */
+export function dictImport(file: File, updateSupport?: boolean) {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (updateSupport) {
+    formData.append('updateSupport', '1');
+  }
+  return requestClient.post<{
+    typeSuccess: number;
+    typeFail: number;
+    dataSuccess: number;
+    dataFail: number;
+    failList: Array<{ sheet: string; row: number; reason: string }>;
+  }>('/dict/import', formData);
+}
+
+/** 下载字典管理导入模板（合并模板：类型+数据） */
+export function dictImportTemplate() {
+  return requestClient.download<Blob>('/dict/import-template');
+}
