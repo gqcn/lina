@@ -37,7 +37,7 @@ setupVbenVxeTable({
         size: 'medium',
         pagerConfig: {
           pageSize: 10,
-          pageSizes: [10, 20, 30, 40, 50],
+          pageSizes: [10, 20, 50, 100],
         },
         rowConfig: {
           isHover: true,

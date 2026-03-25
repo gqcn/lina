@@ -211,6 +211,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 type ExportInput struct {
 	Name string // Dictionary name, supports fuzzy search
 	Type string // Dictionary type, supports fuzzy search
+	Ids  []int  // Specific IDs to export; if empty, export all matching records
 }
 
 // Export generates an Excel file with dict type data (max 10000 rows).
@@ -218,11 +219,15 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	cols := dao.SysDictType.Columns()
 	m := dao.SysDictType.Ctx(ctx).WhereNull(cols.DeletedAt)
 
-	if in.Name != "" {
-		m = m.WhereLike(cols.Name, "%"+in.Name+"%")
-	}
-	if in.Type != "" {
-		m = m.WhereLike(cols.Type, "%"+in.Type+"%")
+	if len(in.Ids) > 0 {
+		m = m.WhereIn(cols.Id, in.Ids)
+	} else {
+		if in.Name != "" {
+			m = m.WhereLike(cols.Name, "%"+in.Name+"%")
+		}
+		if in.Type != "" {
+			m = m.WhereLike(cols.Type, "%"+in.Type+"%")
+		}
 	}
 
 	// Limit export to prevent memory issues

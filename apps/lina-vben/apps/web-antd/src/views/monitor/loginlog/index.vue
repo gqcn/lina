@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { LoginLog } from '#/api/monitor/loginlog/model';
 
-import { onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import { Page, useVbenModal } from '@vben/common-ui';
 
 import { message, Modal, Space } from 'ant-design-vue';
 
-import { useVbenVxeGrid, vxeCheckboxChecked } from '#/adapter/vxe-table';
+import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   loginLogClean,
   loginLogDelete,
@@ -107,7 +107,18 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
     id: 'monitor-loginlog-index',
   },
+  gridEvents: {
+    checkboxChange: () => {
+      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+    },
+    checkboxAll: () => {
+      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+    },
+  },
 });
+
+const checkedRows = ref<any[]>([]);
+const hasChecked = computed(() => checkedRows.value.length > 0);
 
 function handlePreview(row: LoginLog) {
   detailModalApi.setData(row);
@@ -143,23 +154,39 @@ function handleDelete() {
 }
 
 async function handleExport() {
-  try {
-    const formValues = gridApi.formApi.form.values;
-    const params: Record<string, any> = { ...formValues };
+  const content = checkedRows.value.length > 0
+    ? '是否导出选中的记录？'
+    : '是否导出全部数据？';
 
-    // Handle loginTime date range
-    if (params.loginTime && Array.isArray(params.loginTime)) {
-      params.beginTime = params.loginTime[0];
-      params.endTime = params.loginTime[1];
-      delete params.loginTime;
-    }
+  Modal.confirm({
+    title: '提示',
+    okType: 'primary',
+    content,
+    okText: '确认',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        const formValues = gridApi.formApi.form.values;
+        const params: Record<string, any> = { ...formValues };
 
-    const data = await loginLogExport(params);
-    downloadBlob(data, '登录日志.xlsx');
-    message.success('导出成功');
-  } catch {
-    message.error('导出失败');
-  }
+        if (params.loginTime && Array.isArray(params.loginTime)) {
+          params.beginTime = params.loginTime[0];
+          params.endTime = params.loginTime[1];
+          delete params.loginTime;
+        }
+
+        if (checkedRows.value.length > 0) {
+          params.ids = checkedRows.value.map((row: LoginLog) => row.id);
+        }
+
+        const data = await loginLogExport(params);
+        downloadBlob(data, '登录日志.xlsx');
+        message.success('导出成功');
+      } catch {
+        message.error('导出失败');
+      }
+    },
+  });
 }
 </script>
 
@@ -171,7 +198,7 @@ async function handleExport() {
           <a-button @click="handleClean">清 空</a-button>
           <a-button @click="handleExport">导 出</a-button>
           <a-button
-            :disabled="!vxeCheckboxChecked(gridApi)"
+            :disabled="!hasChecked"
             danger
             type="primary"
             @click="handleDelete"

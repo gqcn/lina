@@ -205,12 +205,19 @@ export class DictPage {
 
   async clickTypeExport() {
     await this.typePanel.getByRole('button', { name: /导\s*出/ }).click();
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(1000);
   }
 
   async clickDataExport() {
     await this.dataPanel.getByRole('button', { name: /导\s*出/ }).click();
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(1000);
+  }
+
+  /** Click confirm button in the export confirm modal */
+  async clickExportConfirm() {
+    const modal = this.page.locator('[role="dialog"]');
+    await modal.getByRole('button', { name: /确\s*认/ }).click();
+    await this.page.waitForTimeout(500);
   }
 
   // ========== Search helpers ==========
@@ -265,6 +272,20 @@ export class DictPage {
   /** Get visible row count in the type panel */
   async getTypeRowCount(): Promise<number> {
     return this.typePanel.locator('.vxe-body--row').count();
+  }
+
+  /** Select a row checkbox in the type panel by clicking its checkbox */
+  async selectTypeRow(index: number = 0) {
+    const checkbox = this.typePanel.locator('.vxe-body--row .vxe-checkbox--icon').nth(index);
+    await checkbox.click();
+    await this.page.waitForTimeout(300);
+  }
+
+  /** Select a row checkbox in the data panel by clicking its checkbox */
+  async selectDataRow(index: number = 0) {
+    const checkbox = this.dataPanel.locator('.vxe-body--row .vxe-checkbox--icon').nth(index);
+    await checkbox.click();
+    await this.page.waitForTimeout(300);
   }
 
   // ========== Import ==========

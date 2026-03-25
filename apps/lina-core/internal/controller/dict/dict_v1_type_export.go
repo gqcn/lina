@@ -15,6 +15,7 @@ func (c *ControllerV1) TypeExport(ctx context.Context, req *v1.TypeExportReq) (r
 	data, err := c.dictSvc.Export(ctx, dictsvc.ExportInput{
 		Name: req.Name,
 		Type: req.Type,
+		Ids:  req.Ids,
 	})
 	if err != nil {
 		return nil, err

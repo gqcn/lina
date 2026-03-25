@@ -16,6 +16,7 @@ func (c *ControllerV1) Export(ctx context.Context, req *v1.ExportReq) (res *v1.E
 		Key:       req.Key,
 		BeginTime: req.BeginTime,
 		EndTime:   req.EndTime,
+		Ids:       req.Ids,
 	})
 	if err != nil {
 		return nil, err

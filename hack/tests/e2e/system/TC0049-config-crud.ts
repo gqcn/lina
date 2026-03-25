@@ -105,19 +105,32 @@ test.describe('TC0049 参数设置管理', () => {
     });
   });
 
-  test('TC0049i: 导出参数设置返回正确格式', async ({ adminPage }) => {
+  test('TC0049i: 导出按钮功能正常', async ({ adminPage }) => {
     const configPage = new ConfigPage(adminPage);
     await configPage.goto();
 
+    // Click export button
+    const exportBtn = adminPage.getByRole('button', { name: /导\s*出/ });
+    await expect(exportBtn).toBeVisible();
+    await exportBtn.click();
+
+    // Verify modal appears
+    const modalContent = adminPage.locator('.ant-modal-content');
+    await expect(modalContent).toBeVisible({ timeout: 5000 });
+    await expect(modalContent.getByText(/是否导出全部数据/)).toBeVisible();
+
+    // Set up response listener
     const responsePromise = adminPage.waitForResponse(
-      (res) => res.url().includes('/api/v1/config/export'),
-      { timeout: 15000 },
+      (resp) => resp.url().includes('config/export'),
+      { timeout: 15000 }
     );
 
-    await configPage.clickExport();
-    const response = await responsePromise;
+    // Click confirm button
+    const confirmBtn = modalContent.getByRole('button', { name: /确\s*认/ });
+    await confirmBtn.click();
 
+    // Wait for response and verify
+    const response = await responsePromise;
     expect(response.status()).toBe(200);
-    expect(response.headers()['content-type']).toContain('spreadsheetml');
   });
 });

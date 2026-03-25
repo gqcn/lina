@@ -131,14 +131,31 @@ function onImportReload() {
 }
 
 async function handleExport() {
-  try {
-    const formValues = tableApi.formApi.form.values;
-    const data = await dictTypeExport(formValues);
-    downloadBlob(data, '字典类型.xlsx');
-    message.success('导出成功');
-  } catch {
-    message.error('导出失败');
-  }
+  const content = checkedRows.value.length > 0
+    ? '是否导出选中的记录？'
+    : '是否导出全部数据？';
+
+  Modal.confirm({
+    title: '提示',
+    okType: 'primary',
+    content,
+    okText: '确认',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        const formValues = tableApi.formApi.form.values;
+        const params: Record<string, any> = { ...formValues };
+        if (checkedRows.value.length > 0) {
+          params.ids = checkedRows.value.map((row: DictType) => row.id);
+        }
+        const data = await dictTypeExport(params);
+        downloadBlob(data, '字典类型.xlsx');
+        message.success('导出成功');
+      } catch {
+        message.error('导出失败');
+      }
+    },
+  });
 }
 
 function handleImport() {

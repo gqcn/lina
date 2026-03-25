@@ -12,6 +12,7 @@ export interface DictTypeListParams {
   pageSize?: number;
   name?: string;
   type?: string;
+  ids?: number[];
 }
 
 export interface DictTypeListResult {

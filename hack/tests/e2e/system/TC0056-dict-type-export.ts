@@ -1,13 +1,13 @@
 import { test, expect } from '../../fixtures/auth';
-import { UserPage } from '../../pages/UserPage';
+import { DictPage } from '../../pages/DictPage';
 
-test.describe('TC0008 用户导出', () => {
-  test('TC0008a: 导出全部数据', async ({ adminPage }) => {
-    const userPage = new UserPage(adminPage);
-    await userPage.goto();
+test.describe('TC0056 字典类型导出', () => {
+  test('TC0056a: 导出全部数据', async ({ adminPage }) => {
+    const dictPage = new DictPage(adminPage);
+    await dictPage.goto();
 
-    // Click export button
-    const exportBtn = adminPage.getByRole('button', { name: /导\s*出/ });
+    // Click export button in type panel
+    const exportBtn = adminPage.getByRole('button', { name: /导\s*出/ }).first();
     await expect(exportBtn).toBeVisible({ timeout: 10000 });
     await exportBtn.click();
 
@@ -18,7 +18,7 @@ test.describe('TC0008 用户导出', () => {
 
     // Set up response listener
     const responsePromise = adminPage.waitForResponse(
-      (resp) => resp.url().includes('user/export'),
+      (resp) => resp.url().includes('dict/type/export'),
       { timeout: 15000 }
     );
 

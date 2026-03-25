@@ -1,13 +1,20 @@
 import { test, expect } from '../../fixtures/auth';
-import { UserPage } from '../../pages/UserPage';
+import { DictPage } from '../../pages/DictPage';
 
-test.describe('TC0008 用户导出', () => {
-  test('TC0008a: 导出全部数据', async ({ adminPage }) => {
-    const userPage = new UserPage(adminPage);
-    await userPage.goto();
+test.describe('TC0057 字典数据导出', () => {
+  test('TC0057a: 导出全部数据', async ({ adminPage }) => {
+    const dictPage = new DictPage(adminPage);
+    await dictPage.goto();
 
-    // Click export button
-    const exportBtn = adminPage.getByRole('button', { name: /导\s*出/ });
+    // Select a dict type row to load dict data in right panel
+    await dictPage.clickTypeRow('sys_oper_type');
+
+    // Wait for data to load
+    await adminPage.waitForTimeout(500);
+
+    // Click export button in data panel (second one, since there are two export buttons)
+    const exportBtns = adminPage.getByRole('button', { name: /导\s*出/ });
+    const exportBtn = exportBtns.nth(1); // Data panel is second
     await expect(exportBtn).toBeVisible({ timeout: 10000 });
     await exportBtn.click();
 
@@ -18,7 +25,7 @@ test.describe('TC0008 用户导出', () => {
 
     // Set up response listener
     const responsePromise = adminPage.waitForResponse(
-      (resp) => resp.url().includes('user/export'),
+      (resp) => resp.url().includes('dict/data/export'),
       { timeout: 15000 }
     );
 

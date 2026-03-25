@@ -168,6 +168,13 @@ export class UserPage {
     await this.page.waitForTimeout(2000);
   }
 
+  /** Click confirm button in the export confirm modal */
+  async clickExportConfirm() {
+    const modal = this.page.locator('[role="dialog"]');
+    await modal.getByRole('button', { name: /确\s*认/ }).click();
+    await this.page.waitForTimeout(500);
+  }
+
   /** Select a row by clicking its checkbox (search for the user first) */
   async selectRow(username: string) {
     await this.fillSearchField('用户账号', username);

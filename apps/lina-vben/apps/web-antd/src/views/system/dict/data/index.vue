@@ -134,17 +134,35 @@ async function handleExport() {
     message.warning('请先选择字典类型');
     return;
   }
-  try {
-    const formValues = tableApi.formApi.form.values;
-    const data = await dictDataExport({
-      dictType: dictType.value,
-      ...formValues,
-    });
-    downloadBlob(data, '字典数据.xlsx');
-    message.success('导出成功');
-  } catch {
-    message.error('导出失败');
-  }
+
+  const content = checkedRows.value.length > 0
+    ? '是否导出选中的记录？'
+    : '是否导出全部数据？';
+
+  Modal.confirm({
+    title: '提示',
+    okType: 'primary',
+    content,
+    okText: '确认',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        const formValues = tableApi.formApi.form.values;
+        const params: Record<string, any> = {
+          dictType: dictType.value,
+          ...formValues,
+        };
+        if (checkedRows.value.length > 0) {
+          params.ids = checkedRows.value.map((row: DictData) => row.id);
+        }
+        const data = await dictDataExport(params);
+        downloadBlob(data, '字典数据.xlsx');
+        message.success('导出成功');
+      } catch {
+        message.error('导出失败');
+      }
+    },
+  });
 }
 
 function handleImport() {

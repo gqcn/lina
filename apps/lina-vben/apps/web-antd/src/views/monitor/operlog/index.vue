@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { OperLog } from '#/api/monitor/operlog/model';
 
-import { onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
-import { Page, useVbenDrawer } from '@vben/common-ui';
+import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 
 import { message, Modal, Space } from 'ant-design-vue';
 
-import { useVbenVxeGrid, vxeCheckboxChecked } from '#/adapter/vxe-table';
+import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   operLogClean,
   operLogDelete,
@@ -119,7 +119,18 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
     id: 'monitor-operlog-index',
   },
+  gridEvents: {
+    checkboxChange: () => {
+      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+    },
+    checkboxAll: () => {
+      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+    },
+  },
 });
+
+const checkedRows = ref<any[]>([]);
+const hasChecked = computed(() => checkedRows.value.length > 0);
 
 function handlePreview(row: OperLog) {
   detailDrawerApi.setData({ record: row });
@@ -155,23 +166,39 @@ function handleDelete() {
 }
 
 async function handleExport() {
-  try {
-    const formValues = gridApi.formApi.form.values;
-    const params: Record<string, any> = { ...formValues };
+  const content = checkedRows.value.length > 0
+    ? '是否导出选中的记录？'
+    : '是否导出全部数据？';
 
-    // Handle operTime date range
-    if (params.operTime && Array.isArray(params.operTime)) {
-      params.beginTime = params.operTime[0];
-      params.endTime = params.operTime[1];
-      delete params.operTime;
-    }
+  Modal.confirm({
+    title: '提示',
+    okType: 'primary',
+    content,
+    okText: '确认',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        const formValues = gridApi.formApi.form.values;
+        const params: Record<string, any> = { ...formValues };
 
-    const data = await operLogExport(params);
-    downloadBlob(data, '操作日志.xlsx');
-    message.success('导出成功');
-  } catch {
-    message.error('导出失败');
-  }
+        if (params.operTime && Array.isArray(params.operTime)) {
+          params.beginTime = params.operTime[0];
+          params.endTime = params.operTime[1];
+          delete params.operTime;
+        }
+
+        if (checkedRows.value.length > 0) {
+          params.ids = checkedRows.value.map((row: OperLog) => row.id);
+        }
+
+        const data = await operLogExport(params);
+        downloadBlob(data, '操作日志.xlsx');
+        message.success('导出成功');
+      } catch {
+        message.error('导出失败');
+      }
+    },
+  });
 }
 </script>
 
@@ -183,7 +210,7 @@ async function handleExport() {
           <a-button @click="handleClean">清 空</a-button>
           <a-button @click="handleExport">导 出</a-button>
           <a-button
-            :disabled="!vxeCheckboxChecked(gridApi)"
+            :disabled="!hasChecked"
             danger
             type="primary"
             @click="handleDelete"

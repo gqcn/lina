@@ -15,6 +15,7 @@ func (c *ControllerV1) DataExport(ctx context.Context, req *v1.DataExportReq) (r
 	data, err := c.dictSvc.DataExport(ctx, dictsvc.DataExportInput{
 		DictType: req.DictType,
 		Label:    req.Label,
+		Ids:      req.Ids,
 	})
 	if err != nil {
 		return nil, err

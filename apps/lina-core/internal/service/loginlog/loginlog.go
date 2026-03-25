@@ -199,6 +199,7 @@ type ExportInput struct {
 	EndTime        string
 	OrderBy        string
 	OrderDirection string
+	Ids            []int // Specific IDs to export; if empty, export all matching records
 }
 
 // Export generates an Excel file with login log data (max 10000 rows).
@@ -206,24 +207,28 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	cols := dao.SysLoginLog.Columns()
 	m := dao.SysLoginLog.Ctx(ctx)
 
-	if in.UserName != "" {
-		m = m.WhereLike(cols.UserName, "%"+in.UserName+"%")
-	}
-	if in.Ip != "" {
-		m = m.WhereLike(cols.Ip, "%"+in.Ip+"%")
-	}
-	if in.Status != nil {
-		m = m.Where(cols.Status, *in.Status)
-	}
-	if in.BeginTime != "" {
-		m = m.WhereGTE(cols.LoginTime, in.BeginTime)
-	}
-	if in.EndTime != "" {
-		endTime := in.EndTime
-		if len(endTime) == 10 {
-			endTime += " 23:59:59"
+	if len(in.Ids) > 0 {
+		m = m.WhereIn(cols.Id, in.Ids)
+	} else {
+		if in.UserName != "" {
+			m = m.WhereLike(cols.UserName, "%"+in.UserName+"%")
 		}
-		m = m.WhereLTE(cols.LoginTime, endTime)
+		if in.Ip != "" {
+			m = m.WhereLike(cols.Ip, "%"+in.Ip+"%")
+		}
+		if in.Status != nil {
+			m = m.Where(cols.Status, *in.Status)
+		}
+		if in.BeginTime != "" {
+			m = m.WhereGTE(cols.LoginTime, in.BeginTime)
+		}
+		if in.EndTime != "" {
+			endTime := in.EndTime
+			if len(endTime) == 10 {
+				endTime += " 23:59:59"
+			}
+			m = m.WhereLTE(cols.LoginTime, endTime)
+		}
 	}
 
 	// Limit export to prevent memory issues

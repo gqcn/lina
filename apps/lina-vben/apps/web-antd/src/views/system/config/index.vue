@@ -113,18 +113,34 @@ function handleMultiDelete() {
 }
 
 async function handleExport() {
-  try {
-    const formValues = gridApi.formApi.form.values;
-    const params: Record<string, any> = { ...formValues };
-    if (params.createTime) {
-      delete params.createTime;
-    }
-    const data = await configExport(params);
-    downloadBlob(data, '参数设置.xlsx');
-    message.success('导出成功');
-  } catch {
-    message.error('导出失败');
-  }
+  const content = checkedRows.value.length > 0
+    ? '是否导出选中的记录？'
+    : '是否导出全部数据？';
+
+  Modal.confirm({
+    title: '提示',
+    okType: 'primary',
+    content,
+    okText: '确认',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        const formValues = gridApi.formApi.form.values;
+        const params: Record<string, any> = { ...formValues };
+        if (params.createTime) {
+          delete params.createTime;
+        }
+        if (checkedRows.value.length > 0) {
+          params.ids = checkedRows.value.map((row: SysConfig) => row.id);
+        }
+        const data = await configExport(params);
+        downloadBlob(data, '参数设置.xlsx');
+        message.success('导出成功');
+      } catch {
+        message.error('导出失败');
+      }
+    },
+  });
 }
 
 function onReload() {

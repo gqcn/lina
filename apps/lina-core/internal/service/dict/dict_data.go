@@ -184,6 +184,7 @@ func (s *Service) DataDelete(ctx context.Context, id int) error {
 type DataExportInput struct {
 	DictType string
 	Label    string
+	Ids      []int // Specific IDs to export; if empty, export all matching records
 }
 
 // DataExport generates an Excel file with dict data (max 10000 rows).
@@ -191,11 +192,15 @@ func (s *Service) DataExport(ctx context.Context, in DataExportInput) ([]byte, e
 	cols := dao.SysDictData.Columns()
 	m := dao.SysDictData.Ctx(ctx).WhereNull(cols.DeletedAt)
 
-	if in.DictType != "" {
-		m = m.Where(cols.DictType, in.DictType)
-	}
-	if in.Label != "" {
-		m = m.WhereLike(cols.Label, "%"+in.Label+"%")
+	if len(in.Ids) > 0 {
+		m = m.WhereIn(cols.Id, in.Ids)
+	} else {
+		if in.DictType != "" {
+			m = m.Where(cols.DictType, in.DictType)
+		}
+		if in.Label != "" {
+			m = m.WhereLike(cols.Label, "%"+in.Label+"%")
+		}
 	}
 
 	// Limit export to prevent memory issues

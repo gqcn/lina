@@ -20,6 +20,7 @@ func (c *ControllerV1) Export(ctx context.Context, req *v1.ExportReq) (res *v1.E
 		EndTime:        req.EndTime,
 		OrderBy:        req.OrderBy,
 		OrderDirection: req.OrderDirection,
+		Ids:            req.Ids,
 	})
 	if err != nil {
 		return nil, err

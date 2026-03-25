@@ -222,14 +222,27 @@ function onReload() {
 }
 
 async function handleExport() {
-  try {
-    const ids = checkedRows.value.map((row: any) => row.id);
-    const data = await userExport({ ids });
-    downloadBlob(data, 'users.xlsx');
-    message.success('导出成功');
-  } catch {
-    message.error('导出失败');
-  }
+  const content = checkedRows.value.length > 0
+    ? '是否导出选中的记录？'
+    : '是否导出全部数据？';
+
+  Modal.confirm({
+    title: '提示',
+    okType: 'primary',
+    content,
+    okText: '确认',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        const ids = checkedRows.value.map((row: any) => row.id);
+        const data = await userExport({ ids });
+        downloadBlob(data, 'users.xlsx');
+        message.success('导出成功');
+      } catch {
+        message.error('导出失败');
+      }
+    },
+  });
 }
 
 function handleImport() {
@@ -256,7 +269,7 @@ function handleResetPwd(row: any) {
       <Grid class="flex-1 overflow-hidden" table-title="用户列表">
         <template #toolbar-tools>
           <Space>
-            <a-button :disabled="!hasChecked" @click="handleExport">
+            <a-button @click="handleExport">
               导 出
             </a-button>
             <a-button @click="handleImport">导 入</a-button>

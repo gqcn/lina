@@ -123,11 +123,29 @@ export class ConfigPage {
     await this.page.waitForTimeout(500);
   }
 
+  // ========== Row Selection ==========
+
+  async selectRow(configName: string) {
+    await this.fillSearchField('参数名称', configName);
+    await this.clickSearch();
+    // Click the first checkbox in the body rows
+    const checkbox = this.page.locator('.vxe-body--row .vxe-checkbox--icon').first();
+    await checkbox.click();
+    await this.page.waitForTimeout(300);
+  }
+
   // ========== Export ==========
 
   async clickExport() {
     await this.page.getByRole('button', { name: /导\s*出/ }).click();
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(1000);
+  }
+
+  /** Click confirm button in the export confirm modal */
+  async clickExportConfirm() {
+    const modal = this.page.locator('[role="dialog"]');
+    await modal.getByRole('button', { name: /确\s*认/ }).click();
+    await this.page.waitForTimeout(500);
   }
 
   // ========== Import ==========
