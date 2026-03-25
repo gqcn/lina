@@ -1,4 +1,4 @@
--- v0.4.0: Notice Management, User Message
+-- 004: Notice Management, User Message
 
 -- ============================================================
 -- 通知公告表

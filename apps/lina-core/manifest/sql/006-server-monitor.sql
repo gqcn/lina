@@ -1,4 +1,4 @@
--- v0.7.0: System Monitoring (Online Users + Server Monitor)
+-- 006: System Monitoring (Online Users + Server Monitor)
 
 -- ============================================================
 -- 在线会话表（MEMORY 引擎，用于跟踪当前在线用户）

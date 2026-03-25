@@ -1,4 +1,4 @@
--- v0.3.0: Operation Log, Login Log, Add dept code field
+-- 003: Operation Log, Login Log, Add dept code field
 
 -- ============================================================
 -- 操作日志表

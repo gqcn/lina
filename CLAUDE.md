@@ -157,11 +157,11 @@ pnpm report            # 查看 HTML 报告
 
 ### Go代码生成流程
 - **API变更**: 修改 `api/{resource}/v1/*.go` → `make ctrl`
-- **数据库变更**: 新增或修改 `manifest/sql/{version}.sql`（如 `v0.2.0.sql`）→ `make init`将`sql`文件更新到数据库中 → `make dao`生成或更新`Go`源码文件
+- **数据库变更**: 新增或修改 `manifest/sql/{序号}-{迭代名称}.sql`（如 `008-user-auth.sql`）→ `make init`将`sql`文件更新到数据库中 → `make dao`生成或更新`Go`源码文件
 
 ### SQL文件管理规范
-- **SQL文件命名规范**：每次数据库变更的`SQL`文件以当前迭代版本号命名（如 `v0.1.0.sql`、`v0.2.0.sql`），存放在 `manifest/sql/` 目录下。`init.sql` 仅用于初始建表，后续迭代的表结构变更（`ALTER TABLE`、新增表等）使用版本号命名的`SQL`文件。升级时按版本顺序依次执行即可完成数据库迁移。当前迭代若不涉及数据库变更，则不用生成该迭代的`sql`文件。
-- **SQL数据分类管理**：版本`SQL`文件（如 `v0.2.0.sql`）中只允许包含`DDL`（建表/改表）和 `Seed DML`（系统运行所必需的初始化数据，如字典类型、管理员账号等）。演示/测试用的`Mock`数据（如测试用户、演示部门/岗位等）必须放到 `manifest/sql/mock-data/` 目录下的独立`SQL`文件中，文件名以数字前缀控制执行顺序（如 `01_mock_depts.sql`、`02_mock_posts.sql`）。
+- **SQL文件命名规范**：数据库变更`SQL`文件采用`{序号}-{迭代名称}.sql`格式命名，存放在 `manifest/sql/` 目录下。其中序号为三位数字（如`001`、`002`），迭代名称使用`kebab-case`格式描述该次变更的功能范围（如`project-init`、`dict-dept-post`）。按序号顺序执行即可完成数据库迁移。当前迭代若不涉及数据库变更，则不用生成该迭代的`sql`文件。
+- **SQL数据分类管理**：迭代`SQL`文件（如 `002-dict-dept-post.sql`）中只允许包含`DDL`（建表/改表）和 `Seed DML`（系统运行所必需的初始化数据，如字典类型、管理员账号等）。演示/测试用的`Mock`数据（如测试用户、演示部门/岗位等）必须放到 `manifest/sql/mock-data/` 目录下的独立`SQL`文件中，文件名以数字前缀控制执行顺序（如 `01_mock_depts.sql`、`02_mock_posts.sql`）。
 
 ### 接口层实现要求
 

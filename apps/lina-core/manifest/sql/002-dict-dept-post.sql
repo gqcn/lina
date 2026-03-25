@@ -1,4 +1,4 @@
--- v0.2.0: Dict Management, Dept Management, Post Management, User-Dept-Post Association
+-- 002: Dict Management, Dept Management, Post Management, User-Dept-Post Association
 
 -- ============================================================
 -- 字典类型表
