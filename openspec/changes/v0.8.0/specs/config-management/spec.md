@@ -122,3 +122,30 @@ The system SHALL include a "参数设置" menu item under system management. Acc
 #### Scenario: Permission-controlled operations
 - **WHEN** user lacks system:config:add permission
 - **THEN** the "新增" button is hidden on the config page
+
+### Requirement: Import configs from Excel
+The system SHALL support importing config records from an Excel file. The system SHALL provide a template download endpoint and validate imported data before persisting.
+
+#### Scenario: Download import template
+- **WHEN** user requests GET `/config/import-template`
+- **THEN** system returns an Excel template with example data showing required columns: 参数名称、参数键名、参数键值、备注
+
+#### Scenario: Import with valid data
+- **WHEN** user uploads a valid Excel file to POST `/config/import`
+- **THEN** system validates all rows, creates records, and returns success count
+
+#### Scenario: Import with validation errors
+- **WHEN** user uploads an Excel file with invalid data (missing required fields, duplicate keys)
+- **THEN** system rejects the entire import and returns error details with row numbers and reasons
+
+#### Scenario: Import with overwrite mode
+- **WHEN** user uploads an Excel file with `updateSupport=true` and the file contains keys that already exist
+- **THEN** system updates existing records with the imported values
+
+#### Scenario: Import with ignore mode
+- **WHEN** user uploads an Excel file with `updateSupport=false` (default) and the file contains keys that already exist
+- **THEN** system skips existing records and only creates new records
+
+#### Scenario: Import modal UI
+- **WHEN** user clicks "导入" button on the config management page
+- **THEN** system displays a modal with template download link, drag-and-drop upload area, file type hint (xlsx/xls), and overwrite/ignore mode switch

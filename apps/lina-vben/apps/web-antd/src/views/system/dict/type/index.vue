@@ -10,15 +10,22 @@ import { message, Modal, Popconfirm, Space } from 'ant-design-vue';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   dictTypeDelete,
+  dictTypeExport,
   dictTypeList,
 } from '#/api/system/dict/dict-type';
+import { downloadBlob } from '#/utils/download';
 
 import { emitter } from '../mitt';
 import { columns, querySchema } from './data';
+import DictTypeImportModal from './dict-type-import-modal.vue';
 import dictTypeModal from './dict-type-modal.vue';
 
 const [DictTypeModal, modalApi] = useVbenModal({
   connectedComponent: dictTypeModal,
+});
+
+const [ImportModal, importModalApi] = useVbenModal({
+  connectedComponent: DictTypeImportModal,
 });
 
 const lastDictType = ref('');
@@ -118,6 +125,25 @@ function handleMultiDelete() {
 function onReload() {
   tableApi.query();
 }
+
+function onImportReload() {
+  tableApi.query();
+}
+
+async function handleExport() {
+  try {
+    const formValues = tableApi.formApi.form.values;
+    const data = await dictTypeExport(formValues);
+    downloadBlob(data, '字典类型.xlsx');
+    message.success('导出成功');
+  } catch {
+    message.error('导出失败');
+  }
+}
+
+function handleImport() {
+  importModalApi.open();
+}
 </script>
 
 <template>
@@ -125,6 +151,8 @@ function onReload() {
     <BasicTable id="dict-type" table-title="字典类型列表">
       <template #toolbar-tools>
         <Space>
+          <a-button @click="handleExport">导 出</a-button>
+          <a-button @click="handleImport">导 入</a-button>
           <a-button
             :disabled="!hasChecked"
             danger
@@ -150,6 +178,7 @@ function onReload() {
       </template>
     </BasicTable>
     <DictTypeModal @reload="onReload" />
+    <ImportModal @reload="onImportReload" />
   </div>
 </template>
 

@@ -16,10 +16,15 @@ import {
 import { downloadBlob } from '#/utils/download';
 
 import { columns, querySchema } from './data';
+import ConfigImportModal from './config-import-modal.vue';
 import ConfigModal from './config-modal.vue';
 
 const [ConfigModalRef, modalApi] = useVbenModal({
   connectedComponent: ConfigModal,
+});
+
+const [ImportModalRef, importModalApi] = useVbenModal({
+  connectedComponent: ConfigImportModal,
 });
 
 const [Grid, gridApi] = useVbenVxeGrid({
@@ -125,6 +130,10 @@ async function handleExport() {
 function onReload() {
   gridApi.query();
 }
+
+function handleImport() {
+  importModalApi.open();
+}
 </script>
 
 <template>
@@ -133,6 +142,7 @@ function onReload() {
       <template #toolbar-tools>
         <Space>
           <a-button @click="handleExport">导 出</a-button>
+          <a-button @click="handleImport">导 入</a-button>
           <a-button
             :disabled="!hasChecked"
             danger
@@ -160,5 +170,6 @@ function onReload() {
     </Grid>
 
     <ConfigModalRef @reload="onReload" />
+    <ImportModalRef @reload="onReload" />
   </Page>
 </template>

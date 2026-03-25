@@ -266,4 +266,18 @@ export class DictPage {
   async getTypeRowCount(): Promise<number> {
     return this.typePanel.locator('.vxe-body--row').count();
   }
+
+  // ========== Import ==========
+
+  /** Click import button in the type panel */
+  async clickTypeImport() {
+    await this.typePanel.getByRole('button', { name: /导\s*入/ }).click();
+    await this.page.waitForTimeout(500);
+  }
+
+  /** Click import button in the data panel */
+  async clickDataImport() {
+    await this.dataPanel.getByRole('button', { name: /导\s*入/ }).click();
+    await this.page.waitForTimeout(500);
+  }
 }

@@ -44,3 +44,22 @@ export async function dictTypeOptions() {
   );
   return res.list;
 }
+
+/** 导入字典类型 */
+export function dictTypeImport(file: File, updateSupport?: boolean) {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (updateSupport) {
+    formData.append('updateSupport', '1');
+  }
+  return requestClient.post<{
+    success: number;
+    fail: number;
+    failList: Array<{ row: number; reason: string }>;
+  }>('/dict/type/import', formData);
+}
+
+/** 下载字典类型导入模板 */
+export function dictTypeImportTemplate() {
+  return requestClient.download<Blob>('/dict/type/import-template');
+}

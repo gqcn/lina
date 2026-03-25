@@ -129,4 +129,11 @@ export class ConfigPage {
     await this.page.getByRole('button', { name: /导\s*出/ }).click();
     await this.page.waitForTimeout(2000);
   }
+
+  // ========== Import ==========
+
+  async clickImport() {
+    await this.page.getByRole('button', { name: /导\s*入/ }).click();
+    await this.page.waitForTimeout(500);
+  }
 }
