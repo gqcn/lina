@@ -44,15 +44,13 @@ Determine which change the issues relate to:
 
 **Version auto-increment (when no active change exists):**
 
-When all existing changes are archived or complete and no active change is available, automatically create a new change with a version number derived from the latest archived/complete change:
+When all existing changes are archived or complete and no active change is available, automatically create a new change with a descriptive name based on the feedback type:
 
-1. Find the latest version by scanning `openspec/changes/` (active) and `openspec/changes/archive/` (archived). Extract the highest semantic version number (e.g., `v0.3.0`).
-2. Determine the version increment based on feedback type:
-   - **Bug fix / defect** → increment PATCH: `v0.3.0` → `v0.3.1`, `v0.3.1` → `v0.3.2`
-   - **Improvement / new feature** → increment MINOR, reset PATCH: `v0.3.0` → `v0.4.0`, `v0.3.2` → `v0.4.0`
+1. Derive a kebab-case name from the feedback content (e.g., "fix-login-bug", "add-export-feature")
+2. Check if a change with that name already exists. If so, append a suffix (e.g., "fix-login-bug-2")
 3. Create the change:
    ```bash
-   openspec new change "<new-version>"
+   openspec new change "<descriptive-name>"
    ```
 4. Generate minimal `proposal.md` and `design.md` in the new change directory summarizing the feedback context. The `tasks.md` will be populated in Step 5.
 
@@ -255,7 +253,7 @@ If all tasks are complete and verified, suggest archiving the change.
 
 **Issue is actually a design change:** If a reported "bug" is actually a requirement change or design change rather than an implementation bug, classify it as spec-level. Update the delta specs first (Step 4), then record the task (Step 5). If the change is large enough to affect `design.md` (e.g., new API endpoints, new DB schema, architectural changes), discuss with the user whether to also update `design.md` before proceeding.
 
-**No active openspec change:** Handled automatically in Step 1 via version auto-increment. The new version number is determined by the feedback type (PATCH for bugs, MINOR for improvements) based on the latest existing version.
+**No active openspec change:** Handled automatically in Step 1. A descriptive kebab-case name is derived from the feedback content to create the new change.
 
 **Multiple rounds of feedback:** All feedback tasks from every round are appended to the same single Feedback section. Sequential numbering (`FB-1`, `FB-2`, ...) naturally preserves the chronological order of when issues were discovered and fixed.
 
