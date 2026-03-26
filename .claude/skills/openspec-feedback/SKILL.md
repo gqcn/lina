@@ -21,8 +21,10 @@ The core principles:
 
 - User reports one or more bugs, defects, improvement points, or gaps (missing features / missing test cases / incomplete coverage)
 - User describes untested scenarios, missing test cases, or test coverage gaps
-- The project uses OpenSpec (an active change is not required — one will be auto-created if needed)
+- The project uses OpenSpec
 - The issues relate to an existing implementation (post-development feedback)
+
+**Note:** An active change is preferred but not required. If active changes exist, the skill will append to the related one. If no active changes exist, a new one will be created automatically.
 
 ---
 
@@ -30,17 +32,53 @@ The core principles:
 
 ### 1. Identify or Create the Active Change
 
-Determine which change the issues relate to:
+**CRITICAL: Prefer appending to existing changes over creating new ones.** Feedback should be consolidated into the related change whenever possible, not scattered across multiple changes.
 
-- If the user specifies a change name, use it
-- If conversation context makes it obvious, use that
-- If only one active change exists, auto-select it
-- If ambiguous, run `openspec list --json` and ask the user to select
-- **If no active change exists**, auto-create one using the version auto-increment rules below
+#### Step 1.1: List Active Changes
 
-**Version auto-increment (when no active change exists):**
+First, check what active changes exist:
 
-When all existing changes are archived or complete and no active change is available, automatically create a new change with a descriptive name based on the feedback type:
+```bash
+openspec list --json
+```
+
+Or check the `openspec/changes/` directory (excluding `archive/`).
+
+#### Step 1.2: Determine the Target Change
+
+Based on the number of active changes:
+
+**Case A: No active changes exist**
+→ Auto-create a new change (see "Version auto-increment" below)
+
+**Case B: Exactly one active change exists**
+→ **Auto-select it** (announce and proceed)
+
+**Case C: Multiple active changes exist**
+→ **You MUST ask the user to select one.** Present the list with brief descriptions and ask:
+```
+Multiple active changes detected. Which change should this feedback be appended to?
+
+1. config-management — System config CRUD management
+2. user-auth — User authentication enhancement
+3. Create a new change
+
+Please select 1, 2, or 3:
+```
+
+**NEVER auto-create a new change when active changes exist without explicit user confirmation.**
+
+#### Step 1.3: Match Feedback to Related Change
+
+Before asking the user, analyze whether the feedback clearly relates to one of the active changes:
+
+- Read the `proposal.md` of each active change to understand its scope
+- If the feedback is about a feature that was implemented in an active change (e.g., reporting a bug in the config import that was added in FB-12 of `config-management`), **strongly recommend appending to that change**
+- Announce: "This feedback relates to the import feature added in `config-management`. Appending to that change."
+
+#### Step 1.4: Version Auto-Increment (Only When No Active Changes)
+
+When all existing changes are archived and no active change is available, create a new change:
 
 1. Derive a kebab-case name from the feedback content (e.g., "fix-login-bug", "add-export-feature")
 2. Check if a change with that name already exists. If so, append a suffix (e.g., "fix-login-bug-2")
@@ -264,6 +302,8 @@ If all tasks are complete and verified, suggest archiving the change.
 
 ## Guardrails
 
+- **Prefer existing changes over new ones** — When active changes exist, append feedback to the related change instead of creating a new one. Feedback about a feature implemented in an active change MUST be appended to that change, not scattered into a separate change.
+- **Ask before creating new changes** — Never auto-create a new change when active changes exist. Always ask the user to confirm or select an existing change first.
 - **Specs before tasks for requirement-level changes** — If an issue changes user-observable behavior or adds missing requirements, update the delta spec first, then record the task. Specs are the source of truth; tasks are derived from specs.
 - **Always write tasks before fixing** — Never start coding a fix without first recording it in tasks.md.
 - **Confirm the task list with the user** — The user knows what they observed; validate your analysis matches their experience.
