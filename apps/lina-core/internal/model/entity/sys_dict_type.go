@@ -17,5 +17,4 @@ type SysDictType struct {
 	Remark    string      `json:"remark"    orm:"remark"     description:"备注"`
 	CreatedAt *gtime.Time `json:"createdAt" orm:"created_at" description:"创建时间"`
 	UpdatedAt *gtime.Time `json:"updatedAt" orm:"updated_at" description:"更新时间"`
-	DeletedAt *gtime.Time `json:"deletedAt" orm:"deleted_at" description:"删除时间"`
 }

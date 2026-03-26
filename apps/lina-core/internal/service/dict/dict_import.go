@@ -438,12 +438,10 @@ func (s *Service) TypeImport(ctx context.Context, file io.Reader, updateSupport 
 	}
 	defer f.Close()
 
-	// Get existing dict types
-	typeCols := dao.SysDictType.Columns()
+	// Get existing dict types (dict types use hard delete, no deleted_at filter needed)
 	existingTypes := make(map[string]bool)
 	var existingTypeList []*entity.SysDictType
 	err = dao.SysDictType.Ctx(ctx).
-		WhereNull(typeCols.DeletedAt).
 		Scan(&existingTypeList)
 	if err != nil {
 		return nil, err
@@ -569,12 +567,10 @@ func (s *Service) DataImport(ctx context.Context, file io.Reader, updateSupport 
 	}
 	defer f.Close()
 
-	// Get existing dict types
-	typeCols := dao.SysDictType.Columns()
+	// Get existing dict types (dict types use hard delete, no deleted_at filter needed)
 	existingTypes := make(map[string]bool)
 	var existingTypeList []*entity.SysDictType
 	err = dao.SysDictType.Ctx(ctx).
-		WhereNull(typeCols.DeletedAt).
 		Scan(&existingTypeList)
 	if err != nil {
 		return nil, err

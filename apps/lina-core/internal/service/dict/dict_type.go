@@ -80,7 +80,7 @@ type CreateInput struct {
 
 // Create creates a new dict type.
 func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
-	// Check type uniqueness (GoFrame auto-adds deleted_at IS NULL condition)
+	// Check type uniqueness (dict types use hard delete, so no deleted_at filter needed)
 	count, err := dao.SysDictType.Ctx(ctx).
 		Where(do.SysDictType{Type: in.Type}).
 		Count()

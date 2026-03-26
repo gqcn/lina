@@ -32,7 +32,6 @@ type SysDictDataColumns struct {
 	Remark    string // 备注
 	CreatedAt string // 创建时间
 	UpdatedAt string // 更新时间
-	DeletedAt string // 删除时间
 }
 
 // sysDictDataColumns holds the columns for the table sys_dict_data.
@@ -48,7 +47,6 @@ var sysDictDataColumns = SysDictDataColumns{
 	Remark:    "remark",
 	CreatedAt: "created_at",
 	UpdatedAt: "updated_at",
-	DeletedAt: "deleted_at",
 }
 
 // NewSysDictDataDao creates and returns a new DAO object for table data access.

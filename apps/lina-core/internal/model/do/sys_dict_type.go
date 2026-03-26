@@ -19,5 +19,4 @@ type SysDictType struct {
 	Remark    any         // 备注
 	CreatedAt *gtime.Time // 创建时间
 	UpdatedAt *gtime.Time // 更新时间
-	DeletedAt *gtime.Time // 删除时间
 }
