@@ -21,7 +21,7 @@ type ExportInput struct {
 // Export generates an Excel file with post data based on filters.
 func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	cols := dao.SysPost.Columns()
-	m := dao.SysPost.Ctx(ctx).WhereNull(cols.DeletedAt)
+	m := dao.SysPost.Ctx(ctx)
 
 	// Apply filters
 	if in.DeptId != nil {

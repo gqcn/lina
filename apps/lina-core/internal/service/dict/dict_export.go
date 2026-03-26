@@ -21,7 +21,7 @@ type CombinedExportInput struct {
 func (s *Service) CombinedExport(ctx context.Context, in CombinedExportInput) ([]byte, error) {
 	// Query dict types
 	typeCols := dao.SysDictType.Columns()
-	typeM := dao.SysDictType.Ctx(ctx).WhereNull(typeCols.DeletedAt)
+	typeM := dao.SysDictType.Ctx(ctx)
 
 	if len(in.Ids) > 0 {
 		typeM = typeM.WhereIn(typeCols.Id, in.Ids)
@@ -53,7 +53,6 @@ func (s *Service) CombinedExport(ctx context.Context, in CombinedExportInput) ([
 	if len(typeStrings) > 0 {
 		dataCols := dao.SysDictData.Columns()
 		dataM := dao.SysDictData.Ctx(ctx).
-			WhereNull(dataCols.DeletedAt).
 			WhereIn(dataCols.DictType, typeStrings).
 			Limit(10000)
 

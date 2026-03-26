@@ -6,7 +6,6 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gtime"
 
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
@@ -69,7 +68,7 @@ type ListOutput struct {
 func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysNotice.Columns()
-		m    = dao.SysNotice.Ctx(ctx).WhereNull(cols.DeletedAt)
+		m    = dao.SysNotice.Ctx(ctx)
 	)
 
 	// Apply filters
@@ -147,10 +146,8 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 // GetById retrieves notice by ID.
 func (s *Service) GetById(ctx context.Context, id int64) (*ListItem, error) {
 	var notice *entity.SysNotice
-	cols := dao.SysNotice.Columns()
 	err := dao.SysNotice.Ctx(ctx).
 		Where(do.SysNotice{Id: id}).
-		WhereNull(cols.DeletedAt).
 		Scan(&notice)
 	if err != nil {
 		return nil, err
@@ -195,6 +192,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int64, error) {
 		createdBy = int64(bizCtx.UserId)
 	}
 
+	// Insert notice (GoFrame auto-fills created_at and updated_at)
 	id, err := dao.SysNotice.Ctx(ctx).Data(do.SysNotice{
 		Title:     in.Title,
 		Type:      in.Type,
@@ -204,8 +202,6 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int64, error) {
 		Remark:    in.Remark,
 		CreatedBy: createdBy,
 		UpdatedBy: createdBy,
-		CreatedAt: gtime.Now(),
-		UpdatedAt: gtime.Now(),
 	}).InsertAndGetId()
 	if err != nil {
 		return 0, err
@@ -235,11 +231,9 @@ type UpdateInput struct {
 // Update updates notice information.
 func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	// Check notice exists and get old status
-	cols := dao.SysNotice.Columns()
 	var oldNotice *entity.SysNotice
 	err := dao.SysNotice.Ctx(ctx).
 		Where(do.SysNotice{Id: in.Id}).
-		WhereNull(cols.DeletedAt).
 		Scan(&oldNotice)
 	if err != nil {
 		return err
@@ -256,7 +250,6 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 
 	data := do.SysNotice{
 		UpdatedBy: updatedBy,
-		UpdatedAt: gtime.Now(),
 	}
 	if in.Title != nil {
 		data.Title = *in.Title
@@ -307,10 +300,10 @@ func (s *Service) Delete(ctx context.Context, ids string) error {
 		return gerror.New("请选择要删除的记录")
 	}
 
+	// Soft delete using GoFrame's auto soft-delete feature
 	_, err := dao.SysNotice.Ctx(ctx).
 		WhereIn(dao.SysNotice.Columns().Id, idList).
-		Data(do.SysNotice{DeletedAt: gtime.Now()}).
-		Update()
+		Delete()
 	if err != nil {
 		return err
 	}
@@ -329,12 +322,10 @@ func (s *Service) Delete(ctx context.Context, ids string) error {
 
 // fanOutMessages creates user_message records for all active users.
 func (s *Service) fanOutMessages(ctx context.Context, noticeId int64, title string, noticeType int, createdBy int64) error {
-	userCols := dao.SysUser.Columns()
 	var users []*entity.SysUser
 	err := dao.SysUser.Ctx(ctx).
 		Where(do.SysUser{Status: 1}).
-		WhereNull(userCols.DeletedAt).
-		WhereNot(userCols.Id, createdBy).
+		WhereNot(dao.SysUser.Columns().Id, createdBy).
 		Scan(&users)
 	if err != nil {
 		return err
@@ -348,7 +339,6 @@ func (s *Service) fanOutMessages(ctx context.Context, noticeId int64, title stri
 			SourceType: "notice",
 			SourceId:   noticeId,
 			IsRead:     0,
-			CreatedAt:  gtime.Now(),
 		}).Insert()
 		if err != nil {
 			g.Log().Errorf(ctx, "fanOutMessages insert failed for user %d notice %d: %v", user.Id, noticeId, err)

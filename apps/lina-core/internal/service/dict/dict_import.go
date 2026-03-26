@@ -4,15 +4,29 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"regexp"
+	"strconv"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/xuri/excelize/v2"
 
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 )
+
+// Valid type format: lowercase letters, numbers, underscores, starting with letter
+var dictTypeRegex = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+
+// isValidDictType checks if the dict type string is valid.
+func isValidDictType(typeStr string) bool {
+	return dictTypeRegex.MatchString(typeStr)
+}
+
+// isValidDictValue checks if the dict value is valid (non-empty, no leading/trailing spaces).
+func isValidDictValue(value string) bool {
+	return len(value) > 0 && value == regexp.MustCompile(`^\s+|\s+$`).ReplaceAllString(value, "")
+}
 
 // CombinedImportResult represents the result of combined import.
 type CombinedImportResult struct {
@@ -44,14 +58,13 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSup
 	}
 	defer f.Close()
 
-	// Get existing dict types for validation
+	// Get existing dict types for validation (GoFrame auto-adds deleted_at IS NULL)
 	typeCols := dao.SysDictType.Columns()
 	existingTypes := make(map[string]bool)
 	var existingTypeList []*struct {
 		Type string
 	}
 	err = dao.SysDictType.Ctx(ctx).
-		WhereNull(typeCols.DeletedAt).
 		Fields(typeCols.Type).
 		Scan(&existingTypeList)
 	if err != nil {
@@ -88,6 +101,29 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSup
 
 		name := row[0]
 		typeStr := row[1]
+
+		// Validate name is not empty
+		if name == "" {
+			result.TypeFail++
+			result.FailList = append(result.FailList, ImportFailItem{
+				Sheet:  typeSheet,
+				Row:    i + 1,
+				Reason: "字典名称不能为空",
+			})
+			continue
+		}
+
+		// Validate type format
+		if !isValidDictType(typeStr) {
+			result.TypeFail++
+			result.FailList = append(result.FailList, ImportFailItem{
+				Sheet:  typeSheet,
+				Row:    i + 1,
+				Reason: "字典类型格式错误：必须以小写字母开头，仅包含小写字母、数字和下划线",
+			})
+			continue
+		}
+
 		status := 1
 		if len(row) > 2 && row[2] == "停用" {
 			status = 0
@@ -100,14 +136,13 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSup
 		// Check if type already exists
 		if existingTypes[typeStr] {
 			if updateSupport {
-				// Update existing record
+				// Update existing record (GoFrame auto-fills updated_at)
 				_, err := dao.SysDictType.Ctx(ctx).
 					Where(do.SysDictType{Type: typeStr}).
 					Data(do.SysDictType{
-						Name:      name,
-						Status:    status,
-						Remark:    remark,
-						UpdatedAt: gtime.Now(),
+						Name:   name,
+						Status: status,
+						Remark: remark,
 					}).Update()
 				if err != nil {
 					result.TypeFail++
@@ -131,14 +166,12 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSup
 			continue
 		}
 
-		// Insert dict type
+		// Insert dict type (GoFrame auto-fills created_at and updated_at)
 		_, err := dao.SysDictType.Ctx(ctx).Data(do.SysDictType{
-			Name:      name,
-			Type:      typeStr,
-			Status:    status,
-			Remark:    remark,
-			CreatedAt: gtime.Now(),
-			UpdatedAt: gtime.Now(),
+			Name:   name,
+			Type:   typeStr,
+			Status: status,
+			Remark: remark,
 		}).InsertAndGetId()
 		if err != nil {
 			result.TypeFail++
@@ -180,13 +213,42 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSup
 		dictType := row[0]
 		label := row[1]
 		value := row[2]
+
+		// Validate label is not empty
+		if label == "" {
+			result.DataFail++
+			result.FailList = append(result.FailList, ImportFailItem{
+				Sheet:  dataSheet,
+				Row:    i + 1,
+				Reason: "字典标签不能为空",
+			})
+			continue
+		}
+
+		// Validate value is not empty and has no leading/trailing spaces
+		if value == "" {
+			result.DataFail++
+			result.FailList = append(result.FailList, ImportFailItem{
+				Sheet:  dataSheet,
+				Row:    i + 1,
+				Reason: "字典键值不能为空",
+			})
+			continue
+		}
+
 		sort := 0
 		if len(row) > 3 && row[3] != "" {
-			// Parse sort
-			for _, c := range row[3] {
-				if c >= '0' && c <= '9' {
-					sort = sort*10 + int(c-'0')
-				}
+			// Parse sort using strconv for better validation
+			var parseErr error
+			sort, parseErr = strconv.Atoi(row[3])
+			if parseErr != nil {
+				result.DataFail++
+				result.FailList = append(result.FailList, ImportFailItem{
+					Sheet:  dataSheet,
+					Row:    i + 1,
+					Reason: "排序值必须是有效的整数",
+				})
+				continue
 			}
 		}
 		tagStyle := ""
@@ -218,11 +280,9 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSup
 		}
 
 		// Check if dict_data already exists (dict_type + value unique)
-		dataCols := dao.SysDictData.Columns()
 		var existingData *entity.SysDictData
 		err = dao.SysDictData.Ctx(ctx).
 			Where(do.SysDictData{DictType: dictType, Value: value}).
-			WhereNull(dataCols.DeletedAt).
 			Scan(&existingData)
 		if err != nil {
 			result.DataFail++
@@ -236,17 +296,16 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSup
 
 		if existingData != nil {
 			if updateSupport {
-				// Update existing record
+				// Update existing record (GoFrame auto-fills updated_at)
 				_, err := dao.SysDictData.Ctx(ctx).
 					Where(do.SysDictData{Id: existingData.Id}).
 					Data(do.SysDictData{
-						Label:     label,
-						Sort:      sort,
-						TagStyle:  tagStyle,
-						CssClass:  cssClass,
-						Status:    status,
-						Remark:    remark,
-						UpdatedAt: gtime.Now(),
+						Label:    label,
+						Sort:     sort,
+						TagStyle: tagStyle,
+						CssClass: cssClass,
+						Status:   status,
+						Remark:   remark,
 					}).Update()
 				if err != nil {
 					result.DataFail++
@@ -269,18 +328,16 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSup
 			continue
 		}
 
-		// Insert dict data
+		// Insert dict data (GoFrame auto-fills created_at and updated_at)
 		_, err = dao.SysDictData.Ctx(ctx).Data(do.SysDictData{
-			DictType:  dictType,
-			Label:     label,
-			Value:     value,
-			Sort:      sort,
-			TagStyle:  tagStyle,
-			CssClass:  cssClass,
-			Status:    status,
-			Remark:    remark,
-			CreatedAt: gtime.Now(),
-			UpdatedAt: gtime.Now(),
+			DictType: dictType,
+			Label:    label,
+			Value:    value,
+			Sort:     sort,
+			TagStyle: tagStyle,
+			CssClass: cssClass,
+			Status:   status,
+			Remark:   remark,
 		}).InsertAndGetId()
 		if err != nil {
 			result.DataFail++
@@ -416,6 +473,27 @@ func (s *Service) TypeImport(ctx context.Context, file io.Reader, updateSupport 
 
 		name := row[0]
 		typeStr := row[1]
+
+		// Validate name is not empty
+		if name == "" {
+			result.Fail++
+			result.FailList = append(result.FailList, ImportFailItemRecord{
+				Row:    i + 1,
+				Reason: "字典名称不能为空",
+			})
+			continue
+		}
+
+		// Validate type format
+		if !isValidDictType(typeStr) {
+			result.Fail++
+			result.FailList = append(result.FailList, ImportFailItemRecord{
+				Row:    i + 1,
+				Reason: "字典类型格式错误：必须以小写字母开头，仅包含小写字母、数字和下划线",
+			})
+			continue
+		}
+
 		status := 1
 		if len(row) > 2 && row[2] == "停用" {
 			status = 0
@@ -428,14 +506,13 @@ func (s *Service) TypeImport(ctx context.Context, file io.Reader, updateSupport 
 		// Check if type already exists
 		if existingTypes[typeStr] {
 			if updateSupport {
-				// Update existing record
+				// Update existing record (GoFrame auto-fills updated_at)
 				_, err := dao.SysDictType.Ctx(ctx).
 					Where(do.SysDictType{Type: typeStr}).
 					Data(do.SysDictType{
-						Name:      name,
-						Status:    status,
-						Remark:    remark,
-						UpdatedAt: gtime.Now(),
+						Name:   name,
+						Status: status,
+						Remark: remark,
 					}).Update()
 				if err != nil {
 					result.Fail++
@@ -456,14 +533,12 @@ func (s *Service) TypeImport(ctx context.Context, file io.Reader, updateSupport 
 			continue
 		}
 
-		// Insert new record
+		// Insert new record (GoFrame auto-fills created_at and updated_at)
 		_, err := dao.SysDictType.Ctx(ctx).Data(do.SysDictType{
-			Name:      name,
-			Type:      typeStr,
-			Status:    status,
-			Remark:    remark,
-			CreatedAt: gtime.Now(),
-			UpdatedAt: gtime.Now(),
+			Name:   name,
+			Type:   typeStr,
+			Status: status,
+			Remark: remark,
 		}).InsertAndGetId()
 		if err != nil {
 			result.Fail++
@@ -530,12 +605,38 @@ func (s *Service) DataImport(ctx context.Context, file io.Reader, updateSupport 
 		dictType := row[0]
 		label := row[1]
 		value := row[2]
+
+		// Validate label is not empty
+		if label == "" {
+			result.Fail++
+			result.FailList = append(result.FailList, ImportFailItemRecord{
+				Row:    i + 1,
+				Reason: "字典标签不能为空",
+			})
+			continue
+		}
+
+		// Validate value is not empty
+		if value == "" {
+			result.Fail++
+			result.FailList = append(result.FailList, ImportFailItemRecord{
+				Row:    i + 1,
+				Reason: "字典键值不能为空",
+			})
+			continue
+		}
+
 		sort := 0
 		if len(row) > 3 && row[3] != "" {
-			for _, c := range row[3] {
-				if c >= '0' && c <= '9' {
-					sort = sort*10 + int(c-'0')
-				}
+			var parseErr error
+			sort, parseErr = strconv.Atoi(row[3])
+			if parseErr != nil {
+				result.Fail++
+				result.FailList = append(result.FailList, ImportFailItemRecord{
+					Row:    i + 1,
+					Reason: "排序值必须是有效的整数",
+				})
+				continue
 			}
 		}
 		tagStyle := ""
@@ -566,11 +667,9 @@ func (s *Service) DataImport(ctx context.Context, file io.Reader, updateSupport 
 		}
 
 		// Check if dict_data already exists
-		dataCols := dao.SysDictData.Columns()
 		var existingData *entity.SysDictData
 		err = dao.SysDictData.Ctx(ctx).
 			Where(do.SysDictData{DictType: dictType, Value: value}).
-			WhereNull(dataCols.DeletedAt).
 			Scan(&existingData)
 		if err != nil {
 			result.Fail++
@@ -583,17 +682,16 @@ func (s *Service) DataImport(ctx context.Context, file io.Reader, updateSupport 
 
 		if existingData != nil {
 			if updateSupport {
-				// Update existing record
+				// Update existing record (GoFrame auto-fills updated_at)
 				_, err := dao.SysDictData.Ctx(ctx).
 					Where(do.SysDictData{Id: existingData.Id}).
 					Data(do.SysDictData{
-						Label:     label,
-						Sort:      sort,
-						TagStyle:  tagStyle,
-						CssClass:  cssClass,
-						Status:    status,
-						Remark:    remark,
-						UpdatedAt: gtime.Now(),
+						Label:    label,
+						Sort:     sort,
+						TagStyle: tagStyle,
+						CssClass: cssClass,
+						Status:   status,
+						Remark:   remark,
 					}).Update()
 				if err != nil {
 					result.Fail++
@@ -614,18 +712,16 @@ func (s *Service) DataImport(ctx context.Context, file io.Reader, updateSupport 
 			continue
 		}
 
-		// Insert new record
+		// Insert new record (GoFrame auto-fills created_at and updated_at)
 		_, err = dao.SysDictData.Ctx(ctx).Data(do.SysDictData{
-			DictType:  dictType,
-			Label:     label,
-			Value:     value,
-			Sort:      sort,
-			TagStyle:  tagStyle,
-			CssClass:  cssClass,
-			Status:    status,
-			Remark:    remark,
-			CreatedAt: gtime.Now(),
-			UpdatedAt: gtime.Now(),
+			DictType: dictType,
+			Label:    label,
+			Value:    value,
+			Sort:     sort,
+			TagStyle: tagStyle,
+			CssClass: cssClass,
+			Status:   status,
+			Remark:   remark,
 		}).InsertAndGetId()
 		if err != nil {
 			result.Fail++

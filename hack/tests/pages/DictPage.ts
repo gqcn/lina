@@ -92,19 +92,20 @@ export class DictPage {
     // Click delete button (ghost-button in action column)
     await this.typePanel.locator('.ant-btn-sm').filter({ hasText: /删\s*除/ }).first().click();
 
-    // Confirm deletion in Popconfirm
-    await this.page.waitForTimeout(500);
-    const popconfirm = this.page.locator('.ant-popconfirm, .ant-popover');
-    const confirmBtn = popconfirm.getByRole('button', { name: /确\s*定|OK|是/i });
-    if (await confirmBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await confirmBtn.click();
-    } else {
-      const modal = this.page.locator('.ant-modal-confirm');
-      await modal.getByRole('button', { name: /确\s*定|OK/i }).click();
-    }
+    // Wait for modal to appear and confirm deletion
+    await this.page.waitForTimeout(300);
+    const modal = this.page.locator('.ant-modal-confirm');
+    await modal.waitFor({ state: 'visible', timeout: 3000 });
 
-    await this.page.waitForLoadState('networkidle');
-    await this.page.waitForTimeout(500);
+    // Click confirm button via evaluate (bypass overlay issues)
+    await this.page.evaluate(() => {
+      const btn = document.querySelector('.ant-modal-confirm .ant-btn-primary') as HTMLButtonElement;
+      if (btn) btn.click();
+    });
+
+    // Wait for the modal to be completely removed from DOM
+    await modal.waitFor({ state: 'detached', timeout: 10000 });
+    await this.page.waitForTimeout(300);
   }
 
   async clickTypeRow(typeName: string) {
@@ -186,17 +187,14 @@ export class DictPage {
     // Click delete button in data panel
     await this.dataPanel.locator('.ant-btn-sm').filter({ hasText: /删\s*除/ }).first().click();
 
-    // Confirm deletion in Popconfirm
+    // Wait for modal to appear and confirm deletion
     await this.page.waitForTimeout(500);
-    const popconfirm = this.page.locator('.ant-popconfirm, .ant-popover');
-    const confirmBtn = popconfirm.getByRole('button', { name: /确\s*定|OK|是/i });
-    if (await confirmBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await confirmBtn.click();
-    } else {
-      const modal = this.page.locator('.ant-modal-confirm');
-      await modal.getByRole('button', { name: /确\s*定|OK/i }).click();
-    }
+    const modal = this.page.locator('.ant-modal-confirm');
+    await modal.waitFor({ state: 'visible', timeout: 3000 });
+    await modal.getByRole('button', { name: /确\s*定|OK/i }).click();
 
+    // Wait for modal to disappear
+    await modal.waitFor({ state: 'hidden', timeout: 5000 });
     await this.page.waitForLoadState('networkidle');
     await this.page.waitForTimeout(500);
   }

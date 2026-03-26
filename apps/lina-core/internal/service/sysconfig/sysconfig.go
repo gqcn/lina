@@ -5,7 +5,6 @@ import (
 	"context"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/xuri/excelize/v2"
 
 	"lina-core/internal/dao"
@@ -41,7 +40,7 @@ type ListOutput struct {
 func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysConfig.Columns()
-		m    = dao.SysConfig.Ctx(ctx).WhereNull(cols.DeletedAt)
+		m    = dao.SysConfig.Ctx(ctx)
 	)
 
 	// Apply filters
@@ -82,10 +81,8 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 // GetById retrieves config by ID.
 func (s *Service) GetById(ctx context.Context, id int) (*entity.SysConfig, error) {
 	var cfg *entity.SysConfig
-	cols := dao.SysConfig.Columns()
 	err := dao.SysConfig.Ctx(ctx).
 		Where(do.SysConfig{Id: id}).
-		WhereNull(cols.DeletedAt).
 		Scan(&cfg)
 	if err != nil {
 		return nil, err
@@ -106,11 +103,9 @@ type CreateInput struct {
 
 // Create creates a new config record.
 func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
-	// Check key uniqueness
-	cols := dao.SysConfig.Columns()
+	// Check key uniqueness (GoFrame auto-adds deleted_at IS NULL)
 	count, err := dao.SysConfig.Ctx(ctx).
 		Where(do.SysConfig{Key: in.Key}).
-		WhereNull(cols.DeletedAt).
 		Count()
 	if err != nil {
 		return 0, err
@@ -119,14 +114,12 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 		return 0, gerror.New("参数键名已存在")
 	}
 
-	// Insert config
+	// Insert config (GoFrame auto-fills created_at and updated_at)
 	id, err := dao.SysConfig.Ctx(ctx).Data(do.SysConfig{
-		Name:      in.Name,
-		Key:       in.Key,
-		Value:     in.Value,
-		Remark:    in.Remark,
-		CreatedAt: gtime.Now(),
-		UpdatedAt: gtime.Now(),
+		Name:   in.Name,
+		Key:    in.Key,
+		Value:  in.Value,
+		Remark: in.Remark,
 	}).InsertAndGetId()
 	if err != nil {
 		return 0, err
@@ -151,13 +144,12 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		return err
 	}
 
-	// Check key uniqueness (exclude self)
+	// Check key uniqueness (exclude self) - GoFrame auto-adds deleted_at IS NULL
 	if in.Key != nil {
 		cols := dao.SysConfig.Columns()
 		count, err := dao.SysConfig.Ctx(ctx).
 			Where(do.SysConfig{Key: *in.Key}).
 			WhereNot(cols.Id, in.Id).
-			WhereNull(cols.DeletedAt).
 			Count()
 		if err != nil {
 			return err
@@ -167,9 +159,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		}
 	}
 
-	data := do.SysConfig{
-		UpdatedAt: gtime.Now(),
-	}
+	data := do.SysConfig{}
 	if in.Name != nil {
 		data.Name = *in.Name
 	}
@@ -187,7 +177,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	return err
 }
 
-// Delete soft-deletes a config record.
+// Delete soft-deletes a config record using GoFrame's auto soft-delete feature.
 func (s *Service) Delete(ctx context.Context, id int) error {
 	// Check config exists
 	if _, err := s.GetById(ctx, id); err != nil {
@@ -197,18 +187,15 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	// Soft delete
 	_, err := dao.SysConfig.Ctx(ctx).
 		Where(do.SysConfig{Id: id}).
-		Data(do.SysConfig{DeletedAt: gtime.Now()}).
-		Update()
+		Delete()
 	return err
 }
 
 // GetByKey retrieves config by key name.
 func (s *Service) GetByKey(ctx context.Context, key string) (*entity.SysConfig, error) {
 	var cfg *entity.SysConfig
-	cols := dao.SysConfig.Columns()
 	err := dao.SysConfig.Ctx(ctx).
 		Where(do.SysConfig{Key: key}).
-		WhereNull(cols.DeletedAt).
 		Scan(&cfg)
 	if err != nil {
 		return nil, err
@@ -231,7 +218,7 @@ type ExportInput struct {
 // Export generates an Excel file with config data.
 func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	cols := dao.SysConfig.Columns()
-	m := dao.SysConfig.Ctx(ctx).WhereNull(cols.DeletedAt)
+	m := dao.SysConfig.Ctx(ctx)
 
 	if len(in.Ids) > 0 {
 		m = m.WhereIn(cols.Id, in.Ids)

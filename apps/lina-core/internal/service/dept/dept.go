@@ -6,7 +6,6 @@ import (
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
 
@@ -53,7 +52,7 @@ type ListOutput struct {
 func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysDept.Columns()
-		m    = dao.SysDept.Ctx(ctx).WhereNull(cols.DeletedAt)
+		m    = dao.SysDept.Ctx(ctx)
 	)
 
 	// Apply filters
@@ -110,7 +109,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 		ancestors = fmt.Sprintf("%s,%d", parent.Ancestors, in.ParentId)
 	}
 
-	// Insert dept
+	// Insert dept (GoFrame auto-fills created_at and updated_at)
 	id, err := dao.SysDept.Ctx(ctx).Data(do.SysDept{
 		ParentId:  in.ParentId,
 		Ancestors: ancestors,
@@ -122,8 +121,6 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 		Email:     in.Email,
 		Status:    in.Status,
 		Remark:    in.Remark,
-		CreatedAt: gtime.Now(),
-		UpdatedAt: gtime.Now(),
 	}).InsertAndGetId()
 	if err != nil {
 		return 0, err
@@ -135,10 +132,8 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 // GetById retrieves dept by ID.
 func (s *Service) GetById(ctx context.Context, id int) (*entity.SysDept, error) {
 	var dept *entity.SysDept
-	cols := dao.SysDept.Columns()
 	err := dao.SysDept.Ctx(ctx).
 		Where(do.SysDept{Id: id}).
-		WhereNull(cols.DeletedAt).
 		Scan(&dept)
 	if err != nil {
 		return nil, err
@@ -171,9 +166,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		return err
 	}
 
-	data := do.SysDept{
-		UpdatedAt: gtime.Now(),
-	}
+	data := do.SysDept{}
 	if in.Name != nil {
 		data.Name = *in.Name
 	}
@@ -229,7 +222,6 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		cols := dao.SysDept.Columns()
 		var children []*entity.SysDept
 		err = dao.SysDept.Ctx(ctx).
-			WhereNull(cols.DeletedAt).
 			Where(
 				dao.SysDept.Ctx(ctx).Builder().
 					WhereLike(cols.Ancestors, oldPrefix+",%").
@@ -249,7 +241,6 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 						Where(do.SysDept{Id: child.Id}).
 						Data(do.SysDept{
 							Ancestors: childNewAncestors,
-							UpdatedAt: gtime.Now(),
 						}).
 						Update()
 					if err != nil {
@@ -275,7 +266,6 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	// Check no children
 	childCount, err := dao.SysDept.Ctx(ctx).
 		Where(cols.ParentId, id).
-		WhereNull(cols.DeletedAt).
 		Count()
 	if err != nil {
 		return err
@@ -295,11 +285,10 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		return gerror.New("部门存在用户，不允许删除")
 	}
 
-	// Soft delete
+	// Soft delete using GoFrame's auto soft-delete feature
 	_, err = dao.SysDept.Ctx(ctx).
 		Where(do.SysDept{Id: id}).
-		Data(do.SysDept{DeletedAt: gtime.Now()}).
-		Update()
+		Delete()
 	return err
 }
 
@@ -309,7 +298,6 @@ func (s *Service) Tree(ctx context.Context) ([]*TreeNode, error) {
 
 	var depts []*entity.SysDept
 	err := dao.SysDept.Ctx(ctx).
-		WhereNull(cols.DeletedAt).
 		Order(cols.OrderNum + " ASC").
 		Scan(&depts)
 	if err != nil {
@@ -355,10 +343,9 @@ func (s *Service) Exclude(ctx context.Context, in ExcludeInput) ([]*entity.SysDe
 	cols := dao.SysDept.Columns()
 	prefix := fmt.Sprintf("%s,%d", dept.Ancestors, in.Id)
 
-	// Get all non-deleted depts excluding the target and its descendants
+	// Get all depts excluding the target and its descendants
 	var list []*entity.SysDept
 	err = dao.SysDept.Ctx(ctx).
-		WhereNull(cols.DeletedAt).
 		WhereNot(cols.Id, in.Id).
 		WhereNotLike(cols.Ancestors, prefix+",%").
 		WhereNotLike(cols.Ancestors, prefix).
@@ -380,8 +367,7 @@ func (s *Service) Users(ctx context.Context, deptId int, keyword string, limit i
 	if deptId == 0 {
 		// Return all users (for new dept creation)
 		q := dao.SysUser.Ctx(ctx).
-			Fields(uCols.Id, uCols.Username, uCols.Nickname).
-			WhereNull(uCols.DeletedAt)
+			Fields(uCols.Id, uCols.Username, uCols.Nickname)
 		if keyword != "" {
 			q = q.Where(
 				fmt.Sprintf("(%s LIKE ? OR %s LIKE ?)", uCols.Username, uCols.Nickname),
@@ -414,7 +400,6 @@ func (s *Service) Users(ctx context.Context, deptId int, keyword string, limit i
 	)
 	for len(parentIds) > 0 {
 		childValues, err := dao.SysDept.Ctx(ctx).
-			WhereNull(deptCols.DeletedAt).
 			WhereIn(deptCols.ParentId, parentIds).
 			Fields(deptCols.Id).
 			Array()
@@ -452,8 +437,7 @@ func (s *Service) Users(ctx context.Context, deptId int, keyword string, limit i
 	// Query sys_user for those IDs
 	q := dao.SysUser.Ctx(ctx).
 		Fields(uCols.Id, uCols.Username, uCols.Nickname).
-		WhereIn(uCols.Id, userIds).
-		WhereNull(uCols.DeletedAt)
+		WhereIn(uCols.Id, userIds)
 	if keyword != "" {
 		q = q.Where(
 			fmt.Sprintf("(%s LIKE ? OR %s LIKE ?)", uCols.Username, uCols.Nickname),
@@ -560,8 +544,7 @@ func (s *Service) UserDeptTree(ctx context.Context) ([]*TreeNode, error) {
 func (s *Service) checkCodeUnique(ctx context.Context, code string, excludeId int) error {
 	cols := dao.SysDept.Columns()
 	m := dao.SysDept.Ctx(ctx).
-		Where(cols.Code, code).
-		WhereNull(cols.DeletedAt)
+		Where(cols.Code, code)
 	if excludeId > 0 {
 		m = m.WhereNot(cols.Id, excludeId)
 	}
@@ -585,7 +568,6 @@ func (s *Service) GetDeptAndDescendantIds(ctx context.Context, deptId int) ([]in
 	)
 	for len(parentIds) > 0 {
 		childValues, err := dao.SysDept.Ctx(ctx).
-			WhereNull(deptCols.DeletedAt).
 			WhereIn(deptCols.ParentId, parentIds).
 			Fields(deptCols.Id).
 			Array()

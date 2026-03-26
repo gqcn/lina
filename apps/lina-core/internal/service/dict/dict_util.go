@@ -22,11 +22,9 @@ func (s *Service) GetLabelByValue(ctx context.Context, in GetLabelByValueInput) 
 		return in.Value
 	}
 
-	cols := dao.SysDictData.Columns()
 	var dictData *entity.SysDictData
 	err := dao.SysDictData.Ctx(ctx).
 		Where(do.SysDictData{DictType: in.DictType, Value: in.Value, Status: 1}).
-		WhereNull(cols.DeletedAt).
 		Scan(&dictData)
 	if err != nil || dictData == nil {
 		return in.Value

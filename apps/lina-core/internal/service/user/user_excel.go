@@ -7,7 +7,6 @@ import (
 	"io"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/xuri/excelize/v2"
 
 	"lina-core/internal/dao"
@@ -24,7 +23,7 @@ type ExportInput struct {
 // Export generates an Excel file with user data based on IDs.
 func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	cols := dao.SysUser.Columns()
-	m := dao.SysUser.Ctx(ctx).WhereNull(cols.DeletedAt)
+	m := dao.SysUser.Ctx(ctx)
 
 	if len(in.Ids) > 0 {
 		m = m.WhereIn(cols.Id, in.Ids)
@@ -136,11 +135,9 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader) (*ImportResu
 			continue
 		}
 
-		// Check username uniqueness
-		cols := dao.SysUser.Columns()
+		// Check username uniqueness (GoFrame auto-adds deleted_at IS NULL)
 		count, err := dao.SysUser.Ctx(ctx).
 			Where(do.SysUser{Username: username}).
-			WhereNull(cols.DeletedAt).
 			Count()
 		if err != nil {
 			result.Fail++
@@ -169,12 +166,11 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader) (*ImportResu
 			continue
 		}
 
+		// Insert user (GoFrame auto-fills created_at and updated_at)
 		data := do.SysUser{
-			Username:  username,
-			Password:  hash,
-			Status:    1,
-			CreatedAt: gtime.Now(),
-			UpdatedAt: gtime.Now(),
+			Username: username,
+			Password: hash,
+			Status:   1,
 		}
 		if len(row) > 2 {
 			data.Nickname = row[2]

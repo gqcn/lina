@@ -5,7 +5,7 @@ import { computed, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
-import { message, Modal, Popconfirm, Space } from 'ant-design-vue';
+import { message, Modal, Space } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -100,9 +100,26 @@ function handleEdit(record: DictType) {
 }
 
 async function handleDelete(row: DictType) {
-  await dictTypeDelete(row.id);
-  message.success('删除成功');
-  await tableApi.query();
+  Modal.confirm({
+    title: '提示',
+    okType: 'danger',
+    content: '删除字典类型将同时删除该类型下的所有字典数据，确认删除？',
+    onOk: async () => {
+      try {
+        await dictTypeDelete(row.id);
+        message.success('删除成功');
+        await tableApi.query();
+        // Refresh dict data panel if the deleted type was selected
+        if (lastDictType.value === row.type) {
+          emitter.emit('rowClick', '');
+          lastDictType.value = '';
+        }
+      } catch (error) {
+        console.error('Delete failed:', error);
+        message.error('删除失败');
+      }
+    },
+  });
 }
 
 function handleMultiDelete() {
@@ -111,13 +128,16 @@ function handleMultiDelete() {
   Modal.confirm({
     title: '提示',
     okType: 'danger',
-    content: `确认删除选中的${ids.length}条记录吗？`,
+    content: `删除字典类型将同时删除该类型下的所有字典数据，确认删除选中的${ids.length}条记录吗？`,
     onOk: async () => {
       for (const id of ids) {
         await dictTypeDelete(id);
       }
       checkedRows.value = [];
       await tableApi.query();
+      // Clear dict data panel selection
+      emitter.emit('rowClick', '');
+      lastDictType.value = '';
     },
   });
 }
@@ -184,13 +204,7 @@ function handleImport() {
       <template #action="{ row }">
         <Space>
           <ghost-button @click.stop="handleEdit(row)">编辑</ghost-button>
-          <Popconfirm
-            placement="left"
-            title="确认删除？"
-            @confirm="handleDelete(row)"
-          >
-            <ghost-button danger @click.stop="">删除</ghost-button>
-          </Popconfirm>
+          <ghost-button danger @click.stop="handleDelete(row)">删除</ghost-button>
         </Space>
       </template>
     </BasicTable>

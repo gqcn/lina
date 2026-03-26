@@ -5,7 +5,6 @@ import (
 	"context"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/xuri/excelize/v2"
 
 	"lina-core/internal/dao"
@@ -31,7 +30,7 @@ type DataListOutput struct {
 func (s *Service) DataList(ctx context.Context, in DataListInput) (*DataListOutput, error) {
 	var (
 		cols = dao.SysDictData.Columns()
-		m    = dao.SysDictData.Ctx(ctx).WhereNull(cols.DeletedAt)
+		m    = dao.SysDictData.Ctx(ctx)
 	)
 
 	// Apply filters
@@ -78,16 +77,14 @@ type DataCreateInput struct {
 // DataCreate creates a new dict data entry.
 func (s *Service) DataCreate(ctx context.Context, in DataCreateInput) (int, error) {
 	id, err := dao.SysDictData.Ctx(ctx).Data(do.SysDictData{
-		DictType:  in.DictType,
-		Label:     in.Label,
-		Value:     in.Value,
-		Sort:      in.Sort,
-		TagStyle:  in.TagStyle,
-		CssClass:  in.CssClass,
-		Status:    in.Status,
-		Remark:    in.Remark,
-		CreatedAt: gtime.Now(),
-		UpdatedAt: gtime.Now(),
+		DictType: in.DictType,
+		Label:    in.Label,
+		Value:    in.Value,
+		Sort:     in.Sort,
+		TagStyle: in.TagStyle,
+		CssClass: in.CssClass,
+		Status:   in.Status,
+		Remark:   in.Remark,
 	}).InsertAndGetId()
 	if err != nil {
 		return 0, err
@@ -99,10 +96,8 @@ func (s *Service) DataCreate(ctx context.Context, in DataCreateInput) (int, erro
 // DataGetById retrieves dict data by ID.
 func (s *Service) DataGetById(ctx context.Context, id int) (*entity.SysDictData, error) {
 	var dictData *entity.SysDictData
-	cols := dao.SysDictData.Columns()
 	err := dao.SysDictData.Ctx(ctx).
 		Where(do.SysDictData{Id: id}).
-		WhereNull(cols.DeletedAt).
 		Scan(&dictData)
 	if err != nil {
 		return nil, err
@@ -133,9 +128,7 @@ func (s *Service) DataUpdate(ctx context.Context, in DataUpdateInput) error {
 		return err
 	}
 
-	data := do.SysDictData{
-		UpdatedAt: gtime.Now(),
-	}
+	data := do.SysDictData{}
 	if in.DictType != nil {
 		data.DictType = *in.DictType
 	}
@@ -165,18 +158,17 @@ func (s *Service) DataUpdate(ctx context.Context, in DataUpdateInput) error {
 	return err
 }
 
-// DataDelete soft-deletes a dict data entry.
+// DataDelete hard-deletes a dict data entry.
 func (s *Service) DataDelete(ctx context.Context, id int) error {
 	// Check dict data exists
 	if _, err := s.DataGetById(ctx, id); err != nil {
 		return err
 	}
 
-	// Soft delete
+	// Hard delete
 	_, err := dao.SysDictData.Ctx(ctx).
 		Where(do.SysDictData{Id: id}).
-		Data(do.SysDictData{DeletedAt: gtime.Now()}).
-		Update()
+		Delete()
 	return err
 }
 
@@ -190,7 +182,7 @@ type DataExportInput struct {
 // DataExport generates an Excel file with dict data (max 10000 rows).
 func (s *Service) DataExport(ctx context.Context, in DataExportInput) ([]byte, error) {
 	cols := dao.SysDictData.Columns()
-	m := dao.SysDictData.Ctx(ctx).WhereNull(cols.DeletedAt)
+	m := dao.SysDictData.Ctx(ctx)
 
 	if len(in.Ids) > 0 {
 		m = m.WhereIn(cols.Id, in.Ids)
@@ -254,7 +246,6 @@ func (s *Service) DataByType(ctx context.Context, dictType string) ([]*entity.Sy
 	var list []*entity.SysDictData
 	err := dao.SysDictData.Ctx(ctx).
 		Where(do.SysDictData{DictType: dictType, Status: 1}).
-		WhereNull(cols.DeletedAt).
 		Order(cols.Sort + " ASC").
 		Scan(&list)
 	if err != nil {

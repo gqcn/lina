@@ -5,7 +5,6 @@ import (
 	"context"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/xuri/excelize/v2"
 
 	"lina-core/internal/dao"
@@ -39,7 +38,7 @@ type ListOutput struct {
 func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysDictType.Columns()
-		m    = dao.SysDictType.Ctx(ctx).WhereNull(cols.DeletedAt)
+		m    = dao.SysDictType.Ctx(ctx)
 	)
 
 	// Apply filters
@@ -81,11 +80,9 @@ type CreateInput struct {
 
 // Create creates a new dict type.
 func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
-	// Check type uniqueness
-	cols := dao.SysDictType.Columns()
+	// Check type uniqueness (GoFrame auto-adds deleted_at IS NULL condition)
 	count, err := dao.SysDictType.Ctx(ctx).
 		Where(do.SysDictType{Type: in.Type}).
-		WhereNull(cols.DeletedAt).
 		Count()
 	if err != nil {
 		return 0, err
@@ -94,14 +91,12 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 		return 0, gerror.New("字典类型已存在")
 	}
 
-	// Insert dict type
+	// Insert dict type (GoFrame auto-fills created_at and updated_at)
 	id, err := dao.SysDictType.Ctx(ctx).Data(do.SysDictType{
-		Name:      in.Name,
-		Type:      in.Type,
-		Status:    in.Status,
-		Remark:    in.Remark,
-		CreatedAt: gtime.Now(),
-		UpdatedAt: gtime.Now(),
+		Name:   in.Name,
+		Type:   in.Type,
+		Status: in.Status,
+		Remark: in.Remark,
 	}).InsertAndGetId()
 	if err != nil {
 		return 0, err
@@ -113,10 +108,8 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 // GetById retrieves dict type by ID.
 func (s *Service) GetById(ctx context.Context, id int) (*entity.SysDictType, error) {
 	var dictType *entity.SysDictType
-	cols := dao.SysDictType.Columns()
 	err := dao.SysDictType.Ctx(ctx).
 		Where(do.SysDictType{Id: id}).
-		WhereNull(cols.DeletedAt).
 		Scan(&dictType)
 	if err != nil {
 		return nil, err
@@ -143,19 +136,16 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		return err
 	}
 
-	data := do.SysDictType{
-		UpdatedAt: gtime.Now(),
-	}
+	cols := dao.SysDictType.Columns()
+	data := do.SysDictType{}
 	if in.Name != nil {
 		data.Name = *in.Name
 	}
 	if in.Type != nil {
 		// Check type uniqueness when updating the type field
 		if *in.Type != "" {
-			cols := dao.SysDictType.Columns()
 			count, err := dao.SysDictType.Ctx(ctx).
 				Where(cols.Type, *in.Type).
-				WhereNull(cols.DeletedAt).
 				WhereNot(cols.Id, in.Id).
 				Count()
 			if err != nil {
@@ -178,7 +168,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	return err
 }
 
-// Delete soft-deletes a dict type.
+// Delete hard-deletes a dict type and its associated dict data.
 func (s *Service) Delete(ctx context.Context, id int) error {
 	// Check dict type exists
 	dictType, err := s.GetById(ctx, id)
@@ -186,24 +176,18 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		return err
 	}
 
-	// Check if dict_data exists for this type
-	dataCols := dao.SysDictData.Columns()
-	count, err := dao.SysDictData.Ctx(ctx).
+	// Hard delete associated dict data first
+	_, err = dao.SysDictData.Ctx(ctx).
 		Where(do.SysDictData{DictType: dictType.Type}).
-		WhereNull(dataCols.DeletedAt).
-		Count()
+		Delete()
 	if err != nil {
 		return err
 	}
-	if count > 0 {
-		return gerror.New("该字典类型下存在字典数据，不能删除")
-	}
 
-	// Soft delete
+	// Hard delete dict type
 	_, err = dao.SysDictType.Ctx(ctx).
 		Where(do.SysDictType{Id: id}).
-		Data(do.SysDictType{DeletedAt: gtime.Now()}).
-		Update()
+		Delete()
 	return err
 }
 
@@ -217,7 +201,7 @@ type ExportInput struct {
 // Export generates an Excel file with dict type data (max 10000 rows).
 func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	cols := dao.SysDictType.Columns()
-	m := dao.SysDictType.Ctx(ctx).WhereNull(cols.DeletedAt)
+	m := dao.SysDictType.Ctx(ctx)
 
 	if len(in.Ids) > 0 {
 		m = m.WhereIn(cols.Id, in.Ids)
@@ -284,7 +268,6 @@ func (s *Service) Options(ctx context.Context) ([]*OptionItem, error) {
 	cols := dao.SysDictType.Columns()
 	var list []*entity.SysDictType
 	err := dao.SysDictType.Ctx(ctx).
-		WhereNull(cols.DeletedAt).
 		Where(do.SysDictType{Status: 1}).
 		Order(cols.Id + " ASC").
 		Scan(&list)

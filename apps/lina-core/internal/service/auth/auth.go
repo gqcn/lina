@@ -85,12 +85,10 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 		})
 	}
 
-	// Query user by username (exclude soft-deleted)
+	// Query user by username (GoFrame auto-adds deleted_at IS NULL condition)
 	var user *entity.SysUser
-	cols := dao.SysUser.Columns()
 	err := dao.SysUser.Ctx(ctx).
 		Where(do.SysUser{Username: in.Username}).
-		WhereNull(cols.DeletedAt).
 		Scan(&user)
 	if err != nil {
 		return nil, err
@@ -223,10 +221,8 @@ func (s *Service) getUserDeptName(ctx context.Context, userId int) string {
 		return ""
 	}
 	var dept *entity.SysDept
-	deptCols := dao.SysDept.Columns()
 	err = dao.SysDept.Ctx(ctx).
-		Where(deptCols.Id, userDept.DeptId).
-		WhereNull(deptCols.DeletedAt).
+		Where(dao.SysDept.Columns().Id, userDept.DeptId).
 		Scan(&dept)
 	if err != nil || dept == nil {
 		return ""

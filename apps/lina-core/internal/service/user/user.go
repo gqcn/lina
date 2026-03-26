@@ -6,7 +6,6 @@ import (
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gtime"
 
 	"lina-core/internal/consts"
 	"lina-core/internal/dao"
@@ -66,7 +65,7 @@ type ListOutput struct {
 func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysUser.Columns()
-		m    = dao.SysUser.Ctx(ctx).WhereNull(cols.DeletedAt)
+		m    = dao.SysUser.Ctx(ctx)
 	)
 
 	// Apply filters
@@ -299,10 +298,8 @@ type CreateInput struct {
 // Create creates a new user with transaction support.
 func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 	// Check username uniqueness
-	cols := dao.SysUser.Columns()
 	count, err := dao.SysUser.Ctx(ctx).
 		Where(do.SysUser{Username: in.Username}).
-		WhereNull(cols.DeletedAt).
 		Count()
 	if err != nil {
 		return 0, err
@@ -327,18 +324,16 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 
 	// Use transaction to ensure atomicity
 	err = dao.SysUser.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		// Insert user
+		// Insert user (GoFrame auto-fills created_at and updated_at)
 		id, err := dao.SysUser.Ctx(ctx).Data(do.SysUser{
-			Username:  in.Username,
-			Password:  hash,
-			Nickname:  nickname,
-			Email:     in.Email,
-			Phone:     in.Phone,
-			Sex:       in.Sex,
-			Status:    in.Status,
-			Remark:    in.Remark,
-			CreatedAt: gtime.Now(),
-			UpdatedAt: gtime.Now(),
+			Username: in.Username,
+			Password: hash,
+			Nickname: nickname,
+			Email:    in.Email,
+			Phone:    in.Phone,
+			Sex:      in.Sex,
+			Status:   in.Status,
+			Remark:   in.Remark,
 		}).InsertAndGetId()
 		if err != nil {
 			return err
@@ -385,7 +380,6 @@ func (s *Service) GetById(ctx context.Context, id int) (*entity.SysUser, error) 
 	err := dao.SysUser.Ctx(ctx).
 		FieldsEx(cols.Password).
 		Where(do.SysUser{Id: id}).
-		WhereNull(cols.DeletedAt).
 		Scan(&user)
 	if err != nil {
 		return nil, err
@@ -424,9 +418,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		return err
 	}
 
-	data := do.SysUser{
-		UpdatedAt: gtime.Now(),
-	}
+	data := do.SysUser{}
 	if in.Username != nil {
 		data.Username = *in.Username
 	}
@@ -515,11 +507,10 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		return gerror.New("不能删除当前登录用户")
 	}
 
-	// Soft delete
+	// Soft delete using GoFrame's auto soft-delete feature
 	_, err := dao.SysUser.Ctx(ctx).
 		Where(do.SysUser{Id: id}).
-		Data(do.SysUser{DeletedAt: gtime.Now()}).
-		Update()
+		Delete()
 	if err != nil {
 		return err
 	}
@@ -546,8 +537,7 @@ func (s *Service) UpdateStatus(ctx context.Context, id int, status int) error {
 	_, err := dao.SysUser.Ctx(ctx).
 		Where(do.SysUser{Id: id}).
 		Data(do.SysUser{
-			Status:    status,
-			UpdatedAt: gtime.Now(),
+			Status: status,
 		}).
 		Update()
 	return err
@@ -578,9 +568,7 @@ func (s *Service) UpdateProfile(ctx context.Context, in UpdateProfileInput) erro
 		return gerror.New("未登录")
 	}
 
-	data := do.SysUser{
-		UpdatedAt: gtime.Now(),
-	}
+	data := do.SysUser{}
 	if in.Nickname != nil {
 		data.Nickname = *in.Nickname
 	}
@@ -621,8 +609,7 @@ func (s *Service) ResetPassword(ctx context.Context, id int, password string) er
 	_, err = dao.SysUser.Ctx(ctx).
 		Where(do.SysUser{Id: id}).
 		Data(do.SysUser{
-			Password:  hash,
-			UpdatedAt: gtime.Now(),
+			Password: hash,
 		}).
 		Update()
 	return err
@@ -637,8 +624,7 @@ func (s *Service) UpdateAvatar(ctx context.Context, avatarUrl string) error {
 	_, err := dao.SysUser.Ctx(ctx).
 		Where(do.SysUser{Id: bizCtx.UserId}).
 		Data(do.SysUser{
-			Avatar:    avatarUrl,
-			UpdatedAt: gtime.Now(),
+			Avatar: avatarUrl,
 		}).
 		Update()
 	return err

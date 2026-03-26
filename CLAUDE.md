@@ -145,7 +145,7 @@ pnpm report            # 查看 HTML 报告
 ## 后端代码规范
 
 ### Go代码开发规范
-- 所有`Go`后端代码必须使用`goframe-v2`技能开发
+- 必须使用`goframe-v2`技能
 - 不能修改通过脚手架工具维护的代码文件
 - 所有的公开方法、变量、结构体属性必须要有注释介绍
 - `DAO/DO/Entity`源码文件由`gf gen dao`自动生成，不要手动创建或修改
@@ -190,6 +190,81 @@ pnpm report            # 查看 HTML 报告
   - **数据交互**：与数据库交互时，必须使用`DO`对象，不使用 `g.Map`来传递`Data`参数
   - **事务管理**：使用 `dao.Xxx.Transaction()`闭包处理多步操作，该方法支持嵌套事务，其中`Xxx`为对应的`Dao`对象名称
   - **跨数据库兼容**：所有数据库操作必须使用跨数据库类型的通用语法，禁止使用特定数据库的内置函数（如`MySQL`的 `FIND_IN_SET`、`GROUP_CONCAT`、`IF()`，`PostgreSQL`的 `ANY(ARRAY[...])`等）。例如对于层级数据（如部门树）的递归查询，应通过应用层迭代查询实现：先通过 `parent_id` 逐层查询收集所有子级`ID`，再使用 `WHERE IN` 进行批量查询，而非依赖数据库特有的递归语法
+
+### GoFrame 软删除与时间维护规范
+
+GoFrame v2 提供了自动化的软删除和时间维护特性，**必须正确理解并使用**，避免编写冗余代码。
+
+#### 自动时间维护
+
+当数据表包含 `created_at`、`updated_at`、`deleted_at` 字段时，GoFrame 会自动处理：
+
+| 字段 | 自动行为 |
+|------|---------|
+| `created_at` | `Insert/InsertAndGetId` 时自动写入，后续更新/删除不会改变 |
+| `updated_at` | `Insert/Update/Save` 时自动写入/更新 |
+| `deleted_at` | `Delete` 时自动写入（软删除）或查询时自动过滤 |
+
+**强制规则**：
+
+1. **禁止手动设置时间字段**：
+   ```go
+   // ❌ 错误：手动设置 created_at 和 updated_at
+   dao.User.Ctx(ctx).Data(do.User{
+       Name:      "john",
+       CreatedAt: gtime.Now(),  // 冗余！框架会自动处理
+       UpdatedAt: gtime.Now(),  // 冗余！框架会自动处理
+   }).Insert()
+
+   // ✅ 正确：让框架自动处理
+   dao.User.Ctx(ctx).Data(do.User{
+       Name: "john",
+   }).Insert()
+   ```
+
+2. **禁止手动添加 `WhereNull(cols.DeletedAt)` 条件**：
+   ```go
+   // ❌ 错误：手动添加软删除条件
+   dao.User.Ctx(ctx).
+       Where(do.User{Status: 1}).
+       WhereNull(cols.DeletedAt).  // 冗余！框架会自动添加
+       Scan(&list)
+
+   // ✅ 正确：框架自动添加 deleted_at IS NULL
+   dao.User.Ctx(ctx).
+       Where(do.User{Status: 1}).
+       Scan(&list)
+   ```
+
+#### 软删除操作
+
+当表存在 `deleted_at` 字段时，`Delete()` 方法会自动转为软删除（`UPDATE SET deleted_at = NOW()`）：
+
+```go
+// ✅ 正确：使用 Delete() 方法，框架自动处理软删除
+dao.User.Ctx(ctx).Where(do.User{Id: id}).Delete()
+// 实际执行: UPDATE `sys_user` SET `deleted_at`=NOW() WHERE `id`=?
+
+// ❌ 错误：手动 Update 设置 deleted_at
+dao.User.Ctx(ctx).
+    Where(do.User{Id: id}).
+    Data(do.User{DeletedAt: gtime.Now()}).  // 冗余！
+    Update()
+```
+
+#### 硬删除场景
+
+某些业务场景需要硬删除（如字典类型），此时需要确保表中没有 `deleted_at` 字段，或者：
+
+```go
+// 字典类型使用硬删除（表中没有 deleted_at 字段）
+dao.SysDictType.Ctx(ctx).Where(do.SysDictType{Id: id}).Delete()
+// 实际执行: DELETE FROM `sys_dict_type` WHERE `id`=?
+```
+
+**本项目约定**：
+- **用户、部门、岗位、通知、系统配置**：使用软删除（表有 `deleted_at` 字段）
+- **字典类型、字典数据**：使用硬删除（表有 `deleted_at` 字段，但业务需要物理删除）
 
 ## 前端代码规范
 

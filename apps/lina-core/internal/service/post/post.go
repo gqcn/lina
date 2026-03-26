@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
 
@@ -47,7 +46,7 @@ type ListOutput struct {
 func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysPost.Columns()
-		m    = dao.SysPost.Ctx(ctx).WhereNull(cols.DeletedAt)
+		m    = dao.SysPost.Ctx(ctx)
 	)
 
 	// Apply filters
@@ -108,10 +107,8 @@ type CreateInput struct {
 // Create creates a new post.
 func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 	// Check code uniqueness
-	cols := dao.SysPost.Columns()
 	count, err := dao.SysPost.Ctx(ctx).
 		Where(do.SysPost{Code: in.Code}).
-		WhereNull(cols.DeletedAt).
 		Count()
 	if err != nil {
 		return 0, err
@@ -120,16 +117,14 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 		return 0, gerror.New("岗位编码已存在")
 	}
 
-	// Insert post
+	// Insert post (GoFrame auto-fills created_at and updated_at)
 	id, err := dao.SysPost.Ctx(ctx).Data(do.SysPost{
-		DeptId:    in.DeptId,
-		Code:      in.Code,
-		Name:      in.Name,
-		Sort:      in.Sort,
-		Status:    in.Status,
-		Remark:    in.Remark,
-		CreatedAt: gtime.Now(),
-		UpdatedAt: gtime.Now(),
+		DeptId: in.DeptId,
+		Code:   in.Code,
+		Name:   in.Name,
+		Sort:   in.Sort,
+		Status: in.Status,
+		Remark: in.Remark,
 	}).InsertAndGetId()
 	if err != nil {
 		return 0, err
@@ -141,10 +136,8 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 // GetById retrieves post by ID.
 func (s *Service) GetById(ctx context.Context, id int) (*entity.SysPost, error) {
 	var post *entity.SysPost
-	cols := dao.SysPost.Columns()
 	err := dao.SysPost.Ctx(ctx).
 		Where(do.SysPost{Id: id}).
-		WhereNull(cols.DeletedAt).
 		Scan(&post)
 	if err != nil {
 		return nil, err
@@ -173,9 +166,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		return err
 	}
 
-	data := do.SysPost{
-		UpdatedAt: gtime.Now(),
-	}
+	data := do.SysPost{}
 	if in.DeptId != nil {
 		data.DeptId = *in.DeptId
 	}
@@ -231,12 +222,10 @@ func (s *Service) Delete(ctx context.Context, ids string) error {
 		return gerror.New("没有有效的岗位ID")
 	}
 
-	// Soft delete all valid ids
-	postCols := dao.SysPost.Columns()
+	// Soft delete using GoFrame's auto soft-delete feature
 	_, err := dao.SysPost.Ctx(ctx).
-		WhereIn(postCols.Id, validIds).
-		Data(do.SysPost{DeletedAt: gtime.Now()}).
-		Update()
+		WhereIn(dao.SysPost.Columns().Id, validIds).
+		Delete()
 	return err
 }
 
@@ -253,7 +242,6 @@ func (s *Service) DeptTree(ctx context.Context) ([]*DeptTreeNode, error) {
 	cols := dao.SysDept.Columns()
 	var depts []*entity.SysDept
 	err := dao.SysDept.Ctx(ctx).
-		WhereNull(cols.DeletedAt).
 		Order(cols.OrderNum + " ASC").
 		Scan(&depts)
 	if err != nil {
@@ -294,10 +282,8 @@ func (s *Service) DeptTree(ctx context.Context) ([]*DeptTreeNode, error) {
 		Cnt    int `json:"cnt"`     // Post count
 	}
 	var counts []DeptCount
-	postCols := dao.SysPost.Columns()
 	err = dao.SysPost.Ctx(ctx).
 		Fields("dept_id, COUNT(*) as cnt").
-		WhereNull(postCols.DeletedAt).
 		Group("dept_id").
 		Scan(&counts)
 	if err != nil {
@@ -345,8 +331,7 @@ type OptionSelectInput struct {
 func (s *Service) OptionSelect(ctx context.Context, in OptionSelectInput) ([]PostOption, error) {
 	cols := dao.SysPost.Columns()
 	m := dao.SysPost.Ctx(ctx).
-		Where(cols.Status, 1).
-		WhereNull(cols.DeletedAt)
+		Where(cols.Status, 1)
 
 	if in.DeptId != nil {
 		deptIds, err := s.getDeptAndDescendantIds(ctx, *in.DeptId)

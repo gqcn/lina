@@ -7,7 +7,6 @@ import (
 	"io"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/xuri/excelize/v2"
 
 	"lina-core/internal/dao"
@@ -47,7 +46,6 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader, updateSuppor
 	}
 
 	result := &ImportResult{}
-	cols := dao.SysConfig.Columns()
 
 	for i, row := range rows[1:] { // Skip header
 		rowNum := i + 2
@@ -72,11 +70,10 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader, updateSuppor
 			continue
 		}
 
-		// Check if key exists
+		// Check if key exists (GoFrame auto-adds deleted_at IS NULL)
 		var existing *entity.SysConfig
 		err := dao.SysConfig.Ctx(ctx).
 			Where(do.SysConfig{Key: key}).
-			WhereNull(cols.DeletedAt).
 			Scan(&existing)
 		if err != nil {
 			result.Fail++
@@ -104,14 +101,13 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader, updateSuppor
 				})
 				continue
 			}
-			// Overwrite mode: update existing record
+			// Overwrite mode: update existing record (GoFrame auto-fills updated_at)
 			_, err = dao.SysConfig.Ctx(ctx).
 				Where(do.SysConfig{Id: existing.Id}).
 				Data(do.SysConfig{
-					Name:      name,
-					Value:     value,
-					Remark:    remark,
-					UpdatedAt: gtime.Now(),
+					Name:   name,
+					Value:  value,
+					Remark: remark,
 				}).
 				Update()
 			if err != nil {
@@ -123,14 +119,12 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader, updateSuppor
 				continue
 			}
 		} else {
-			// Create new record
+			// Create new record (GoFrame auto-fills created_at and updated_at)
 			_, err = dao.SysConfig.Ctx(ctx).Data(do.SysConfig{
-				Name:      name,
-				Key:       key,
-				Value:     value,
-				Remark:    remark,
-				CreatedAt: gtime.Now(),
-				UpdatedAt: gtime.Now(),
+				Name:   name,
+				Key:    key,
+				Value:  value,
+				Remark: remark,
 			}).Insert()
 			if err != nil {
 				result.Fail++
