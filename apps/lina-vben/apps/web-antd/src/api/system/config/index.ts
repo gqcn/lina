@@ -48,7 +48,11 @@ export function configImport(file: File, updateSupport?: boolean) {
     success: number;
     fail: number;
     failList: Array<{ row: number; reason: string }>;
-  }>('/config/import', formData);
+  }>('/config/import', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }
 
 /** 下载参数设置导入模板 */
