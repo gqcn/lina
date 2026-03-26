@@ -1,11 +1,7 @@
 ---
 name: openspec-e2e
 description: Playwright E2E test case management conventions for the OpenSpec workflow. Defines test file naming (TC{NNNN}), directory organization by module, TC ID allocation, file independence rules, and sub-assertion patterns. Use when creating, planning, or reviewing E2E test cases within an OpenSpec change.
-license: MIT
 compatibility: Requires Playwright.
-metadata:
-  author: gqcn
-  version: "1.0"
 ---
 
 # OpenSpec E2E Test Case Conventions

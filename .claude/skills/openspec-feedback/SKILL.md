@@ -3,11 +3,7 @@ name: openspec-feedback
 description: >-
   Track, fix, verify, and test any bugs, improvements, or gaps reported against an OpenSpec change.
   Activates on bug reports, issue lists, improvement suggestions, or feedback.
-license: MIT
 compatibility: Requires openspec CLI.
-metadata:
-  author: gqcn
-  version: "1.1"
 ---
 
 # Feedback: Structured Fix, Verification & Test Coverage Loop
@@ -195,7 +191,12 @@ After implementing the fix (and before final verification), evaluate the blast r
 - Mark the task as complete: `- [ ]` → `- [x]` — **only after step (f) passes**
 - Never mark a task complete based solely on code changes without test verification
 
-**h. Continue to next task**
+**h. Run review after task completion**
+- Use Skill tool to invoke `openspec-review` for the completed fix
+- If review finds critical issues, fix them before continuing
+- Non-critical warnings/suggestions can be addressed later or noted for follow-up
+
+**i. Continue to next task**
 
 ### 7. Run Comprehensive Verification
 
