@@ -31,7 +31,8 @@ type ImportFailItem struct {
 }
 
 // CombinedImport imports dictionary types and data from an Excel file.
-func (s *Service) CombinedImport(ctx context.Context, fileData []byte) (*CombinedImportResult, error) {
+// If updateSupport is true, existing records will be updated; otherwise, they will be skipped.
+func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSupport bool) (*CombinedImportResult, error) {
 	result := &CombinedImportResult{
 		FailList: make([]ImportFailItem, 0),
 	}
@@ -98,12 +99,35 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte) (*Combine
 
 		// Check if type already exists
 		if existingTypes[typeStr] {
-			result.TypeFail++
-			result.FailList = append(result.FailList, ImportFailItem{
-				Sheet:  typeSheet,
-				Row:    i + 1,
-				Reason: "字典类型已存在",
-			})
+			if updateSupport {
+				// Update existing record
+				_, err := dao.SysDictType.Ctx(ctx).
+					Where(do.SysDictType{Type: typeStr}).
+					Data(do.SysDictType{
+						Name:      name,
+						Status:    status,
+						Remark:    remark,
+						UpdatedAt: gtime.Now(),
+					}).Update()
+				if err != nil {
+					result.TypeFail++
+					result.FailList = append(result.FailList, ImportFailItem{
+						Sheet:  typeSheet,
+						Row:    i + 1,
+						Reason: "更新失败: " + err.Error(),
+					})
+					continue
+				}
+				importedTypes[typeStr] = true
+				result.TypeSuccess++
+			} else {
+				result.TypeFail++
+				result.FailList = append(result.FailList, ImportFailItem{
+					Sheet:  typeSheet,
+					Row:    i + 1,
+					Reason: "字典类型已存在",
+				})
+			}
 			continue
 		}
 
@@ -195,10 +219,11 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte) (*Combine
 
 		// Check if dict_data already exists (dict_type + value unique)
 		dataCols := dao.SysDictData.Columns()
-		count, err := dao.SysDictData.Ctx(ctx).
+		var existingData *entity.SysDictData
+		err = dao.SysDictData.Ctx(ctx).
 			Where(do.SysDictData{DictType: dictType, Value: value}).
 			WhereNull(dataCols.DeletedAt).
-			Count()
+			Scan(&existingData)
 		if err != nil {
 			result.DataFail++
 			result.FailList = append(result.FailList, ImportFailItem{
@@ -208,13 +233,39 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte) (*Combine
 			})
 			continue
 		}
-		if count > 0 {
-			result.DataFail++
-			result.FailList = append(result.FailList, ImportFailItem{
-				Sheet:  dataSheet,
-				Row:    i + 1,
-				Reason: "字典值已存在",
-			})
+
+		if existingData != nil {
+			if updateSupport {
+				// Update existing record
+				_, err := dao.SysDictData.Ctx(ctx).
+					Where(do.SysDictData{Id: existingData.Id}).
+					Data(do.SysDictData{
+						Label:     label,
+						Sort:      sort,
+						TagStyle:  tagStyle,
+						CssClass:  cssClass,
+						Status:    status,
+						Remark:    remark,
+						UpdatedAt: gtime.Now(),
+					}).Update()
+				if err != nil {
+					result.DataFail++
+					result.FailList = append(result.FailList, ImportFailItem{
+						Sheet:  dataSheet,
+						Row:    i + 1,
+						Reason: "更新失败: " + err.Error(),
+					})
+					continue
+				}
+				result.DataSuccess++
+			} else {
+				result.DataFail++
+				result.FailList = append(result.FailList, ImportFailItem{
+					Sheet:  dataSheet,
+					Row:    i + 1,
+					Reason: "字典值已存在",
+				})
+			}
 			continue
 		}
 

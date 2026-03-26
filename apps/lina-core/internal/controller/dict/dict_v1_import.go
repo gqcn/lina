@@ -25,7 +25,10 @@ func (c *ControllerV1) Import(ctx context.Context, req *v1.ImportReq) (res *v1.I
 		return nil, err
 	}
 
-	result, err := c.dictSvc.CombinedImport(ctx, fileData)
+	// Get updateSupport flag
+	updateSupport := r.Get("updateSupport").String() == "1" || r.Get("updateSupport").String() == "true"
+
+	result, err := c.dictSvc.CombinedImport(ctx, fileData, updateSupport)
 	if err != nil {
 		return nil, err
 	}

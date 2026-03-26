@@ -48,6 +48,13 @@ export class DictPage {
     await this.page.waitForTimeout(500);
   }
 
+  async hasType(typeName: string): Promise<boolean> {
+    return this.typePanel
+      .locator('.vxe-body--row', { hasText: typeName })
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
+  }
+
   async editType(typeName: string, fields: { name?: string; type?: string }) {
     // Search for the type first to narrow results
     await this.fillTypeSearchField('字典名称', typeName);

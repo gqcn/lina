@@ -82,7 +82,11 @@ export function dictImport(file: File, updateSupport?: boolean) {
     dataSuccess: number;
     dataFail: number;
     failList: Array<{ sheet: string; row: number; reason: string }>;
-  }>('/dict/import', formData);
+  }>('/dict/import', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }
 
 /** 下载字典管理导入模板（合并模板：类型+数据） */
