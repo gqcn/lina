@@ -11,9 +11,9 @@ FRONTEND_PORT := 5666
 EMBED_DIR     := $(BACKEND_DIR)/internal/packed/public
 
 # 引用复杂指令子文件
+include hack/makefiles/up.mk
 include hack/makefiles/dev.mk
 include hack/makefiles/build.mk
-include hack/makefiles/up.mk
 
 ## test: 运行完整 E2E 测试套件
 .PHONY: test
