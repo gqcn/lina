@@ -10,10 +10,16 @@ EMBED_DIR     := $(BACKEND_DIR)/internal/packed/public
 ## 依赖Claude Code，自动生成 commit message 并提交到远程仓库
 ## 用法: make up [m=xxx] (默认 m=haiku)
 ## 示例: make up m=glm-5
+## 逻辑：有变更则 AI 生成 commit message 并提交推送；无变更但有未推送的 commit 则直接推送
 .PHONY: up
 up:
 	@if git diff --quiet HEAD && git diff --cached --quiet && [ -z "$$(git ls-files --others --exclude-standard)" ]; then \
-		echo "No changes to commit"; \
+		if git diff --quiet HEAD origin/$$(git branch --show-current) 2>/dev/null; then \
+			echo "No changes to commit and nothing to push"; \
+		else \
+			echo "No local changes, pushing unpushed commits..."; \
+			git push origin $$(git branch --show-current); \
+		fi; \
 		exit 0; \
 	fi
 	@git add -A
