@@ -187,14 +187,26 @@ export class DictPage {
     // Click delete button in data panel
     await this.dataPanel.locator('.ant-btn-sm').filter({ hasText: /删\s*除/ }).first().click();
 
-    // Wait for modal to appear and confirm deletion
+    // Wait for either Popconfirm or modal to appear
     await this.page.waitForTimeout(500);
-    const modal = this.page.locator('.ant-modal-confirm');
-    await modal.waitFor({ state: 'visible', timeout: 3000 });
-    await modal.getByRole('button', { name: /确\s*定|OK/i }).click();
 
-    // Wait for modal to disappear
-    await modal.waitFor({ state: 'hidden', timeout: 5000 });
+    // Try Popconfirm first (more common pattern)
+    const popconfirm = this.page.locator('.ant-popconfirm:visible, .ant-popover:visible').first();
+    const modal = this.page.locator('.ant-modal-confirm:visible').first();
+
+    const isPopconfirm = await popconfirm.isVisible({ timeout: 1000 }).catch(() => false);
+    const isModal = await modal.isVisible({ timeout: 1000 }).catch(() => false);
+
+    if (isPopconfirm) {
+      await popconfirm.getByRole('button', { name: /确\s*定|OK/i }).click();
+    } else if (isModal) {
+      await modal.getByRole('button', { name: /确\s*定|OK/i }).click();
+    } else {
+      // Fallback: try clicking any visible confirm button
+      await this.page.getByRole('button', { name: /确\s*定|OK/i }).first().click();
+    }
+
+    // Wait for success message
     await this.page.waitForLoadState('networkidle');
     await this.page.waitForTimeout(500);
   }
