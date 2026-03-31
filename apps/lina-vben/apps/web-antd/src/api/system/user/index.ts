@@ -16,6 +16,8 @@ export interface SysUser {
   deptId: number;
   deptName: string;
   postIds: number[];
+  roleIds: number[];
+  roleNames: string[];
 }
 
 export interface DeptTree {
@@ -54,6 +56,7 @@ export interface UserCreateParams {
   remark?: string;
   deptId?: number;
   postIds?: number[];
+  roleIds?: number[];
 }
 
 export interface UserUpdateParams {
@@ -68,6 +71,7 @@ export interface UserUpdateParams {
   remark?: string;
   deptId?: number;
   postIds?: number[];
+  roleIds?: number[];
 }
 
 /** 用户列表 */

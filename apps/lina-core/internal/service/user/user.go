@@ -14,6 +14,7 @@ import (
 	"lina-core/internal/service/auth"
 	"lina-core/internal/service/bizctx"
 	"lina-core/internal/service/dept"
+	"lina-core/internal/service/role"
 )
 
 // Service provides user management operations.
@@ -21,6 +22,7 @@ type Service struct {
 	authSvc   *auth.Service   // Authentication service
 	bizCtxSvc *bizctx.Service // Business context service
 	deptSvc   *dept.Service   // Department service
+	roleSvc   *role.Service   // Role service
 }
 
 // New creates and returns a new Service instance.
@@ -29,6 +31,7 @@ func New() *Service {
 		authSvc:   auth.New(),
 		bizCtxSvc: bizctx.New(),
 		deptSvc:   dept.New(),
+		roleSvc:   role.New(),
 	}
 }
 
@@ -50,9 +53,11 @@ type ListInput struct {
 
 // ListOutputItem defines a single item in list output with dept info.
 type ListOutputItem struct {
-	SysUser  *entity.SysUser // User entity
-	DeptId   int             // Department ID
-	DeptName string          // Department name
+	SysUser   *entity.SysUser // User entity
+	DeptId    int             // Department ID
+	DeptName  string          // Department name
+	RoleIds   []int           // Role ID list
+	RoleNames []string        // Role name list
 }
 
 // ListOutput defines output for List function.
@@ -199,12 +204,66 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 		deptNameMap[d.Id] = d.Name
 	}
 
-	// Build output with dept info
+	// Build user-role associations
+	urCols := dao.SysUserRole.Columns()
+	var userRoles []*entity.SysUserRole
+	err = dao.SysUserRole.Ctx(ctx).
+		WhereIn(urCols.UserId, userIds).
+		Scan(&userRoles)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build userId -> roleIds map
+	userRoleMap := make(map[int][]int)
+	roleIdsSet := make(map[int]bool)
+	for _, ur := range userRoles {
+		userRoleMap[ur.UserId] = append(userRoleMap[ur.UserId], ur.RoleId)
+		roleIdsSet[ur.RoleId] = true
+	}
+
+	// Get all unique role IDs
+	allRoleIds := make([]int, 0, len(roleIdsSet))
+	for roleId := range roleIdsSet {
+		allRoleIds = append(allRoleIds, roleId)
+	}
+
+	// Batch query role info
+	roleCols := dao.SysRole.Columns()
+	var roles []*entity.SysRole
+	if len(allRoleIds) > 0 {
+		err = dao.SysRole.Ctx(ctx).
+			WhereIn(roleCols.Id, allRoleIds).
+			Scan(&roles)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Build roleId -> roleName map
+	roleNameMap := make(map[int]string)
+	for _, r := range roles {
+		roleNameMap[r.Id] = r.Name
+	}
+
+	// Build output with dept and role info
 	for _, u := range list {
 		item := &ListOutputItem{SysUser: u}
 		if deptId, ok := userDeptMap[u.Id]; ok {
 			item.DeptId = deptId
 			item.DeptName = deptNameMap[deptId]
+		}
+		// Get role info
+		if roleIds, ok := userRoleMap[u.Id]; ok {
+			item.RoleIds = roleIds
+			for _, roleId := range roleIds {
+				if name, exists := roleNameMap[roleId]; exists {
+					item.RoleNames = append(item.RoleNames, name)
+				}
+			}
+		} else {
+			item.RoleIds = []int{}
+			item.RoleNames = []string{}
 		}
 		items = append(items, item)
 	}
@@ -293,6 +352,7 @@ type CreateInput struct {
 	Remark   string // Remark
 	DeptId   *int   // Department ID
 	PostIds  []int  // Post ID list
+	RoleIds  []int  // Role ID list
 }
 
 // Create creates a new user with transaction support.
@@ -363,6 +423,17 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 			}
 		}
 
+		// Save role associations
+		for _, roleId := range in.RoleIds {
+			_, err = dao.SysUserRole.Ctx(ctx).Data(do.SysUserRole{
+				UserId: userId,
+				RoleId: roleId,
+			}).Insert()
+			if err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 
@@ -403,6 +474,7 @@ type UpdateInput struct {
 	Remark   *string  // Remark
 	DeptId   *int     // Department ID
 	PostIds  []int    // Post ID list
+	RoleIds  []int    // Role ID list
 }
 
 // Update updates user information with transaction support.
@@ -490,6 +562,23 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 			}
 		}
 
+		// Update role associations (delete and re-insert)
+		if in.RoleIds != nil {
+			_, err = dao.SysUserRole.Ctx(ctx).Where(dao.SysUserRole.Columns().UserId, in.Id).Delete()
+			if err != nil {
+				g.Log().Warningf(ctx, "failed to delete user role association: %v", err)
+			}
+			for _, roleId := range in.RoleIds {
+				_, err = dao.SysUserRole.Ctx(ctx).Data(do.SysUserRole{
+					UserId: in.Id,
+					RoleId: roleId,
+				}).Insert()
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		return nil
 	})
 }
@@ -515,12 +604,15 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		return err
 	}
 
-	// Clean up dept and post associations (log errors but don't fail)
+	// Clean up dept, post and role associations (log errors but don't fail)
 	if _, err := dao.SysUserDept.Ctx(ctx).Where(dao.SysUserDept.Columns().UserId, id).Delete(); err != nil {
 		g.Log().Warningf(ctx, "failed to delete user dept association for user %d: %v", id, err)
 	}
 	if _, err := dao.SysUserPost.Ctx(ctx).Where(dao.SysUserPost.Columns().UserId, id).Delete(); err != nil {
 		g.Log().Warningf(ctx, "failed to delete user post association for user %d: %v", id, err)
+	}
+	if _, err := dao.SysUserRole.Ctx(ctx).Where(dao.SysUserRole.Columns().UserId, id).Delete(); err != nil {
+		g.Log().Warningf(ctx, "failed to delete user role association for user %d: %v", id, err)
 	}
 
 	return nil
@@ -642,6 +734,22 @@ func (s *Service) GetUserPostIds(ctx context.Context, userId int) ([]int, error)
 	ids := make([]int, 0, len(userPosts))
 	for _, up := range userPosts {
 		ids = append(ids, up.PostId)
+	}
+	return ids, nil
+}
+
+// GetUserRoleIds returns the role IDs associated with a user.
+func (s *Service) GetUserRoleIds(ctx context.Context, userId int) ([]int, error) {
+	var userRoles []*entity.SysUserRole
+	err := dao.SysUserRole.Ctx(ctx).
+		Where(dao.SysUserRole.Columns().UserId, userId).
+		Scan(&userRoles)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]int, 0, len(userRoles))
+	for _, ur := range userRoles {
+		ids = append(ids, ur.RoleId)
 	}
 	return ids, nil
 }

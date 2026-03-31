@@ -47,3 +47,10 @@ export { initSetupVbenForm, useVbenForm, z };
 
 export type VbenFormSchema = FormSchema<ComponentType>;
 export type { VbenFormProps };
+
+/**
+ * 表单 Schema 获取器类型（用于动态获取表单配置）
+ */
+export type FormSchemaGetter = () =>
+  | VbenFormSchema[]
+  | Promise<VbenFormSchema[]>;

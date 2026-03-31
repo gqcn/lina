@@ -22,6 +22,24 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'RoleManagement',
+        path: '/system/role',
+        component: () => import('#/views/system/role/index.vue'),
+        meta: {
+          icon: 'lucide:shield',
+          title: '角色管理',
+        },
+      },
+      {
+        name: 'MenuManagement',
+        path: '/system/menu',
+        component: () => import('#/views/system/menu/index.vue'),
+        meta: {
+          icon: 'lucide:menu',
+          title: '菜单管理',
+        },
+      },
+      {
         name: 'DeptManagement',
         path: '/system/dept',
         component: () => import('#/views/system/dept/index.vue'),
@@ -82,6 +100,15 @@ const routes: RouteRecordRaw[] = [
         meta: {
           hideInMenu: true,
           title: '消息列表',
+        },
+      },
+      {
+        name: 'RoleAuthUser',
+        path: '/system/role-auth/user/:id',
+        component: () => import('#/views/system/role-auth/index.vue'),
+        meta: {
+          hideInMenu: true,
+          title: '角色授权用户',
         },
       },
     ],

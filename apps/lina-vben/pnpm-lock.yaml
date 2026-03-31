@@ -1475,6 +1475,9 @@ importers:
       '@vben-core/icons':
         specifier: workspace:*
         version: link:../@core/base/icons
+      '@vben-core/shadcn-ui':
+        specifier: workspace:*
+        version: link:../@core/ui-kit/shadcn-ui
 
   packages/locales:
     dependencies:

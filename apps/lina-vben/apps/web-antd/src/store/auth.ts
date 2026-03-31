@@ -93,6 +93,12 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchUserInfo() {
     const userInfo = await getUserInfoApi();
     userStore.setUserInfo(userInfo);
+
+    // Set access codes (permissions) for button-level access control
+    if (userInfo.permissions) {
+      accessStore.setAccessCodes(userInfo.permissions);
+    }
+
     return userInfo;
   }
 

@@ -7,7 +7,7 @@ import (
 // User Create API
 
 type CreateReq struct {
-	g.Meta   `path:"/user" method:"post" tags:"用户管理" summary:"创建用户" dc:"创建一个新用户，用户名在系统中必须唯一。可指定所属部门和岗位"`
+	g.Meta   `path:"/user" method:"post" tags:"用户管理" summary:"创建用户" dc:"创建一个新用户，用户名在系统中必须唯一。可指定所属部门、岗位和角色"`
 	Username string `json:"username" v:"required|length:2,64#请输入用户名|用户名长度为2-64个字符" dc:"用户名" eg:"zhangsan"`
 	Password string `json:"password" v:"required|length:6,32#请输入密码|密码长度为6-32个字符" dc:"密码" eg:"123456"`
 	Nickname string `json:"nickname" v:"required#请输入昵称" dc:"昵称" eg:"张三"`
@@ -18,6 +18,7 @@ type CreateReq struct {
 	Remark   string `json:"remark" dc:"备注" eg:"新入职员工"`
 	DeptId   *int   `json:"deptId" dc:"部门ID" eg:"100"`
 	PostIds  []int  `json:"postIds" dc:"岗位ID列表" eg:"[1,2]"`
+	RoleIds  []int  `json:"roleIds" dc:"角色ID列表" eg:"[1,2]"`
 }
 
 type CreateRes struct {

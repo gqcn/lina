@@ -240,4 +240,91 @@ export class UserPage {
     const match = text?.match(/(\d+)/);
     return match ? parseInt(match[1], 10) : 0;
   }
+
+  /** Select roles in the user drawer */
+  async selectRoles(roleNames: string[]) {
+    // Wait for role select to be ready
+    const roleSelect = this.drawer.locator('.ant-select').filter({
+      hasText: /请选择角色/,
+    });
+    await roleSelect.waitFor({ state: 'visible', timeout: 3000 });
+
+    for (const roleName of roleNames) {
+      await roleSelect.click();
+      await this.page.waitForTimeout(300);
+      // Select the role option from dropdown
+      const option = this.page.locator('.ant-select-dropdown').getByText(roleName);
+      if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await option.click();
+      }
+      await this.page.waitForTimeout(300);
+    }
+  }
+
+  /** Get visible role names from user list table */
+  async getRoleNames(username: string): Promise<string> {
+    await this.fillSearchField('用户账号', username);
+    await this.clickSearch();
+    const row = this.page.locator('.vxe-body--row', { hasText: username }).first();
+    const roleCell = row.locator('td[field="roleNames"] .vxe-cell');
+    return (await roleCell.textContent()) || '';
+  }
+
+  /** Get role count from user drawer */
+  async getSelectedRoleCount(): Promise<number> {
+    const roleSelect = this.drawer.locator('.ant-select').filter({
+      hasText: /请选择角色/,
+    });
+    // Ant Design multi-select shows selected items as tags
+    const selectedTags = roleSelect.locator('.ant-select-selection-item');
+    return await selectedTags.count();
+  }
+
+  /** Create user with roles */
+  async createUserWithRoles(
+    username: string,
+    password: string,
+    nickname: string,
+    roleNames: string[],
+  ) {
+    await this.page.getByRole('button', { name: /新\s*增/ }).click();
+    await this.drawer.waitFor({ state: 'visible', timeout: 5000 });
+
+    await this.drawer.getByPlaceholder('请输入用户名').fill(username);
+    await this.drawer.getByPlaceholder('请输入密码').fill(password);
+    await this.drawer.getByPlaceholder('请输入昵称').fill(nickname);
+
+    // Select roles
+    await this.selectRoles(roleNames);
+
+    await this.drawer.getByRole('button', { name: /确\s*认/ }).click();
+    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForTimeout(500);
+  }
+
+  /** Edit user's roles */
+  async editUserRoles(username: string, roleNames: string[]) {
+    await this.fillSearchField('用户账号', username);
+    await this.clickSearch();
+
+    await this.page.getByRole('button', { name: /编\s*辑/ }).first().click();
+    await this.drawer.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Clear existing roles first by clicking clear button
+    const roleSelect = this.drawer.locator('.ant-select').filter({
+      hasText: /请选择角色/,
+    });
+    const clearBtn = roleSelect.locator('.ant-select-clear');
+    if (await clearBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await clearBtn.click();
+      await this.page.waitForTimeout(300);
+    }
+
+    // Select new roles
+    await this.selectRoles(roleNames);
+
+    await this.drawer.getByRole('button', { name: /确\s*认/ }).click();
+    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForTimeout(500);
+  }
 }

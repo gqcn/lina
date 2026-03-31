@@ -1,7 +1,7 @@
-import type { BasicUserInfo } from '@vben-core/typings';
+import type { MenuRecordRaw } from '@vben-core/typings';
 
 /** 用户信息 */
-interface UserInfo extends BasicUserInfo {
+interface UserInfo {
   /**
    * 用户描述
    */
@@ -15,6 +15,14 @@ interface UserInfo extends BasicUserInfo {
    * accessToken
    */
   token: string;
+  /**
+   * 用户菜单树
+   */
+  menus?: MenuRecordRaw[];
+  /**
+   * 用户权限标识列表
+   */
+  permissions?: string[];
 }
 
 export type { UserInfo };

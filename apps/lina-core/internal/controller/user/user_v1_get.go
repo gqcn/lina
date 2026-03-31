@@ -17,10 +17,15 @@ func (c *ControllerV1) Get(ctx context.Context, req *v1.GetReq) (res *v1.GetRes,
 	if postIds == nil {
 		postIds = []int{}
 	}
+	roleIds, _ := c.userSvc.GetUserRoleIds(ctx, req.Id)
+	if roleIds == nil {
+		roleIds = []int{}
+	}
 	return &v1.GetRes{
 		SysUser:  user,
 		DeptId:   deptId,
 		DeptName: deptName,
 		PostIds:  postIds,
+		RoleIds:  roleIds,
 	}, nil
 }

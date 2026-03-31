@@ -19,6 +19,7 @@ type UpdateReq struct {
 	Remark   *string `json:"remark" dc:"备注" eg:"更新备注信息"`
 	DeptId   *int    `json:"deptId" dc:"部门ID" eg:"100"`
 	PostIds  []int   `json:"postIds" dc:"岗位ID列表" eg:"[1,2]"`
+	RoleIds  []int   `json:"roleIds" dc:"角色ID列表" eg:"[1,2]"`
 }
 
 type UpdateRes struct{}

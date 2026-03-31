@@ -77,10 +77,7 @@ function convertRoutes(
       route.component = layoutMap[component];
       // 页面组件转换
     } else if (component) {
-      const normalizePath = normalizeViewPath(component);
-      const pageKey = normalizePath.endsWith('.vue')
-        ? normalizePath
-        : `${normalizePath}.vue`;
+      const pageKey = normalizeViewPath(component);
       if (pageMap[pageKey]) {
         route.component = pageMap[pageKey];
       } else {
@@ -94,15 +91,30 @@ function convertRoutes(
 }
 
 function normalizeViewPath(path: string): string {
+  // Remove # prefix if present (used by some backend implementations)
+  let normalizedPath = path;
+  if (normalizedPath.startsWith('#')) {
+    normalizedPath = normalizedPath.substring(1);
+  }
+
   // 去除相对路径前缀
-  const normalizedPath = path.replace(/^(\.\/|\.\.\/)+/, '');
+  normalizedPath = normalizedPath.replace(/^(\.\/|\.\.\/)+/, '');
 
   // 确保路径以 '/' 开头
   const viewPath = normalizedPath.startsWith('/')
     ? normalizedPath
     : `/${normalizedPath}`;
 
-  // 这里耦合了vben-admin的目录结构
-  return viewPath.replace(/^\/views/, '');
+  // Remove /views prefix and handle the path
+  // Input: /views/system/menu/index or /system/menu/index
+  // Output: /system/menu/index
+  let result = viewPath.replace(/^\/views/, '');
+
+  // Add .vue extension if not present
+  if (!result.endsWith('.vue')) {
+    result = `${result}.vue`;
+  }
+
+  return result;
 }
 export { generateRoutesByBackend };

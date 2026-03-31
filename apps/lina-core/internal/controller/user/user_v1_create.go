@@ -28,6 +28,7 @@ func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.C
 		Remark:   req.Remark,
 		DeptId:   req.DeptId,
 		PostIds:  req.PostIds,
+		RoleIds:  req.RoleIds,
 	})
 	if err != nil {
 		return nil, err

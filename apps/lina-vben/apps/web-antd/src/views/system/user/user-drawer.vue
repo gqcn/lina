@@ -7,6 +7,7 @@ import { message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { postOptionSelect } from '#/api/system/post';
+import { roleOptions } from '#/api/system/role';
 import { getDeptTree, userAdd, userInfo, userUpdate } from '#/api/system/user';
 import { useDictStore } from '#/store/dict';
 
@@ -64,6 +65,23 @@ async function setupPostOptions(deptId: number | string) {
     {
       componentProps: { options, placeholder },
       fieldName: 'postIds',
+    },
+  ]);
+}
+
+/**
+ * 角色的加载
+ */
+async function setupRoleOptions() {
+  const roleList = await roleOptions();
+  const options = roleList.map((item) => ({
+    label: item.name,
+    value: item.id,
+  }));
+  formApi.updateSchema([
+    {
+      componentProps: { options, placeholder: '请选择角色' },
+      fieldName: 'roleIds',
     },
   ]);
 }
@@ -128,6 +146,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
     // 加载部门树
     await setupDeptSelect();
 
+    // 加载角色选项
+    await setupRoleOptions();
+
     // 加载字典：状态选项
     const statusOptions = await dictStore.getDictOptions('sys_normal_disable');
     formApi.updateSchema([
@@ -156,6 +177,7 @@ const [Drawer, drawerApi] = useVbenDrawer({
         remark: user.remark,
         deptId: user.deptId,
         postIds: user.postIds,
+        roleIds: user.roleIds,
       });
       // 编辑时加载该部门下的岗位
       if (user.deptId) {

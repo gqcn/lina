@@ -21,5 +21,6 @@ func (c *ControllerV1) Update(ctx context.Context, req *v1.UpdateReq) (res *v1.U
 		Remark:   req.Remark,
 		DeptId:   req.DeptId,
 		PostIds:  req.PostIds,
+		RoleIds:  req.RoleIds,
 	})
 }

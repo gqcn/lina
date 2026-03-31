@@ -4,6 +4,7 @@ import (
 	"context"
 
 	v1 "lina-core/api/user/v1"
+	"lina-core/internal/service/menu"
 )
 
 // GetInfo returns current logged-in user information
@@ -16,13 +17,148 @@ func (c *ControllerV1) GetInfo(ctx context.Context, req *v1.GetInfoReq) (res *v1
 	if realName == "" {
 		realName = user.Username
 	}
+
+	// Get user roles
+	roleNames, err := c.roleSvc.GetUserRoleNames(ctx, user.Id)
+	if err != nil {
+		return nil, err
+	}
+	if len(roleNames) == 0 {
+		roleNames = []string{}
+	}
+
+	// Get user permissions
+	permissions, err := c.roleSvc.GetUserPermissions(ctx, user.Id)
+	if err != nil {
+		return nil, err
+	}
+	if permissions == nil {
+		permissions = []string{}
+	}
+
+	// Check if super admin
+	isSuperAdmin := c.roleSvc.IsSuperAdmin(ctx, user.Id)
+
+	// Get user menus
+	var menuTree []*menu.MenuItem
+
+	if isSuperAdmin {
+		// Super admin gets all enabled menus
+		allMenus, err := c.menuSvc.List(ctx, menu.ListInput{
+			Status: intPtr(1),
+		})
+		if err != nil {
+			return nil, err
+		}
+		menuTree = c.menuSvc.BuildTree(allMenus.List)
+		// Add wildcard permission for super admin
+		permissions = append(permissions, "*:*:*")
+	} else {
+		// Regular user gets menus based on roles
+		menuIds, err := c.roleSvc.GetUserMenuIds(ctx, user.Id)
+		if err != nil {
+			return nil, err
+		}
+		if len(menuIds) > 0 {
+			allMenus, err := c.menuSvc.List(ctx, menu.ListInput{
+				Status: intPtr(1),
+			})
+			if err != nil {
+				return nil, err
+			}
+			// Filter menus by user's menu IDs
+			menuMap := make(map[int]bool)
+			for _, id := range menuIds {
+				menuMap[id] = true
+			}
+			filteredMenus := make([]*menu.MenuItem, 0)
+			for _, m := range allMenus.List {
+				if menuMap[m.Id] {
+					filteredMenus = append(filteredMenus, &menu.MenuItem{
+						Id:         m.Id,
+						ParentId:   m.ParentId,
+						Name:       m.Name,
+						Path:       m.Path,
+						Component:  m.Component,
+						Perms:      m.Perms,
+						Icon:       m.Icon,
+						Type:       m.Type,
+						Sort:       m.Sort,
+						Visible:    m.Visible,
+						Status:     m.Status,
+						IsFrame:    m.IsFrame,
+						IsCache:    m.IsCache,
+						QueryParam: m.QueryParam,
+						Remark:     m.Remark,
+						CreatedAt:  m.CreatedAt.String(),
+						UpdatedAt:  m.UpdatedAt.String(),
+						Children:   make([]*menu.MenuItem, 0),
+					})
+				}
+			}
+			menuTree = buildFilteredTree(filteredMenus)
+		}
+	}
+
 	return &v1.GetInfoRes{
-		UserId:   user.Id,
-		Username: user.Username,
-		RealName: realName,
-		Email:    user.Email,
-		Avatar:   user.Avatar,
-		Roles:    []string{"admin"},
-		HomePath: "/analytics",
+		UserId:      user.Id,
+		Username:    user.Username,
+		RealName:    realName,
+		Email:       user.Email,
+		Avatar:      user.Avatar,
+		Roles:       roleNames,
+		HomePath:    "/analytics",
+		Menus:       convertToMenuTree(menuTree),
+		Permissions: permissions,
 	}, nil
+}
+
+func intPtr(i int) *int {
+	return &i
+}
+
+// buildFilteredTree builds a tree from filtered menu items
+func buildFilteredTree(items []*menu.MenuItem) []*menu.MenuItem {
+	// Build map for quick lookup
+	nodeMap := make(map[int]*menu.MenuItem)
+	for _, m := range items {
+		nodeMap[m.Id] = m
+	}
+
+	// Build tree
+	var roots []*menu.MenuItem
+	for _, m := range items {
+		if m.ParentId == 0 {
+			roots = append(roots, m)
+		} else {
+			if parent, ok := nodeMap[m.ParentId]; ok {
+				parent.Children = append(parent.Children, m)
+			}
+		}
+	}
+	return roots
+}
+
+func convertToMenuTree(items []*menu.MenuItem) []*v1.MenuTree {
+	result := make([]*v1.MenuTree, 0, len(items))
+	for _, item := range items {
+		node := &v1.MenuTree{
+			Id:        item.Id,
+			ParentId:  item.ParentId,
+			Name:      item.Name,
+			Path:      item.Path,
+			Component: item.Component,
+			Perms:     item.Perms,
+			Icon:      item.Icon,
+			Type:      item.Type,
+			Sort:      item.Sort,
+			Visible:   item.Visible,
+			Status:    item.Status,
+			IsFrame:   item.IsFrame,
+			IsCache:   item.IsCache,
+			Children:  convertToMenuTree(item.Children),
+		}
+		result = append(result, node)
+	}
+	return result
 }

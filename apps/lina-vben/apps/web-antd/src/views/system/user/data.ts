@@ -67,6 +67,14 @@ export const columns: VxeGridProps['columns'] = [
     },
   },
   {
+    field: 'roleNames',
+    title: '角色',
+    minWidth: 120,
+    formatter({ cellValue }) {
+      return cellValue || '未分配角色';
+    },
+  },
+  {
     field: 'phone',
     title: '手机号码',
     formatter({ cellValue }) {
@@ -213,6 +221,17 @@ export function drawerSchema(isEdit: boolean): VbenFormSchema[] {
         mode: 'multiple',
         optionFilterProp: 'label',
         placeholder: '请先选择部门',
+      },
+    },
+    {
+      component: 'Select',
+      fieldName: 'roleIds',
+      label: '角色',
+      help: '可分配多个角色给该用户',
+      componentProps: {
+        mode: 'multiple',
+        optionFilterProp: 'label',
+        placeholder: '请选择角色',
       },
     },
     {
