@@ -25,6 +25,7 @@ export function eachTree<T extends Record<string, any>>(
 
 /**
  * 将列表转换为树形结构
+ * 如果节点已有 children 数组且非空，则保留
  */
 export function listToTree<T extends Record<string, any>>(
   list: T[],
@@ -37,9 +38,15 @@ export function listToTree<T extends Record<string, any>>(
   const map = new Map<any, T & { [key: string]: any }>();
   const roots: (T & { [key: string]: any })[] = [];
 
-  // 创建映射
+  // 创建映射，保留已存在的 children 数组
   for (const item of list) {
-    map.set(item[idProp], { ...item, [childProp]: [] });
+    const existingChildren = item[childProp];
+    map.set(item[idProp], {
+      ...item,
+      [childProp]: existingChildren && Array.isArray(existingChildren) && existingChildren.length > 0
+        ? existingChildren
+        : [],
+    });
   }
 
   // 构建树

@@ -9,7 +9,7 @@ import { Input, Skeleton } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { menuAdd, menuInfo, menuList, menuUpdate } from '#/api/system/menu';
-import { addFullName, listToTree } from '#/utils/tree';
+import { addFullName, listToTree, treeToList } from '#/utils/tree';
 import { defaultFormValueGetter, useBeforeCloseDiff } from '#/utils/popup';
 
 import { drawerSchema } from './data';
@@ -42,19 +42,21 @@ const [BasicForm, formApi] = useVbenForm({
 });
 
 async function setupMenuSelect() {
-  // menu
-  const menuArray = await menuList();
+  // menu API returns tree structure
+  const menuTree = await menuList();
   /**
    * 过滤掉按钮类型
    * 不允许在按钮下添加数据
+   * 需要先展平树形结构，过滤后再重建树
    */
-  const filteredList = menuArray.filter((item) => item.type !== 'B');
-  const menuTree = listToTree(filteredList, { id: 'id', pid: 'parentId' });
+  const flatList = treeToList(menuTree, { childProp: 'children' });
+  const filteredList = flatList.filter((item) => item.type !== 'B');
+  const rebuiltTree = listToTree(filteredList, { id: 'id', pid: 'parentId' });
   const fullMenuTree = [
     {
       id: 0,
       name: '主类目',
-      children: menuTree,
+      children: rebuiltTree,
     },
   ];
   addFullName(fullMenuTree, 'name', ' / ');
