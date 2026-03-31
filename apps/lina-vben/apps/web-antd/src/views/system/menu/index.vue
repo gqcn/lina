@@ -103,7 +103,7 @@ function handleSubAdd(row: Menu) {
 }
 
 async function handleEdit(record: Menu) {
-  drawerApi.setData({ id: record.id, isEdit: true });
+  drawerApi.setData({ id: record.id, update: true });
   drawerApi.open();
 }
 

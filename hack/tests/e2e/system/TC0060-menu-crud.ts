@@ -117,4 +117,38 @@ test.describe('TC0060 菜单管理 CRUD', () => {
     // If drawer closes without error, the creation was successful
     expect(true).toBeTruthy();
   });
+
+  test('TC0060g: 编辑菜单时表单应展示被编辑菜单的内容', async ({ adminPage }) => {
+    const menuPage = new MenuPage(adminPage);
+    await menuPage.goto();
+
+    // Wait for table to load
+    await adminPage.locator('.vxe-table').waitFor({ state: 'visible', timeout: 10000 });
+
+    // Find the first edit button in the action column and click it
+    // Use getByRole for better reliability
+    const editBtn = adminPage.getByRole('button', { name: /编\s*辑/ }).first();
+    await editBtn.click({ timeout: 5000 });
+
+    // Wait for drawer to open
+    const drawer = adminPage.locator('[role="dialog"]');
+    await drawer.waitFor({ state: 'visible', timeout: 10000 });
+
+    // Wait for skeleton to disappear (form loading)
+    const skeleton = drawer.locator('.ant-skeleton');
+    await skeleton.waitFor({ state: 'hidden', timeout: 10000 });
+
+    // Verify the form has values loaded (not empty)
+    // The menu name input should have a value
+    const nameInput = drawer.locator('input[placeholder="请输入菜单名称"]');
+    await expect(nameInput).toBeVisible({ timeout: 5000 });
+
+    // Get the input value to verify it's not empty
+    const inputValue = await nameInput.inputValue();
+    expect(inputValue.length).toBeGreaterThan(0);
+
+    // Close drawer without saving
+    await drawer.getByRole('button', { name: /取\s*消/ }).click();
+    await drawer.waitFor({ state: 'hidden', timeout: 5000 });
+  });
 });
