@@ -181,3 +181,48 @@
   - 根因：`onOpenChange` 中先调用 `formApi.setFieldValue('parentId', data.parentId)` 设置了父菜单 ID，但随后 `formApi.resetForm()` 又将其重置为默认值
   - 修复：将 `setFieldValue` 移到 `resetForm` 之后执行
   - 测试：TC0060l ✓
+
+## Feedback Complete
+
+**Change:** menu-role-management
+**Issues reported:** 15
+**Issues fixed:** 15/15
+**Tests added:** Updated MenuPage.ts to use "根菜单" instead of "主类目"
+**Regression tests run:** TC0060-menu-crud.ts (12/12 passed) ✓
+**Verification:** all passed ✓
+
+### Fixed This Session
+- [x] FB-1 ~ FB-14: Previous feedback items (all resolved)
+- [x] FB-15: 菜单初始化SQL种子数据与前端实际路由不匹配 ✓
+  - Added Dashboard directory with Analytics and Workspace menus
+  - Added hidden menus (Message List, Profile, Role Auth User)
+  - Removed non-existent menus (Cache Monitor, Cache List, System Tools)
+  - All type='M' menus now have perms and component fields
+  - Test regression: TC0060-menu-crud.ts 12/12 passed ✓
+
+### Menu Structure Summary
+```
+📁 仪表盘 (sort:0)
+  📄 分析页
+  📄 工作台
+📁 系统管理 (sort:1)
+  📄 用户管理 + 7 buttons
+  📄 角色管理 + 4 buttons
+  📄 菜单管理 + 4 buttons
+  📄 部门管理 + 4 buttons
+  📄 岗位管理 + 5 buttons
+  📄 字典管理 + 5 buttons
+  📄 通知公告 + 4 buttons
+  📄 参数设置 + 5 buttons
+  📄 文件管理 + 4 buttons
+  📄 消息列表 (hidden)
+  📄 角色授权用户 (hidden)
+📁 系统监控 (sort:2)
+  📄 在线用户 + 2 buttons
+  📄 服务监控
+  📄 操作日志 + 4 buttons
+  📄 登录日志 + 4 buttons
+📁 系统信息 (sort:3)
+  📄 系统接口
+  📄 版本信息
+📄 个人中心 (hidden, sort:99)

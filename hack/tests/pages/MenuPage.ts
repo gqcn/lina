@@ -73,12 +73,12 @@ export class MenuPage {
     await parentSelect.click();
     await this.page.waitForTimeout(500);
 
-    // Wait for tree dropdown and select "主类目" (root option)
+    // Wait for tree dropdown and select "根菜单" (root option)
     // The tree has role="tree" attribute
     const treeDropdown = this.page.locator('[role="tree"]');
     await treeDropdown.waitFor({ state: 'visible', timeout: 5000 });
-    // Click on "主类目" text which is the first/root option
-    await treeDropdown.getByText('主类目', { exact: true }).click();
+    // Click on "根菜单" text which is the first/root option
+    await treeDropdown.getByText('根菜单', { exact: true }).click();
     await this.page.waitForTimeout(500);
 
     // Fill menu name

@@ -131,229 +131,244 @@ VALUES ('普通用户', 'user', 2, 3, 1, '普通用户，仅查看本人数据',
 -- 初始化菜单数据
 -- ============================================================
 
--- 系统管理（目录）
+-- 清理旧菜单数据（包括角色-菜单关联）
+DELETE FROM sys_role_menu;
+DELETE FROM sys_menu WHERE id > 0;
+ALTER TABLE sys_menu AUTO_INCREMENT = 1;
+
+-- ========================================
+-- 仪表盘（目录）
+-- ========================================
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1, 0, '系统管理', 'system', '', '', 'ant-design:setting-outlined', 'D', 1, 1, 1, 0, 0, NOW(), NOW());
+VALUES (1, 0, '仪表盘', 'dashboard', '', '', 'ant-design:dashboard-outlined', 'D', 0, 1, 1, 0, 0, NOW(), NOW());
+
+-- 仪表盘 -> 分析页（菜单）
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (100, 1, '分析页', 'analytics', 'dashboard/analytics/index', 'dashboard:analytics:list', 'ant-design:area-chart-outlined', 'M', 1, 1, 1, 0, 0, NOW(), NOW());
+
+-- 仪表盘 -> 工作台（菜单）
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (101, 1, '工作台', 'workspace', 'dashboard/workspace/index', 'dashboard:workspace:list', 'ant-design:desktop-outlined', 'M', 2, 1, 1, 0, 0, NOW(), NOW());
+
+-- ========================================
+-- 系统管理（目录）
+-- ========================================
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2, 0, '系统管理', 'system', '', '', 'ant-design:setting-outlined', 'D', 1, 1, 1, 0, 0, NOW(), NOW());
 
 -- 系统管理 -> 用户管理（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (100, 1, '用户管理', 'user', 'system/user/index', 'system:user:list', 'ant-design:user-outlined', 'M', 1, 1, 1, 0, 0, NOW(), NOW());
+VALUES (200, 2, '用户管理', 'user', 'system/user/index', 'system:user:list', 'ant-design:user-outlined', 'M', 1, 1, 1, 0, 0, NOW(), NOW());
 
 -- 用户管理 -> 按钮权限
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1001, 100, '用户查询', '', '', 'system:user:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2001, 200, '用户查询', '', '', 'system:user:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1002, 100, '用户新增', '', '', 'system:user:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2002, 200, '用户新增', '', '', 'system:user:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1003, 100, '用户修改', '', '', 'system:user:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2003, 200, '用户修改', '', '', 'system:user:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1004, 100, '用户删除', '', '', 'system:user:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2004, 200, '用户删除', '', '', 'system:user:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1005, 100, '用户导出', '', '', 'system:user:export', '', 'B', 5, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2005, 200, '用户导出', '', '', 'system:user:export', '', 'B', 5, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1006, 100, '用户导入', '', '', 'system:user:import', '', 'B', 6, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2006, 200, '用户导入', '', '', 'system:user:import', '', 'B', 6, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1007, 100, '重置密码', '', '', 'system:user:resetPwd', '', 'B', 7, 1, 1, 0, 0, NOW(), NOW());
-
--- 系统管理 -> 部门管理（菜单）
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (101, 1, '部门管理', 'dept', 'system/dept/index', 'system:dept:list', 'ant-design:apartment-outlined', 'M', 2, 1, 1, 0, 0, NOW(), NOW());
-
--- 部门管理 -> 按钮权限
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1011, 101, '部门查询', '', '', 'system:dept:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1012, 101, '部门新增', '', '', 'system:dept:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1013, 101, '部门修改', '', '', 'system:dept:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1014, 101, '部门删除', '', '', 'system:dept:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
-
--- 系统管理 -> 岗位管理（菜单）
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (102, 1, '岗位管理', 'post', 'system/post/index', 'system:post:list', 'ant-design:cluster-outlined', 'M', 3, 1, 1, 0, 0, NOW(), NOW());
-
--- 岗位管理 -> 按钮权限
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1021, 102, '岗位查询', '', '', 'system:post:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1022, 102, '岗位新增', '', '', 'system:post:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1023, 102, '岗位修改', '', '', 'system:post:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1024, 102, '岗位删除', '', '', 'system:post:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1025, 102, '岗位导出', '', '', 'system:post:export', '', 'B', 5, 1, 1, 0, 0, NOW(), NOW());
-
--- 系统管理 -> 菜单管理（菜单）
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (103, 1, '菜单管理', 'menu', 'system/menu/index', 'system:menu:list', 'ant-design:menu-outlined', 'M', 4, 1, 1, 0, 0, NOW(), NOW());
-
--- 菜单管理 -> 按钮权限
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1031, 103, '菜单查询', '', '', 'system:menu:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1032, 103, '菜单新增', '', '', 'system:menu:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1033, 103, '菜单修改', '', '', 'system:menu:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1034, 103, '菜单删除', '', '', 'system:menu:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2007, 200, '重置密码', '', '', 'system:user:resetPwd', '', 'B', 7, 1, 1, 0, 0, NOW(), NOW());
 
 -- 系统管理 -> 角色管理（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (104, 1, '角色管理', 'role', 'system/role/index', 'system:role:list', 'ant-design:team-outlined', 'M', 5, 1, 1, 0, 0, NOW(), NOW());
+VALUES (201, 2, '角色管理', 'role', 'system/role/index', 'system:role:list', 'ant-design:team-outlined', 'M', 2, 1, 1, 0, 0, NOW(), NOW());
 
 -- 角色管理 -> 按钮权限
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1041, 104, '角色查询', '', '', 'system:role:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2011, 201, '角色查询', '', '', 'system:role:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1042, 104, '角色新增', '', '', 'system:role:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2012, 201, '角色新增', '', '', 'system:role:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1043, 104, '角色修改', '', '', 'system:role:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2013, 201, '角色修改', '', '', 'system:role:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1044, 104, '角色删除', '', '', 'system:role:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2014, 201, '角色删除', '', '', 'system:role:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+
+-- 系统管理 -> 菜单管理（菜单）
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (202, 2, '菜单管理', 'menu', 'system/menu/index', 'system:menu:list', 'ant-design:menu-outlined', 'M', 3, 1, 1, 0, 0, NOW(), NOW());
+
+-- 菜单管理 -> 按钮权限
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2021, 202, '菜单查询', '', '', 'system:menu:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2022, 202, '菜单新增', '', '', 'system:menu:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2023, 202, '菜单修改', '', '', 'system:menu:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2024, 202, '菜单删除', '', '', 'system:menu:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+
+-- 系统管理 -> 部门管理（菜单）
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (203, 2, '部门管理', 'dept', 'system/dept/index', 'system:dept:list', 'ant-design:apartment-outlined', 'M', 4, 1, 1, 0, 0, NOW(), NOW());
+
+-- 部门管理 -> 按钮权限
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2031, 203, '部门查询', '', '', 'system:dept:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2032, 203, '部门新增', '', '', 'system:dept:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2033, 203, '部门修改', '', '', 'system:dept:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2034, 203, '部门删除', '', '', 'system:dept:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+
+-- 系统管理 -> 岗位管理（菜单）
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (204, 2, '岗位管理', 'post', 'system/post/index', 'system:post:list', 'ant-design:cluster-outlined', 'M', 5, 1, 1, 0, 0, NOW(), NOW());
+
+-- 岗位管理 -> 按钮权限
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2041, 204, '岗位查询', '', '', 'system:post:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2042, 204, '岗位新增', '', '', 'system:post:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2043, 204, '岗位修改', '', '', 'system:post:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2044, 204, '岗位删除', '', '', 'system:post:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (2045, 204, '岗位导出', '', '', 'system:post:export', '', 'B', 5, 1, 1, 0, 0, NOW(), NOW());
 
 -- 系统管理 -> 字典管理（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (105, 1, '字典管理', 'dict', 'system/dict/index', 'system:dict:list', 'ant-design:book-outlined', 'M', 6, 1, 1, 0, 0, NOW(), NOW());
+VALUES (205, 2, '字典管理', 'dict', 'system/dict/index', 'system:dict:list', 'ant-design:book-outlined', 'M', 6, 1, 1, 0, 0, NOW(), NOW());
 
 -- 字典管理 -> 按钮权限
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1051, 105, '字典查询', '', '', 'system:dict:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2051, 205, '字典查询', '', '', 'system:dict:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1052, 105, '字典新增', '', '', 'system:dict:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2052, 205, '字典新增', '', '', 'system:dict:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1053, 105, '字典修改', '', '', 'system:dict:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2053, 205, '字典修改', '', '', 'system:dict:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1054, 105, '字典删除', '', '', 'system:dict:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2054, 205, '字典删除', '', '', 'system:dict:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1055, 105, '字典导出', '', '', 'system:dict:export', '', 'B', 5, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2055, 205, '字典导出', '', '', 'system:dict:export', '', 'B', 5, 1, 1, 0, 0, NOW(), NOW());
 
 -- 系统管理 -> 通知公告（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (106, 1, '通知公告', 'notice', 'system/notice/index', 'system:notice:list', 'ant-design:notification-outlined', 'M', 7, 1, 1, 0, 0, NOW(), NOW());
+VALUES (206, 2, '通知公告', 'notice', 'system/notice/index', 'system:notice:list', 'ant-design:notification-outlined', 'M', 7, 1, 1, 0, 0, NOW(), NOW());
 
 -- 通知公告 -> 按钮权限
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1061, 106, '公告查询', '', '', 'system:notice:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2061, 206, '公告查询', '', '', 'system:notice:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1062, 106, '公告新增', '', '', 'system:notice:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2062, 206, '公告新增', '', '', 'system:notice:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1063, 106, '公告修改', '', '', 'system:notice:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2063, 206, '公告修改', '', '', 'system:notice:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1064, 106, '公告删除', '', '', 'system:notice:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2064, 206, '公告删除', '', '', 'system:notice:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
 
 -- 系统管理 -> 参数设置（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (107, 1, '参数设置', 'config', 'system/config/index', 'system:config:list', 'ant-design:tool-outlined', 'M', 8, 1, 1, 0, 0, NOW(), NOW());
+VALUES (207, 2, '参数设置', 'config', 'system/config/index', 'system:config:list', 'ant-design:tool-outlined', 'M', 8, 1, 1, 0, 0, NOW(), NOW());
 
 -- 参数设置 -> 按钮权限
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1071, 107, '参数查询', '', '', 'system:config:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2071, 207, '参数查询', '', '', 'system:config:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1072, 107, '参数新增', '', '', 'system:config:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2072, 207, '参数新增', '', '', 'system:config:add', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1073, 107, '参数修改', '', '', 'system:config:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2073, 207, '参数修改', '', '', 'system:config:edit', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1074, 107, '参数删除', '', '', 'system:config:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2074, 207, '参数删除', '', '', 'system:config:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1075, 107, '参数导出', '', '', 'system:config:export', '', 'B', 5, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2075, 207, '参数导出', '', '', 'system:config:export', '', 'B', 5, 1, 1, 0, 0, NOW(), NOW());
 
 -- 系统管理 -> 文件管理（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (108, 1, '文件管理', 'file', 'system/file/index', 'system:file:list', 'ant-design:folder-outlined', 'M', 9, 1, 1, 0, 0, NOW(), NOW());
+VALUES (208, 2, '文件管理', 'file', 'system/file/index', 'system:file:list', 'ant-design:folder-outlined', 'M', 9, 1, 1, 0, 0, NOW(), NOW());
 
 -- 文件管理 -> 按钮权限
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1081, 108, '文件查询', '', '', 'system:file:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2081, 208, '文件查询', '', '', 'system:file:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1082, 108, '文件上传', '', '', 'system:file:upload', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2082, 208, '文件上传', '', '', 'system:file:upload', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1083, 108, '文件下载', '', '', 'system:file:download', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2083, 208, '文件下载', '', '', 'system:file:download', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1084, 108, '文件删除', '', '', 'system:file:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+VALUES (2084, 208, '文件删除', '', '', 'system:file:remove', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
 
--- 系统监控（目录）
+-- 系统管理 -> 消息列表（隐藏菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (2, 0, '系统监控', 'monitor', '', '', 'ant-design:monitor-outlined', 'D', 2, 1, 1, 0, 0, NOW(), NOW());
+VALUES (209, 2, '消息列表', 'message', 'system/message/index', 'system:message:list', 'ant-design:message-outlined', 'M', 10, 0, 1, 0, 0, NOW(), NOW());
+
+-- 系统管理 -> 角色授权用户（隐藏菜单）
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (210, 2, '角色授权用户', 'role-auth/user', 'system/role-auth/index', 'system:role:auth', 'ant-design:usergroup-add-outlined', 'M', 11, 0, 1, 0, 0, NOW(), NOW());
+
+-- ========================================
+-- 系统监控（目录）
+-- ========================================
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (3, 0, '系统监控', 'monitor', '', '', 'ant-design:monitor-outlined', 'D', 2, 1, 1, 0, 0, NOW(), NOW());
 
 -- 系统监控 -> 在线用户（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (109, 2, '在线用户', 'online', 'monitor/online/index', 'monitor:online:list', 'ant-design:user-outlined', 'M', 1, 1, 1, 0, 0, NOW(), NOW());
+VALUES (300, 3, '在线用户', 'online', 'monitor/online/index', 'monitor:online:list', 'ant-design:user-outlined', 'M', 1, 1, 1, 0, 0, NOW(), NOW());
 
 -- 在线用户 -> 按钮权限
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1091, 109, '在线查询', '', '', 'monitor:online:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+VALUES (3001, 300, '在线查询', '', '', 'monitor:online:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1092, 109, '强制退出', '', '', 'monitor:online:forceLogout', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
-
--- 系统监控 -> 登录日志（菜单）
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (110, 2, '登录日志', 'loginlog', 'monitor/loginlog/index', 'monitor:loginlog:list', 'ant-design:login-outlined', 'M', 2, 1, 1, 0, 0, NOW(), NOW());
-
--- 登录日志 -> 按钮权限
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1101, 110, '日志查询', '', '', 'monitor:loginlog:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1102, 110, '日志删除', '', '', 'monitor:loginlog:remove', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1103, 110, '日志导出', '', '', 'monitor:loginlog:export', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1104, 110, '清空日志', '', '', 'monitor:loginlog:clear', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
-
--- 系统监控 -> 操作日志（菜单）
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (111, 2, '操作日志', 'operlog', 'monitor/operlog/index', 'monitor:operlog:list', 'ant-design:form-outlined', 'M', 3, 1, 1, 0, 0, NOW(), NOW());
-
--- 操作日志 -> 按钮权限
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1111, 111, '日志查询', '', '', 'monitor:operlog:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1112, 111, '日志删除', '', '', 'monitor:operlog:remove', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1113, 111, '日志导出', '', '', 'monitor:operlog:export', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (1114, 111, '清空日志', '', '', 'monitor:operlog:clear', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
+VALUES (3002, 300, '强制退出', '', '', 'monitor:online:forceLogout', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
 
 -- 系统监控 -> 服务监控（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (112, 2, '服务监控', 'server', 'monitor/server/index', 'monitor:server:list', 'ant-design:desktop-outlined', 'M', 4, 1, 1, 0, 0, NOW(), NOW());
+VALUES (301, 3, '服务监控', 'server', 'monitor/server/index', 'monitor:server:list', 'ant-design:desktop-outlined', 'M', 2, 1, 1, 0, 0, NOW(), NOW());
 
--- 系统监控 -> 缓存监控（菜单）
+-- 系统监控 -> 操作日志（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (113, 2, '缓存监控', 'cache', 'monitor/cache/index', 'monitor:cache:list', 'ant-design:database-outlined', 'M', 5, 1, 1, 0, 0, NOW(), NOW());
+VALUES (302, 3, '操作日志', 'operlog', 'monitor/operlog/index', 'monitor:operlog:list', 'ant-design:form-outlined', 'M', 3, 1, 1, 0, 0, NOW(), NOW());
 
--- 系统监控 -> 缓存列表（菜单）
+-- 操作日志 -> 按钮权限
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (114, 2, '缓存列表', 'cacheList', 'monitor/cache/list', 'monitor:cache:list', 'ant-design:database-filled', 'M', 6, 1, 1, 0, 0, NOW(), NOW());
+VALUES (3021, 302, '日志查询', '', '', 'monitor:operlog:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (3022, 302, '日志删除', '', '', 'monitor:operlog:remove', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (3023, 302, '日志导出', '', '', 'monitor:operlog:export', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (3024, 302, '清空日志', '', '', 'monitor:operlog:clear', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
 
--- 系统工具（目录）
+-- 系统监控 -> 登录日志（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (3, 0, '系统工具', 'tool', '', '', 'ant-design:tool-outlined', 'D', 3, 1, 1, 0, 0, NOW(), NOW());
+VALUES (303, 3, '登录日志', 'loginlog', 'monitor/loginlog/index', 'monitor:loginlog:list', 'ant-design:login-outlined', 'M', 4, 1, 1, 0, 0, NOW(), NOW());
 
--- 系统工具 -> 表单构建（菜单）
+-- 登录日志 -> 按钮权限
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (115, 3, '表单构建', 'build', 'tool/build/index', '', 'ant-design:build-outlined', 'M', 1, 1, 1, 0, 0, NOW(), NOW());
+VALUES (3031, 303, '日志查询', '', '', 'monitor:loginlog:query', '', 'B', 1, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (3032, 303, '日志删除', '', '', 'monitor:loginlog:remove', '', 'B', 2, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (3033, 303, '日志导出', '', '', 'monitor:loginlog:export', '', 'B', 3, 1, 1, 0, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
+VALUES (3034, 303, '清空日志', '', '', 'monitor:loginlog:clear', '', 'B', 4, 1, 1, 0, 0, NOW(), NOW());
 
--- 系统工具 -> 代码生成（菜单）
+-- ========================================
+-- 系统信息（目录）
+-- ========================================
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (116, 3, '代码生成', 'generator', 'tool/generator/index', 'tool:generator:list', 'ant-design:code-outlined', 'M', 2, 1, 1, 0, 0, NOW(), NOW());
+VALUES (4, 0, '系统信息', 'about', '', '', 'ant-design:info-circle-outlined', 'D', 3, 1, 1, 0, 0, NOW(), NOW());
 
--- 系统工具 -> 系统接口（菜单）
+-- 系统信息 -> 系统接口（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (117, 3, '系统接口', 'api', 'tool/api/index', '', 'ant-design:api-outlined', 'M', 3, 1, 1, 0, 0, NOW(), NOW());
+VALUES (400, 4, '系统接口', 'api-docs', 'about/api-docs/index', 'about:api:list', 'ant-design:file-text-outlined', 'M', 1, 1, 1, 0, 0, NOW(), NOW());
 
--- 关于（目录）
+-- 系统信息 -> 版本信息（菜单）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (4, 0, '关于', 'about', '', '', 'ant-design:info-circle-outlined', 'D', 4, 1, 1, 0, 0, NOW(), NOW());
+VALUES (401, 4, '版本信息', 'system-info', 'about/system-info/index', 'about:system:list', 'ant-design:desktop-outlined', 'M', 2, 1, 1, 0, 0, NOW(), NOW());
 
--- 关于 -> API文档（菜单）
+-- ========================================
+-- 个人中心（隐藏菜单，不属于任何目录）
+-- ========================================
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (118, 4, 'API文档', 'api-docs', 'about/api-docs/index', '', 'ant-design:file-text-outlined', 'M', 1, 1, 1, 0, 0, NOW(), NOW());
-
--- 关于 -> 系统信息（菜单）
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, created_at, updated_at)
-VALUES (119, 4, '系统信息', 'system-info', 'about/system-info/index', '', 'ant-design:desktop-outlined', 'M', 2, 1, 1, 0, 0, NOW(), NOW());
+VALUES (500, 0, '个人中心', 'profile', '_core/profile/index', 'profile:view', 'ant-design:user-outlined', 'M', 99, 0, 1, 0, 0, NOW(), NOW());
 
 -- ============================================================
 -- 关联默认管理员用户与 admin 角色（用户ID=1）
