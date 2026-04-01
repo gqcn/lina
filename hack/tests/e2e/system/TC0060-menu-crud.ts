@@ -352,4 +352,41 @@ test.describe('TC0060 菜单管理 CRUD', () => {
       await drawer.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
     }
   });
+
+  test('TC0060k: 备注字段应为 Textarea 组件', async ({ adminPage }) => {
+    const menuPage = new MenuPage(adminPage);
+    await menuPage.goto();
+
+    // Wait for table to load
+    await adminPage.locator('.vxe-table').waitFor({ state: 'visible', timeout: 10000 });
+
+    // Open the create form
+    await adminPage
+      .getByRole('button', { name: /新\s*增/ })
+      .first()
+      .click();
+
+    const drawer = adminPage.locator('[role="dialog"]');
+    await drawer.waitFor({ state: 'visible', timeout: 10000 });
+
+    // Wait for skeleton to disappear
+    const skeleton = drawer.locator('.ant-skeleton');
+    await skeleton.waitFor({ state: 'hidden', timeout: 10000 });
+
+    // Find the remark textarea by label
+    const remarkField = drawer.locator('textarea[placeholder="请输入备注"]');
+    await expect(remarkField).toBeVisible({ timeout: 5000 });
+
+    // Verify it's a textarea (not input)
+    const tagName = await remarkField.evaluate((el) => el.tagName.toLowerCase());
+    expect(tagName).toBe('textarea');
+
+    // Verify it has rows attribute (should be 3)
+    const rows = await remarkField.getAttribute('rows');
+    expect(rows).toBe('3');
+
+    // Close drawer
+    await drawer.getByRole('button', { name: /取\s*消/ }).click();
+    await drawer.waitFor({ state: 'hidden', timeout: 5000 });
+  });
 });

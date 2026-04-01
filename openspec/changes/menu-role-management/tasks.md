@@ -174,3 +174,5 @@
   - [x] FB-12.1 在 `utils/tree.ts` 中新增 `getDescendantIds()` 函数
   - [x] FB-12.2 修改 `menu-drawer.vue` 的 `setupMenuSelect()` 函数，禁用当前菜单及其子孙节点
   - [x] FB-12.3 创建 E2E 测试验证禁用逻辑（TC0060i, TC0060j）
+
+- [x] **FB-13**：新增/编辑菜单抽屉中，备注输入框样式太小，应使用 Textarea 组件替代 Input，并设置合适的行数

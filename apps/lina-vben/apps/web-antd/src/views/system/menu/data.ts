@@ -388,10 +388,14 @@ export function drawerSchema(): VbenFormSchema[] {
     label: '是否缓存',
   },
   {
-    component: 'Input',
+    component: 'Textarea',
+    componentProps: {
+      placeholder: '请输入备注',
+      rows: 3,
+    },
     fieldName: 'remark',
+    formItemClass: 'col-span-2',
     label: '备注',
-    formItemClass: 'items-baseline',
   },
   ];
 }

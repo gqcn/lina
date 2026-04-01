@@ -5,7 +5,7 @@ import { useVbenDrawer } from '@vben/common-ui';
 import { $t } from '@vben/locales';
 import { cloneDeep, getPopupContainer } from '@vben/utils';
 
-import { Input, Skeleton } from 'ant-design-vue';
+import { Skeleton } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { menuAdd, menuInfo, menuList, menuUpdate } from '#/api/system/menu';
@@ -174,15 +174,6 @@ async function handleClosed() {
 <template>
   <BasicDrawer :title="title" class="w-[600px]">
     <Skeleton active v-if="loading" />
-    <BasicForm v-show="!loading">
-      <template #remark="slotProps">
-        <div class="flex flex-col gap-2">
-          <Input v-bind="slotProps" />
-          <span class="text-[14px] leading-[1.5] text-black/45">
-            备注信息
-          </span>
-        </div>
-      </template>
-    </BasicForm>
+    <BasicForm v-show="!loading" />
   </BasicDrawer>
 </template>
