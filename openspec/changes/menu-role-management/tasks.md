@@ -176,3 +176,8 @@
   - [x] FB-12.3 创建 E2E 测试验证禁用逻辑（TC0060i, TC0060j）
 
 - [x] **FB-13**：新增/编辑菜单抽屉中，备注输入框样式太小，应使用 Textarea 组件替代 Input，并设置合适的行数
+
+- [x] **FB-14**：点击具体菜单的"新增"按钮时，打开的新增面板中，上级菜单仍然是根菜单，应该显示被点击的菜单作为上级菜单
+  - 根因：`onOpenChange` 中先调用 `formApi.setFieldValue('parentId', data.parentId)` 设置了父菜单 ID，但随后 `formApi.resetForm()` 又将其重置为默认值
+  - 修复：将 `setFieldValue` 移到 `resetForm` 之后执行
+  - 测试：TC0060l ✓

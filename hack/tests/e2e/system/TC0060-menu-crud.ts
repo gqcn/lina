@@ -389,4 +389,42 @@ test.describe('TC0060 菜单管理 CRUD', () => {
     await drawer.getByRole('button', { name: /取\s*消/ }).click();
     await drawer.waitFor({ state: 'hidden', timeout: 5000 });
   });
+
+  test('TC0060l: 点击菜单行的新增按钮，上级菜单应默认选中当前菜单', async ({ adminPage }) => {
+    const menuPage = new MenuPage(adminPage);
+    await menuPage.goto();
+
+    // Wait for table to load
+    await adminPage.locator('.vxe-table').waitFor({ state: 'visible', timeout: 10000 });
+
+    // Find "系统管理" row and click its "新增" button (not the toolbar 新增)
+    const systemManageRow = adminPage.locator('.vxe-body--row').filter({ hasText: '系统管理' }).first();
+
+    // Click the "新增" button in that row's action column (the green success button)
+    const subAddBtn = systemManageRow.getByRole('button', { name: /新\s*增/ });
+    await subAddBtn.click({ timeout: 5000 });
+
+    // Wait for drawer to open
+    const drawer = adminPage.locator('[role="dialog"]');
+    await drawer.waitFor({ state: 'visible', timeout: 10000 });
+
+    // Wait for skeleton to disappear
+    const skeleton = drawer.locator('.ant-skeleton');
+    await skeleton.waitFor({ state: 'hidden', timeout: 10000 });
+
+    // Wait for form to be ready
+    await adminPage.waitForTimeout(500);
+
+    // Find the parent menu selector and verify it shows "系统管理"
+    const parentSelect = drawer.locator('.ant-select-selector').first();
+    await expect(parentSelect).toBeVisible({ timeout: 5000 });
+
+    // Get the selected value text - it should contain "系统管理"
+    const selectedText = await parentSelect.textContent();
+    expect(selectedText).toContain('系统管理');
+
+    // Close drawer
+    await drawer.getByRole('button', { name: /取\s*消/ }).click();
+    await drawer.waitFor({ state: 'hidden', timeout: 5000 });
+  });
 });

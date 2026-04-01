@@ -125,10 +125,6 @@ const [BasicDrawer, drawerApi] = useVbenDrawer({
     const data = drawerApi.getData() as ModalProps;
     isUpdate.value = data?.update ?? false;
 
-    if (data?.parentId) {
-      await formApi.setFieldValue('parentId', data.parentId);
-    }
-
     // 加载菜单树选择，编辑时传入当前菜单ID以禁用自身及子孙节点
     const currentId = data?.update && data.id ? Number(data.id) : undefined;
     await setupMenuSelect(currentId);
@@ -138,6 +134,10 @@ const [BasicDrawer, drawerApi] = useVbenDrawer({
       await formApi.setValues(record);
     } else {
       await formApi.resetForm();
+      // 新增子菜单时，设置上级菜单（必须在 resetForm 之后设置，否则会被重置）
+      if (data?.parentId) {
+        await formApi.setFieldValue('parentId', data.parentId);
+      }
     }
     await markInitialized();
 
