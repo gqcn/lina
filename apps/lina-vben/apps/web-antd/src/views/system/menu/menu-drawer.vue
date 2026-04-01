@@ -55,7 +55,7 @@ async function setupMenuSelect() {
   const fullMenuTree = [
     {
       id: 0,
-      name: '主类目',
+      name: '根菜单',
       children: rebuiltTree,
     },
   ];
