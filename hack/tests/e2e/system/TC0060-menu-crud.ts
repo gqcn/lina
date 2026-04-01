@@ -219,4 +219,137 @@ test.describe('TC0060 菜单管理 CRUD', () => {
       await drawer.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
     }
   });
+
+  test('TC0060i: 编辑菜单时上级菜单应禁用当前菜单及其子孙节点', async ({ adminPage }) => {
+    const menuPage = new MenuPage(adminPage);
+    await menuPage.goto();
+
+    // Wait for table to load
+    await adminPage.locator('.vxe-table').waitFor({ state: 'visible', timeout: 10000 });
+
+    // Expand the tree to find a parent menu
+    const expandBtn = adminPage.getByRole('img', { name: 'plus-square' }).first();
+    if (await expandBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await expandBtn.click();
+      await adminPage.waitForTimeout(500);
+    }
+
+    // Find "系统管理" row (parent menu with children) and click its edit button
+    const systemManageRow = adminPage.locator('.vxe-body--row').filter({ hasText: '系统管理' }).first();
+
+    // Click edit button in that row's action column
+    const editBtn = systemManageRow.getByRole('button', { name: /编\s*辑/ });
+    await editBtn.click({ timeout: 5000 });
+
+    // Wait for drawer to open
+    const drawer = adminPage.locator('[role="dialog"]');
+    await drawer.waitFor({ state: 'visible', timeout: 10000 });
+
+    // Wait for skeleton to disappear
+    const skeleton = drawer.locator('.ant-skeleton');
+    await skeleton.waitFor({ state: 'hidden', timeout: 10000 });
+
+    // Wait for form to be ready
+    await adminPage.waitForTimeout(1000);
+
+    // Find the parent menu selector and click it
+    const parentSelect = drawer.locator('.ant-select').first();
+    await parentSelect.click({ force: true });
+
+    // Wait for dropdown to open
+    await adminPage.waitForTimeout(800);
+
+    // The tree is rendered in a portal
+    const tree = adminPage.locator('[role="tree"]').first();
+    await expect(tree).toBeVisible({ timeout: 5000 });
+
+    // Wait for tree to render
+    await adminPage.waitForTimeout(500);
+
+    // Verify the feature: check that some nodes are disabled
+    // TreeSelect uses ant-select-tree-treenode class prefix
+    const result = await tree.evaluate((treeEl) => {
+      // TreeSelect uses ant-select-tree-* prefix instead of ant-tree-*
+      const allNodes = treeEl.querySelectorAll('.ant-select-tree-treenode');
+      const disabledNodes = treeEl.querySelectorAll('.ant-select-tree-treenode-disabled');
+
+      return {
+        totalNodes: allNodes.length,
+        disabledNodes: disabledNodes.length,
+        // Check if disabled attribute is set on tree node content
+        html: treeEl.innerHTML.substring(0, 1000),
+      };
+    });
+
+    console.log('Tree evaluation result:', JSON.stringify(result, null, 2));
+
+    // Verify that:
+    // 1. Tree has nodes
+    // 2. At least one node is disabled (the current menu and its children)
+    expect(result.totalNodes).toBeGreaterThan(0);
+    expect(result.disabledNodes).toBeGreaterThan(0);
+
+    // Close dropdown
+    await adminPage.keyboard.press('Escape');
+    await adminPage.waitForTimeout(300);
+
+    // Close drawer
+    try {
+      await drawer.getByRole('button', { name: /取\s*消/ }).click({ timeout: 3000 });
+      await drawer.waitFor({ state: 'hidden', timeout: 5000 });
+    } catch {
+      await adminPage.keyboard.press('Escape');
+      await drawer.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    }
+  });
+
+  test('TC0060j: 新增菜单时上级菜单无禁用节点', async ({ adminPage }) => {
+    const menuPage = new MenuPage(adminPage);
+    await menuPage.goto();
+
+    // Wait for table to load
+    await adminPage.locator('.vxe-table').waitFor({ state: 'visible', timeout: 10000 });
+
+    // Open the create form (新增)
+    await adminPage
+      .getByRole('button', { name: /新\s*增/ })
+      .first()
+      .click();
+
+    const drawer = adminPage.locator('[role="dialog"]');
+    await drawer.waitFor({ state: 'visible', timeout: 10000 });
+
+    // Wait for skeleton to disappear
+    const skeleton = drawer.locator('.ant-skeleton');
+    await skeleton.waitFor({ state: 'hidden', timeout: 10000 });
+
+    // Find the parent menu TreeSelect and click to open dropdown
+    const parentSelect = drawer.locator('.ant-tree-select, .ant-select').first();
+    await expect(parentSelect).toBeVisible({ timeout: 5000 });
+    await parentSelect.click();
+
+    // Wait for tree to be visible
+    const tree = drawer.locator('[role="tree"]');
+    await expect(tree).toBeVisible({ timeout: 5000 });
+
+    // In create mode, there should be NO disabled nodes
+    const disabledNodes = tree.locator('.ant-tree-treenode-disabled, [aria-disabled="true"]');
+    const disabledCount = await disabledNodes.count();
+
+    // No nodes should be disabled when creating a new menu
+    expect(disabledCount).toBe(0);
+
+    // Close dropdown
+    await adminPage.keyboard.press('Escape');
+    await adminPage.waitForTimeout(300);
+
+    // Close drawer
+    try {
+      await drawer.getByRole('button', { name: /取\s*消/ }).click({ timeout: 3000 });
+      await drawer.waitFor({ state: 'hidden', timeout: 5000 });
+    } catch {
+      await adminPage.keyboard.press('Escape');
+      await drawer.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    }
+  });
 });

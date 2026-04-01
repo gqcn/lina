@@ -149,3 +149,61 @@ export function findGroupParentIds<T extends Record<string, any>>(
   find(tree, new Set(targetIds));
   return Array.from(result);
 }
+
+/**
+ * 获取指定节点及其所有子孙节点的ID列表
+ * @param tree 树形数据
+ * @param nodeId 目标节点ID
+ * @param options 配置选项
+ * @returns 包含目标节点及其所有子孙节点的ID数组
+ */
+export function getDescendantIds<T extends Record<string, any>>(
+  tree: T[],
+  nodeId: number | string,
+  options?: { idProp?: string; childProp?: string },
+): (number | string)[] {
+  const idProp = options?.idProp || 'id';
+  const childProp = options?.childProp || 'children';
+  const result: (number | string)[] = [];
+  const targetId = String(nodeId); // 统一转为字符串比较
+
+  const findAndCollect = (nodes: T[]): boolean => {
+    for (const node of nodes) {
+      if (!node) continue;
+      const id = node[idProp];
+      const children = node[childProp] as T[] | undefined;
+
+      if (String(id) === targetId) {
+        // 找到目标节点，收集它及其所有子孙节点
+        result.push(id);
+        if (children && Array.isArray(children)) {
+          collectAllDescendants(children);
+        }
+        return true;
+      }
+
+      // 继续在子节点中查找
+      if (children && Array.isArray(children) && children.length > 0) {
+        if (findAndCollect(children)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const collectAllDescendants = (nodes: T[]) => {
+    for (const node of nodes) {
+      if (!node) continue;
+      const id = node[idProp];
+      const children = node[childProp] as T[] | undefined;
+      result.push(id);
+      if (children && Array.isArray(children) && children.length > 0) {
+        collectAllDescendants(children);
+      }
+    }
+  };
+
+  findAndCollect(tree);
+  return result;
+}

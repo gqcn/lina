@@ -9,7 +9,7 @@ import { Input, Skeleton } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { menuAdd, menuInfo, menuList, menuUpdate } from '#/api/system/menu';
-import { addFullName, listToTree, treeToList } from '#/utils/tree';
+import { addFullName, getDescendantIds, listToTree, treeToList } from '#/utils/tree';
 import { defaultFormValueGetter, useBeforeCloseDiff } from '#/utils/popup';
 
 import { drawerSchema } from './data';
@@ -41,7 +41,7 @@ const [BasicForm, formApi] = useVbenForm({
   wrapperClass: 'grid-cols-2',
 });
 
-async function setupMenuSelect() {
+async function setupMenuSelect(currentId?: number | string) {
   // menu API returns tree structure
   const menuTree = await menuList();
   /**
@@ -52,6 +52,24 @@ async function setupMenuSelect() {
   const flatList = treeToList(menuTree, { childProp: 'children' });
   const filteredList = flatList.filter((item) => item.type !== 'B');
   const rebuiltTree = listToTree(filteredList, { id: 'id', pid: 'parentId' });
+
+  // 获取需要禁用的节点ID（当前菜单及其子孙节点）
+  const disabledIds = currentId ? getDescendantIds(rebuiltTree, currentId) : [];
+
+  // 为需要禁用的节点设置 disabled 属性
+  const disabledIdSet = new Set(disabledIds.map(String));
+  const setDisabled = (nodes: any[]) => {
+    for (const node of nodes) {
+      if (disabledIdSet.has(String(node.id))) {
+        node.disabled = true;
+      }
+      if (node.children && node.children.length > 0) {
+        setDisabled(node.children);
+      }
+    }
+  };
+  setDisabled(rebuiltTree);
+
   const fullMenuTree = [
     {
       id: 0,
@@ -111,8 +129,9 @@ const [BasicDrawer, drawerApi] = useVbenDrawer({
       await formApi.setFieldValue('parentId', data.parentId);
     }
 
-    // 加载菜单树选择
-    await setupMenuSelect();
+    // 加载菜单树选择，编辑时传入当前菜单ID以禁用自身及子孙节点
+    const currentId = data?.update && data.id ? Number(data.id) : undefined;
+    await setupMenuSelect(currentId);
 
     if (data?.update && data.id) {
       const record = await menuInfo(Number(data.id));
