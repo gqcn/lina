@@ -19,7 +19,7 @@ func (s *Service) startSessionCleanup(ctx context.Context) {
 		} else if cleaned > 0 {
 			g.Log().Infof(ctx, "session cleanup: removed %d inactive sessions", cleaned)
 		}
-	}, "session-cleanup")
+	}, CronSessionCleanup)
 	if err != nil {
 		g.Log().Warningf(ctx, "failed to start session cleanup cron: %v", err)
 	}

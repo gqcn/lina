@@ -19,7 +19,7 @@ func (s *Service) startServerMonitor(ctx context.Context) {
 	cronPattern := fmt.Sprintf("*/%d * * * * *", monCfg.IntervalSeconds)
 	_, err := gcron.Add(ctx, cronPattern, func(ctx context.Context) {
 		s.serverMonSvc.CollectAndStore(ctx)
-	}, "server-monitor-collector")
+	}, CronServerMonitorCollector)
 	if err != nil {
 		g.Log().Warningf(ctx, "failed to start server monitor cron: %v", err)
 	}

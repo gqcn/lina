@@ -8,6 +8,13 @@ import (
 	"lina-core/internal/service/session"
 )
 
+// Cron job name constants.
+const (
+	CronSessionCleanup         = "session-cleanup"          // Session cleanup job name
+	CronServerMonitorCollector = "server-monitor-collector" // Server monitor collector job name
+	CronServerMonitorCleanup   = "server-monitor-cleanup"   // Server monitor cleanup job name
+)
+
 // Service manages all scheduled/cron tasks.
 type Service struct {
 	configSvc    *config.Service    // Configuration service
@@ -28,4 +35,5 @@ func New(sessionStore session.Store) *Service {
 func (s *Service) Start(ctx context.Context) {
 	s.startSessionCleanup(ctx)
 	s.startServerMonitor(ctx)
+	s.startServerMonitorCleanup(ctx)
 }

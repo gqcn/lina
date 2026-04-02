@@ -269,3 +269,12 @@
     - [x] FB-22.5 更新前端"采集时间"标签为"数据更新时间"
     - [x] FB-22.6 更新 E2E 测试 TC0052h 断言文本
   - 测试：TC0052 (8/8 passed) ✓
+
+## Feedback (Session 5)
+
+- [x] **FB-24**: 改进定时任务 service 层封装逻辑 ✓
+  - [x] FB-24.1 在 `servermon` 模块添加 `CleanupStale` 方法
+  - [x] FB-24.2 修改 `cron/cron_servermon_cleanup.go`，只保留定时任务注册逻辑
+  - [x] FB-24.3 更新 CLAUDE.md 添加定时任务封装规范
+  - [x] FB-24.4 定时任务名称使用常量统一管理（`cron.go` 中定义常量）
+  - E2E 测试豁免：后端定时任务无 UI 交互，不适合 E2E 测试，已通过编译验证

@@ -400,3 +400,21 @@ func getLocalIP() string {
 	}
 	return "unknown"
 }
+
+// CleanupStale deletes monitor records that haven't been updated
+// within the specified threshold duration.
+// This method is called by the cron service for scheduled cleanup.
+func (s *Service) CleanupStale(ctx context.Context, threshold time.Duration) (int64, error) {
+	cutoff := time.Now().Add(-threshold)
+	cols := dao.SysServerMonitor.Columns()
+
+	result, err := dao.SysServerMonitor.Ctx(ctx).
+		WhereLT(cols.UpdatedAt, cutoff).
+		Delete()
+	if err != nil {
+		return 0, err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	return rowsAffected, nil
+}
