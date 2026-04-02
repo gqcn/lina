@@ -19,7 +19,7 @@ type ServerMonitorRes struct {
 type ServerNodeInfo struct {
 	NodeName  string         `json:"nodeName" dc:"节点名称（hostname）" eg:"my-server"`
 	NodeIp    string         `json:"nodeIp" dc:"节点IP地址" eg:"192.168.1.100"`
-	CollectAt string         `json:"collectAt" dc:"采集时间" eg:"2025-01-01 12:00:00"`
+	CollectAt string         `json:"collectAt" dc:"数据上报时间" eg:"2025-01-01 12:00:00"`
 	Server    *ServerBasic   `json:"server" dc:"服务器基本信息"`
 	CPU       *CPUMetrics    `json:"cpu" dc:"CPU指标"`
 	Memory    *MemoryMetrics `json:"memory" dc:"内存指标"`

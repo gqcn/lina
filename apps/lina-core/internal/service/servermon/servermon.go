@@ -11,7 +11,6 @@ import (
 
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gtime"
 	cpuutil "github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/host"
@@ -113,6 +112,8 @@ func New() *Service {
 
 // CollectAndStore collects metrics and stores them in the database.
 // This method is designed to be called by the cron service.
+// Uses Save() with unique key constraint to ensure each node only has one record,
+// with updated_at automatically maintained by the database.
 func (s *Service) CollectAndStore(ctx context.Context) {
 	data := s.Collect(ctx)
 	jsonData, err := gjson.Encode(data)
@@ -124,11 +125,14 @@ func (s *Service) CollectAndStore(ctx context.Context) {
 	nodeName, _ := os.Hostname()
 	nodeIp := getLocalIP()
 
+	// Use Save() with unique key (node_name, node_ip) to upsert.
+	// Do not set CreatedAt/UpdatedAt manually - let GoFrame/MySQL handle them:
+	// - created_at: auto-filled on INSERT, preserved on UPDATE
+	// - updated_at: auto-updated by MySQL ON UPDATE CURRENT_TIMESTAMP
 	_, err = dao.SysServerMonitor.Ctx(ctx).Data(do.SysServerMonitor{
-		NodeName:  nodeName,
-		NodeIp:    nodeIp,
-		Data:      string(jsonData),
-		CreatedAt: gtime.Now(),
+		NodeName: nodeName,
+		NodeIp:   nodeIp,
+		Data:     string(jsonData),
 	}).Save()
 	if err != nil {
 		g.Log().Errorf(ctx, "Failed to store monitor data: %v", err)
@@ -337,9 +341,9 @@ func (s *Service) GetLatest(ctx context.Context, nodeName string) ([]*NodeMonito
 		m = m.Where(cols.NodeName, nodeName)
 	}
 
-	// Get distinct node names
+	// Get all records ordered by updated_at desc
 	var allRecords []*entity.SysServerMonitor
-	err := m.OrderDesc(cols.CreatedAt).Scan(&allRecords)
+	err := m.OrderDesc(cols.UpdatedAt).Scan(&allRecords)
 	if err != nil {
 		return nil, err
 	}
@@ -358,11 +362,18 @@ func (s *Service) GetLatest(ctx context.Context, nodeName string) ([]*NodeMonito
 		if err := gjson.DecodeTo([]byte(record.Data), &data); err != nil {
 			continue
 		}
+
+		// Use updated_at as the latest report time (when data was last updated)
+		updatedAt := record.UpdatedAt
+		if updatedAt == nil {
+			updatedAt = record.CreatedAt
+		}
+
 		result = append(result, &NodeMonitorData{
 			NodeName:  record.NodeName,
 			NodeIp:    record.NodeIp,
 			Data:      &data,
-			CollectAt: record.CreatedAt.Format("Y-m-d H:i:s"),
+			CollectAt: updatedAt.Format("Y-m-d H:i:s"),
 		})
 	}
 	return result, nil

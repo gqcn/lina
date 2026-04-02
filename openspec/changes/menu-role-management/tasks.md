@@ -256,3 +256,16 @@
   - 根因：Select 组件使用 `getDictOptions()` 异步加载字典，首次打开抽屉时选项可能为空
   - 修复：将角色状态改为 RadioGroup 组件（与菜单管理一致），选项硬编码为 `[{ label: '正常', value: 1 }, { label: '停用', value: 0 }]`
   - 回归测试：TC0061-role-crud.ts (9/9 passed) ✓
+
+## Feedback (Session 3)
+
+- [x] **FB-22**: 监控模块数据存储优化 ✓
+  - 问题：同一节点上报监控数据后应覆盖旧数据，保证每个节点只有最新一条记录；同时需要 `updated_at` 字段记录最新上报时间
+  - 修复内容：
+    - [x] FB-22.1 创建 SQL 迁移文件 `009-server-monitor-updated-at.sql`，添加 `updated_at` 字段（ON UPDATE CURRENT_TIMESTAMP）
+    - [x] FB-22.2 执行 `make dao` 重新生成 DAO/DO/Entity
+    - [x] FB-22.3 修改 `CollectAndStore` 方法，移除手动设置 `CreatedAt`，让框架/数据库自动处理时间字段
+    - [x] FB-22.4 修改 `GetLatest` 方法，使用 `updated_at` 排序和展示
+    - [x] FB-22.5 更新前端"采集时间"标签为"数据更新时间"
+    - [x] FB-22.6 更新 E2E 测试 TC0052h 断言文本
+  - 测试：TC0052 (8/8 passed) ✓

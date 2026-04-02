@@ -26,6 +26,7 @@ type SysServerMonitorColumns struct {
 	NodeIp    string // 节点IP地址
 	Data      string // 监控数据（JSON格式，包含CPU、内存、磁盘、网络、Go运行时等指标）
 	CreatedAt string // 采集时间
+	UpdatedAt string // 更新时间
 }
 
 // sysServerMonitorColumns holds the columns for the table sys_server_monitor.
@@ -35,6 +36,7 @@ var sysServerMonitorColumns = SysServerMonitorColumns{
 	NodeIp:    "node_ip",
 	Data:      "data",
 	CreatedAt: "created_at",
+	UpdatedAt: "updated_at",
 }
 
 // NewSysServerMonitorDao creates and returns a new DAO object for table data access.

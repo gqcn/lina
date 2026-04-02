@@ -437,7 +437,7 @@ const diskColumns = [
                     class="border-t border-border px-4 py-2 sm:col-span-1 sm:px-0"
                   >
                     <dt class="text-sm/6 font-medium text-foreground">
-                      采集时间
+                      数据更新时间
                     </dt>
                     <dd class="mt-1 text-sm/6 text-foreground">
                       {{ node.collectAt }}

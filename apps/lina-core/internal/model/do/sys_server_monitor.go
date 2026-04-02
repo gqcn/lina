@@ -17,4 +17,5 @@ type SysServerMonitor struct {
 	NodeIp    any         // 节点IP地址
 	Data      any         // 监控数据（JSON格式，包含CPU、内存、磁盘、网络、Go运行时等指标）
 	CreatedAt *gtime.Time // 采集时间
+	UpdatedAt *gtime.Time // 更新时间
 }
