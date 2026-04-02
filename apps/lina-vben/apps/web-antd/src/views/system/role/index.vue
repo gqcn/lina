@@ -12,7 +12,7 @@ import { getPopupContainer } from '@vben/utils';
 
 import { Modal, Popconfirm, Space, Switch, message } from 'ant-design-vue';
 
-import { useVbenVxeGrid } from '#/adapter/vxe-table';
+import { useVbenVxeGrid, vxeCheckboxChecked } from '#/adapter/vxe-table';
 import { roleList, roleRemove, roleStatusChange } from '#/api/system/role';
 import { useDictStore } from '#/store/dict';
 
@@ -109,7 +109,8 @@ async function handleDelete(row: Role) {
 }
 
 function handleMultiDelete() {
-  const rows = tableApi.grid.getCheckboxRecords();
+  const rows = tableApi.grid?.getCheckboxRecords?.() ?? [];
+  if (rows.length === 0) return;
   const ids = rows.map((row: Role) => row.id);
   Modal.confirm({
     title: '提示',
@@ -145,7 +146,7 @@ function handleAssignRole(record: Role) {
       <template #toolbar-tools>
         <Space>
           <a-button
-            :disabled="tableApi.grid.getCheckboxRecords().length === 0"
+            :disabled="!vxeCheckboxChecked(tableApi)"
             danger
             type="primary"
             @click="handleMultiDelete"

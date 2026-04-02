@@ -10,8 +10,7 @@ export class RolePage {
 
   async goto() {
     await this.page.goto('/system/role');
-    await this.page.waitForLoadState('networkidle');
-    // Wait for page content to appear - be more flexible
+    await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(2000);
   }
 
@@ -24,7 +23,7 @@ export class RolePage {
     remark?: string;
   }) {
     // Wait for page to be ready first
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(2000);
 
     // Click the primary "新增" button in toolbar (use first() as there may be multiple buttons)
@@ -35,38 +34,67 @@ export class RolePage {
 
     // Wait for drawer to open
     await this.drawer.waitFor({ state: 'visible', timeout: 10000 });
+    await this.page.waitForTimeout(500);
 
-    // Wait for form to render
-    await this.page.waitForTimeout(1500);
-
-    // Fill role name
+    // Fill text fields first (these work even with tour overlay present)
     const nameInput = this.drawer.locator('input[placeholder="请输入角色名称"]');
     await nameInput.waitFor({ state: 'visible', timeout: 5000 });
     await nameInput.fill(params.name);
 
-    // Fill role code (permission character)
-    const codeInput = this.drawer.locator('input[placeholder="请输入权限字符"]');
+    const codeInput = this.drawer.locator('input[placeholder="如: admin, user等"]');
     await codeInput.fill(params.code);
 
-    // Fill sort if provided
     if (params.sort !== undefined) {
-      const sortInput = this.drawer.locator('input[placeholder="请输入显示顺序"]');
+      const sortInput = this.drawer.getByRole('spinbutton');
       await sortInput.fill(String(params.sort));
     }
 
-    // Fill remark if provided
     if (params.remark) {
       const remarkInput = this.drawer.locator('textarea[placeholder="请输入备注"]');
       await remarkInput.fill(params.remark);
     }
 
+    // Wait for dict options to load (status field loads async from dict store)
+    await this.page.waitForTimeout(2000);
+
+    // Dismiss tour overlay NOW - it appears after dict options load and blocks clicks
+    const endTourBtn = this.page.getByRole('button', { name: '结束导览' });
+    if (await endTourBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await endTourBtn.click({ force: true });
+      await this.page.waitForTimeout(500);
+    }
+    const tourClose = this.page.locator('.ant-tour-close');
+    if (await tourClose.isVisible({ timeout: 300 }).catch(() => false)) {
+      await tourClose.click({ force: true });
+      await this.page.waitForTimeout(300);
+    }
+
+    // Select status - click the trigger then pick the option
+    const statusValue = params.status ?? 1;
+    const optionText = statusValue === 1 ? '正常' : '停用';
+
+    const statusCombobox = this.drawer.getByRole('combobox', { name: /角色状态/ });
+    await statusCombobox.waitFor({ state: 'visible', timeout: 5000 });
+    // Click the parent container (the .ant-select wrapper with cursor=pointer)
+    await statusCombobox.locator('xpath=..').locator('xpath=..').click();
+    await this.page.waitForTimeout(300);
+
+    // Options render in a portal at body level (.ant-select-dropdown)
+    // Use that container to avoid matching hidden options from other selects
+    const dropdown = this.page.locator('.ant-select-dropdown').last();
+    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+    await dropdown.getByText(optionText, { exact: true }).click();
+    await this.page.waitForTimeout(300);
+
     // Select menus if needed - for basic test we skip menu selection
     // Menu selection is tested separately in TC0061e
 
-    // Click confirm button
-    await this.drawer.getByRole('button', { name: /确\s*认/ }).click();
+    // Click confirm button - scroll into view first since dialog may be taller than viewport
+    const confirmBtn = this.drawer.getByRole('button', { name: /确\s*认/ });
+    await confirmBtn.scrollIntoViewIfNeeded();
+    await confirmBtn.click({ force: true });
 
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(500);
   }
 
@@ -84,10 +112,12 @@ export class RolePage {
     await nameInput.clear();
     await nameInput.fill(newName);
 
-    // Click confirm button
-    await this.drawer.getByRole('button', { name: /确\s*认/ }).click();
+    // Click confirm button - scroll into view first since dialog may be taller than viewport
+    const confirmBtn = this.drawer.getByRole('button', { name: /确\s*认/ });
+    await confirmBtn.scrollIntoViewIfNeeded();
+    await confirmBtn.click({ force: true });
 
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(500);
   }
 
@@ -114,7 +144,7 @@ export class RolePage {
       await modal.getByRole('button', { name: /确\s*定|OK/i }).click();
     }
 
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(500);
   }
 
@@ -129,27 +159,24 @@ export class RolePage {
 
   /** Search role by name */
   async searchRole(name: string) {
-    const searchInput = this.page.locator(
-      '.vxe-grid--form input[placeholder="请输入角色名称"]',
-    );
+    // Wait for search form to be ready
+    await this.page.waitForLoadState('load');
+
+    // Use getByPlaceholder for more reliable element selection
+    const searchInput = this.page.getByPlaceholder('请输入角色名称');
+    await searchInput.waitFor({ state: 'visible', timeout: 5000 });
     await searchInput.fill(name);
 
     // Click search button
-    await this.page
-      .locator('.vxe-grid--form')
-      .getByRole('button', { name: /搜\s*索/ })
-      .click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.getByRole('button', { name: /搜\s*索/ }).click();
+    await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(500);
   }
 
   /** Reset search */
   async resetSearch() {
-    await this.page
-      .locator('.vxe-grid--form')
-      .getByRole('button', { name: /重\s*置/ })
-      .click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.getByRole('button', { name: /重\s*置/ }).click();
+    await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(500);
   }
 
@@ -158,7 +185,7 @@ export class RolePage {
     const row = this.page.locator('.vxe-body--row', { hasText: roleName });
     const switchBtn = row.locator('.ant-switch');
     await switchBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(500);
   }
 
@@ -166,7 +193,7 @@ export class RolePage {
   async clickAssign(roleName: string) {
     const row = this.page.locator('.vxe-body--row', { hasText: roleName });
     await row.getByRole('button', { name: /分\s*配/ }).first().click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(500);
   }
 
@@ -213,11 +240,12 @@ export class RolePage {
     const nameInput = this.drawer.locator('input[placeholder="请输入角色名称"]');
     await nameInput.fill(params.name);
 
-    const codeInput = this.drawer.locator('input[placeholder="请输入权限字符"]');
+    const codeInput = this.drawer.locator('input[placeholder="如: admin, user等"]');
     await codeInput.fill(params.code);
 
     if (params.sort !== undefined) {
-      const sortInput = this.drawer.locator('input[placeholder="请输入显示顺序"]');
+      // Use spinbutton role for InputNumber component
+      const sortInput = this.drawer.getByRole('spinbutton');
       await sortInput.fill(String(params.sort));
     }
 
@@ -236,7 +264,7 @@ export class RolePage {
     }
 
     await this.drawer.getByRole('button', { name: /确\s*认/ }).click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(500);
   }
 
@@ -270,17 +298,31 @@ export class RolePage {
     }
 
     await this.drawer.getByRole('button', { name: /确\s*认/ }).click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(500);
   }
 
   /** Navigate to role management page */
   async navigateTo() {
     await this.page.goto('/system/role');
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('load');
     await this.page
       .locator('.vxe-table')
       .waitFor({ state: 'visible', timeout: 5000 })
       .catch(() => {});
+  }
+
+  /** Check if status switch is disabled for a role */
+  async isStatusSwitchDisabled(roleName: string): Promise<boolean> {
+    await this.searchRole(roleName);
+    const switchEl = this.page.locator('.vxe-body--row .ant-switch').first();
+    return switchEl.evaluate((el) => el.classList.contains('ant-switch-disabled'));
+  }
+
+  /** Check if checkbox is disabled for a role */
+  async isCheckboxDisabled(roleName: string): Promise<boolean> {
+    await this.searchRole(roleName);
+    const checkbox = this.page.locator('.vxe-body--row .vxe-cell--checkbox').first();
+    return checkbox.evaluate((el) => el.classList.contains('is--disabled'));
   }
 }
