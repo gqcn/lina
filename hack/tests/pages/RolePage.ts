@@ -54,10 +54,10 @@ export class RolePage {
       await remarkInput.fill(params.remark);
     }
 
-    // Wait for dict options to load (status field loads async from dict store)
-    await this.page.waitForTimeout(2000);
+    // Wait for form to fully render
+    await this.page.waitForTimeout(1000);
 
-    // Dismiss tour overlay NOW - it appears after dict options load and blocks clicks
+    // Dismiss tour overlay if present
     const endTourBtn = this.page.getByRole('button', { name: '结束导览' });
     if (await endTourBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
       await endTourBtn.click({ force: true });
@@ -69,22 +69,14 @@ export class RolePage {
       await this.page.waitForTimeout(300);
     }
 
-    // Select status - click the trigger then pick the option
+    // Select status - RadioGroup with button style
+    // Default is already '正常' (value 1), so we only need to click if status is 0
     const statusValue = params.status ?? 1;
-    const optionText = statusValue === 1 ? '正常' : '停用';
-
-    const statusCombobox = this.drawer.getByRole('combobox', { name: /角色状态/ });
-    await statusCombobox.waitFor({ state: 'visible', timeout: 5000 });
-    // Click the parent container (the .ant-select wrapper with cursor=pointer)
-    await statusCombobox.locator('xpath=..').locator('xpath=..').click();
-    await this.page.waitForTimeout(300);
-
-    // Options render in a portal at body level (.ant-select-dropdown)
-    // Use that container to avoid matching hidden options from other selects
-    const dropdown = this.page.locator('.ant-select-dropdown').last();
-    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
-    await dropdown.getByText(optionText, { exact: true }).click();
-    await this.page.waitForTimeout(300);
+    if (statusValue === 0) {
+      // Click on "停用" radio button
+      await this.drawer.locator('.ant-radio-button-wrapper').filter({ hasText: '停用' }).click();
+      await this.page.waitForTimeout(300);
+    }
 
     // Select data scope (required field) - click the label text to select
     // The RadioGroup uses ant-radio-button-wrapper with button style

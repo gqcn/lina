@@ -30,7 +30,7 @@ const [BasicForm, formApi] = useVbenForm({
     formItemClass: 'col-span-1',
   },
   layout: 'vertical',
-  schema: [],
+  schema: getDrawerSchema(),
   showDefaultActions: false,
   wrapperClass: 'grid-cols-2 gap-x-4',
 });
@@ -77,11 +77,12 @@ const [BasicDrawer, drawerApi] = useVbenDrawer({
     const { id } = drawerApi.getData() as { id?: number };
     isUpdate.value = !!id;
 
-    formApi.setState({ schema: await getDrawerSchema() });
-
     if (isUpdate.value && id) {
       const record = await roleInfo(id);
       await formApi.setValues(record);
+    } else {
+      // 新增模式：调用 resetForm 以应用 schema 中定义的 defaultValue
+      await formApi.resetForm();
     }
     await setupMenuTree(id);
     await markInitialized();

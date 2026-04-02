@@ -5,8 +5,6 @@ import { h } from 'vue';
 
 import { Tag } from 'ant-design-vue';
 
-import { useDictStore } from '#/store/dict';
-
 /** 数据权限选项 */
 export const dataScopeOptions = [
   { color: 'green', label: '全部数据权限', value: 1 },
@@ -101,11 +99,8 @@ export const columns: VxeGridProps['columns'] = [
   },
 ];
 
-/** 新增/编辑表单schema（动态获取） */
-export async function getDrawerSchema(): Promise<VbenFormSchema[]> {
-  const dictStore = useDictStore();
-  const statusOptions = await dictStore.getDictOptions('sys_normal_disable');
-
+/** 新增/编辑表单schema */
+export function getDrawerSchema(): VbenFormSchema[] {
   return [
     {
       component: 'Input',
@@ -148,20 +143,20 @@ export async function getDrawerSchema(): Promise<VbenFormSchema[]> {
       defaultValue: 0,
     },
     {
-      component: 'Select',
+      component: 'RadioGroup',
       componentProps: {
-        allowClear: false,
-        options: statusOptions.map((d) => ({
-          label: d.label,
-          value: Number(d.value),
-        })),
-        getPopupContainer: () => document.body,
+        buttonStyle: 'solid',
+        options: [
+          { label: '正常', value: 1 },
+          { label: '停用', value: 0 },
+        ],
+        optionType: 'button',
       },
+      defaultValue: 1,
       fieldName: 'status',
       help: '修改后, 拥有该角色的用户将自动下线',
       label: '角色状态',
       rules: 'required',
-      defaultValue: 1,
     },
     {
       component: 'RadioGroup',

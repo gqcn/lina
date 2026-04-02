@@ -194,26 +194,23 @@
 ## Feedback Complete
 
 **Change:** menu-role-management
-**Issues reported:** 15
-**Issues fixed:** 15/15
-**Tests added:** Updated MenuPage.ts to use "根菜单" instead of "主类目"
-**Regression tests run:** TC0060-menu-crud.ts (12/12 passed) ✓
+**Issues reported:** 18
+**Issues fixed:** 18/18
+**Tests added:** TC0064-role-form-defaults.ts (2 assertions)
+**Regression tests run:** TC0061-role-crud.ts (9/9 passed), TC0060-menu-crud.ts (12/12 passed) ✓
 **Verification:** all passed ✓
 
 ### Fixed This Session
-- [x] FB-1 ~ FB-14: Previous feedback items (all resolved)
-- [x] FB-15: 菜单初始化SQL种子数据与前端实际路由不匹配 ✓
-- [x] FB-16: 角色排序 InputNumber 默认值（已确认 data.ts 中 defaultValue: 0 正确配置）✓
-- [x] FB-17: 数据权限字段必选校验（已添加 `rules: 'required'`）✓
-- [x] FB-18: 菜单权限树显示修复 ✓
-  - 后端 service/menu/menu.go MenuTreeNode 已包含 Type/Icon 字段
-  - 后端 controller/menu/menu_v1_tree_select.go convertMenuTreeNode 已传递 Type/Icon 字段
-  - E2E 测试 TC0061 全部通过 (9/9)
-  - Added Dashboard directory with Analytics and Workspace menus
-  - Added hidden menus (Message List, Profile, Role Auth User)
-  - Removed non-existent menus (Cache Monitor, Cache List, System Tools)
-  - All type='M' menus now have perms and component fields
-  - Test regression: TC0060-menu-crud.ts 12/12 passed ✓
+- [x] FB-1 ~ FB-18: Previous feedback items (all resolved)
+- [x] FB-19: 角色排序 InputNumber 默认值不显示 ✓
+  - 修复：将 `getDrawerSchema()` 改为同步函数，schema 直接传入 `useVbenForm()` 构造函数
+  - 测试：TC0064 ✓ | 回归：TC0061 ✓
+- [x] FB-20: 数据权限字段默认选中"全部数据权限" ✓
+  - 确认 `defaultValue: 1` 和 `rules: 'required'` 配置正确，FB-19 修复后自动生效
+  - 测试：TC0064 ✓
+- [x] FB-21: 角色状态 Select 字典选项加载时机问题 ✓
+  - 修复：将角色状态改为 RadioGroup 组件，选项硬编码
+  - 测试：TC0061 (9/9 passed) ✓
 
 ### Menu Structure Summary
 ```
@@ -241,3 +238,21 @@
   📄 系统接口
   📄 版本信息
 📄 个人中心 (hidden, sort:99)
+```
+
+## Feedback (Session 2)
+
+- [x] **FB-19**: 角色排序 InputNumber 默认值不显示
+  - 根因：`getDrawerSchema()` 使用 async/await，导致 schema 在表单创建后才动态加载
+  - 修复：将 `getDrawerSchema()` 改为同步函数，schema 直接传入 `useVbenForm()` 构造函数
+  - 测试：TC0064-role-form-defaults.ts ✓
+
+- [x] **FB-20**: 数据权限字段需默认选中"全部数据权限"
+  - 已确认 `data.ts` 中 `dataScope` 字段配置 `defaultValue: 1` 和 `rules: 'required'` 正确
+  - FB-19 修复后，此问题自动解决
+  - 测试：TC0064-role-form-defaults.ts ✓
+
+- [x] **FB-21**: 角色状态 Select 组件字典选项加载时机问题
+  - 根因：Select 组件使用 `getDictOptions()` 异步加载字典，首次打开抽屉时选项可能为空
+  - 修复：将角色状态改为 RadioGroup 组件（与菜单管理一致），选项硬编码为 `[{ label: '正常', value: 1 }, { label: '停用', value: 0 }]`
+  - 回归测试：TC0061-role-crud.ts (9/9 passed) ✓
