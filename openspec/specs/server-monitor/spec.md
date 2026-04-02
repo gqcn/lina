@@ -16,6 +16,30 @@
 - **WHEN** 定时采集任务执行时
 - **THEN** 系统同时清理超过 1 小时的历史监控数据记录
 
+#### Scenario: Clean up expired records (K8S/dynamic environments)
+- **GIVEN** the monitor collection interval is N seconds
+- **WHEN** the cleanup cron job runs
+- **THEN** the system SHALL delete records where `updated_at` < (now - N * retention_multiplier)
+- **AND** the default retention_multiplier SHALL be 5
+
+**Note:** In K8S container environments, pod IPs change on each deployment, and old pods may no longer exist. Without cleanup, stale records accumulate indefinitely, degrading query performance and wasting storage.
+
+### Requirement: Monitor Configuration
+
+The system SHALL support configurable monitoring parameters.
+
+#### Scenario: Configure collection interval
+- **GIVEN** the configuration file contains `monitor.intervalSeconds`
+- **WHEN** the service starts
+- **THEN** the system SHALL use the configured interval
+- **OR** default to 30 seconds if not configured
+
+#### Scenario: Configure retention multiplier
+- **GIVEN** the configuration file contains `monitor.retentionMultiplier`
+- **WHEN** the cleanup job runs
+- **THEN** the system SHALL use the configured multiplier
+- **OR** default to 5 if not configured
+
 ### Requirement: 多节点支持
 
 系统 SHALL 支持多个 Lina 服务节点独立采集并上报监控数据，每个节点仅采集自身指标。

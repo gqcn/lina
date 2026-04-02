@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: 用户列表查询
-系统 SHALL 提供用户列表分页查询接口，支持多字段排序、增强的条件筛选和按部门过滤。
+系统 SHALL 提供用户列表分页查询接口，支持多字段排序、增强的条件筛选和按部门过滤，并包含角色信息。
 
 #### Scenario: 用户列表支持字段排序
 - **WHEN** 调用 `GET /api/v1/user` 并传入排序参数 `orderBy`（字段名）和 `orderDirection`（`asc` 或 `desc`）
@@ -28,8 +28,15 @@
 - **WHEN** 查询用户列表
 - **THEN** 每条用户数据中包含 deptName 字段（通过 LEFT JOIN sys_user_dept 和 sys_dept 获取）
 
+#### Scenario: 用户列表包含角色信息
+- **WHEN** 用户请求用户列表
+- **THEN** 系统通过 sys_user_role 表查询用户的角色关联
+- **AND** 系统通过 sys_role 表查询角色名称
+- **AND** 返回的 roleIds 为角色ID数组
+- **AND** 返回的 roleNames 为角色名称数组
+
 ### Requirement: 创建用户
-系统 SHALL 提供创建用户接口，支持关联部门和岗位。
+系统 SHALL 提供创建用户接口，支持关联部门、岗位和角色。
 
 #### Scenario: 创建用户成功
 - **WHEN** 调用 `POST /api/v1/user` 并提交用户名、密码、昵称等信息
@@ -43,6 +50,10 @@
 - **WHEN** 创建用户时提交 postIds 参数（数组）
 - **THEN** 系统在 sys_user_post 表中创建用户与各岗位的关联记录
 
+#### Scenario: 创建用户关联角色
+- **WHEN** 创建用户时提交 roleIds 参数（数组）
+- **THEN** 系统在 sys_user_role 表中创建用户与各角色的关联记录
+
 #### Scenario: 用户名重复
 - **WHEN** 创建用户时提交已存在的用户名
 - **THEN** 系统返回错误信息，提示用户名已存在
@@ -52,7 +63,7 @@
 - **THEN** 系统返回参数校验错误
 
 ### Requirement: 更新用户信息
-系统 SHALL 提供更新用户信息接口，支持更新部门和岗位关联。
+系统 SHALL 提供更新用户信息接口，支持更新部门、岗位和角色关联。
 
 #### Scenario: 更新用户成功
 - **WHEN** 调用 `PUT /api/v1/user/{id}` 并提交要更新的字段
@@ -66,18 +77,38 @@
 - **WHEN** 更新用户时提交 postIds 参数（数组）
 - **THEN** 系统更新 sys_user_post 表中的关联记录（先删后插）
 
+#### Scenario: 更新用户角色关联
+- **WHEN** 更新用户时提交 roleIds 参数（数组）
+- **THEN** 系统更新 sys_user_role 表中的关联记录（先删后插）
+
 #### Scenario: 更新不存在的用户
 - **WHEN** 更新一个不存在的用户 ID
 - **THEN** 系统返回错误信息，提示用户不存在
 
+#### Scenario: 更新用户事务处理
+- **WHEN** 更新用户时发生错误
+- **THEN** 系统回滚所有操作（用户基本信息、部门关联、岗位关联、角色关联）
+
 ### Requirement: 查看用户详情
-系统 SHALL 提供用户详情查询接口，返回关联的部门和岗位信息。
+系统 SHALL 提供用户详情查询接口，返回关联的部门、岗位和角色信息。
 
 #### Scenario: 查询用户详情
 - **WHEN** 调用 `GET /api/v1/user/{id}`
 - **THEN** 返回该用户的完整信息（不含密码）
 - **THEN** 包含 deptId（关联部门 ID）、deptName（部门名称）
 - **THEN** 包含 postIds（关联岗位 ID 数组）
+- **THEN** 包含 roleIds（关联角色 ID 数组）
+
+### Requirement: 删除用户
+
+系统必须支持删除用户时清理所有关联数据。
+
+#### Scenario: 删除用户清理关联数据
+- **WHEN** 用户删除一个用户
+- **THEN** 系统软删除用户记录
+- **AND** 系统删除 sys_user_dept 中的关联记录
+- **AND** 系统删除 sys_user_post 中的关联记录
+- **AND** 系统删除 sys_user_role 中的关联记录
 
 ### Requirement: 用户部门树接口
 系统 SHALL 提供用于用户管理左侧筛选的部门树接口，包含"未分配部门"虚拟节点和各节点用户数量。
