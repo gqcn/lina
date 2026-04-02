@@ -29,6 +29,8 @@ func convertMenuTreeNode(node *menusvc.MenuTreeNode) *v1.MenuTreeNode {
 		Id:       node.Id,
 		ParentId: node.ParentId,
 		Label:    node.Label,
+		Type:     node.Type,
+		Icon:     node.Icon,
 		Children: make([]*v1.MenuTreeNode, 0),
 	}
 

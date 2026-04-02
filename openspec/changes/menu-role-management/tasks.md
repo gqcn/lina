@@ -182,6 +182,15 @@
   - 修复：将 `setFieldValue` 移到 `resetForm` 之后执行
   - 测试：TC0060l ✓
 
+- [x] **FB-16**：新增角色页面中，角色排序 InputNumber 默认值已正确配置（data.ts 中 defaultValue: 0）
+- [x] **FB-17**：新增角色页面中，数据权限字段已添加 `rules: 'required'`，显示必选标记
+- [x] **FB-18**：角色新增/编辑页面中，菜单权限树已正确显示类型图标和权限复选框
+  - [x] FB-18.1 后端 `MenuTreeNode` 添加 `Type` 和 `Icon` 字段（service/menu/menu.go）
+  - [x] FB-18.2 后端 `GetTreeSelect` 包含所有菜单类型（含按钮），不再过滤 `type='B'`
+  - [x] FB-18.3 更新后端 API 定义 `menu_treeselect.go`
+  - [x] FB-18.4 更新控制器 `menu_v1_tree_select.go`，在 `convertMenuTreeNode` 中传递 Type 和 Icon 字段
+  - [x] FB-18.5 验证前端菜单权限树正确显示类型图标和权限复选框
+
 ## Feedback Complete
 
 **Change:** menu-role-management
@@ -194,6 +203,12 @@
 ### Fixed This Session
 - [x] FB-1 ~ FB-14: Previous feedback items (all resolved)
 - [x] FB-15: 菜单初始化SQL种子数据与前端实际路由不匹配 ✓
+- [x] FB-16: 角色排序 InputNumber 默认值（已确认 data.ts 中 defaultValue: 0 正确配置）✓
+- [x] FB-17: 数据权限字段必选校验（已添加 `rules: 'required'`）✓
+- [x] FB-18: 菜单权限树显示修复 ✓
+  - 后端 service/menu/menu.go MenuTreeNode 已包含 Type/Icon 字段
+  - 后端 controller/menu/menu_v1_tree_select.go convertMenuTreeNode 已传递 Type/Icon 字段
+  - E2E 测试 TC0061 全部通过 (9/9)
   - Added Dashboard directory with Analytics and Workspace menus
   - Added hidden menus (Message List, Profile, Role Auth User)
   - Removed non-existent menus (Cache Monitor, Cache List, System Tools)

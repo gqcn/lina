@@ -25,7 +25,8 @@ export interface MenuTreeNode {
   id: number;
   parentId: number;
   label: string;
-  type?: string; // D=Directory M=Menu B=Button
+  type: string; // D=Directory M=Menu B=Button
+  icon?: string;
   children?: MenuTreeNode[];
 }
 

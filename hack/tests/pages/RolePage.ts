@@ -86,6 +86,20 @@ export class RolePage {
     await dropdown.getByText(optionText, { exact: true }).click();
     await this.page.waitForTimeout(300);
 
+    // Select data scope (required field) - click the label text to select
+    // The RadioGroup uses ant-radio-button-wrapper with button style
+    const dataScopeLabel = this.drawer.getByText('全部数据权限', { exact: true });
+    await dataScopeLabel.waitFor({ state: 'visible', timeout: 5000 });
+    await dataScopeLabel.click({ force: true });
+    await this.page.waitForTimeout(500);
+
+    // Verify the radio is selected (ant-radio-button-wrapper-checked class)
+    const checkedRadio = this.drawer.locator('.ant-radio-button-wrapper-checked');
+    await checkedRadio.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {
+      // If not visible, try clicking again
+      return dataScopeLabel.click({ force: true });
+    });
+
     // Select menus if needed - for basic test we skip menu selection
     // Menu selection is tested separately in TC0061e
 
@@ -106,6 +120,19 @@ export class RolePage {
 
     // Wait for drawer to open
     await this.drawer.waitFor({ state: 'visible', timeout: 5000 });
+    await this.page.waitForTimeout(500);
+
+    // Dismiss any tour overlay that might block clicks
+    const endTourBtn = this.page.getByRole('button', { name: '结束导览' });
+    if (await endTourBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await endTourBtn.click({ force: true });
+      await this.page.waitForTimeout(500);
+    }
+    const tourClose = this.page.locator('.ant-tour-close');
+    if (await tourClose.isVisible({ timeout: 300 }).catch(() => false)) {
+      await tourClose.click({ force: true });
+      await this.page.waitForTimeout(300);
+    }
 
     // Clear and fill the new name
     const nameInput = this.drawer.locator('input[placeholder="请输入角色名称"]');

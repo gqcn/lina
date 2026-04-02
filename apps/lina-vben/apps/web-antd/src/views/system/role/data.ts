@@ -168,6 +168,7 @@ export async function getDrawerSchema(): Promise<VbenFormSchema[]> {
       fieldName: 'dataScope',
       label: '数据权限',
       help: '更改后需要用户重新登录才能生效',
+      rules: 'required',
       defaultValue: 1,
       componentProps: {
         optionType: 'button',

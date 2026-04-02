@@ -370,17 +370,18 @@ type MenuTreeNode struct {
 	Id       int             `json:"id"`
 	ParentId int             `json:"parentId"`
 	Label    string          `json:"label"`
+	Type     string          `json:"type,omitempty"`
+	Icon     string          `json:"icon,omitempty"`
 	Children []*MenuTreeNode `json:"children"`
 }
 
-// GetTreeSelect returns menu tree for selection (excludes button type).
+// GetTreeSelect returns menu tree for selection (includes all menu types: D/M/B).
 func (s *Service) GetTreeSelect(ctx context.Context) ([]*MenuTreeNode, error) {
 	cols := dao.SysMenu.Columns()
 
-	// Query all menus, exclude button type
+	// Query all menus (including button type for permission selection)
 	var list []*entity.SysMenu
 	err := dao.SysMenu.Ctx(ctx).
-		WhereNot(cols.Type, "B").
 		Order(cols.Sort + " ASC").
 		Scan(&list)
 	if err != nil {
@@ -394,6 +395,8 @@ func (s *Service) GetTreeSelect(ctx context.Context) ([]*MenuTreeNode, error) {
 			Id:       m.Id,
 			ParentId: m.ParentId,
 			Label:    m.Name,
+			Type:     m.Type,
+			Icon:     m.Icon,
 			Children: make([]*MenuTreeNode, 0),
 		}
 	}

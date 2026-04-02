@@ -15,6 +15,8 @@ type MenuTreeNode struct {
 	Id       int             `json:"id" dc:"菜单ID" eg:"1"`
 	ParentId int             `json:"parentId" dc:"父菜单ID" eg:"0"`
 	Label    string          `json:"label" dc:"菜单名称" eg:"系统管理"`
+	Type     string          `json:"type" dc:"菜单类型：D=目录 M=菜单 B=按钮" eg:"D"`
+	Icon     string          `json:"icon" dc:"菜单图标" eg:"ant-design:dashboard-outlined"`
 	Children []*MenuTreeNode `json:"children" dc:"子菜单" eg:"[]"`
 }
 
