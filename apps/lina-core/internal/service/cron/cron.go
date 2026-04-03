@@ -18,16 +18,23 @@ const (
 
 // Service manages all scheduled/cron tasks.
 type Service struct {
-	configSvc    *config.Service    // Configuration service
-	serverMonSvc *servermon.Service // Server monitor service
-	sessionStore session.Store      // Session store
-	electionSvc  *election.Service  // Leader election service
+	sessionCfg   *config.SessionConfig // Session configuration
+	monCfg       *config.MonitorConfig // Monitor configuration
+	serverMonSvc *servermon.Service    // Server monitor service
+	sessionStore session.Store         // Session store
+	electionSvc  *election.Service     // Leader election service
 }
 
 // New creates and returns a new Service instance.
-func New(sessionStore session.Store, electionSvc *election.Service) *Service {
+func New(
+	sessionCfg *config.SessionConfig,
+	monCfg *config.MonitorConfig,
+	sessionStore session.Store,
+	electionSvc *election.Service,
+) *Service {
 	return &Service{
-		configSvc:    config.New(),
+		sessionCfg:   sessionCfg,
+		monCfg:       monCfg,
 		serverMonSvc: servermon.New(),
 		sessionStore: sessionStore,
 		electionSvc:  electionSvc,

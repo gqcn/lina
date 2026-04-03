@@ -13,10 +13,8 @@ import (
 // (collection_interval * retention_multiplier) seconds.
 // This is a Master-Only job, only executed on the leader node.
 func (s *Service) startServerMonitorCleanup(ctx context.Context) {
-	monCfg := s.configSvc.GetMonitor(ctx)
-
 	// Calculate stale threshold: interval * multiplier
-	staleThreshold := time.Duration(monCfg.IntervalSeconds*monCfg.RetentionMultiplier) * time.Second
+	staleThreshold := time.Duration(s.monCfg.IntervalSeconds*s.monCfg.RetentionMultiplier) * time.Second
 
 	_, err := gcron.Add(ctx, "# * * * * *", func(ctx context.Context) {
 		// Check if current node is the leader before executing

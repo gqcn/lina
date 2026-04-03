@@ -40,3 +40,7 @@
 - [x] 7.3 创建 `locker_lease_test.go` - 租约续期管理测试（Start、Stop、StoppedChan）
 - [x] 7.4 创建 `locker_election_test.go` - 领导选举测试（Start、Stop、tryAcquire）
 - [x] 7.5 测试覆盖率达到 84.1%（超过 80% 目标）
+
+## Feedback
+
+- [x] **FB-1**: cron.Service 持有整个 config.Service 但只使用特定配置对象，应改为接收具体的配置对象（参考 election.Service 做法）

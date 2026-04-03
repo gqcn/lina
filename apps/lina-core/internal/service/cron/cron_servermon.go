@@ -10,13 +10,11 @@ import (
 
 // startServerMonitor starts the server monitor metrics collector.
 func (s *Service) startServerMonitor(ctx context.Context) {
-	monCfg := s.configSvc.GetMonitor(ctx)
-
 	// Collect immediately on startup
 	s.serverMonSvc.CollectAndStore(ctx)
 
 	// Then collect periodically via gcron
-	cronPattern := fmt.Sprintf("*/%d * * * * *", monCfg.IntervalSeconds)
+	cronPattern := fmt.Sprintf("*/%d * * * * *", s.monCfg.IntervalSeconds)
 	_, err := gcron.Add(ctx, cronPattern, func(ctx context.Context) {
 		s.serverMonSvc.CollectAndStore(ctx)
 	}, CronServerMonitorCollector)

@@ -50,8 +50,11 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	// Initialize distributed locker and leader election
 	var (
 		lockerSvc   = locker.New()
-		electionSvc = election.New(lockerSvc, configSvc.GetElection(ctx))
-		cronSvc     = cron.New(middlewareSvc.SessionStore(), electionSvc)
+		electionCfg = configSvc.GetElection(ctx)
+		electionSvc = election.New(lockerSvc, electionCfg)
+		sessionCfg  = configSvc.GetSession(ctx)
+		monCfg      = configSvc.GetMonitor(ctx)
+		cronSvc     = cron.New(sessionCfg, monCfg, middlewareSvc.SessionStore(), electionSvc)
 	)
 	// Start election when distributed deployment.
 	electionSvc.Start(ctx)
