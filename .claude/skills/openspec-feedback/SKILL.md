@@ -22,7 +22,9 @@ When users discover bugs or improvement points after implementation, this skill 
 
 ### 1. Identify Target Change
 
-**CRITICAL: Always append to existing active changes. Only create new change when none exist.**
+**CRITICAL:** 
+1. Always append to existing active changes. Only create new change when none exist.
+2. Regardless of whether the feedback content is related to the main functionality of the current active iteration, it MUST be appended to the current active iteration.** This ensures all changes are tracked in a single change record for unified management and archiving.
 
 ```bash
 openspec list --json

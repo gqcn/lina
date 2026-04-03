@@ -77,33 +77,33 @@ const gridOptions: VxeGridProps = {
     {
       title: '用户账号',
       field: 'username',
-      minWidth: 120,
+      minWidth: 100,
     },
     {
       title: '用户昵称',
       field: 'nickname',
-      minWidth: 120,
+      minWidth: 100,
     },
     {
       title: '邮箱',
       field: 'email',
-      minWidth: 150,
+      minWidth: 120,
     },
     {
       title: '手机号码',
       field: 'phone',
-      minWidth: 130,
+      minWidth: 110,
     },
     {
       title: '状态',
       field: 'status',
-      width: 100,
+      width: 80,
       slots: { default: 'status' },
     },
     {
       title: '创建时间',
       field: 'createdAt',
-      width: 160,
+      width: 170,
     },
     {
       field: 'action',
