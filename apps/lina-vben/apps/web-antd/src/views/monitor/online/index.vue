@@ -33,16 +33,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       ajax: {
         query: async ({ page }: any, formValues: Record<string, any> = {}) => {
-          const resp = await onlineList({ ...formValues });
-          onlineCount.value = resp.total;
-
-          // Frontend pagination (backend returns all data)
           const { currentPage, pageSize } = page;
-          const currentIndex = (currentPage - 1) * pageSize;
-          const endIndex = currentIndex + pageSize;
-          const sliceItems = resp.items.slice(currentIndex, endIndex);
-
-          return { items: sliceItems, total: resp.total };
+          const resp = await onlineList({
+            ...formValues,
+            pageNum: currentPage,
+            pageSize,
+          });
+          onlineCount.value = resp.total;
+          return { items: resp.items, total: resp.total };
         },
       },
     },

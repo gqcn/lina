@@ -30,6 +30,12 @@ type ListFilter struct {
 	Ip       string // Login IP, supports fuzzy search
 }
 
+// ListResult defines the result for paginated session list.
+type ListResult struct {
+	Items []*Session // Session items
+	Total int        // Total count
+}
+
 // Store defines the session storage interface.
 // Current implementation uses MySQL MEMORY engine.
 // Future implementations may use gcache + Redis.
@@ -39,6 +45,7 @@ type Store interface {
 	Delete(ctx context.Context, tokenId string) error
 	DeleteByUserId(ctx context.Context, userId int) error
 	List(ctx context.Context, filter *ListFilter) ([]*Session, error)
+	ListPage(ctx context.Context, filter *ListFilter, pageNum, pageSize int) (*ListResult, error)
 	Count(ctx context.Context) (int, error)
 	// TouchOrValidate updates last_active_time for the given tokenId.
 	// Returns true if the session exists (affected rows > 0), false otherwise.
@@ -139,6 +146,54 @@ func (s *DBStore) List(ctx context.Context, filter *ListFilter) ([]*Session, err
 		}
 	}
 	return sessions, nil
+}
+
+func (s *DBStore) ListPage(ctx context.Context, filter *ListFilter, pageNum, pageSize int) (*ListResult, error) {
+	m := dao.SysOnlineSession.Ctx(ctx)
+	if filter != nil {
+		cols := dao.SysOnlineSession.Columns()
+		if filter.Username != "" {
+			m = m.WhereLike(cols.Username, "%"+filter.Username+"%")
+		}
+		if filter.Ip != "" {
+			m = m.WhereLike(cols.Ip, "%"+filter.Ip+"%")
+		}
+	}
+
+	// Get total count
+	total, err := m.Count()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get paginated items
+	var entities []*entity.SysOnlineSession
+	err = m.OrderDesc(dao.SysOnlineSession.Columns().LoginTime).
+		Page(pageNum, pageSize).
+		Scan(&entities)
+	if err != nil {
+		return nil, err
+	}
+
+	sessions := make([]*Session, len(entities))
+	for i, e := range entities {
+		sessions[i] = &Session{
+			TokenId:        e.TokenId,
+			UserId:         e.UserId,
+			Username:       e.Username,
+			DeptName:       e.DeptName,
+			Ip:             e.Ip,
+			Browser:        e.Browser,
+			Os:             e.Os,
+			LoginTime:      e.LoginTime,
+			LastActiveTime: e.LastActiveTime,
+		}
+	}
+
+	return &ListResult{
+		Items: sessions,
+		Total: total,
+	}, nil
 }
 
 func (s *DBStore) Count(ctx context.Context) (int, error) {

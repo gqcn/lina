@@ -44,3 +44,4 @@
 ## Feedback
 
 - [x] **FB-1**: cron.Service 持有整个 config.Service 但只使用特定配置对象，应改为接收具体的配置对象（参考 election.Service 做法）
+- [x] **FB-2**: 在线用户列表接口缺少分页参数，后端返回全量数据导致前端需要客户端分页

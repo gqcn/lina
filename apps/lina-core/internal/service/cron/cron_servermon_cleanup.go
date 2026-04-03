@@ -36,6 +36,6 @@ func (s *Service) startServerMonitorCleanup(ctx context.Context) {
 		}
 	}, CronServerMonitorCleanup)
 	if err != nil {
-		g.Log().Warningf(ctx, "failed to start server monitor cleanup cron: %v", err)
+		g.Log().Panicf(ctx, "failed to start server monitor cleanup cron: %v", err)
 	}
 }

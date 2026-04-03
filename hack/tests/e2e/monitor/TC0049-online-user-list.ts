@@ -47,4 +47,21 @@ test.describe('TC0049 在线用户列表展示', () => {
       'admin',
     );
   });
+
+  test('TC0049e: 后端分页请求包含分页参数', async ({ adminPage }) => {
+    // Trigger a query and verify the request includes pagination params
+    const requestPromise = adminPage.waitForRequest(
+      (req) =>
+        req.url().includes('/api/v1/monitor/online/list') &&
+        req.url().includes('pageNum=') &&
+        req.url().includes('pageSize='),
+    );
+    await adminPage.getByRole('button', { name: /搜\s*索/ }).click();
+    const request = await requestPromise;
+
+    // Verify pagination params exist
+    const url = new URL(request.url());
+    expect(url.searchParams.get('pageNum')).not.toBeNull();
+    expect(url.searchParams.get('pageSize')).not.toBeNull();
+  });
 });

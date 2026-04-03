@@ -19,6 +19,6 @@ func (s *Service) startServerMonitor(ctx context.Context) {
 		s.serverMonSvc.CollectAndStore(ctx)
 	}, CronServerMonitorCollector)
 	if err != nil {
-		g.Log().Warningf(ctx, "failed to start server monitor cron: %v", err)
+		g.Log().Panicf(ctx, "failed to start server monitor cron: %v", err)
 	}
 }

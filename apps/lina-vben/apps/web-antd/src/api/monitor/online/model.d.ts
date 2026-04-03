@@ -14,6 +14,8 @@ export interface OnlineListResult {
 }
 
 export interface OnlineListParams {
+  pageNum?: number;
+  pageSize?: number;
   username?: string;
   ip?: string;
 }

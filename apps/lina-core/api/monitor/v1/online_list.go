@@ -5,7 +5,9 @@ import "github.com/gogf/gf/v2/frame/g"
 // Online User List API
 
 type OnlineListReq struct {
-	g.Meta   `path:"/monitor/online/list" method:"get" tags:"系统监控" summary:"在线用户列表" dc:"查询当前所有在线用户会话，支持按用户名和IP地址模糊过滤"`
+	g.Meta   `path:"/monitor/online/list" method:"get" tags:"系统监控" summary:"在线用户列表" dc:"分页查询当前在线用户会话，支持按用户名和IP地址模糊过滤"`
+	PageNum  int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`
+	PageSize int    `json:"pageSize" d:"10" v:"min:1|max:100" dc:"每页条数" eg:"10"`
 	Username string `json:"username" dc:"按用户名模糊过滤，不传则查询全部" eg:"admin"`
 	Ip       string `json:"ip" dc:"按IP地址模糊过滤，不传则查询全部" eg:"127.0.0.1"`
 }

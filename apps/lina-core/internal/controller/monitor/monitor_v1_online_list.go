@@ -7,18 +7,18 @@ import (
 	"lina-core/internal/service/session"
 )
 
-// OnlineList queries online user list
+// OnlineList queries online user list with pagination
 func (c *ControllerV1) OnlineList(ctx context.Context, req *v1.OnlineListReq) (res *v1.OnlineListRes, err error) {
-	sessions, err := c.sessionStore().List(ctx, &session.ListFilter{
+	result, err := c.sessionStore().ListPage(ctx, &session.ListFilter{
 		Username: req.Username,
 		Ip:       req.Ip,
-	})
+	}, req.PageNum, req.PageSize)
 	if err != nil {
 		return nil, err
 	}
 
-	items := make([]*v1.OnlineUserItem, 0, len(sessions))
-	for _, s := range sessions {
+	items := make([]*v1.OnlineUserItem, 0, len(result.Items))
+	for _, s := range result.Items {
 		items = append(items, &v1.OnlineUserItem{
 			TokenId:   s.TokenId,
 			Username:  s.Username,
@@ -30,9 +30,8 @@ func (c *ControllerV1) OnlineList(ctx context.Context, req *v1.OnlineListReq) (r
 		})
 	}
 
-	total, _ := c.sessionStore().Count(ctx)
 	return &v1.OnlineListRes{
 		Items: items,
-		Total: total,
+		Total: result.Total,
 	}, nil
 }
