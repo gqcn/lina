@@ -19,6 +19,7 @@ type IRoleV1 interface {
 	RoleOptions(ctx context.Context, req *v1.RoleOptionsReq) (res *v1.RoleOptionsRes, err error)
 	RoleStatus(ctx context.Context, req *v1.RoleStatusReq) (res *v1.RoleStatusRes, err error)
 	RoleUnassignUser(ctx context.Context, req *v1.RoleUnassignUserReq) (res *v1.RoleUnassignUserRes, err error)
+	RoleUnassignUsers(ctx context.Context, req *v1.RoleUnassignUsersReq) (res *v1.RoleUnassignUsersRes, err error)
 	RoleUpdate(ctx context.Context, req *v1.RoleUpdateReq) (res *v1.RoleUpdateRes, err error)
 	RoleUsers(ctx context.Context, req *v1.RoleUsersReq) (res *v1.RoleUsersRes, err error)
 }

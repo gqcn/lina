@@ -4,7 +4,7 @@
 
 - **前端**: `Vben5 + Vue 3 + Ant Design Vue + TypeScript（pnpm monorepo）`
 - **后端**: `GoFrame + MySQL + JWT`
-- **参考项目**: `/Users/john/Workspace/gitee/dapppp/ruoyi-plus-vben5`（前端样式和功能交互参考）
+- **参考项目**: `/Users/john/Workspace/github/imdap/ruoyi-plus-vben5`（前端样式和功能交互参考）
 
 ## 默认账号
 

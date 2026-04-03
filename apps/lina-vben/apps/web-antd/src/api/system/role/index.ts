@@ -31,6 +31,7 @@ export interface RoleUser {
   id: number;
   username: string;
   nickname: string;
+  email: string;
   phone: string;
   status: number;
   createdAt: string;
@@ -97,4 +98,9 @@ export function roleAssignUsers(roleId: number, userIds: number[]) {
 /** 取消用户授权 */
 export function roleUnassignUser(roleId: number, userId: number) {
   return requestClient.delete(`/role/${roleId}/users/${userId}`);
+}
+
+/** 批量取消用户授权 */
+export function roleUnassignUsers(roleId: number, userIds: number[]) {
+  return requestClient.delete(`/role/${roleId}/users`, { data: { userIds } });
 }

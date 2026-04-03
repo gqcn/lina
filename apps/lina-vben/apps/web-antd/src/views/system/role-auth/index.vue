@@ -10,10 +10,10 @@ import { useRoute, useRouter } from 'vue-router';
 import { Page } from '@vben/common-ui';
 import { getPopupContainer } from '@vben/utils';
 
-import { Popconfirm, Space, message } from 'ant-design-vue';
+import { Modal, Popconfirm, Space, Tag, message } from 'ant-design-vue';
 
-import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { roleInfo, roleUnassignUser, roleUsers } from '#/api/system/role';
+import { useVbenVxeGrid, vxeCheckboxChecked } from '#/adapter/vxe-table';
+import { roleInfo, roleUnassignUser, roleUnassignUsers, roleUsers } from '#/api/system/role';
 import { useDictStore } from '#/store/dict';
 
 const route = useRoute();
@@ -83,6 +83,11 @@ const gridOptions: VxeGridProps = {
       title: '用户昵称',
       field: 'nickname',
       minWidth: 120,
+    },
+    {
+      title: '邮箱',
+      field: 'email',
+      minWidth: 150,
     },
     {
       title: '手机号码',
@@ -166,6 +171,23 @@ async function handleUnassignUser(row: RoleUser) {
   await tableApi.query();
 }
 
+function handleMultiUnassignUsers() {
+  const rows = tableApi.grid?.getCheckboxRecords?.() ?? [];
+  if (rows.length === 0) return;
+  const ids = rows.map((row: RoleUser) => row.id);
+  Modal.confirm({
+    title: '提示',
+    okType: 'danger',
+    content: `确认取消选中的${ids.length}条授权记录吗？`,
+    onOk: async () => {
+      await roleUnassignUsers(roleId, ids);
+      message.success('批量取消授权成功');
+      await tableApi.query();
+      tableApi.grid?.clearCheckboxRow?.();
+    },
+  });
+}
+
 function handleBack() {
   router.push('/system/role');
 }
@@ -173,30 +195,36 @@ function handleBack() {
 
 <template>
   <Page :auto-content-height="true">
-    <BasicTable :table-title="`角色 [${roleName}] 的授权用户列表`">
+    <BasicTable :table-title="`已分配的用户列表`">
       <template #toolbar-tools>
         <Space>
+          <a-button
+            :disabled="!vxeCheckboxChecked(tableApi)"
+            danger
+            type="primary"
+            @click="handleMultiUnassignUsers"
+          >
+            取消授权
+          </a-button>
           <a-button @click="handleBack">返 回</a-button>
         </Space>
       </template>
       <template #status="{ row }">
-        <a-tag :color="row.status === 1 ? 'success' : 'error'">
+        <Tag :color="row.status === 1 ? 'success' : 'error'">
           {{ row.status === 1 ? statusLabel.checked : statusLabel.unchecked }}
-        </a-tag>
+        </Tag>
       </template>
       <template #action="{ row }">
-        <Space>
-          <Popconfirm
-            :get-popup-container="getPopupContainer"
-            placement="left"
-            title="确认取消授权？"
-            @confirm="handleUnassignUser(row)"
-          >
-            <ghost-button danger @click.stop="">
-              取消授权
-            </ghost-button>
-          </Popconfirm>
-        </Space>
+        <Popconfirm
+          :get-popup-container="getPopupContainer"
+          placement="left"
+          :title="`确认取消授权用户[${row.username} - ${row.nickname}]?`"
+          @confirm="handleUnassignUser(row)"
+        >
+          <ghost-button danger @click.stop="">
+            取消授权
+          </ghost-button>
+        </Popconfirm>
       </template>
     </BasicTable>
   </Page>

@@ -396,6 +396,7 @@ type RoleUserItem struct {
 	Id        int    `json:"id"`
 	Username  string `json:"username"`
 	Nickname  string `json:"nickname"`
+	Email     string `json:"email"`
 	Phone     string `json:"phone"`
 	Status    int    `json:"status"`
 	CreatedAt string `json:"createdAt"`
@@ -488,6 +489,7 @@ func (s *Service) GetUsers(ctx context.Context, in GetUsersInput) (*GetUsersOutp
 			Id:        u.Id,
 			Username:  u.Username,
 			Nickname:  u.Nickname,
+			Email:     u.Email,
 			Phone:     u.Phone,
 			Status:    u.Status,
 			CreatedAt: createdAt,
@@ -552,6 +554,22 @@ func (s *Service) UnassignUser(ctx context.Context, roleId int, userId int) erro
 	_, err = dao.SysUserRole.Ctx(ctx).
 		Where(urCols.RoleId, roleId).
 		Where(urCols.UserId, userId).
+		Delete()
+	return err
+}
+
+// UnassignUsers removes multiple users from a role.
+func (s *Service) UnassignUsers(ctx context.Context, roleId int, userIds []int) error {
+	// Check role exists
+	_, err := s.GetById(ctx, roleId)
+	if err != nil {
+		return err
+	}
+
+	urCols := dao.SysUserRole.Columns()
+	_, err = dao.SysUserRole.Ctx(ctx).
+		Where(urCols.RoleId, roleId).
+		WhereIn(urCols.UserId, userIds).
 		Delete()
 	return err
 }

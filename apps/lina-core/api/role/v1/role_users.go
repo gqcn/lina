@@ -27,6 +27,7 @@ type RoleUserItem struct {
 	Id        int    `json:"id" dc:"用户ID" eg:"1"`
 	Username  string `json:"username" dc:"用户名" eg:"admin"`
 	Nickname  string `json:"nickname" dc:"昵称" eg:"管理员"`
+	Email     string `json:"email" dc:"邮箱" eg:"admin@example.com"`
 	Phone     string `json:"phone" dc:"手机号" eg:"13800138000"`
 	Status    int    `json:"status" dc:"状态（0=停用 1=正常）" eg:"1"`
 	CreatedAt string `json:"createdAt" dc:"创建时间" eg:"2024-01-01 00:00:00"`
