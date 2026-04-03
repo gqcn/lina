@@ -21,11 +21,13 @@ type SysLockerDao struct {
 
 // SysLockerColumns defines and stores column names for the table sys_locker.
 type SysLockerColumns struct {
-	Id         string // 锁ID
-	Name       string // 锁名称
-	Reason     string // 锁定原因
-	CreateTime string // 创建时间
-	ExpireTime string // 过期时间
+	Id         string // 主键ID
+	Name       string // 锁名称，唯一标识
+	Reason     string // 获取锁的原因
+	Holder     string // 锁持有者标识（节点名）
+	ExpireTime string // 锁过期时间
+	CreatedAt  string // 创建时间
+	UpdatedAt  string // 更新时间
 }
 
 // sysLockerColumns holds the columns for the table sys_locker.
@@ -33,8 +35,10 @@ var sysLockerColumns = SysLockerColumns{
 	Id:         "id",
 	Name:       "name",
 	Reason:     "reason",
-	CreateTime: "create_time",
+	Holder:     "holder",
 	ExpireTime: "expire_time",
+	CreatedAt:  "created_at",
+	UpdatedAt:  "updated_at",
 }
 
 // NewSysLockerDao creates and returns a new DAO object for table data access.

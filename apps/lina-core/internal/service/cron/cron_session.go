@@ -9,10 +9,16 @@ import (
 )
 
 // startSessionCleanup registers the session cleanup cron job.
+// This is a Master-Only job, only executed on the leader node.
 func (s *Service) startSessionCleanup(ctx context.Context) {
 	sessionCfg := s.configSvc.GetSession(ctx)
 	cronPattern := fmt.Sprintf("*/%d * * * *", sessionCfg.CleanupMinute)
 	_, err := gcron.Add(ctx, cronPattern, func(ctx context.Context) {
+		// Check if current node is the leader before executing
+		if !s.IsLeader() {
+			g.Log().Debug(ctx, "skipping session cleanup on non-leader node")
+			return
+		}
 		cleaned, cleanErr := s.sessionStore.CleanupInactive(ctx, sessionCfg.TimeoutHour)
 		if cleanErr != nil {
 			g.Log().Warningf(ctx, "session cleanup error: %v", cleanErr)

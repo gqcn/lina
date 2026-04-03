@@ -1,0 +1,114 @@
+package locker
+
+import (
+	"context"
+	"time"
+
+	"lina-core/internal/dao"
+	"lina-core/internal/model/do"
+	"lina-core/internal/model/entity"
+
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
+)
+
+// Service provides distributed lock functionality.
+type Service struct{}
+
+// New creates and returns a new Service instance.
+func New() *Service {
+	return &Service{}
+}
+
+// Lock attempts to acquire a distributed lock with the given name and lease duration.
+// It returns the lock instance if successful, or nil if the lock is held by another node.
+func (s *Service) Lock(ctx context.Context, name, holder, reason string, lease time.Duration) (*Instance, bool, error) {
+	var locker *entity.SysLocker
+	err := dao.SysLocker.Ctx(ctx).Where(do.SysLocker{
+		Name: name,
+	}).Scan(&locker)
+	if err != nil {
+		return nil, false, err
+	}
+
+	now := gtime.Now()
+	expireTime := now.Add(lease)
+
+	// Lock doesn't exist, try to create it
+	if locker == nil {
+		result, err := dao.SysLocker.Ctx(ctx).Data(do.SysLocker{
+			Name:       name,
+			Reason:     reason,
+			Holder:     holder,
+			ExpireTime: expireTime,
+		}).Insert()
+		if err != nil {
+			return nil, false, err
+		}
+		insertId, err := result.LastInsertId()
+		if err != nil {
+			return nil, false, err
+		}
+		if insertId <= 0 {
+			return nil, false, nil
+		}
+		g.Log().Infof(ctx, "[locker] acquired lock '%s' (holder: %s)", name, holder)
+		return &Instance{id: insertId, holder: holder, lease: lease}, true, nil
+	}
+
+	// Lock exists but expired, try to take over
+	if now.After(locker.ExpireTime) {
+		affected, err := dao.SysLocker.Ctx(ctx).Data(do.SysLocker{
+			Reason:     reason,
+			Holder:     holder,
+			ExpireTime: expireTime,
+		}).Where(do.SysLocker{
+			Id: locker.Id,
+		}).UpdateAndGetAffected()
+		if err != nil {
+			return nil, false, err
+		}
+		if affected <= 0 {
+			return nil, false, nil
+		}
+		g.Log().Infof(ctx, "[locker] acquired expired lock '%s' (holder: %s)", name, holder)
+		return &Instance{id: int64(locker.Id), holder: holder, lease: lease}, true, nil
+	}
+
+	// Lock is held by current node (same holder), extend it
+	if locker.Holder == holder {
+		_, err := dao.SysLocker.Ctx(ctx).Data(do.SysLocker{
+			ExpireTime: expireTime,
+		}).Where(do.SysLocker{
+			Id: locker.Id,
+		}).Update()
+		if err != nil {
+			return nil, false, err
+		}
+		return &Instance{id: int64(locker.Id), holder: holder, lease: lease}, true, nil
+	}
+
+	// Lock is held by another node
+	return nil, false, nil
+}
+
+// LockFunc acquires a lock and executes the given function.
+// The lock is automatically released after the function completes.
+func (s *Service) LockFunc(ctx context.Context, name, holder, reason string, lease time.Duration, f func() error) (bool, error) {
+	instance, ok, err := s.Lock(ctx, name, holder, reason, lease)
+	if err != nil {
+		return false, err
+	}
+	if !ok {
+		return false, nil
+	}
+	defer func() {
+		if err := instance.Unlock(ctx); err != nil {
+			g.Log().Warningf(ctx, "[locker] failed to unlock '%s': %v", name, err)
+		}
+	}()
+	if err = f(); err != nil {
+		return true, err
+	}
+	return true, nil
+}

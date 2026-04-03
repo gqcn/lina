@@ -29,6 +29,8 @@ import (
 	"lina-core/internal/packed"
 	"lina-core/internal/service/config"
 	"lina-core/internal/service/cron"
+	"lina-core/internal/service/election"
+	"lina-core/internal/service/locker"
 	"lina-core/internal/service/middleware"
 )
 
@@ -43,9 +45,16 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		configSvc     = config.New()
 		middlewareSvc = middleware.New()
 		authCtrl      = auth.NewV1()
-		cronSvc       = cron.New(middlewareSvc.SessionStore())
 	)
 
+	// Initialize distributed locker and leader election
+	var (
+		lockerSvc   = locker.New()
+		electionSvc = election.New(lockerSvc, configSvc.GetElection(ctx))
+		cronSvc     = cron.New(middlewareSvc.SessionStore(), electionSvc)
+	)
+	// Start election when distributed deployment.
+	electionSvc.Start(ctx)
 	// Start all cron jobs (session cleanup, server monitor, etc.)
 	cronSvc.Start(ctx)
 
