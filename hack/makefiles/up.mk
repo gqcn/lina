@@ -20,7 +20,7 @@ up:
 		AI_MODEL="haiku"; \
 	fi; \
 	if [ "$$AI_TOOL" = "codex" ] && [ -z "$$AI_MODEL" ]; then \
-		AI_MODEL="gpt-5.1-codex-mini"; \
+		AI_MODEL="gpt-5.4"; \
 	fi; \
 	case "$$AI_TOOL" in \
 		claude|codex) ;; \
