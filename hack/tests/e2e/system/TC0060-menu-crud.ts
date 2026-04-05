@@ -427,4 +427,90 @@ test.describe('TC0060 菜单管理 CRUD', () => {
     await drawer.getByRole('button', { name: /取\s*消/ }).click();
     await drawer.waitFor({ state: 'hidden', timeout: 5000 });
   });
+
+  test('TC0060m: 权限标识输入框应显示在菜单名称下方', async ({ adminPage }) => {
+    const menuPage = new MenuPage(adminPage);
+    await menuPage.goto();
+
+    await adminPage
+      .getByRole('button', { name: /新\s*增/ })
+      .first()
+      .click();
+
+    const drawer = adminPage.locator('[role="dialog"]');
+    await drawer.waitFor({ state: 'visible', timeout: 10000 });
+    await drawer.locator('.ant-skeleton').waitFor({ state: 'hidden', timeout: 10000 });
+
+    await drawer.locator('.ant-radio-button-wrapper').filter({ hasText: '菜单' }).click();
+
+    const nameInput = drawer.locator('input[placeholder="请输入菜单名称"]').first();
+    const permsInput = drawer.locator('input[placeholder="请输入权限标识"]').first();
+
+    await expect(nameInput).toBeVisible({ timeout: 5000 });
+    await expect(permsInput).toBeVisible({ timeout: 5000 });
+
+    const nameBox = await nameInput.boundingBox();
+    const permsBox = await permsInput.boundingBox();
+
+    expect(nameBox).not.toBeNull();
+    expect(permsBox).not.toBeNull();
+    expect(permsBox!.y).toBeGreaterThan(nameBox!.y);
+
+    await drawer.getByRole('button', { name: /取\s*消/ }).click();
+    await drawer.waitFor({ state: 'hidden', timeout: 5000 });
+  });
+
+  test('TC0060n: 菜单类型未填写权限标识时不允许提交', async ({ adminPage }) => {
+    const menuPage = new MenuPage(adminPage);
+    await menuPage.goto();
+
+    await adminPage
+      .getByRole('button', { name: /新\s*增/ })
+      .first()
+      .click();
+
+    const drawer = adminPage.locator('[role="dialog"]');
+    await drawer.waitFor({ state: 'visible', timeout: 10000 });
+    await drawer.locator('.ant-skeleton').waitFor({ state: 'hidden', timeout: 10000 });
+
+    await drawer.locator('.ant-radio-button-wrapper').filter({ hasText: '菜单' }).click();
+    await drawer.locator('input[placeholder="请输入菜单名称"]').fill(`e2e-menu-${Date.now()}`);
+    await drawer.locator('input[placeholder*="路由地址"]').fill(`e2e-menu-${Date.now()}`);
+    const componentInput = drawer.locator('input[placeholder="请输入"]').last();
+    await expect(componentInput).toBeVisible({ timeout: 5000 });
+    await componentInput.fill('system/menu/index');
+
+    await drawer.getByRole('button', { name: /确\s*认/ }).click();
+
+    await expect(drawer.getByText('请输入权限标识')).toBeVisible({ timeout: 5000 });
+    await expect(drawer).toBeVisible();
+
+    await drawer.getByRole('button', { name: /取\s*消/ }).click();
+    await drawer.waitFor({ state: 'hidden', timeout: 5000 });
+  });
+
+  test('TC0060o: 按钮类型未填写权限标识时不允许提交', async ({ adminPage }) => {
+    const menuPage = new MenuPage(adminPage);
+    await menuPage.goto();
+
+    await adminPage
+      .getByRole('button', { name: /新\s*增/ })
+      .first()
+      .click();
+
+    const drawer = adminPage.locator('[role="dialog"]');
+    await drawer.waitFor({ state: 'visible', timeout: 10000 });
+    await drawer.locator('.ant-skeleton').waitFor({ state: 'hidden', timeout: 10000 });
+
+    await drawer.locator('.ant-radio-button-wrapper').filter({ hasText: '按钮' }).click();
+    await drawer.locator('input[placeholder="请输入菜单名称"]').fill(`e2e-button-${Date.now()}`);
+
+    await drawer.getByRole('button', { name: /确\s*认/ }).click();
+
+    await expect(drawer.getByText('请输入权限标识')).toBeVisible({ timeout: 5000 });
+    await expect(drawer).toBeVisible();
+
+    await drawer.getByRole('button', { name: /取\s*消/ }).click();
+    await drawer.waitFor({ state: 'hidden', timeout: 5000 });
+  });
 });

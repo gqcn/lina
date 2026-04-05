@@ -214,6 +214,28 @@ export function drawerSchema(): VbenFormSchema[] {
     rules: 'required',
   },
   {
+    component: 'Input',
+    componentProps: {
+      placeholder: '请输入权限标识',
+    },
+    dependencies: {
+      rules: (model) => {
+        if (model.type === 'M' || model.type === 'B') {
+          return z
+            .string({ message: '请输入权限标识' })
+            .min(1, '请输入权限标识');
+        }
+        return z.string().optional();
+      },
+      // 类型为菜单/按钮时显示
+      show: (values) => values.type !== 'D',
+      triggerFields: ['type'],
+    },
+    fieldName: 'perms',
+    help: `控制器中定义的权限字符\n 如: @SaCheckPermission("system:user:import")`,
+    label: '权限标识',
+  },
+  {
     component: 'InputNumber',
     fieldName: 'sort',
     help: '排序, 数字越小越靠前',
@@ -342,17 +364,6 @@ export function drawerSchema(): VbenFormSchema[] {
     fieldName: 'status',
     help: '停用后不会出现在菜单栏, 也无法访问',
     label: '菜单状态',
-  },
-  {
-    component: 'Input',
-    dependencies: {
-      // 类型为菜单/按钮时显示
-      show: (values) => values.type !== 'D',
-      triggerFields: ['type'],
-    },
-    fieldName: 'perms',
-    help: `控制器中定义的权限字符\n 如: @SaCheckPermission("system:user:import")`,
-    label: '权限标识',
   },
   {
     component: 'Input',
