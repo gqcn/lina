@@ -6,6 +6,7 @@ import (
 	"lina-core/api/menu/v1"
 )
 
+// Get returns the detail of the specified menu.
 func (c *ControllerV1) Get(ctx context.Context, req *v1.GetReq) (res *v1.GetRes, err error) {
 	// Get menu detail
 	m, err := c.menuSvc.GetById(ctx, req.Id)

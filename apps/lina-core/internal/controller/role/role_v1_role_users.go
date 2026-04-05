@@ -7,6 +7,7 @@ import (
 	"lina-core/internal/service/role"
 )
 
+// RoleUsers queries the users assigned to the specified role.
 func (c *ControllerV1) RoleUsers(ctx context.Context, req *v1.RoleUsersReq) (res *v1.RoleUsersRes, err error) {
 	// Prepare status filter
 	var status *int

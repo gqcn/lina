@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Tiptap Editor
+
+## Purpose
+
+定义基于 Tiptap 的富文本编辑器组件能力，确保后台表单和内容编辑场景拥有统一、可扩展且可复用的富文本输入基础设施。
+
+## Requirements
 
 ### Requirement: Tiptap 编辑器组件
 系统 SHALL 提供基于 Tiptap 的富文本编辑器 Vue 组件。

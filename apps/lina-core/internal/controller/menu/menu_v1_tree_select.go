@@ -7,6 +7,7 @@ import (
 	menusvc "lina-core/internal/service/menu"
 )
 
+// TreeSelect returns the selectable menu tree.
 func (c *ControllerV1) TreeSelect(ctx context.Context, req *v1.TreeSelectReq) (res *v1.TreeSelectRes, err error) {
 	// Get menu tree
 	nodes, err := c.menuSvc.GetTreeSelect(ctx)

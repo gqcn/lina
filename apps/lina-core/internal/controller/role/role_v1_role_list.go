@@ -7,6 +7,7 @@ import (
 	"lina-core/internal/service/role"
 )
 
+// RoleList queries roles with pagination and filters.
 func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *v1.RoleListRes, err error) {
 	// Prepare status filter
 	var status *int

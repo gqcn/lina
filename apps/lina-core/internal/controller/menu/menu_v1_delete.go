@@ -7,9 +7,10 @@ import (
 	menusvc "lina-core/internal/service/menu"
 )
 
+// Delete deletes the specified menu.
 func (c *ControllerV1) Delete(ctx context.Context, req *v1.DeleteReq) (res *v1.DeleteRes, err error) {
 	err = c.menuSvc.Delete(ctx, menusvc.DeleteInput{
-		Id:             req.Id,
+		Id:            req.Id,
 		CascadeDelete: req.CascadeDelete,
 	})
 	if err != nil {

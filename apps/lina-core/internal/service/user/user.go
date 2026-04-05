@@ -186,12 +186,10 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	}
 
 	// Batch query dept info
-	deptCols := dao.SysDept.Columns()
 	var depts []*entity.SysDept
 	if len(deptIds) > 0 {
 		err = dao.SysDept.Ctx(ctx).
-			WhereIn(deptCols.Id, deptIds).
-			WhereNull(deptCols.DeletedAt).
+			WhereIn(dao.SysDept.Columns().Id, deptIds).
 			Scan(&depts)
 		if err != nil {
 			return nil, err
@@ -329,10 +327,8 @@ func (s *Service) GetUserDeptInfo(ctx context.Context, userId int) (int, string,
 		return 0, "", err
 	}
 	var dept *entity.SysDept
-	deptCols := dao.SysDept.Columns()
 	err = dao.SysDept.Ctx(ctx).
 		Where(dao.SysDept.Columns().Id, userDept.DeptId).
-		WhereNull(deptCols.DeletedAt).
 		Scan(&dept)
 	if err != nil || dept == nil {
 		return 0, "", err
@@ -463,18 +459,18 @@ func (s *Service) GetById(ctx context.Context, id int) (*entity.SysUser, error) 
 
 // UpdateInput defines input for Update function.
 type UpdateInput struct {
-	Id       int      // User ID
-	Username *string  // Username
-	Password *string  // Password
-	Nickname *string  // Nickname
-	Email    *string  // Email
-	Phone    *string  // Phone number
-	Sex      *int     // Gender: 0=Unknown 1=Male 2=Female
-	Status   *int     // Status: 1=Normal 0=Disabled
-	Remark   *string  // Remark
-	DeptId   *int     // Department ID
-	PostIds  []int    // Post ID list
-	RoleIds  []int    // Role ID list
+	Id       int     // User ID
+	Username *string // Username
+	Password *string // Password
+	Nickname *string // Nickname
+	Email    *string // Email
+	Phone    *string // Phone number
+	Sex      *int    // Gender: 0=Unknown 1=Male 2=Female
+	Status   *int    // Status: 1=Normal 0=Disabled
+	Remark   *string // Remark
+	DeptId   *int    // Department ID
+	PostIds  []int   // Post ID list
+	RoleIds  []int   // Role ID list
 }
 
 // Update updates user information with transaction support.

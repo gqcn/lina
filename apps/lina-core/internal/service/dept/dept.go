@@ -515,8 +515,7 @@ func (s *Service) UserDeptTree(ctx context.Context) ([]*TreeNode, error) {
 	applyCount(nodes)
 
 	// Count unassigned users (users not in sys_user_dept)
-	uCols := dao.SysUser.Columns()
-	totalUsers, err := dao.SysUser.Ctx(ctx).WhereNull(uCols.DeletedAt).Count()
+	totalUsers, err := dao.SysUser.Ctx(ctx).Count()
 	if err != nil {
 		return nil, err
 	}

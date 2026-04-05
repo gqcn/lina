@@ -13,9 +13,9 @@ type TypeImportReq struct {
 
 // TypeImportRes is the response structure for dictionary type import.
 type TypeImportRes struct {
-	Success  int                   `json:"success" dc:"成功条数" eg:"10"`
-	Fail     int                   `json:"fail" dc:"失败条数" eg:"2"`
-	FailList []TypeImportFailItem  `json:"failList" dc:"失败详情" eg:"[]"`
+	Success  int                  `json:"success" dc:"成功条数" eg:"10"`
+	Fail     int                  `json:"fail" dc:"失败条数" eg:"2"`
+	FailList []TypeImportFailItem `json:"failList" dc:"失败详情" eg:"[]"`
 }
 
 // TypeImportFailItem represents a failed import record.

@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Dept Management
+
+## Purpose
+
+定义部门管理模块的树形查询、创建、更新、删除和关联用户能力，确保组织结构能够被后台一致维护并支持其他业务模块引用。
+
+## Requirements
 
 ### Requirement: 部门列表查询
 系统 SHALL 提供部门的树形列表查询接口（不分页）。

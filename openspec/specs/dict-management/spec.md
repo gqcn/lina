@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Dict Management
+
+## Purpose
+
+定义字典类型与字典数据的查询、维护、导入导出能力，确保系统枚举和可配置选项能够通过统一字典体系进行管理而不是散落在代码中。
+
+## Requirements
 
 ### Requirement: 字典类型列表查询
 系统 SHALL 提供字典类型的分页列表查询接口。

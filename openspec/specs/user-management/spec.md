@@ -1,4 +1,10 @@
-## MODIFIED Requirements
+# User Management
+
+## Purpose
+
+定义用户管理模块的查询、维护、部门岗位角色关联和前端筛选能力，确保用户数据及其组织关系能够被后台稳定管理与展示。
+
+## Requirements
 
 ### Requirement: 用户列表查询
 系统 SHALL 提供用户列表分页查询接口，支持多字段排序、增强的条件筛选和按部门过滤，并包含角色信息。
@@ -101,7 +107,7 @@
 
 ### Requirement: 删除用户
 
-系统必须支持删除用户时清理所有关联数据。
+系统 SHALL 支持删除用户时清理所有关联数据。
 
 #### Scenario: 删除用户清理关联数据
 - **WHEN** 用户删除一个用户
@@ -127,8 +133,6 @@
 #### Scenario: 按未分配部门过滤用户
 - **WHEN** 查询用户列表时传入 `deptId=-1`
 - **THEN** 返回所有未在 sys_user_dept 表中有关联记录的用户
-
-## ADDED Requirements
 
 ### Requirement: 用户管理前端部门树筛选
 系统 SHALL 在用户管理页面左侧增加 DeptTree 组件用于按部门筛选用户。

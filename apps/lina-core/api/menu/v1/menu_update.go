@@ -4,10 +4,9 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// Menu Update API
-
+// UpdateReq defines the request for updating menu information.
 type UpdateReq struct {
-	g.Meta     `path:"/menu/:id" method:"put" tags:"菜单管理" summary:"更新菜单" dc:"更新菜单信息，菜单名称在同一父级下不能与其他菜单重复"`
+	g.Meta     `path:"/menu/{id}" method:"put" tags:"菜单管理" summary:"更新菜单" dc:"更新菜单信息，菜单名称在同一父级下不能与其他菜单重复"`
 	Id         int    `json:"id" v:"required|min:1" dc:"菜单ID" eg:"1"`
 	ParentId   *int   `json:"parentId" dc:"父菜单ID（0=根菜单）" eg:"0"`
 	Name       string `json:"name" v:"required" dc:"菜单名称（支持i18n格式）" eg:"用户管理"`
@@ -25,4 +24,5 @@ type UpdateReq struct {
 	Remark     string `json:"remark" dc:"备注" eg:""`
 }
 
+// UpdateRes defines the response for updating menu information.
 type UpdateRes struct{}

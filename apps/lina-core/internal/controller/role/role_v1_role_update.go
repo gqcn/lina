@@ -7,6 +7,7 @@ import (
 	"lina-core/internal/service/role"
 )
 
+// RoleUpdate updates the specified role.
 func (c *ControllerV1) RoleUpdate(ctx context.Context, req *v1.RoleUpdateReq) (res *v1.RoleUpdateRes, err error) {
 	// Update role
 	err = c.roleSvc.Update(ctx, role.UpdateInput{

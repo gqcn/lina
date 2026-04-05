@@ -27,6 +27,6 @@ type GetInfoRes struct {
 	DbVersion          string          `json:"dbVersion" dc:"数据库版本" eg:"MySQL 8.0.36"`
 	StartTime          string          `json:"startTime" dc:"系统启动时间" eg:"2025-01-01 08:00:00"`
 	RunDuration        string          `json:"runDuration" dc:"系统运行时长" eg:"3天5小时20分钟"`
-	BackendComponents  []ComponentInfo `json:"backendComponents" dc:"后端组件列表"`
-	FrontendComponents []ComponentInfo `json:"frontendComponents" dc:"前端组件列表"`
+	BackendComponents  []ComponentInfo `json:"backendComponents" dc:"后端组件列表" eg:"[]"`
+	FrontendComponents []ComponentInfo `json:"frontendComponents" dc:"前端组件列表" eg:"[]"`
 }

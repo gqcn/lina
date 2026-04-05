@@ -7,6 +7,7 @@ import (
 	menusvc "lina-core/internal/service/menu"
 )
 
+// Create creates a new menu.
 func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.CreateRes, err error) {
 	id, err := c.menuSvc.Create(ctx, menusvc.CreateInput{
 		ParentId:   req.ParentId,

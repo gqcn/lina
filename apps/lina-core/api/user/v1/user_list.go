@@ -27,9 +27,9 @@ type ListReq struct {
 // ListItem represents a single user in the user list.
 type ListItem struct {
 	*entity.SysUser
-	DeptId   int      `json:"deptId" dc:"部门ID" eg:"100"`
-	DeptName string   `json:"deptName" dc:"部门名称" eg:"技术部"`
-	RoleIds  []int    `json:"roleIds" dc:"角色ID列表" eg:"[1,2]"`
+	DeptId    int      `json:"deptId" dc:"部门ID" eg:"100"`
+	DeptName  string   `json:"deptName" dc:"部门名称" eg:"技术部"`
+	RoleIds   []int    `json:"roleIds" dc:"角色ID列表" eg:"[1,2]"`
 	RoleNames []string `json:"roleNames" dc:"角色名称列表" eg:"[\"管理员\",\"普通用户\"]"`
 }
 

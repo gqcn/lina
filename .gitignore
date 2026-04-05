@@ -9,7 +9,7 @@
 **/.DS_Store
 assets/
 .aiprompt.zh.md
-.agents/config.toml
+.codex/config.toml
 temp/
 
 

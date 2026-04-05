@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Notice Management
+
+## Purpose
+
+定义通知公告模块的数据结构、列表查询、详情维护和消息派发行为，确保公告内容能够被后台统一管理并传递给目标用户。
+
+## Requirements
 
 ### Requirement: 通知公告数据库表设计
 系统 SHALL 提供 `sys_notice` 表存储通知公告数据。

@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Login Log
+
+## Purpose
+
+定义登录日志的自动记录、查询、清理与导出行为，确保系统能够对认证成功与失败事件进行追踪、审计和运维分析。
+
+## Requirements
 
 ### Requirement: 登录日志自动记录
 系统 SHALL 在用户登录（成功或失败）时自动记录登录日志到 `sys_login_log` 表。

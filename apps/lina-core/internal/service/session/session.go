@@ -13,15 +13,15 @@ import (
 
 // Session represents an online user session.
 type Session struct {
-	TokenId        string       // Unique token identifier
-	UserId         int          // User ID
-	Username       string       // Username
-	DeptName       string       // Department name
-	Ip             string       // Login IP address
-	Browser        string       // Browser information
-	Os             string       // Operating system
-	LoginTime      *gtime.Time  // Login time
-	LastActiveTime *gtime.Time  // Last active time
+	TokenId        string      // Unique token identifier
+	UserId         int         // User ID
+	Username       string      // Username
+	DeptName       string      // Department name
+	Ip             string      // Login IP address
+	Browser        string      // Browser information
+	Os             string      // Operating system
+	LoginTime      *gtime.Time // Login time
+	LastActiveTime *gtime.Time // Last active time
 }
 
 // ListFilter defines filter options for listing sessions.
@@ -62,6 +62,7 @@ func NewDBStore() Store {
 	return &DBStore{}
 }
 
+// Set persists a session record.
 func (s *DBStore) Set(ctx context.Context, session *Session) error {
 	_, err := dao.SysOnlineSession.Ctx(ctx).Data(do.SysOnlineSession{
 		TokenId:        session.TokenId,
@@ -77,6 +78,7 @@ func (s *DBStore) Set(ctx context.Context, session *Session) error {
 	return err
 }
 
+// Get returns a session by token ID.
 func (s *DBStore) Get(ctx context.Context, tokenId string) (*Session, error) {
 	var e *entity.SysOnlineSession
 	err := dao.SysOnlineSession.Ctx(ctx).
@@ -101,6 +103,7 @@ func (s *DBStore) Get(ctx context.Context, tokenId string) (*Session, error) {
 	}, nil
 }
 
+// Delete removes a session by token ID.
 func (s *DBStore) Delete(ctx context.Context, tokenId string) error {
 	_, err := dao.SysOnlineSession.Ctx(ctx).
 		Where(do.SysOnlineSession{TokenId: tokenId}).
@@ -108,6 +111,7 @@ func (s *DBStore) Delete(ctx context.Context, tokenId string) error {
 	return err
 }
 
+// DeleteByUserId removes all sessions belonging to a user.
 func (s *DBStore) DeleteByUserId(ctx context.Context, userId int) error {
 	_, err := dao.SysOnlineSession.Ctx(ctx).
 		Where(do.SysOnlineSession{UserId: userId}).
@@ -115,6 +119,7 @@ func (s *DBStore) DeleteByUserId(ctx context.Context, userId int) error {
 	return err
 }
 
+// List returns all sessions matching the filter.
 func (s *DBStore) List(ctx context.Context, filter *ListFilter) ([]*Session, error) {
 	m := dao.SysOnlineSession.Ctx(ctx)
 	if filter != nil {
@@ -148,6 +153,7 @@ func (s *DBStore) List(ctx context.Context, filter *ListFilter) ([]*Session, err
 	return sessions, nil
 }
 
+// ListPage returns a paginated session list.
 func (s *DBStore) ListPage(ctx context.Context, filter *ListFilter, pageNum, pageSize int) (*ListResult, error) {
 	m := dao.SysOnlineSession.Ctx(ctx)
 	if filter != nil {
@@ -196,10 +202,12 @@ func (s *DBStore) ListPage(ctx context.Context, filter *ListFilter, pageNum, pag
 	}, nil
 }
 
+// Count returns the total number of active sessions.
 func (s *DBStore) Count(ctx context.Context) (int, error) {
 	return dao.SysOnlineSession.Ctx(ctx).Count()
 }
 
+// TouchOrValidate validates a session and refreshes its last active time.
 func (s *DBStore) TouchOrValidate(ctx context.Context, tokenId string) (bool, error) {
 	// First check existence with a lightweight count query
 	count, err := dao.SysOnlineSession.Ctx(ctx).
@@ -224,6 +232,7 @@ func (s *DBStore) TouchOrValidate(ctx context.Context, tokenId string) (bool, er
 	return true, nil
 }
 
+// CleanupInactive removes sessions inactive longer than the configured threshold.
 func (s *DBStore) CleanupInactive(ctx context.Context, timeoutHours int) (int64, error) {
 	cutoff := gtime.Now().Add(-time.Duration(timeoutHours) * time.Hour)
 	result, err := dao.SysOnlineSession.Ctx(ctx).

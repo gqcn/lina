@@ -1,4 +1,10 @@
-## ADDED Requirements
+# User Message
+
+## Purpose
+
+定义用户消息的数据结构、未读统计、列表查询、已读处理与清空行为，确保系统能够稳定管理用户侧的站内消息体验。
+
+## Requirements
 
 ### Requirement: 用户消息数据库表设计
 系统 SHALL 提供 `sys_user_message` 表存储用户消息数据。

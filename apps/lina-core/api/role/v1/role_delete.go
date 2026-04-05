@@ -6,8 +6,8 @@ import (
 
 // RoleDeleteReq is the request structure for role deletion.
 type RoleDeleteReq struct {
-	g.Meta `path:"/role/:id" method:"delete" summary:"删除角色" tags:"角色管理" dc:"删除角色，会同时清理角色与菜单的关联关系、角色与用户的关联关系"`
-	Id     int `p:"id" v:"required|min:1" dc:"角色ID" eg:"3"`
+	g.Meta `path:"/role/{id}" method:"delete" summary:"删除角色" tags:"角色管理" dc:"删除角色，会同时清理角色与菜单的关联关系、角色与用户的关联关系"`
+	Id     int `json:"id" v:"required|min:1" dc:"角色ID" eg:"3"`
 }
 
 // RoleDeleteRes is the response structure for role deletion.

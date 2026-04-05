@@ -18,24 +18,24 @@ type GetInfoRes struct {
 	Avatar      string      `json:"avatar" dc:"头像地址" eg:"/upload/avatar/default.png"`
 	Roles       []string    `json:"roles" dc:"用户角色标识列表" eg:"['admin','user']"`
 	HomePath    string      `json:"homePath" dc:"首页路径" eg:"/dashboard"`
-	Menus       []*MenuTree `json:"menus" dc:"用户菜单树，用于前端动态路由生成"`
+	Menus       []*MenuTree `json:"menus" dc:"用户菜单树，用于前端动态路由生成" eg:"[]"`
 	Permissions []string    `json:"permissions" dc:"用户权限标识列表，用于按钮级权限控制" eg:"['system:user:add','system:user:edit']"`
 }
 
 // MenuTree represents a menu node in the user menu tree.
 type MenuTree struct {
-	Id        int          `json:"id" dc:"菜单ID" eg:"1"`
-	ParentId  int          `json:"parentId" dc:"父菜单ID" eg:"0"`
-	Name      string       `json:"name" dc:"菜单名称" eg:"系统管理"`
-	Path      string       `json:"path" dc:"路由路径" eg:"/system"`
-	Component string       `json:"component" dc:"组件路径" eg:"LAYOUT"`
-	Perms     string       `json:"perms" dc:"权限标识" eg:"system:user:list"`
-	Icon      string       `json:"icon" dc:"菜单图标" eg:"ant-design:setting-outlined"`
-	Type      string       `json:"type" dc:"菜单类型：D=目录 M=菜单 B=按钮" eg:"D"`
-	Sort      int          `json:"sort" dc:"排序" eg:"1"`
-	Visible   int          `json:"visible" dc:"是否显示：1=显示 0=隐藏" eg:"1"`
-	Status    int          `json:"status" dc:"状态：1=正常 0=停用" eg:"1"`
-	IsFrame   int          `json:"isFrame" dc:"是否外链：1=是 0=否" eg:"0"`
-	IsCache   int          `json:"isCache" dc:"是否缓存：1=是 0=否" eg:"0"`
-	Children  []*MenuTree  `json:"children" dc:"子菜单"`
+	Id        int         `json:"id" dc:"菜单ID" eg:"1"`
+	ParentId  int         `json:"parentId" dc:"父菜单ID" eg:"0"`
+	Name      string      `json:"name" dc:"菜单名称" eg:"系统管理"`
+	Path      string      `json:"path" dc:"路由路径" eg:"/system"`
+	Component string      `json:"component" dc:"组件路径" eg:"LAYOUT"`
+	Perms     string      `json:"perms" dc:"权限标识" eg:"system:user:list"`
+	Icon      string      `json:"icon" dc:"菜单图标" eg:"ant-design:setting-outlined"`
+	Type      string      `json:"type" dc:"菜单类型：D=目录 M=菜单 B=按钮" eg:"D"`
+	Sort      int         `json:"sort" dc:"排序" eg:"1"`
+	Visible   int         `json:"visible" dc:"是否显示：1=显示 0=隐藏" eg:"1"`
+	Status    int         `json:"status" dc:"状态：1=正常 0=停用" eg:"1"`
+	IsFrame   int         `json:"isFrame" dc:"是否外链：1=是 0=否" eg:"0"`
+	IsCache   int         `json:"isCache" dc:"是否缓存：1=是 0=否" eg:"0"`
+	Children  []*MenuTree `json:"children" dc:"子菜单" eg:"[]"`
 }

@@ -13,8 +13,8 @@ type ConfigImportReq struct {
 
 // ConfigImportRes is the response structure for config import.
 type ConfigImportRes struct {
-	Success  int                   `json:"success" dc:"成功条数" eg:"10"`
-	Fail     int                   `json:"fail" dc:"失败条数" eg:"2"`
+	Success  int                    `json:"success" dc:"成功条数" eg:"10"`
+	Fail     int                    `json:"fail" dc:"失败条数" eg:"2"`
 	FailList []ConfigImportFailItem `json:"failList" dc:"失败详情" eg:"[]"`
 }
 

@@ -12,7 +12,7 @@ type RoleOptionsReq struct {
 // RoleOptionsRes is the response structure for role options query.
 type RoleOptionsRes struct {
 	g.Meta `mime:"application/json" example:"{}"`
-	List   []*RoleOptionItem `json:"list" dc:"角色下拉选项列表"`
+	List   []*RoleOptionItem `json:"list" dc:"角色下拉选项列表" eg:"[]"`
 }
 
 // RoleOptionItem represents a single role option.

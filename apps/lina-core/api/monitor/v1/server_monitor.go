@@ -20,12 +20,12 @@ type ServerNodeInfo struct {
 	NodeName  string         `json:"nodeName" dc:"节点名称（hostname）" eg:"my-server"`
 	NodeIp    string         `json:"nodeIp" dc:"节点IP地址" eg:"192.168.1.100"`
 	CollectAt string         `json:"collectAt" dc:"数据上报时间" eg:"2025-01-01 12:00:00"`
-	Server    *ServerBasic   `json:"server" dc:"服务器基本信息"`
-	CPU       *CPUMetrics    `json:"cpu" dc:"CPU指标"`
-	Memory    *MemoryMetrics `json:"memory" dc:"内存指标"`
-	Disks     []*DiskMetrics `json:"disks" dc:"磁盘使用情况"`
-	Network   *NetMetrics    `json:"network" dc:"网络流量指标"`
-	GoInfo    *GoMetrics     `json:"goInfo" dc:"Go运行时指标"`
+	Server    *ServerBasic   `json:"server" dc:"服务器基本信息" eg:""`
+	CPU       *CPUMetrics    `json:"cpu" dc:"CPU指标" eg:""`
+	Memory    *MemoryMetrics `json:"memory" dc:"内存指标" eg:""`
+	Disks     []*DiskMetrics `json:"disks" dc:"磁盘使用情况" eg:"[]"`
+	Network   *NetMetrics    `json:"network" dc:"网络流量指标" eg:""`
+	GoInfo    *GoMetrics     `json:"goInfo" dc:"Go运行时指标" eg:""`
 }
 
 // ServerBasic represents basic server information.

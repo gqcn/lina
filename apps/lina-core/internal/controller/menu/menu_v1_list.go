@@ -7,11 +7,12 @@ import (
 	menusvc "lina-core/internal/service/menu"
 )
 
+// List queries menus with filters and returns tree nodes.
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
 	// Query flat list
 	out, err := c.menuSvc.List(ctx, menusvc.ListInput{
-		Name:   req.Name,
-		Status: req.Status,
+		Name:    req.Name,
+		Status:  req.Status,
 		Visible: req.Visible,
 	})
 	if err != nil {

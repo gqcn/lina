@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Post Management
+
+## Purpose
+
+定义岗位管理模块的查询、维护、部门关联和选项读取行为，确保岗位数据能够与组织结构和用户管理能力稳定协同。
+
+## Requirements
 
 ### Requirement: 岗位列表查询
 系统 SHALL 提供岗位的分页列表查询接口，支持按部门过滤。

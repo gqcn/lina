@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Project Setup
+
+## Purpose
+
+定义项目初始化、前后端启动、数据库配置与开发环境代理等基础能力，确保仓库在本地开发和后续扩展过程中具备稳定的一致性基线。
+
+## Requirements
 
 ### Requirement: 后端项目初始化
 系统 SHALL 提供基于 GoFrame v2 框架的后端项目，项目结构遵循 GoFrame 标准分层架构（api / controller / service / dao / model）。

@@ -7,6 +7,7 @@ import (
 	"lina-core/internal/service/role"
 )
 
+// RoleCreate creates a new role.
 func (c *ControllerV1) RoleCreate(ctx context.Context, req *v1.RoleCreateReq) (res *v1.RoleCreateRes, err error) {
 	// Create role
 	id, err := c.roleSvc.Create(ctx, role.CreateInput{

@@ -7,6 +7,7 @@ import (
 	menusvc "lina-core/internal/service/menu"
 )
 
+// Update updates the specified menu.
 func (c *ControllerV1) Update(ctx context.Context, req *v1.UpdateReq) (res *v1.UpdateRes, err error) {
 	// Convert required string fields to pointers for service
 	var path, component, perms, icon, menuType, queryParam, remark *string

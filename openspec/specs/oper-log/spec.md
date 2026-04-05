@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Oper Log
+
+## Purpose
+
+定义操作日志的自动记录、查询、删除与导出行为，确保系统关键写操作和指定读操作都具备可追踪、可审计的操作留痕能力。
+
+## Requirements
 
 ### Requirement: 操作日志自动记录
 系统 SHALL 通过中间件自动记录所有写操作（POST/PUT/DELETE）以及标记了 `operLog` 标签的查询操作到 `sys_oper_log` 表。普通 GET 查询请求不记录。

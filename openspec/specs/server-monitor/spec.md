@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Server Monitor
+
+## Purpose
+
+定义服务器监控数据的采集、存储、清理与展示行为，确保系统能够持续观察各节点的运行状态并支持排障与容量分析。
+
+## Requirements
 
 ### Requirement: 服务器指标定时采集
 

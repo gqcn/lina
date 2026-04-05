@@ -6,6 +6,7 @@ import (
 	"lina-core/api/role/v1"
 )
 
+// RoleGet returns the detail of the specified role.
 func (c *ControllerV1) RoleGet(ctx context.Context, req *v1.RoleGetReq) (res *v1.RoleGetRes, err error) {
 	// Get role detail with menu IDs
 	out, err := c.roleSvc.GetDetail(ctx, req.Id)

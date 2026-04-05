@@ -9,6 +9,7 @@ import (
 	"lina-core/internal/service/sysconfig"
 )
 
+// Export exports config items to an Excel file.
 func (c *ControllerV1) Export(ctx context.Context, req *v1.ExportReq) (res *v1.ExportRes, err error) {
 	data, err := c.svc.Export(ctx, sysconfig.ExportInput{
 		Name:      req.Name,

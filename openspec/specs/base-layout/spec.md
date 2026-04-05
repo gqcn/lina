@@ -1,4 +1,10 @@
-## MODIFIED Requirements
+# Base Layout
+
+## Purpose
+
+定义后台基础布局、顶部导航、消息通知与常用全局交互行为，确保系统主框架页面具备一致、可扩展且符合管理后台习惯的操作入口。
+
+## Requirements
 
 ### Requirement: 顶部导航栏
 系统 SHALL 在顶部显示导航栏，包含用户信息、消息通知和操作入口。

@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Online User
+
+## Purpose
+
+定义在线会话的存储抽象、登录态跟踪、列表查询与强制下线能力，确保系统能够稳定管理当前在线用户及其会话生命周期。
+
+## Requirements
 
 ### Requirement: 会话存储抽象层
 

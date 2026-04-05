@@ -6,6 +6,7 @@ import (
 	"lina-core/api/role/v1"
 )
 
+// RoleAssignUsers assigns users to the specified role.
 func (c *ControllerV1) RoleAssignUsers(ctx context.Context, req *v1.RoleAssignUsersReq) (res *v1.RoleAssignUsersRes, err error) {
 	// Assign users to role
 	err = c.roleSvc.AssignUsers(ctx, req.Id, req.UserIds)

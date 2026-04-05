@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Config Management
+
+## Purpose
+
+定义系统参数设置模块的查询、维护、导入导出与按键读取行为，确保运行时配置能够被后台统一管理、被业务模块稳定消费并支持后续扩展。
+
+## Requirements
 
 ### Requirement: Config list query with pagination and filters
 The system SHALL provide a paginated list query for system config parameters. The list SHALL support filtering by config name (fuzzy match), config key (fuzzy match), and creation time range. The list SHALL return config records sorted by ID descending by default.

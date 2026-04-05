@@ -7,6 +7,7 @@ import (
 	"lina-core/internal/service/sysconfig"
 )
 
+// Update updates the specified config item.
 func (c *ControllerV1) Update(ctx context.Context, req *v1.UpdateReq) (res *v1.UpdateRes, err error) {
 	err = c.svc.Update(ctx, sysconfig.UpdateInput{
 		Id:     req.Id,

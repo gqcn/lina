@@ -6,6 +6,7 @@ import (
 	"lina-core/api/role/v1"
 )
 
+// RoleOptions returns enabled role options.
 func (c *ControllerV1) RoleOptions(ctx context.Context, req *v1.RoleOptionsReq) (res *v1.RoleOptionsRes, err error) {
 	// Get role options
 	list, err := c.roleSvc.GetOptions(ctx)

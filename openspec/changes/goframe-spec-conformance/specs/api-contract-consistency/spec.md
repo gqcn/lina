@@ -19,7 +19,8 @@
 #### Scenario: 声明路径参数
 - **WHEN** 接口路径包含资源标识或子资源标识
 - **THEN** `g.Meta` 中使用 `{param}` 形式声明路径参数
-- **AND** DTO 字段使用 `p:"param"` 进行绑定，而不是错误地使用 `json:"param"` 代替路径绑定
+- **AND** 输入 DTO 字段统一使用 `json:"param"` 声明参数名，不在同一仓库混用 `p` 与 `json` 标签
+- **AND** 输出 DTO 继续使用 `json` 标签定义响应字段
 
 ### Requirement: API 文档标签完整
 后端 API 输入输出结构 SHALL 为所有可见字段补齐清晰的 `dc` 和 `eg` 标签，确保自动生成的 OpenAPI 文档可直接理解和调试。
