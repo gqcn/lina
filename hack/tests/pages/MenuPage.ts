@@ -20,20 +20,38 @@ export class MenuPage {
 
   /** Click "展开" toolbar button to expand all tree nodes */
   async expandAll() {
-    await this.page
-      .getByRole('button', { name: /展\s*开/ })
-      .first()
-      .click();
-    await this.page.waitForTimeout(500);
+    const expandButton = this.page.getByRole('button', { name: /展\s*开/ }).first();
+    if (await expandButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await expandButton.click();
+      await this.page.waitForTimeout(500);
+      return;
+    }
+
+    const collapseButton = this.page.getByRole('button', { name: /折\s*叠/ }).first();
+    if (await collapseButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await this.page.waitForTimeout(500);
+      return;
+    }
+
+    throw new Error('菜单工具栏未找到“展开”或“折叠”按钮');
   }
 
   /** Click "折叠" toolbar button to collapse all tree nodes */
   async collapseAll() {
-    await this.page
-      .getByRole('button', { name: /折\s*叠/ })
-      .first()
-      .click();
-    await this.page.waitForTimeout(500);
+    const collapseButton = this.page.getByRole('button', { name: /折\s*叠/ }).first();
+    if (await collapseButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await collapseButton.click();
+      await this.page.waitForTimeout(500);
+      return;
+    }
+
+    const expandButton = this.page.getByRole('button', { name: /展\s*开/ }).first();
+    if (await expandButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await this.page.waitForTimeout(500);
+      return;
+    }
+
+    throw new Error('菜单工具栏未找到“折叠”或“展开”按钮');
   }
 
   /** Create a root menu by clicking "新增" toolbar button */
@@ -182,6 +200,9 @@ export class MenuPage {
 
     // Wait for drawer to open
     await this.drawer.waitFor({ state: 'visible', timeout: 5000 });
+    const skeleton = this.drawer.locator('.ant-skeleton');
+    await skeleton.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+    await this.page.waitForTimeout(500);
 
     // Fill menu name
     const nameInput = this.drawer.locator(
@@ -190,32 +211,33 @@ export class MenuPage {
     await nameInput.fill(params.name);
 
     // Select menu type
-    const typeSelect = this.drawer.locator('.ant-select').first();
-    await typeSelect.click();
-    await this.page.waitForTimeout(300);
     const typeLabels = { D: '目录', M: '菜单', B: '按钮' };
-    const typeOption = this.page
-      .locator('.ant-select-dropdown')
-      .getByText(typeLabels[params.type], { exact: true });
-    await typeOption.click();
-    await this.page.waitForTimeout(300);
+    if (params.type !== 'D') {
+      await this.drawer
+        .locator('.ant-radio-button-wrapper')
+        .filter({ hasText: typeLabels[params.type] })
+        .click();
+      await this.page.waitForTimeout(500);
+    }
 
     // Fill path for directory/menu type
     if (params.path && params.type !== 'B') {
-      // The path field has dynamic placeholder, find by label
-      const pathInput = this.drawer.locator('.ant-form-item').filter({ hasText: '路由地址' }).locator('input');
+      const pathInput = this.drawer.locator('input[placeholder*="路由地址"]').first();
+      await pathInput.waitFor({ state: 'visible', timeout: 5000 });
       await pathInput.fill(params.path);
     }
 
     // Fill component for menu type
     if (params.component && params.type === 'M') {
-      const componentInput = this.drawer.locator('.ant-form-item').filter({ hasText: '组件路径' }).locator('input');
+      const componentInput = this.drawer.locator('input[placeholder="请输入"]').last();
+      await componentInput.waitFor({ state: 'visible', timeout: 5000 });
       await componentInput.fill(params.component);
     }
 
     // Fill permissions for menu/button type
     if (params.perms && params.type !== 'D') {
-      const permsInput = this.drawer.locator('.ant-form-item').filter({ hasText: '权限标识' }).locator('input');
+      const permsInput = this.drawer.locator('input[placeholder="请输入权限标识"]').first();
+      await permsInput.waitFor({ state: 'visible', timeout: 5000 });
       await permsInput.fill(params.perms);
     }
 

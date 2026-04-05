@@ -101,6 +101,7 @@ export class RolePage {
     await confirmBtn.click({ force: true });
 
     await this.page.waitForLoadState('load');
+    await this.drawer.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
     await this.page.waitForTimeout(500);
   }
 
@@ -137,6 +138,7 @@ export class RolePage {
     await confirmBtn.click({ force: true });
 
     await this.page.waitForLoadState('load');
+    await this.drawer.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
     await this.page.waitForTimeout(500);
   }
 
@@ -181,20 +183,20 @@ export class RolePage {
     // Wait for search form to be ready
     await this.page.waitForLoadState('load');
 
-    // Use getByPlaceholder for more reliable element selection
-    const searchInput = this.page.getByPlaceholder('请输入角色名称');
+    const searchForm = this.page.locator('.vxe-grid--form').first();
+    const searchInput = searchForm.getByPlaceholder('请输入角色名称').first();
     await searchInput.waitFor({ state: 'visible', timeout: 5000 });
     await searchInput.fill(name);
 
     // Click search button
-    await this.page.getByRole('button', { name: /搜\s*索/ }).click();
+    await searchForm.getByRole('button', { name: /搜\s*索/ }).click();
     await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(500);
   }
 
   /** Reset search */
   async resetSearch() {
-    await this.page.getByRole('button', { name: /重\s*置/ }).click();
+    await this.page.locator('.vxe-grid--form').first().getByRole('button', { name: /重\s*置/ }).click();
     await this.page.waitForLoadState('load');
     await this.page.waitForTimeout(500);
   }
@@ -221,7 +223,7 @@ export class RolePage {
     const menuTree = this.drawer.locator('.vxe-table');
     const menuRow = menuTree.locator('.vxe-body--row', { hasText: menuName });
     const checkbox = menuRow.locator('.vxe-checkbox--icon');
-    await checkbox.click();
+    await checkbox.click({ force: true });
     await this.page.waitForTimeout(300);
   }
 
@@ -230,7 +232,7 @@ export class RolePage {
     const menuTree = this.drawer.locator('.vxe-table');
     const menuRow = menuTree.locator('.vxe-body--row', { hasText: menuName });
     const checkbox = menuRow.locator('.vxe-checkbox--icon');
-    await checkbox.click();
+    await checkbox.click({ force: true });
     await this.page.waitForTimeout(300);
   }
 
@@ -249,21 +251,25 @@ export class RolePage {
     remark?: string;
     menuNames?: string[];
   }) {
+    await this.page.waitForLoadState('load');
+    await this.page.waitForTimeout(2000);
+
     await this.page
-      .locator('.vxe-grid--toolbar')
       .getByRole('button', { name: /新\s*增/ })
+      .first()
       .click();
 
-    await this.drawer.waitFor({ state: 'visible', timeout: 5000 });
+    await this.drawer.waitFor({ state: 'visible', timeout: 10000 });
+    await this.page.waitForTimeout(500);
 
     const nameInput = this.drawer.locator('input[placeholder="请输入角色名称"]');
+    await nameInput.waitFor({ state: 'visible', timeout: 5000 });
     await nameInput.fill(params.name);
 
     const codeInput = this.drawer.locator('input[placeholder="如: admin, user等"]');
     await codeInput.fill(params.code);
 
     if (params.sort !== undefined) {
-      // Use spinbutton role for InputNumber component
       const sortInput = this.drawer.getByRole('spinbutton');
       await sortInput.fill(String(params.sort));
     }
@@ -273,17 +279,35 @@ export class RolePage {
       await remarkInput.fill(params.remark);
     }
 
-    // Select menus if provided
+    const endTourBtn = this.page.getByRole('button', { name: '结束导览' });
+    if (await endTourBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await endTourBtn.click({ force: true });
+      await this.page.waitForTimeout(500);
+    }
+    const tourClose = this.page.locator('.ant-tour-close');
+    if (await tourClose.isVisible({ timeout: 300 }).catch(() => false)) {
+      await tourClose.click({ force: true });
+      await this.page.waitForTimeout(300);
+    }
+
+    const dataScopeLabel = this.drawer.getByText('全部数据权限', { exact: true });
+    await dataScopeLabel.waitFor({ state: 'visible', timeout: 5000 });
+    await dataScopeLabel.click({ force: true });
+    await this.page.waitForTimeout(500);
+
     if (params.menuNames && params.menuNames.length > 0) {
-      // Wait for menu tree to render
-      await this.drawer.locator('.vxe-table').waitFor({ state: 'visible', timeout: 3000 });
+      await this.drawer.locator('.vxe-table').waitFor({ state: 'visible', timeout: 5000 });
       for (const menuName of params.menuNames) {
         await this.checkMenu(menuName);
       }
     }
 
-    await this.drawer.getByRole('button', { name: /确\s*认/ }).click();
+    const confirmBtn = this.drawer.getByRole('button', { name: /确\s*认/ });
+    await confirmBtn.scrollIntoViewIfNeeded();
+    await confirmBtn.click({ force: true });
+
     await this.page.waitForLoadState('load');
+    await this.drawer.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
     await this.page.waitForTimeout(500);
   }
 
@@ -318,6 +342,7 @@ export class RolePage {
 
     await this.drawer.getByRole('button', { name: /确\s*认/ }).click();
     await this.page.waitForLoadState('load');
+    await this.drawer.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
     await this.page.waitForTimeout(500);
   }
 

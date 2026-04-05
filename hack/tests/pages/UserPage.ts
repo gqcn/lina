@@ -8,6 +8,18 @@ export class UserPage {
     return this.page.locator('[role="dialog"]');
   }
 
+  /** User drawer role combobox */
+  private get roleCombobox() {
+    return this.drawer.getByRole('combobox', { name: '角色', exact: true }).first();
+  }
+
+  /** User drawer role select wrapper */
+  private get roleSelect() {
+    return this.roleCombobox
+      .locator('xpath=ancestor::*[contains(@class,"ant-select")]')
+      .first();
+  }
+
   async goto() {
     await this.page.goto('/system/user');
     await this.page.waitForLoadState('networkidle');
@@ -243,20 +255,18 @@ export class UserPage {
 
   /** Select roles in the user drawer */
   async selectRoles(roleNames: string[]) {
-    // Wait for role select to be ready
-    const roleSelect = this.drawer.locator('.ant-select').filter({
-      hasText: /请选择角色/,
-    });
-    await roleSelect.waitFor({ state: 'visible', timeout: 3000 });
+    await this.roleCombobox.waitFor({ state: 'visible', timeout: 5000 });
 
     for (const roleName of roleNames) {
-      await roleSelect.click();
+      await this.roleCombobox.click();
       await this.page.waitForTimeout(300);
-      // Select the role option from dropdown
-      const option = this.page.locator('.ant-select-dropdown').getByText(roleName);
-      if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await option.click();
-      }
+      const option = this.page
+        .locator('.ant-select-dropdown')
+        .filter({ has: this.page.getByText(roleName, { exact: true }) })
+        .getByText(roleName, { exact: true })
+        .last();
+      await option.waitFor({ state: 'visible', timeout: 5000 });
+      await option.click();
       await this.page.waitForTimeout(300);
     }
   }
@@ -272,9 +282,7 @@ export class UserPage {
 
   /** Get role count from user drawer */
   async getSelectedRoleCount(): Promise<number> {
-    const roleSelect = this.drawer.locator('.ant-select').filter({
-      hasText: /请选择角色/,
-    });
+    const roleSelect = this.roleSelect;
     // Ant Design multi-select shows selected items as tags
     const selectedTags = roleSelect.locator('.ant-select-selection-item');
     return await selectedTags.count();
@@ -299,6 +307,7 @@ export class UserPage {
 
     await this.drawer.getByRole('button', { name: /确\s*认/ }).click();
     await this.page.waitForLoadState('networkidle');
+    await this.drawer.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
     await this.page.waitForTimeout(500);
   }
 
@@ -311,9 +320,7 @@ export class UserPage {
     await this.drawer.waitFor({ state: 'visible', timeout: 5000 });
 
     // Clear existing roles first by clicking clear button
-    const roleSelect = this.drawer.locator('.ant-select').filter({
-      hasText: /请选择角色/,
-    });
+    const roleSelect = this.roleSelect;
     const clearBtn = roleSelect.locator('.ant-select-clear');
     if (await clearBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
       await clearBtn.click();
@@ -325,6 +332,7 @@ export class UserPage {
 
     await this.drawer.getByRole('button', { name: /确\s*认/ }).click();
     await this.page.waitForLoadState('networkidle');
+    await this.drawer.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
     await this.page.waitForTimeout(500);
   }
 }

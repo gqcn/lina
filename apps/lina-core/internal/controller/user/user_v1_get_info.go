@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"strings"
 
 	v1 "lina-core/api/user/v1"
 	"lina-core/internal/service/menu"
@@ -107,7 +108,7 @@ func (c *ControllerV1) GetInfo(ctx context.Context, req *v1.GetInfoReq) (res *v1
 		Email:       user.Email,
 		Avatar:      user.Avatar,
 		Roles:       roleNames,
-		HomePath:    "/analytics",
+		HomePath:    resolveHomePath(menuTree),
 		Menus:       convertToMenuTree(menuTree),
 		Permissions: permissions,
 	}, nil
@@ -137,6 +138,51 @@ func buildFilteredTree(items []*menu.MenuItem) []*menu.MenuItem {
 		}
 	}
 	return roots
+}
+
+// resolveHomePath returns the first accessible internal route from the menu tree.
+func resolveHomePath(items []*menu.MenuItem) string {
+	if homePath := findFirstAccessiblePath(items, ""); homePath != "" {
+		return homePath
+	}
+	return "/profile"
+}
+
+// findFirstAccessiblePath traverses the menu tree in order and returns the first accessible path.
+func findFirstAccessiblePath(items []*menu.MenuItem, parentPath string) string {
+	for _, item := range items {
+		currentPath := joinMenuPath(parentPath, item.Path)
+		if item.Type == "M" && item.IsFrame == 0 && currentPath != "" && !isExternalPath(currentPath) {
+			return currentPath
+		}
+		if len(item.Children) == 0 {
+			continue
+		}
+		if homePath := findFirstAccessiblePath(item.Children, currentPath); homePath != "" {
+			return homePath
+		}
+	}
+	return ""
+}
+
+// joinMenuPath combines the current menu path with its parent route path.
+func joinMenuPath(parentPath string, currentPath string) string {
+	currentPath = strings.TrimSpace(currentPath)
+	if currentPath == "" {
+		return parentPath
+	}
+	if strings.HasPrefix(currentPath, "/") {
+		return currentPath
+	}
+	if parentPath == "" {
+		return "/" + strings.TrimLeft(currentPath, "/")
+	}
+	return strings.TrimRight(parentPath, "/") + "/" + strings.TrimLeft(currentPath, "/")
+}
+
+// isExternalPath reports whether the path points to an external address.
+func isExternalPath(path string) bool {
+	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
 }
 
 func convertToMenuTree(items []*menu.MenuItem) []*v1.MenuTree {
