@@ -47,13 +47,17 @@ openspec/            → OpenSpec相关文档
 ### 开发环境
 
 ```bash
-make dev       # 启动前后端（前端:5666, 后端:8080）
-make stop      # 停止所有服务
-make status    # 查看服务状态
-make test      # 运行完整E2E测试
-make init      # 初始化数据库（DDL + Seed 数据）
-make mock      # 加载 Mock 演示数据（需先执行 init）
-make up        # AI 生成 commit message 并推送
+make dev                         # 启动前后端（前端:5666, 后端:8080）
+make stop                        # 停止所有服务
+make status                      # 查看服务状态
+make test                        # 运行完整E2E测试
+make init                        # 初始化数据库（DDL + Seed 数据）
+make mock                        # 加载 Mock 演示数据（需先执行 init）
+make up                          # 默认用 claude 生成 commit message 并推送
+make up tool=codex               # 使用 codex 生成 commit message 并推送
+make up t=codex                  # tool 的短别名
+make up tool=codex               # codex 默认模型为 gpt-5.1-codex-mini
+make up tool=codex model=gpt-5.2 # 指定 AI 工具和模型（兼容 m=...）
 ```
 
 ### 后端
@@ -338,5 +342,3 @@ dao.SysDictType.Ctx(ctx).Where(do.SysDictType{Id: id}).Delete()
 5. **图标使用**: 使用 `IconifyIcon` 组件（来自 `@vben/icons`），图标名使用`Iconify`格式（如 `ant-design:inbox-outlined`）
 
 开发新页面前，**必须先查看参考项目中对应页面的实现**，确保`UI`和交互保持一致。
-
-
