@@ -44,14 +44,15 @@ up:
 			;; \
 		codex) \
 			TMP_FILE=$$(mktemp); \
-			trap 'rm -f "$$TMP_FILE"' EXIT; \
+			ERR_FILE=$$(mktemp); \
+			trap 'rm -f "$$TMP_FILE" "$$ERR_FILE"' EXIT; \
 			if [ -n "$$AI_MODEL" ]; then \
-				generate_input | codex exec --sandbox read-only --model "$$AI_MODEL" -o "$$TMP_FILE" "$$PROMPT" >/dev/null || { echo "Error: Codex command failed"; rm -f "$$TMP_FILE"; exit 1; }; \
+				generate_input | codex exec --sandbox read-only --color never --model "$$AI_MODEL" -o "$$TMP_FILE" "$$PROMPT" >/dev/null 2>"$$ERR_FILE" || { echo "Error: Codex command failed"; tail -20 "$$ERR_FILE"; rm -f "$$TMP_FILE" "$$ERR_FILE"; exit 1; }; \
 			else \
-				generate_input | codex exec --sandbox read-only -o "$$TMP_FILE" "$$PROMPT" >/dev/null || { echo "Error: Codex command failed"; rm -f "$$TMP_FILE"; exit 1; }; \
+				generate_input | codex exec --sandbox read-only --color never -o "$$TMP_FILE" "$$PROMPT" >/dev/null 2>"$$ERR_FILE" || { echo "Error: Codex command failed"; tail -20 "$$ERR_FILE"; rm -f "$$TMP_FILE" "$$ERR_FILE"; exit 1; }; \
 			fi; \
 			MSG=$$(cat "$$TMP_FILE"); \
-			rm -f "$$TMP_FILE"; \
+			rm -f "$$TMP_FILE" "$$ERR_FILE"; \
 			trap - EXIT; \
 			;; \
 	esac; \
