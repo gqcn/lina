@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// File Upload API
-
+// UploadReq defines the request for uploading a file.
 type UploadReq struct {
 	g.Meta `path:"/file/upload" method:"post" mime:"multipart/form-data" tags:"文件管理" summary:"上传文件" dc:"上传单个文件到服务器，支持常见文件格式，文件信息自动记录到文件管理表中。scene为必填参数，系统会自动记录文件与使用场景的关联关系"`
 	Scene  string `json:"scene" v:"required" dc:"使用场景标识（必填）：avatar=用户头像 notice_image=通知公告图片 notice_attachment=通知公告附件 other=其他" eg:"avatar"`

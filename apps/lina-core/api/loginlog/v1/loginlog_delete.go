@@ -6,6 +6,7 @@ import (
 
 // LoginLog Delete API
 
+// DeleteReq defines the request for deleting login logs.
 type DeleteReq struct {
 	g.Meta `path:"/loginlog/{ids}" method:"delete" tags:"登录日志" summary:"删除登录日志" dc:"删除一条或多条登录日志记录"`
 	Ids    string `json:"ids" v:"required" dc:"日志ID，多个用逗号分隔" eg:"1,2,3"`

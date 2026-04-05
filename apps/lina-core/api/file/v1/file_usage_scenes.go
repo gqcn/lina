@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// File Usage Scenes API
-
+// UsageScenesReq defines the request for querying file usage scenes.
 type UsageScenesReq struct {
 	g.Meta `path:"/file/scenes" method:"get" tags:"文件管理" summary:"获取文件使用场景列表" dc:"查询所有已使用的文件使用场景标识列表，用于文件列表页面的使用场景筛选下拉框"`
 }

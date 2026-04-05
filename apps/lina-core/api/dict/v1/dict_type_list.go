@@ -6,8 +6,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// DictType List API
-
+// TypeListReq defines the request for querying the dictionary type list.
 type TypeListReq struct {
 	g.Meta   `path:"/dict/type" method:"get" tags:"字典管理" summary:"获取字典类型列表" dc:"分页查询字典类型列表，支持按字典名称和字典类型标识筛选"`
 	PageNum  int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`
@@ -16,7 +15,7 @@ type TypeListReq struct {
 	Type     string `json:"type" dc:"按字典类型标识筛选（模糊匹配）" eg:"sys_user_sex"`
 }
 
-// TypeListRes dictionary type list response
+// TypeListRes defines the response for querying the dictionary type list.
 type TypeListRes struct {
 	List  []*entity.SysDictType `json:"list" dc:"字典类型列表" eg:"[]"`
 	Total int                   `json:"total" dc:"总条数" eg:"10"`

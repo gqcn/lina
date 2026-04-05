@@ -4,12 +4,12 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// User Info API
-
+// GetInfoReq defines the request for querying current frontend user info.
 type GetInfoReq struct {
 	g.Meta `path:"/user/info" method:"get" tags:"用户管理" summary:"获取前端用户信息" dc:"获取当前登录用户的基本信息，包括用户名、角色、菜单树、权限列表等，用于前端页面展示和权限控制"`
 }
 
+// GetInfoRes defines the response for querying current frontend user info.
 type GetInfoRes struct {
 	UserId      int         `json:"userId" dc:"用户ID" eg:"1"`
 	Username    string      `json:"username" dc:"用户名" eg:"admin"`

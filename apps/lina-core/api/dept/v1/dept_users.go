@@ -22,6 +22,7 @@ type DeptUser struct {
 	Nickname string `json:"nickname" dc:"用户昵称，用于前端显示" eg:"张三"`
 }
 
+// UsersRes defines the response for querying department users.
 type UsersRes struct {
 	List []*DeptUser `json:"list" dc:"部门用户列表" eg:"[]"`
 }

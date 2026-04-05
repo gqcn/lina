@@ -8,6 +8,7 @@ import (
 
 // Notice List API
 
+// ListReq defines the request for listing notices.
 type ListReq struct {
 	g.Meta    `path:"/notice" method:"get" tags:"通知公告" summary:"获取通知公告列表" dc:"分页查询通知公告列表，支持按标题、类型、创建人筛选"`
 	PageNum   int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`

@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// User Create API
-
+// CreateReq defines the request for creating a user.
 type CreateReq struct {
 	g.Meta   `path:"/user" method:"post" tags:"用户管理" summary:"创建用户" dc:"创建一个新用户，用户名在系统中必须唯一。可指定所属部门、岗位和角色"`
 	Username string `json:"username" v:"required|length:2,64#请输入用户名|用户名长度为2-64个字符" dc:"用户名" eg:"zhangsan"`
@@ -21,6 +20,7 @@ type CreateReq struct {
 	RoleIds  []int  `json:"roleIds" dc:"角色ID列表" eg:"[1,2]"`
 }
 
+// CreateRes defines the response for creating a user.
 type CreateRes struct {
 	Id int `json:"id" dc:"用户ID" eg:"1"`
 }

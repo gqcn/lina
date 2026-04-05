@@ -6,6 +6,7 @@ import (
 
 // Notice Create API
 
+// CreateReq defines the request for creating a notice.
 type CreateReq struct {
 	g.Meta  `path:"/notice" method:"post" tags:"通知公告" summary:"创建通知公告" dc:"创建一条通知或公告，支持设置为草稿或直接发布，可附带附件文件"`
 	Title   string `json:"title" v:"required#请输入公告标题" dc:"公告标题" eg:"系统维护通知"`

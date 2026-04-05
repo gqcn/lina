@@ -18,6 +18,7 @@ type TreeNode struct {
 	Children []*TreeNode `json:"children" dc:"子部门列表，递归嵌套结构" eg:"[]"`
 }
 
+// TreeRes defines the response for querying the department tree.
 type TreeRes struct {
 	List []*TreeNode `json:"list" dc:"部门树形结构列表，顶级节点为parentId=0的部门" eg:"[]"`
 }

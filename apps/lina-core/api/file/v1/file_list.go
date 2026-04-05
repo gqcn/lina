@@ -6,8 +6,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// File List API
-
+// ListReq defines the request for querying the file list.
 type ListReq struct {
 	g.Meta         `path:"/file" method:"get" tags:"文件管理" summary:"获取文件列表" dc:"分页查询文件列表，支持按文件名、原始名、后缀、上传时间范围筛选，支持按文件大小和上传时间排序"`
 	PageNum        int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`
@@ -28,7 +27,7 @@ type ListRes struct {
 	Total int         `json:"total" dc:"总条数" eg:"20"`
 }
 
-// ListItem File list item
+// ListItem represents a single file list item.
 type ListItem struct {
 	*entity.SysFile
 	CreatedByName string `json:"createdByName" dc:"上传者用户名" eg:"admin"`

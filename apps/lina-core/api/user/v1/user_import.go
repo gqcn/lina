@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// User Import API
-
+// ImportReq defines the request for importing users.
 type ImportReq struct {
 	g.Meta `path:"/user/import" method:"post" mime:"multipart/form-data" tags:"用户管理" summary:"导入用户数据" dc:"通过Excel文件批量导入用户数据，需使用系统提供的导入模板"`
 }
@@ -23,8 +22,10 @@ type ImportFailItem struct {
 	Reason string `json:"reason" dc:"失败原因" eg:"用户名已存在"`
 }
 
+// ImportTemplateReq defines the request for downloading the user import template.
 type ImportTemplateReq struct {
 	g.Meta `path:"/user/import-template" method:"get" tags:"用户管理" summary:"下载导入模板" dc:"下载用户导入Excel模板文件，包含必填字段和数据格式说明"`
 }
 
+// ImportTemplateRes defines the response for downloading the user import template.
 type ImportTemplateRes struct{}

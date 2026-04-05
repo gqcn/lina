@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// Menu TreeSelect API - for role menu selection dropdown
-
+// TreeSelectReq defines the request for querying the menu tree select data.
 type TreeSelectReq struct {
 	g.Meta `path:"/menu/treeselect" method:"get" tags:"菜单管理" summary:"获取菜单下拉树" dc:"获取菜单下拉树，用于角色分配菜单时选择。过滤掉按钮类型的菜单"`
 }
@@ -20,6 +19,7 @@ type MenuTreeNode struct {
 	Children []*MenuTreeNode `json:"children" dc:"子菜单" eg:"[]"`
 }
 
+// TreeSelectRes defines the response for querying the menu tree select data.
 type TreeSelectRes struct {
 	List []*MenuTreeNode `json:"list" dc:"菜单树形列表" eg:"[]"`
 }

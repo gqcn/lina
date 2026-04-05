@@ -6,14 +6,13 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// DictData Get API
-
+// DataGetReq defines the request for querying dictionary data detail.
 type DataGetReq struct {
 	g.Meta `path:"/dict/data/{id}" method:"get" tags:"字典管理" summary:"获取字典数据详情" dc:"根据字典数据ID获取字典数据项的详细信息"`
 	Id     int `json:"id" v:"required" dc:"字典数据ID" eg:"1"`
 }
 
-// DataGetRes dictionary data detail response
+// DataGetRes defines the response for querying dictionary data detail.
 type DataGetRes struct {
 	*entity.SysDictData `dc:"字典数据信息" eg:""`
 }

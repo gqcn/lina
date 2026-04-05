@@ -6,8 +6,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// Post List API
-
+// ListReq defines the request for querying the post list.
 type ListReq struct {
 	g.Meta   `path:"/post" method:"get" tags:"岗位管理" summary:"获取岗位列表" dc:"分页查询岗位列表，支持按部门、编码、名称、状态等条件筛选"`
 	PageNum  int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`

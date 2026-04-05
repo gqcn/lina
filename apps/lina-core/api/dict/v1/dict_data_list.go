@@ -6,8 +6,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// DictData List API
-
+// DataListReq defines the request for querying the dictionary data list.
 type DataListReq struct {
 	g.Meta   `path:"/dict/data" method:"get" tags:"字典管理" summary:"获取字典数据列表" dc:"分页查询字典数据列表，支持按字典类型和标签名称筛选"`
 	PageNum  int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`
@@ -16,7 +15,7 @@ type DataListReq struct {
 	Label    string `json:"label" dc:"按字典标签筛选（模糊匹配）" eg:"男"`
 }
 
-// DataListRes dictionary data list response
+// DataListRes defines the response for querying the dictionary data list.
 type DataListRes struct {
 	List  []*entity.SysDictData `json:"list" dc:"字典数据列表" eg:"[]"`
 	Total int                   `json:"total" dc:"总条数" eg:"3"`

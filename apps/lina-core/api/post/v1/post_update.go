@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// Post Update API
-
+// UpdateReq defines the request for updating a post.
 type UpdateReq struct {
 	g.Meta `path:"/post/{id}" method:"put" tags:"岗位管理" summary:"更新岗位" dc:"更新指定岗位的信息，所有字段均为可选更新"`
 	Id     int     `json:"id" v:"required" dc:"岗位ID" eg:"1"`
@@ -17,4 +16,5 @@ type UpdateReq struct {
 	Remark *string `json:"remark" dc:"备注" eg:"负责系统开发"`
 }
 
+// UpdateRes defines the response for updating a post.
 type UpdateRes struct{}

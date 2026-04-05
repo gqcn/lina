@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// Menu All API - returns all user menus for route generation
-
+// GetAllReq defines the request for querying all user menu routes.
 type GetAllReq struct {
 	g.Meta `path:"/menus/all" method:"get" tags:"菜单管理" summary:"获取用户菜单路由" dc:"获取当前登录用户的菜单列表，返回Vben框架所需的路由格式，用于前端动态路由生成"`
 }
@@ -41,7 +40,7 @@ type GetAllRes struct {
 	List []*MenuRouteItem `json:"list" dc:"用户菜单路由列表" eg:"[]"`
 }
 
-// GetAllResAlt returns the menu routes as a direct array for Vben compatibility
+// GetAllResAlt defines the direct-array response for Vben compatibility.
 type GetAllResAlt struct {
 	g.Meta `path:"/menus/all" method:"get" tags:"菜单管理" summary:"获取用户菜单路由" dc:"获取当前登录用户的菜单列表，返回Vben框架所需的路由格式，用于前端动态路由生成"`
 }

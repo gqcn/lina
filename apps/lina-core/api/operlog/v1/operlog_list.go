@@ -8,6 +8,7 @@ import (
 
 // OperLog List API
 
+// ListReq defines the request for listing operation logs.
 type ListReq struct {
 	g.Meta         `path:"/operlog" method:"get" tags:"操作日志" summary:"获取操作日志列表" dc:"分页查询操作日志列表，记录用户在系统中执行的增删改查等操作，支持多条件筛选和排序"`
 	PageNum        int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`

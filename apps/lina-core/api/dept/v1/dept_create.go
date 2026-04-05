@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// Dept Create API
-
+// CreateReq defines the request for creating a department.
 type CreateReq struct {
 	g.Meta   `path:"/dept" method:"post" tags:"部门管理" summary:"创建部门" dc:"创建一个新部门，支持设置父级部门形成树形层级结构，部门编码在系统内须唯一"`
 	ParentId int    `json:"parentId" d:"0" dc:"父级部门ID，0表示顶级部门" eg:"100"`
@@ -19,6 +18,7 @@ type CreateReq struct {
 	Remark   string `json:"remark" dc:"备注信息" eg:"负责公司技术研发工作"`
 }
 
+// CreateRes defines the response for creating a department.
 type CreateRes struct {
 	Id int `json:"id" dc:"新创建的部门ID" eg:"110"`
 }

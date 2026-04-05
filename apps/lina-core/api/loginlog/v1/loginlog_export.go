@@ -6,6 +6,7 @@ import (
 
 // LoginLog Export API
 
+// ExportReq defines the request for exporting login logs.
 type ExportReq struct {
 	g.Meta         `path:"/loginlog/export" method:"get" tags:"登录日志" summary:"导出登录日志" operLog:"4" dc:"导出登录日志数据为Excel文件，支持按条件筛选导出，也支持导出指定ID的记录"`
 	UserName       string `json:"userName" dc:"按用户名筛选（模糊匹配）" eg:"admin"`

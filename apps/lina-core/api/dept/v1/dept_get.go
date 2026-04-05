@@ -6,8 +6,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// Dept Get API
-
+// GetReq defines the request for querying department detail.
 type GetReq struct {
 	g.Meta `path:"/dept/{id}" method:"get" tags:"部门管理" summary:"获取部门详情" dc:"根据部门ID获取部门的完整详细信息，包括基本信息、负责人、联系方式等"`
 	Id     int `json:"id" v:"required" dc:"部门ID" eg:"100"`

@@ -6,6 +6,7 @@ import (
 
 // Notice Update API
 
+// UpdateReq defines the request for updating a notice.
 type UpdateReq struct {
 	g.Meta  `path:"/notice/{id}" method:"put" tags:"通知公告" summary:"更新通知公告" dc:"更新指定通知公告的信息，所有字段均为可选更新"`
 	Id      int64   `json:"id" v:"required" dc:"公告ID" eg:"1"`

@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// DictType Create API
-
+// TypeCreateReq defines the request for creating a dictionary type.
 type TypeCreateReq struct {
 	g.Meta `path:"/dict/type" method:"post" tags:"字典管理" summary:"创建字典类型" dc:"创建一个新的字典类型，字典类型标识在系统中必须唯一"`
 	Name   string `json:"name" v:"required#请输入字典名称" dc:"字典名称" eg:"用户性别"`
@@ -14,6 +13,7 @@ type TypeCreateReq struct {
 	Remark string `json:"remark" dc:"备注" eg:"用户性别选项"`
 }
 
+// TypeCreateRes defines the response for creating a dictionary type.
 type TypeCreateRes struct {
 	Id int `json:"id" dc:"字典类型ID" eg:"1"`
 }

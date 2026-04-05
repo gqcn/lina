@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// DictData Export API
-
+// DataExportReq defines the request for exporting dictionary data.
 type DataExportReq struct {
 	g.Meta   `path:"/dict/data/export" method:"get" tags:"字典管理" summary:"导出字典数据" operLog:"4" dc:"导出字典数据为Excel文件，支持按字典类型和标签筛选导出，也支持导出指定ID的记录"`
 	DictType string `json:"dictType" dc:"按字典类型标识筛选" eg:"sys_user_sex"`
@@ -13,4 +12,5 @@ type DataExportReq struct {
 	Ids      []int  `json:"ids" dc:"指定导出的记录ID列表，不传则导出全部符合条件的记录" eg:"[1,2,3]"`
 }
 
+// DataExportRes defines the response for exporting dictionary data.
 type DataExportRes struct{}

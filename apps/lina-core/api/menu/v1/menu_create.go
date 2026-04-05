@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// Menu Create API
-
+// CreateReq defines the request for creating a menu.
 type CreateReq struct {
 	g.Meta     `path:"/menu" method:"post" tags:"菜单管理" summary:"创建菜单" dc:"创建新菜单，支持目录、菜单、按钮三种类型。菜单名称在同一父级下不能重复"`
 	ParentId   int    `json:"parentId" d:"0" dc:"父菜单ID（0=根菜单）" eg:"0"`
@@ -24,6 +23,7 @@ type CreateReq struct {
 	Remark     string `json:"remark" dc:"备注" eg:""`
 }
 
+// CreateRes defines the response for creating a menu.
 type CreateRes struct {
 	Id int `json:"id" dc:"创建的菜单ID" eg:"1"`
 }

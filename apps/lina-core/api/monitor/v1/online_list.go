@@ -4,6 +4,7 @@ import "github.com/gogf/gf/v2/frame/g"
 
 // Online User List API
 
+// OnlineListReq defines the request for listing online users.
 type OnlineListReq struct {
 	g.Meta   `path:"/monitor/online/list" method:"get" tags:"系统监控" summary:"在线用户列表" dc:"分页查询当前在线用户会话，支持按用户名和IP地址模糊过滤"`
 	PageNum  int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`

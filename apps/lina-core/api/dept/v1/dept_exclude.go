@@ -14,6 +14,7 @@ type ExcludeReq struct {
 	Id     int `json:"id" v:"required" dc:"需排除的部门ID，该部门及其所有下级部门将从结果中过滤掉" eg:"100"`
 }
 
+// ExcludeRes defines the response for querying departments with exclusions.
 type ExcludeRes struct {
 	List []*entity.SysDept `json:"list" dc:"排除指定节点及其子节点后的部门列表" eg:"[]"`
 }

@@ -6,16 +6,17 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// User Profile API
-
+// GetProfileReq defines the request for querying the current user profile.
 type GetProfileReq struct {
 	g.Meta `path:"/user/profile" method:"get" tags:"用户管理" summary:"获取当前用户信息" dc:"获取当前登录用户的完整个人信息，用于个人中心页面展示"`
 }
 
+// GetProfileRes defines the response for querying the current user profile.
 type GetProfileRes struct {
 	*entity.SysUser `dc:"用户信息"`
 }
 
+// UpdateProfileReq defines the request for updating the current user profile.
 type UpdateProfileReq struct {
 	g.Meta   `path:"/user/profile" method:"put" tags:"用户管理" summary:"更新当前用户信息" dc:"更新当前登录用户的个人资料，包括昵称、邮箱、手机号、性别等"`
 	Nickname *string `json:"nickname" v:"required#请输入昵称" dc:"昵称" eg:"管理员"`
@@ -25,4 +26,5 @@ type UpdateProfileReq struct {
 	Password *string `json:"password" dc:"新密码" eg:"newpass123"`
 }
 
+// UpdateProfileRes defines the response for updating the current user profile.
 type UpdateProfileRes struct{}

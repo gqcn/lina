@@ -6,6 +6,7 @@ import (
 
 // OperLog Clean API
 
+// CleanReq defines the request for clearing operation logs.
 type CleanReq struct {
 	g.Meta    `path:"/operlog/clean" method:"delete" tags:"操作日志" summary:"清空操作日志" dc:"清空指定时间范围内的操作日志，不传时间则清空全部"`
 	BeginTime string `json:"beginTime" dc:"清理起始时间" eg:"2025-01-01"`

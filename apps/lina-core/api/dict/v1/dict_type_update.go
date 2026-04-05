@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// DictType Update API
-
+// TypeUpdateReq defines the request for updating a dictionary type.
 type TypeUpdateReq struct {
 	g.Meta `path:"/dict/type/{id}" method:"put" tags:"字典管理" summary:"更新字典类型" dc:"更新指定字典类型的信息，修改字典类型标识会同步更新关联的字典数据"`
 	Id     int     `json:"id" v:"required" dc:"字典类型ID" eg:"1"`
@@ -15,4 +14,5 @@ type TypeUpdateReq struct {
 	Remark *string `json:"remark" dc:"备注" eg:"用户性别选项"`
 }
 
+// TypeUpdateRes defines the response for updating a dictionary type.
 type TypeUpdateRes struct{}

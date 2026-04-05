@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// DictData Create API
-
+// DataCreateReq defines the request for creating dictionary data.
 type DataCreateReq struct {
 	g.Meta   `path:"/dict/data" method:"post" tags:"字典管理" summary:"创建字典数据" dc:"在指定字典类型下创建一条字典数据项"`
 	DictType string `json:"dictType" v:"required#请输入字典类型" dc:"所属字典类型标识" eg:"sys_user_sex"`
@@ -18,6 +17,7 @@ type DataCreateReq struct {
 	Remark   string `json:"remark" dc:"备注" eg:"性别男"`
 }
 
+// DataCreateRes defines the response for creating dictionary data.
 type DataCreateRes struct {
 	Id int `json:"id" dc:"字典数据ID" eg:"1"`
 }

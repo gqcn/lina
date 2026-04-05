@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// Post Create API
-
+// CreateReq defines the request for creating a post.
 type CreateReq struct {
 	g.Meta `path:"/post" method:"post" tags:"岗位管理" summary:"创建岗位" dc:"在指定部门下创建一个新岗位，岗位编码在系统中必须唯一"`
 	DeptId int    `json:"deptId" v:"required#请选择所属部门" dc:"所属部门ID" eg:"100"`
@@ -16,6 +15,7 @@ type CreateReq struct {
 	Remark string `json:"remark" dc:"备注" eg:"负责系统开发"`
 }
 
+// CreateRes defines the response for creating a post.
 type CreateRes struct {
 	Id int `json:"id" dc:"岗位ID" eg:"1"`
 }

@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// Menu List API - returns tree structure
-
+// ListReq defines the request for querying the menu tree list.
 type ListReq struct {
 	g.Meta  `path:"/menu" method:"get" tags:"菜单管理" summary:"获取菜单列表" dc:"获取菜单列表，返回树形结构。支持按菜单名称、状态进行筛选"`
 	Name    string `json:"name" dc:"按菜单名称筛选（模糊匹配）" eg:"用户"`
@@ -35,6 +34,7 @@ type MenuItem struct {
 	Children   []*MenuItem `json:"children" dc:"子菜单列表" eg:"[]"`
 }
 
+// ListRes defines the response for querying the menu tree list.
 type ListRes struct {
 	List []*MenuItem `json:"list" dc:"菜单树形列表" eg:"[]"`
 }

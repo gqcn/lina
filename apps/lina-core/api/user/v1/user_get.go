@@ -6,8 +6,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// User Get API
-
+// GetReq defines the request for querying user detail.
 type GetReq struct {
 	g.Meta `path:"/user/{id}" method:"get" tags:"用户管理" summary:"获取用户详情" dc:"根据用户ID获取用户详细信息，包括所属部门和岗位信息"`
 	Id     int `json:"id" v:"required" dc:"用户ID" eg:"1"`

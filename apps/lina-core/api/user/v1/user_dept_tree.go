@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// User DeptTree API
-
+// DeptTreeReq defines the request for querying the user department tree.
 type DeptTreeReq struct {
 	g.Meta `path:"/user/dept-tree" method:"get" tags:"用户管理" summary:"获取用户筛选部门树" dc:"获取部门树结构数据，用于用户列表页面按部门筛选用户，每个节点包含部门下的用户数量"`
 }

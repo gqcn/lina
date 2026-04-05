@@ -8,6 +8,7 @@ import (
 
 // UserMsg List API
 
+// ListReq defines the request for listing user messages.
 type ListReq struct {
 	g.Meta   `path:"/user/message" method:"get" tags:"用户消息" summary:"获取消息列表" dc:"分页查询当前登录用户的消息列表，包括已读和未读消息"`
 	PageNum  int `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`

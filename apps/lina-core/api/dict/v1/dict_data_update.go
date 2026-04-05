@@ -4,8 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// DictData Update API
-
+// DataUpdateReq defines the request for updating dictionary data.
 type DataUpdateReq struct {
 	g.Meta   `path:"/dict/data/{id}" method:"put" tags:"字典管理" summary:"更新字典数据" dc:"更新指定字典数据项的信息"`
 	Id       int     `json:"id" v:"required" dc:"字典数据ID" eg:"1"`
@@ -19,4 +18,5 @@ type DataUpdateReq struct {
 	Remark   *string `json:"remark" dc:"备注" eg:"性别男"`
 }
 
+// DataUpdateRes defines the response for updating dictionary data.
 type DataUpdateRes struct{}
