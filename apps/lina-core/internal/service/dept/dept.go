@@ -489,7 +489,6 @@ func (s *Service) UserDeptTree(ctx context.Context) ([]*TreeNode, error) {
 				dao.SysUser.Table(), dao.SysUser.Columns().Id,
 			),
 		).
-		Where(fmt.Sprintf("%s.%s IS NULL", dao.SysUser.Table(), dao.SysUser.Columns().DeletedAt)).
 		Group("dept_id").
 		Scan(&counts)
 	if err != nil {
