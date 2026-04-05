@@ -1,6 +1,6 @@
 # Menu Management
 
-## Overview
+## Purpose
 
 菜单管理功能负责系统菜单的创建、编辑、删除和树形展示，支持目录、菜单、按钮三种类型。
 

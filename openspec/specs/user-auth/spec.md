@@ -1,4 +1,10 @@
-## MODIFIED Requirements
+# User Auth
+
+## Purpose
+
+用户认证功能负责系统登录、登出、会话校验以及登录后用户信息返回。
+
+## Requirements
 
 ### Requirement: 用户名密码登录
 系统 SHALL 支持用户名 + 密码登录，验证成功后返回 JWT Token。登录过程（无论成功或失败）SHALL 自动记录登录日志。登录成功后 SHALL 在 `sys_online_session` 表中创建会话记录。
