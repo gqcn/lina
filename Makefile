@@ -46,7 +46,6 @@ help:
 		c_dim=''; \
 		c_reset=''; \
 	fi; \
-	printf "$${c_title}Lina Admin Commands$${c_reset}\n"; \
 	printf "$${c_dim}Usage:$${c_reset} make $${c_cmd}<target>$${c_reset}\n\n"; \
 	awk '/^## [^:]+:/ { \
 		line=$$0; \
