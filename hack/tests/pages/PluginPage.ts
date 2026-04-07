@@ -77,12 +77,6 @@ export class PluginPage {
     return this.page.getByText("plugin-demo CRUD 扩展").first();
   }
 
-  crudTableSlot(): Locator {
-    return this.page.getByText(
-      "plugin-demo 正在复用通用 CRUD 表格下方扩展位，用于验证 `crud.table.after` 会自动作用于基于 `useVbenVxeGrid` 的页面。",
-    );
-  }
-
   async gotoManage() {
     await this.page.goto("/system/plugin");
     await expect(this.tableTitle).toBeVisible();
@@ -178,12 +172,10 @@ export class PluginPage {
 
   async expectCrudSlotsVisible() {
     await expect(this.crudToolbarSlot()).toBeVisible();
-    await expect(this.crudTableSlot()).toBeVisible();
   }
 
   async expectCrudSlotsHidden() {
     await expect(this.crudToolbarSlot()).toHaveCount(0);
-    await expect(this.crudTableSlot()).toHaveCount(0);
   }
 
   async openSidebarExampleFromMenu() {

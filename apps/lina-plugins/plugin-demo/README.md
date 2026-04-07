@@ -66,5 +66,5 @@ plugin-demo/
 ## 当前示例覆盖范围
 
 - 左侧主菜单入口“插件示例”，用于验证源码插件页面可被宿主菜单挂载。
-- 前端 Slot 示例覆盖 `auth.login.after`、`layout.header.actions.before`、`layout.header.actions.after`、`dashboard.workspace.before`、`dashboard.workspace.after`、`crud.toolbar.after`、`crud.table.after`。
+- 前端 Slot 示例覆盖 `auth.login.after`、`layout.header.actions.before`、`layout.header.actions.after`、`dashboard.workspace.before`、`dashboard.workspace.after`、`crud.toolbar.after`。
 - 后端示例仅保留摘要路由、鉴权后响应头与定时任务注册，用于验证最小回调注册式扩展点。

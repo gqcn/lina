@@ -128,3 +128,4 @@
 - [x] **FB-46**: 同步更新 `apps/lina-plugins` 与 `plugin-demo` 文档、清单及 E2E 用例，匹配新的命名、接口契约与示例行为
 - [x] **FB-47**: 将 `plugin-demo` 子目录说明文档收敛到根目录 `README.md`，移除 `backend`、`frontend`、`manifest` 下的介绍性 `README.md`
 - [x] **FB-48**: 将源码插件前端目录约定从 `frontend/src/pages|slots` 统一收敛为 `frontend/pages|slots`，同步宿主扫描逻辑、示例文件与文档规格
+- [x] **FB-49**: 移除 `plugin-demo` 的 `crud.table.after` 前端示例，避免在所有基于 `useVbenVxeGrid` 的页面下方默认展示说明内容
