@@ -92,6 +92,10 @@ pnpm report            # 查看 HTML 报告
 
 测试文件命名规范：`TC{NNNN}*.ts`（如 `TC0001-login.ts`），放在 `hack/tests/e2e/` 对应模块目录下。
 
+# 文档编写规范
+
+`README.md`等技术文档编写需遵循规范 @.agents/instructions/markdown-format.instructions.md 。
+
 # 开发流程规范
 
 本项目采用`SDD`驱动开发，使用`OpenSpec`工具辅助落地。变更记录存放在 `openspec/changes/` 目录下。每个变更包含：`proposal.md`（提案）、`design.md`（设计）、`specs/`（增量规范）、`tasks.md`（任务清单）。
@@ -345,3 +349,4 @@ dao.SysDictType.Ctx(ctx).Where(do.SysDictType{Id: id}).Delete()
 5. **图标使用**: 使用 `IconifyIcon` 组件（来自 `@vben/icons`），图标名使用`Iconify`格式（如 `ant-design:inbox-outlined`）
 
 开发新页面前，**必须先查看参考项目中对应页面的实现**，确保`UI`和交互保持一致。
+
