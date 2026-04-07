@@ -415,4 +415,38 @@ test.describe("TC-66 源码插件生命周期", () => {
     await pluginPage.expectSidebarMenuHidden("插件查询");
     await pluginPage.expectSidebarMenuHidden("用户查询");
   });
+
+  test("TC-66j: 当前会话重新获得焦点但插件状态未变化时不重复刷新菜单", async ({
+    page,
+  }) => {
+    await syncPlugins(adminApi!);
+    await updatePluginStatus(adminApi!, pluginID, true);
+
+    await loginAsAdmin(page);
+    const pluginPage = new PluginPage(page);
+    await pluginPage.gotoManage();
+    await pluginPage.expectSidebarMenuVisible("插件示例");
+
+    const menuResponses: string[] = [];
+    page.on("response", (response) => {
+      if (
+        response.request().method() === "GET" &&
+        response.url().includes("/api/v1/menus/all")
+      ) {
+        menuResponses.push(response.url());
+      }
+    });
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event("focus"));
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await page.waitForTimeout(1200);
+    await pluginPage.expectSidebarMenuVisible("插件示例");
+    expect(
+      menuResponses,
+      "插件状态未变化时，焦点恢复不应重复拉取菜单",
+    ).toHaveLength(0);
+  });
 });

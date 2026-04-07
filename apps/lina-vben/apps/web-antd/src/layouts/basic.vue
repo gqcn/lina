@@ -23,6 +23,7 @@ import { $t } from '#/locales';
 import { pluginSlotKeys } from '#/plugins/plugin-slots';
 import {
   notifyPluginRegistryChanged,
+  notifyPluginRegistryChangedIfNeeded,
   onPluginRegistryChanged,
 } from '#/plugins/slot-registry';
 import { generateAccess } from '#/router/access';
@@ -152,9 +153,6 @@ async function refreshPluginAwareAccess() {
     const userRoles = userStore.userInfo?.roles ?? [];
 
     resetRoutes();
-    accessStore.setAccessMenus([]);
-    accessStore.setAccessRoutes([]);
-    accessStore.setIsAccessChecked(false);
 
     const { accessibleMenus, accessibleRoutes } = await generateAccess(
       {
@@ -200,7 +198,7 @@ function handlePluginRegistryMaybeChanged() {
   ) {
     return;
   }
-  void notifyPluginRegistryChanged();
+  void notifyPluginRegistryChangedIfNeeded();
 }
 
 // Fetch messages when notification panel is likely to open

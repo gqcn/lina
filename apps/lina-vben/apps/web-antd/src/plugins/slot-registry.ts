@@ -10,7 +10,9 @@ import { pluginSlotModules } from 'virtual:lina-plugin-slots';
 type PluginRegistryListener = () => void | Promise<void>;
 
 type PluginRegistryGlobal = typeof globalThis & {
+  __linaPluginRegistryCheckPromise?: null | Promise<boolean>;
   __linaPluginRegistryListeners?: Set<PluginRegistryListener>;
+  __linaPluginStateSignature?: null | string;
   __linaPluginStatePromise?: null | Promise<Map<string, PluginRuntimeState>>;
 };
 
@@ -92,10 +94,42 @@ function getPluginStatePromise() {
   return getPluginRegistryGlobal().__linaPluginStatePromise ?? null;
 }
 
+function getPluginStateSignature() {
+  return getPluginRegistryGlobal().__linaPluginStateSignature ?? null;
+}
+
 function setPluginStatePromise(
   promise: null | Promise<Map<string, PluginRuntimeState>>,
 ) {
   getPluginRegistryGlobal().__linaPluginStatePromise = promise;
+}
+
+function setPluginStateSignature(signature: null | string) {
+  getPluginRegistryGlobal().__linaPluginStateSignature = signature;
+}
+
+function buildPluginStateMap(items: PluginRuntimeState[]) {
+  const map = new Map<string, PluginRuntimeState>();
+  for (const item of items) {
+    for (const key of normalizePluginKeys(item)) {
+      map.set(key, item);
+    }
+  }
+  return map;
+}
+
+function buildPluginStateSignature(items: PluginRuntimeState[]) {
+  return items
+    .map((item) => `${item.id}:${item.installed}:${item.enabled}:${item.statusKey}`)
+    .sort()
+    .join('|');
+}
+
+function setPluginStateSnapshot(items: PluginRuntimeState[]) {
+  const pluginStateMap = buildPluginStateMap(items);
+  setPluginStateSignature(buildPluginStateSignature(items));
+  setPluginStatePromise(Promise.resolve(pluginStateMap));
+  return pluginStateMap;
 }
 
 async function loadPluginStateMap(force = false) {
@@ -103,13 +137,7 @@ async function loadPluginStateMap(force = false) {
   if (!pluginStatePromise || force) {
     pluginStatePromise = pluginRuntimeList()
       .then((items) => {
-        const map = new Map<string, PluginRuntimeState>();
-        for (const item of items) {
-          for (const key of normalizePluginKeys(item)) {
-            map.set(key, item);
-          }
-        }
-        return map;
+        return setPluginStateSnapshot(items);
       })
       .catch((error) => {
         console.error('[plugin-slot] failed to load plugin state map', error);
@@ -141,11 +169,51 @@ export async function getPluginStateMap(force = false) {
  */
 export async function notifyPluginRegistryChanged() {
   setPluginStatePromise(null);
+  setPluginStateSignature(null);
   await Promise.allSettled(
     Array.from(getPluginRegistryListeners(), (listener) =>
       Promise.resolve(listener()),
     ),
   );
+}
+
+/**
+ * Queries latest plugin runtime state and only notifies listeners when it actually changed.
+ */
+export async function notifyPluginRegistryChangedIfNeeded() {
+  const registryGlobal = getPluginRegistryGlobal();
+  if (registryGlobal.__linaPluginRegistryCheckPromise) {
+    return await registryGlobal.__linaPluginRegistryCheckPromise;
+  }
+
+  registryGlobal.__linaPluginRegistryCheckPromise = (async () => {
+    try {
+      const items = await pluginRuntimeList();
+      const nextSignature = buildPluginStateSignature(items);
+
+      if (nextSignature === getPluginStateSignature()) {
+        return false;
+      }
+
+      setPluginStateSnapshot(items);
+      await Promise.allSettled(
+        Array.from(getPluginRegistryListeners(), (listener) =>
+          Promise.resolve(listener()),
+        ),
+      );
+      return true;
+    } catch (error) {
+      console.error(
+        '[plugin-slot] failed to check plugin registry changes',
+        error,
+      );
+      return false;
+    } finally {
+      registryGlobal.__linaPluginRegistryCheckPromise = null;
+    }
+  })();
+
+  return await registryGlobal.__linaPluginRegistryCheckPromise;
 }
 
 /**
