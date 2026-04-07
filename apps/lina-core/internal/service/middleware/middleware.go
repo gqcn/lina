@@ -10,14 +10,17 @@ import (
 	"lina-core/internal/service/auth"
 	"lina-core/internal/service/bizctx"
 	"lina-core/internal/service/operlog"
+	pluginsvc "lina-core/internal/service/plugin"
 	"lina-core/internal/service/session"
+	"lina-core/pkg/pluginhost"
 )
 
 // Service provides middleware operations.
 type Service struct {
-	authSvc    *auth.Service   // Authentication service
-	bizCtxSvc  *bizctx.Service // Business context service
-	operLogSvc *operlog.Service // Operation log service
+	authSvc    *auth.Service      // Authentication service
+	bizCtxSvc  *bizctx.Service    // Business context service
+	operLogSvc *operlog.Service   // Operation log service
+	pluginSvc  *pluginsvc.Service // Plugin service
 }
 
 // New creates and returns a new Service instance.
@@ -26,6 +29,7 @@ func New() *Service {
 		authSvc:    auth.New(),
 		bizCtxSvc:  bizctx.New(),
 		operLogSvc: operlog.New(),
+		pluginSvc:  pluginsvc.New(),
 	}
 }
 
@@ -76,5 +80,15 @@ func (s *Service) Auth(r *ghttp.Request) {
 
 	// Inject user info into business context
 	s.bizCtxSvc.SetUser(r.Context(), claims.TokenId, claims.UserId, claims.Username, claims.Status)
+	s.pluginSvc.DispatchAfterAuthRequest(
+		r.Context(),
+		pluginhost.NewAfterAuthInput(
+			r,
+			claims.TokenId,
+			claims.UserId,
+			claims.Username,
+			claims.Status,
+		),
+	)
 	r.Middleware.Next()
 }

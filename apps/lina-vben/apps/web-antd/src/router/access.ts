@@ -11,6 +11,7 @@ import { message } from 'ant-design-vue';
 import { getAllMenusApi } from '#/api';
 import { BasicLayout, IFrameView } from '#/layouts';
 import { $t } from '#/locales';
+import { filterDisabledPluginRoutes } from '#/plugins/access-filter';
 
 const forbiddenComponent = () => import('#/views/_core/fallback/forbidden.vue');
 
@@ -36,7 +37,8 @@ async function generateAccess(
           duration: 1.5,
         });
       }
-      return await getAllMenusApi();
+      const routes = await getAllMenusApi();
+      return await filterDisabledPluginRoutes(routes);
     },
     // 可以指定没有权限跳转403页面
     forbiddenComponent,

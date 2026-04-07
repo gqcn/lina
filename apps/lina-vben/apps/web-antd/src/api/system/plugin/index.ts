@@ -1,4 +1,8 @@
-import type { PluginListParams, SystemPlugin } from './model';
+import type {
+  PluginListParams,
+  PluginRuntimeState,
+  SystemPlugin,
+} from './model';
 
 import { requestClient } from '#/api/request';
 
@@ -9,6 +13,14 @@ export async function pluginList(params?: PluginListParams) {
     { params },
   );
   return { items: res.list, total: res.total };
+}
+
+/** 公共插件运行时状态 */
+export async function pluginRuntimeList() {
+  const res = await requestClient.get<{ list: PluginRuntimeState[] }>(
+    '/plugins/runtime',
+  );
+  return res.list;
 }
 
 /** 同步源码插件 */

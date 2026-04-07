@@ -1,13 +1,13 @@
 ## ADDED Requirements
 
-### Requirement: 宿主发布稳定的后端 Hook 契约
-系统 SHALL 发布一组具名、版本化、可审计的后端 Hook，供插件在宿主关键业务事件上扩展行为。
+### Requirement: 宿主发布稳定的后端扩展点契约
+系统 SHALL 发布一组具名、版本化、可审计的后端扩展点，供插件在宿主关键业务事件或宿主治理链路上注册回调并扩展行为。
 
-#### Scenario: 宿主维护正式的后端 Hook 插槽目录
-- **WHEN** 宿主对外发布插件 Hook 能力
-- **THEN** 宿主必须维护正式的后端 Hook 插槽目录
+#### Scenario: 宿主维护正式的后端扩展点目录
+- **WHEN** 宿主对外发布插件后端扩展能力
+- **THEN** 宿主必须维护正式的后端扩展点目录
 - **AND** 一期至少公开 `auth.login.succeeded`、`auth.logout.succeeded`、`system.started`、`plugin.installed`、`plugin.enabled`、`plugin.disabled`、`plugin.uninstalled`
-- **AND** 每个插槽都必须说明触发时机、上下文、执行顺序与失败隔离策略
+- **AND** 每个扩展点都必须说明触发时机、上下文、执行顺序、执行模式与失败隔离策略
 
 #### Scenario: 登录成功事件触发 Hook
 - **WHEN** 用户登录成功且宿主发布 `auth.login.succeeded` Hook
@@ -28,6 +28,69 @@
 - **AND** 宿主记录该插件的执行失败信息
 - **AND** 其他插件的 Hook 仍按顺序继续执行或按策略被安全跳过
 
+### Requirement: 宿主以回调注册方式发布通用后端扩展点
+系统 SHALL 为源码插件提供最小化、回调注册式的后端扩展接口，避免插件作者为常见扩展场景维护复杂声明式属性。
+
+#### Scenario: 事件 Hook 与注册式接口属于同一类后端扩展点
+- **WHEN** 宿主同时发布事件型 Hook 与注册型回调扩展点
+- **THEN** 这两类能力都必须被视为“宿主已发布后端扩展点上的回调注册”
+- **AND** 插件开发者统一通过 Go 类型常量选择扩展点并注册回调函数
+- **AND** 宿主只允许通过执行模式决定回调是否阻塞主流程或异步执行
+
+#### Scenario: 宿主维护正式的后端回调扩展点目录
+- **WHEN** 宿主对外发布源码插件后端扩展能力
+- **THEN** 宿主必须提供统一的 Go 注册入口与回调注册方法
+- **AND** 一期至少提供 `http.route.register`、`http.request.after-auth`、`cron.register`、`menu.filter`、`permission.filter`
+- **AND** 这些扩展点必须与已发布 Hook 一样纳入技术文档维护
+
+#### Scenario: 宿主以统一的 Go 类型目录管理所有后端扩展点
+- **WHEN** 宿主同时发布事件型 Hook 与注册型回调扩展点
+- **THEN** 宿主必须使用统一的 Go `type` 与常量目录维护这些后端扩展点
+- **AND** 插件代码、宿主调度代码与技术文档都必须引用同一组类型常量
+- **AND** 不允许在宿主实现或插件示例中散落硬编码的后端扩展点字符串
+
+#### Scenario: 宿主为后端回调扩展点声明执行模式
+- **WHEN** 插件向宿主注册某个后端扩展点回调
+- **THEN** 注册接口必须显式声明该回调的执行模式
+- **AND** 执行模式至少区分 `blocking` 与 `async`
+- **AND** 宿主必须校验当前扩展点是否支持所声明的执行模式
+- **AND** 不支持的执行模式必须在注册阶段被拒绝
+
+#### Scenario: 宿主以接口类型暴露回调输入对象
+- **WHEN** 宿主向插件暴露 Hook、After-Auth、Route、Cron、菜单过滤或权限过滤这类回调输入对象
+- **THEN** 宿主必须优先暴露抽象接口而不是具体结构体指针
+- **AND** 插件回调只依赖宿主公开的方法契约
+- **AND** 宿主后续扩展字段或能力时不应要求插件直接耦合内部结构体实现
+
+#### Scenario: 插件通过回调注册受宿主治理的 HTTP 路由
+- **WHEN** 一个源码插件注册自己的 HTTP 路由
+- **THEN** 宿主在启动时自动装配该路由
+- **AND** 插件被禁用后，这些路由请求会被宿主拒绝或降级
+- **AND** 插件作者无需手工修改宿主控制器或路由装配代码
+
+#### Scenario: 插件在鉴权完成后参与请求扩展
+- **WHEN** 一个受保护请求通过 JWT 鉴权并完成用户上下文注入
+- **THEN** 宿主向已启用插件分发 `http.request.after-auth` 回调
+- **AND** 插件可以读取宿主公开的用户身份与请求对象
+- **AND** 插件失败不会中断当前请求主流程
+
+#### Scenario: 插件注册受宿主启停控制的定时任务
+- **WHEN** 一个源码插件注册自己的定时任务
+- **THEN** 宿主通过统一的 `cron` 组件完成注册
+- **AND** 插件被禁用后，宿主不会执行该插件的定时任务回调
+- **AND** 插件作者无需在宿主 `cmd` 层手工追加定时任务代码
+
+#### Scenario: 定时任务注册器暴露主节点识别能力
+- **WHEN** 宿主向插件暴露定时任务注册输入对象
+- **THEN** 该对象必须提供“当前节点是否为主节点”的识别方法
+- **AND** 插件可以基于该方法决定是否执行仅主节点生效的定时逻辑
+
+#### Scenario: 插件按菜单与权限过滤器参与宿主治理链路
+- **WHEN** 宿主生成菜单列表或权限列表
+- **THEN** 宿主向已启用插件发布 `menu.filter` 与 `permission.filter` 回调
+- **AND** 插件只能对宿主公开的菜单/权限描述进行过滤判断
+- **AND** 过滤失败不会破坏宿主原有菜单与权限计算流程
+
 ### Requirement: 宿主发布前端 Slot 扩展点
 系统 SHALL 为前端页面和布局发布受控的 Slot 扩展点，允许插件在宿主公开位置插入 UI 内容。
 
@@ -36,6 +99,25 @@
 - **THEN** 宿主必须维护正式的前端 Slot 插槽目录
 - **AND** 一期至少公开 `layout.user-dropdown.after` 与 `dashboard.workspace.after`
 - **AND** 每个插槽都必须说明宿主位置、渲染容器、推荐用途、排序规则与失败降级策略
+
+### Requirement: 宿主优先在公共壳层发布通用前端 Slot
+系统 SHALL 优先在布局壳层、登录壳层、工作台壳层与 CRUD 壳层发布通用前端 Slot，避免把扩展点绑定到单一业务模块。
+
+#### Scenario: 宿主发布首批通用公共 Slot
+- **WHEN** 宿主扩充前端 Slot 能力
+- **THEN** 一期至少新增 `layout.header.actions.before`、`layout.header.actions.after`、`auth.login.after`、`dashboard.workspace.before`、`crud.toolbar.after`、`crud.table.after`
+- **AND** 这些 Slot 必须依附已有公共壳层而不是某个业务模块私有页面
+- **AND** 开发文档必须同步说明每个 Slot 的宿主位置与推荐内容
+
+#### Scenario: 插件在登录页公开区插入内容
+- **WHEN** 一个已启用插件声明向 `auth.login.after` 插入前端内容
+- **THEN** 宿主在登录页表单之后渲染该内容
+- **AND** 插件被禁用后该内容立即隐藏
+
+#### Scenario: 插件在 CRUD 通用壳层插入内容
+- **WHEN** 一个已启用插件声明向 `crud.toolbar.after` 或 `crud.table.after` 插入前端内容
+- **THEN** 宿主在通用 Grid 工具栏区或表格区下方渲染该内容
+- **AND** 所有复用该通用壳层的页面都能自动获得扩展位
 
 #### Scenario: 插件向宿主布局插入内容
 - **WHEN** 一个已启用插件声明向 `layout.user-dropdown.after` 插入前端内容
@@ -80,10 +162,11 @@
 ### Requirement: Hook 与 Slot 标识必须使用专门类型定义
 系统 SHALL 使用专门的类型定义合法的插件安装位置，避免在宿主实现和插件示例中散落硬编码字符串。
 
-#### Scenario: 后端 Hook 插槽在 Go 中声明
-- **WHEN** 宿主实现后端 Hook 插槽
-- **THEN** 宿主必须使用 Go `type` 与常量声明合法 Hook 插槽标识
-- **AND** 插件后端示例通过该类型常量引用插槽，而不是直接写事件名字符串
+#### Scenario: 后端扩展点在 Go 中声明
+- **WHEN** 宿主实现后端 Hook 插槽或注册式回调扩展点
+- **THEN** 宿主必须使用 Go `type` 与常量声明合法后端扩展点标识
+- **AND** 插件后端示例通过该类型常量引用扩展点，而不是直接写事件名字符串
+- **AND** 宿主内部服务层不得再额外维护一套语义重复的别名常量
 
 #### Scenario: 前端 Slot 插槽在 TypeScript 中声明
 - **WHEN** 宿主实现前端 Slot 插槽

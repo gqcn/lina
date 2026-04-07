@@ -63,9 +63,7 @@ async function refresh(force = false) {
 
 onMounted(() => {
   void refresh();
-  disposeListener = onPluginRegistryChanged(() => {
-    void refresh(true);
-  });
+  disposeListener = onPluginRegistryChanged(() => refresh(true));
 });
 
 onBeforeUnmount(() => {
@@ -88,10 +86,7 @@ watch(
     class="plugin-slot-outlet"
   >
     <template v-for="item in items" :key="item.key">
-      <div
-        :data-plugin-slot-item="item.key"
-        class="plugin-slot-outlet__item"
-      >
+      <div :data-plugin-slot-item="item.key" class="plugin-slot-outlet__item">
         <component :is="item.component" />
       </div>
     </template>

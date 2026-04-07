@@ -7,19 +7,8 @@ WHERE menu_id IN (
     FROM (
         SELECT id
         FROM sys_menu
-        WHERE menu_key IN (
-            'plugin:plugin-demo:sidebar-entry',
-            'plugin:plugin-demo:header-entry',
-            'plugin:plugin-demo:login-audit'
-        )
+        WHERE menu_key IN ('plugin:plugin-demo:sidebar-entry')
     ) AS menu_ids
 );
 DELETE FROM sys_menu
-WHERE menu_key IN (
-    'plugin:plugin-demo:sidebar-entry',
-    'plugin:plugin-demo:header-entry',
-    'plugin:plugin-demo:login-audit'
-);
-
--- 如需彻底清理插件演示表，请取消下一行注释：
--- DROP TABLE IF EXISTS plugin_demo_login_audit;
+WHERE menu_key IN ('plugin:plugin-demo:sidebar-entry');

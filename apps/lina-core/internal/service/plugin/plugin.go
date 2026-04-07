@@ -3,11 +3,11 @@ package plugin
 import (
 	"context"
 	"strings"
+	"sync"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 
 	"lina-core/internal/model/entity"
-	"lina-core/pkg/pluginhost"
 )
 
 const (
@@ -19,21 +19,9 @@ const (
 	pluginInstalledYes     = 1         // plugin is installed
 )
 
-const (
-	// HookEventAuthLoginSucceeded is fired after user login succeeds.
-	HookEventAuthLoginSucceeded = pluginhost.HookSlotAuthLoginSucceeded
-	// HookEventAuthLogoutSucceeded is fired after user logout succeeds.
-	HookEventAuthLogoutSucceeded = pluginhost.HookSlotAuthLogoutSucceeded
-	// HookEventPluginEnabled is fired after a plugin is enabled.
-	HookEventPluginEnabled = pluginhost.HookSlotPluginEnabled
-	// HookEventPluginDisabled is fired after a plugin is disabled.
-	HookEventPluginDisabled = pluginhost.HookSlotPluginDisabled
-	// HookEventPluginInstalled is fired after a plugin is installed.
-	HookEventPluginInstalled = pluginhost.HookSlotPluginInstalled
-	// HookEventPluginUninstalled is fired after a plugin is uninstalled.
-	HookEventPluginUninstalled = pluginhost.HookSlotPluginUninstalled
-	// HookEventSystemStarted is fired after host http server startup.
-	HookEventSystemStarted = pluginhost.HookSlotSystemStarted
+var (
+	primaryNodeCheckerMu sync.RWMutex
+	primaryNodeChecker   func() bool
 )
 
 // Service provides plugin management operations.
@@ -42,6 +30,21 @@ type Service struct{}
 // New creates and returns a new Service instance.
 func New() *Service {
 	return &Service{}
+}
+
+// SetPrimaryNodeChecker registers the host callback used by plugin cron integrations to identify the primary node.
+func SetPrimaryNodeChecker(checker func() bool) {
+	primaryNodeCheckerMu.Lock()
+	defer primaryNodeCheckerMu.Unlock()
+
+	primaryNodeChecker = checker
+}
+
+func getPrimaryNodeChecker() func() bool {
+	primaryNodeCheckerMu.RLock()
+	defer primaryNodeCheckerMu.RUnlock()
+
+	return primaryNodeChecker
 }
 
 // ListOutput defines output for plugin list query.
@@ -80,6 +83,8 @@ type AuthLoginSucceededInput struct {
 	Status     int    // login status
 	Ip         string // login ip
 	ClientType string // client type
+	Browser    string // browser information
+	Os         string // operating system information
 	Message    string // audit message
 }
 
@@ -176,7 +181,10 @@ func (s *Service) FilterMenus(ctx context.Context, menus []*entity.SysMenu) []*e
 			continue
 		}
 		pluginID := s.parsePluginIDFromMenu(menu)
-		if pluginID == "" || s.IsEnabled(ctx, pluginID) {
+		if pluginID != "" && !s.IsEnabled(ctx, pluginID) {
+			continue
+		}
+		if s.shouldKeepMenu(ctx, menu) {
 			filtered = append(filtered, menu)
 		}
 	}

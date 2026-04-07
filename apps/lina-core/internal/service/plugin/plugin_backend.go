@@ -21,10 +21,10 @@ var safePluginIdentifierPattern = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
 
 // pluginHookSpec defines a plugin-owned hook handler declaration.
 type pluginHookSpec struct {
-	Event  pluginhost.HookSlot   `yaml:"event"`
-	Action pluginhost.HookAction `yaml:"action"`
-	Table  string                `yaml:"table"`
-	Fields map[string]string     `yaml:"fields"`
+	Event  pluginhost.ExtensionPoint `yaml:"event"`
+	Action pluginhost.HookAction     `yaml:"action"`
+	Table  string                    `yaml:"table"`
+	Fields map[string]string         `yaml:"fields"`
 }
 
 // pluginResourceSpec defines a plugin-owned backend resource declaration.
@@ -77,8 +77,7 @@ func (s *Service) loadPluginBackendConfig(manifest *pluginManifest) error {
 	manifest.BackendResources = make(map[string]*pluginResourceSpec)
 
 	if sourcePlugin, ok := pluginhost.GetSourcePlugin(manifest.ID); ok {
-		manifest.Hooks = s.convertSourcePluginHooks(sourcePlugin.Hooks)
-		manifest.BackendResources = s.convertSourcePluginResources(sourcePlugin.Resources)
+		manifest.BackendResources = s.convertSourcePluginResources(sourcePlugin.GetResources())
 		return nil
 	}
 
@@ -118,27 +117,6 @@ func (s *Service) loadPluginBackendConfig(manifest *pluginManifest) error {
 		manifest.BackendResources[spec.Key] = spec
 	}
 	return nil
-}
-
-// convertSourcePluginHooks converts public source plugin hook declarations to internal runtime specs.
-func (s *Service) convertSourcePluginHooks(hooks []*pluginhost.HookSpec) []*pluginHookSpec {
-	items := make([]*pluginHookSpec, 0, len(hooks))
-	for _, hook := range hooks {
-		if hook == nil {
-			continue
-		}
-		fields := make(map[string]string, len(hook.Fields))
-		for column, expr := range hook.Fields {
-			fields[column] = expr
-		}
-		items = append(items, &pluginHookSpec{
-			Event:  hook.Event,
-			Action: hook.Action,
-			Table:  hook.Table,
-			Fields: fields,
-		})
-	}
-	return items
 }
 
 // convertSourcePluginResources converts public source plugin resource declarations to internal runtime specs.
@@ -273,7 +251,11 @@ func (s *Service) ListResourceRecords(ctx context.Context, in ResourceListInput)
 }
 
 // DispatchHookEvent dispatches one named hook event to all enabled source plugins.
-func (s *Service) DispatchHookEvent(ctx context.Context, eventName pluginhost.HookSlot, payload map[string]interface{}) error {
+func (s *Service) DispatchHookEvent(
+	ctx context.Context,
+	eventName pluginhost.ExtensionPoint,
+	payload map[string]interface{},
+) error {
 	manifests, err := s.scanPluginManifests()
 	if err != nil {
 		return err
@@ -294,14 +276,88 @@ func (s *Service) DispatchHookEvent(ctx context.Context, eventName pluginhost.Ho
 			}
 			g.Log().Infof(ctx, "plugin hook succeeded plugin=%s event=%s cost=%s", manifest.ID, eventName, gtime.Now().Sub(startedAt))
 		}
+		s.executeSourcePluginHookHandlers(ctx, manifest.ID, eventName, payload)
 	}
 	return nil
 }
 
+// executeSourcePluginHookHandlers executes registered callback-style hook handlers for one source plugin.
+func (s *Service) executeSourcePluginHookHandlers(
+	ctx context.Context,
+	pluginID string,
+	eventName pluginhost.ExtensionPoint,
+	payload map[string]interface{},
+) {
+	sourcePlugin, ok := pluginhost.GetSourcePlugin(pluginID)
+	if !ok {
+		return
+	}
+	for _, item := range sourcePlugin.GetHookHandlers() {
+		if item == nil || item.Point != eventName || item.Handler == nil {
+			continue
+		}
+		s.executeSourcePluginHookHandler(ctx, pluginID, item, payload)
+	}
+}
+
+func (s *Service) executeSourcePluginHookHandler(
+	ctx context.Context,
+	pluginID string,
+	item *pluginhost.HookHandlerRegistration,
+	payload map[string]interface{},
+) {
+	if item == nil || item.Handler == nil {
+		return
+	}
+
+	execute := func(executeCtx context.Context, values map[string]interface{}, async bool) {
+		startedAt := gtime.Now()
+		if err := item.Handler(executeCtx, pluginhost.NewHookPayload(item.Point, values)); err != nil {
+			if async {
+				g.Log().Warningf(executeCtx, "plugin async callback hook failed plugin=%s event=%s cost=%s err=%v", pluginID, item.Point, gtime.Now().Sub(startedAt), err)
+				return
+			}
+			g.Log().Warningf(executeCtx, "plugin callback hook failed plugin=%s event=%s cost=%s err=%v", pluginID, item.Point, gtime.Now().Sub(startedAt), err)
+			return
+		}
+		if async {
+			g.Log().Infof(executeCtx, "plugin async callback hook succeeded plugin=%s event=%s cost=%s", pluginID, item.Point, gtime.Now().Sub(startedAt))
+			return
+		}
+		g.Log().Infof(executeCtx, "plugin callback hook succeeded plugin=%s event=%s cost=%s", pluginID, item.Point, gtime.Now().Sub(startedAt))
+	}
+
+	values := cloneHookPayloadValues(payload)
+	if item.Mode == pluginhost.CallbackExecutionModeAsync {
+		go execute(context.WithoutCancel(ctx), values, true)
+		return
+	}
+	execute(ctx, values, false)
+}
+
+func cloneHookPayloadValues(values map[string]interface{}) map[string]interface{} {
+	if len(values) == 0 {
+		return map[string]interface{}{}
+	}
+	cloned := make(map[string]interface{}, len(values))
+	for key, value := range values {
+		cloned[key] = value
+	}
+	return cloned
+}
+
 // shouldDispatchHookToPlugin determines whether the hook event should be delivered to the target plugin.
-func (s *Service) shouldDispatchHookToPlugin(ctx context.Context, pluginID string, eventName pluginhost.HookSlot, targetPluginID string) bool {
+func (s *Service) shouldDispatchHookToPlugin(
+	ctx context.Context,
+	pluginID string,
+	eventName pluginhost.ExtensionPoint,
+	targetPluginID string,
+) bool {
 	switch eventName {
-	case HookEventPluginInstalled, HookEventPluginEnabled, HookEventPluginDisabled, HookEventPluginUninstalled:
+	case pluginhost.ExtensionPointPluginInstalled,
+		pluginhost.ExtensionPointPluginEnabled,
+		pluginhost.ExtensionPointPluginDisabled,
+		pluginhost.ExtensionPointPluginUninstalled:
 		return pluginID == targetPluginID
 	default:
 		return s.IsEnabled(ctx, pluginID)
@@ -316,11 +372,32 @@ func (s *Service) HandleAuthLoginSucceeded(ctx context.Context, input AuthLoginS
 	if input.Message == "" {
 		input.Message = "登录成功"
 	}
-	return s.DispatchHookEvent(ctx, HookEventAuthLoginSucceeded, map[string]interface{}{
+	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointAuthLoginSucceeded, map[string]interface{}{
 		"userName":   input.UserName,
 		"status":     input.Status,
 		"ip":         input.Ip,
 		"clientType": input.ClientType,
+		"browser":    input.Browser,
+		"os":         input.Os,
+		"message":    input.Message,
+	})
+}
+
+// HandleAuthLoginFailed handles login failed hooks declared by source plugins.
+func (s *Service) HandleAuthLoginFailed(ctx context.Context, input AuthLoginSucceededInput) error {
+	if input.ClientType == "" {
+		input.ClientType = "web"
+	}
+	if input.Message == "" {
+		input.Message = "登录失败"
+	}
+	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointAuthLoginFailed, map[string]interface{}{
+		"userName":   input.UserName,
+		"status":     input.Status,
+		"ip":         input.Ip,
+		"clientType": input.ClientType,
+		"browser":    input.Browser,
+		"os":         input.Os,
 		"message":    input.Message,
 	})
 }
@@ -333,11 +410,13 @@ func (s *Service) HandleAuthLogoutSucceeded(ctx context.Context, input AuthLogin
 	if input.Message == "" {
 		input.Message = "登出成功"
 	}
-	return s.DispatchHookEvent(ctx, HookEventAuthLogoutSucceeded, map[string]interface{}{
+	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointAuthLogoutSucceeded, map[string]interface{}{
 		"userName":   input.UserName,
 		"status":     input.Status,
 		"ip":         input.Ip,
 		"clientType": input.ClientType,
+		"browser":    input.Browser,
+		"os":         input.Os,
 		"message":    input.Message,
 	})
 }
@@ -376,7 +455,7 @@ func (s *Service) validatePluginHookSpec(pluginID string, spec *pluginHookSpec, 
 	if spec.Event == "" {
 		return gerror.Newf("插件Hook缺少event: %s", filePath)
 	}
-	if !pluginhost.IsPublishedHookSlot(spec.Event) {
+	if !pluginhost.IsHookExtensionPoint(spec.Event) {
 		return gerror.Newf("插件Hook插槽未发布: %s", filePath)
 	}
 	if !pluginhost.IsSupportedHookAction(spec.Action) {

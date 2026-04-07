@@ -12,6 +12,7 @@ import (
 
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
+	"lina-core/pkg/pluginhost"
 )
 
 // Install executes install lifecycle for a discovered runtime plugin.
@@ -39,7 +40,7 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 	if err = s.setPluginInstalled(ctx, pluginID, pluginInstalledYes); err != nil {
 		return err
 	}
-	return s.DispatchHookEvent(ctx, HookEventPluginInstalled, map[string]interface{}{
+	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointPluginInstalled, map[string]interface{}{
 		"pluginId": pluginID,
 		"name":     manifest.Name,
 		"version":  manifest.Version,
@@ -75,7 +76,7 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 	if err = s.setPluginInstalled(ctx, pluginID, pluginInstalledNo); err != nil {
 		return err
 	}
-	return s.DispatchHookEvent(ctx, HookEventPluginUninstalled, map[string]interface{}{
+	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointPluginUninstalled, map[string]interface{}{
 		"pluginId": pluginID,
 		"name":     manifest.Name,
 		"version":  manifest.Version,

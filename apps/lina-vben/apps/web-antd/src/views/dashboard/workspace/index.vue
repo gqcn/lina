@@ -247,6 +247,11 @@ function navTo(nav: WorkbenchProjectItem | WorkbenchQuickNavItem) {
       <template #description> 今日晴，20℃ - 32℃！ </template>
     </WorkbenchHeader>
 
+    <PluginSlotOutlet
+      :slot-key="pluginSlotKeys.dashboardWorkspaceBefore"
+      class="mt-5"
+    />
+
     <div class="mt-5 flex flex-col lg:flex-row">
       <div class="mr-4 w-full lg:w-3/5">
         <WorkbenchProject :items="projectItems" title="项目" @click="navTo" />

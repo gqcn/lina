@@ -6,6 +6,8 @@ import { computed } from 'vue';
 import { AuthenticationLogin, z } from '@vben/common-ui';
 import { $t } from '@vben/locales';
 
+import PluginSlotOutlet from '#/components/plugin/plugin-slot-outlet.vue';
+import { pluginSlotKeys } from '#/plugins/plugin-slots';
 import { useAuthStore } from '#/store';
 
 defineOptions({ name: 'Login' });
@@ -37,9 +39,15 @@ const formSchema = computed((): VbenFormSchema[] => {
 </script>
 
 <template>
-  <AuthenticationLogin
-    :form-schema="formSchema"
-    :loading="authStore.loginLoading"
-    @submit="authStore.authLogin"
-  />
+  <div>
+    <AuthenticationLogin
+      :form-schema="formSchema"
+      :loading="authStore.loginLoading"
+      @submit="authStore.authLogin"
+    />
+    <PluginSlotOutlet
+      :slot-key="pluginSlotKeys.authLoginAfter"
+      class="mt-4"
+    />
+  </div>
 </template>

@@ -88,6 +88,20 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 		})
 	}
 
+	dispatchLoginFailed := func(username string, msg string) {
+		if hookErr := s.pluginSvc.HandleAuthLoginFailed(ctx, pluginsvc.AuthLoginSucceededInput{
+			UserName:   username,
+			Status:     loginlog.LoginStatusFail,
+			Ip:         ip,
+			ClientType: "web",
+			Browser:    browser,
+			Os:         osName,
+			Message:    msg,
+		}); hookErr != nil {
+			g.Log().Warningf(ctx, "plugin login failed hook failed: %v", hookErr)
+		}
+	}
+
 	// Query user by username (GoFrame auto-adds deleted_at IS NULL condition)
 	var user *entity.SysUser
 	err := dao.SysUser.Ctx(ctx).
@@ -98,18 +112,21 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 	}
 	if user == nil {
 		recordLoginLog(in.Username, loginlog.LoginStatusFail, "用户名或密码错误")
+		dispatchLoginFailed(in.Username, "用户名或密码错误")
 		return nil, gerror.New("用户名或密码错误")
 	}
 
 	// Verify password
 	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(in.Password)); err != nil {
 		recordLoginLog(in.Username, loginlog.LoginStatusFail, "用户名或密码错误")
+		dispatchLoginFailed(in.Username, "用户名或密码错误")
 		return nil, gerror.New("用户名或密码错误")
 	}
 
 	// Check status
 	if user.Status == consts.UserStatusDisabled {
 		recordLoginLog(in.Username, loginlog.LoginStatusFail, "用户已停用")
+		dispatchLoginFailed(in.Username, "用户已停用")
 		return nil, gerror.New("用户已停用")
 	}
 
@@ -144,6 +161,8 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 		Status:     loginlog.LoginStatusSuccess,
 		Ip:         ip,
 		ClientType: "web",
+		Browser:    browser,
+		Os:         osName,
 		Message:    "登录成功",
 	}); err != nil {
 		g.Log().Warningf(ctx, "plugin login succeeded hook failed: %v", err)
@@ -202,6 +221,8 @@ func (s *Service) Logout(ctx context.Context, username string, tokenId string) {
 		Status:     loginlog.LoginStatusSuccess,
 		Ip:         ip,
 		ClientType: "web",
+		Browser:    browser,
+		Os:         osName,
 		Message:    "登出成功",
 	}); err != nil {
 		g.Log().Warningf(ctx, "plugin logout succeeded hook failed: %v", err)

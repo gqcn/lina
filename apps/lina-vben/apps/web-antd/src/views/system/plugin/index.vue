@@ -185,7 +185,7 @@ async function handleStatusChange(row: SystemPlugin, checked: boolean) {
   }
   await (checked ? pluginEnable : pluginDisable)(row.id);
   row.enabled = checked ? 1 : 0;
-  notifyPluginRegistryChanged();
+  await notifyPluginRegistryChanged();
   message.success(checked ? '插件已启用' : '插件已禁用');
 }
 
@@ -193,7 +193,7 @@ async function handleInstall(row: SystemPlugin) {
   await pluginInstall(row.id);
   row.installed = 1;
   row.enabled = 0;
-  notifyPluginRegistryChanged();
+  await notifyPluginRegistryChanged();
   message.success('运行时插件已安装');
   await gridApi.query();
 }
@@ -202,14 +202,14 @@ async function handleUninstall(row: SystemPlugin) {
   await pluginUninstall(row.id);
   row.installed = 0;
   row.enabled = 0;
-  notifyPluginRegistryChanged();
+  await notifyPluginRegistryChanged();
   message.success('运行时插件已卸载');
   await gridApi.query();
 }
 
 async function handleSync() {
   const res = await pluginSync();
-  notifyPluginRegistryChanged();
+  await notifyPluginRegistryChanged();
   const total = typeof res?.total === 'number' ? res.total : 0;
   message.success(`已同步 ${total} 个源码插件`);
   await gridApi.query();

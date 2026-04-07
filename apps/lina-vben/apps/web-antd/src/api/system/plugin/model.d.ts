@@ -23,3 +23,10 @@ export interface SystemPlugin {
   statusKey: string;
   updatedAt: string;
 }
+
+export interface PluginRuntimeState {
+  id: string;
+  installed: number;
+  enabled: number;
+  statusKey: string;
+}

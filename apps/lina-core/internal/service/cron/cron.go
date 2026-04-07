@@ -3,8 +3,11 @@ package cron
 import (
 	"context"
 
+	"github.com/gogf/gf/v2/frame/g"
+
 	"lina-core/internal/service/config"
 	"lina-core/internal/service/election"
+	pluginsvc "lina-core/internal/service/plugin"
 	"lina-core/internal/service/servermon"
 	"lina-core/internal/service/session"
 )
@@ -23,6 +26,7 @@ type Service struct {
 	serverMonSvc *servermon.Service    // Server monitor service
 	sessionStore session.Store         // Session store
 	electionSvc  *election.Service     // Leader election service
+	pluginSvc    *pluginsvc.Service    // Plugin service
 }
 
 // New creates and returns a new Service instance.
@@ -32,12 +36,17 @@ func New(
 	sessionStore session.Store,
 	electionSvc *election.Service,
 ) *Service {
+	if electionSvc != nil {
+		pluginsvc.SetPrimaryNodeChecker(electionSvc.IsLeader)
+	}
+
 	return &Service{
 		sessionCfg:   sessionCfg,
 		monCfg:       monCfg,
 		serverMonSvc: servermon.New(),
 		sessionStore: sessionStore,
 		electionSvc:  electionSvc,
+		pluginSvc:    pluginsvc.New(),
 	}
 }
 
@@ -49,10 +58,12 @@ func (s *Service) Start(ctx context.Context) {
 	// Master-Only Jobs: only executed on the leader node
 	s.startSessionCleanup(ctx)
 	s.startServerMonitorCleanup(ctx)
+	if err := s.pluginSvc.RegisterCrons(ctx); err != nil {
+		g.Log().Warningf(ctx, "register plugin cron jobs failed: %v", err)
+	}
 }
 
 // IsLeader returns whether the current node is the leader.
 func (s *Service) IsLeader() bool {
 	return s.electionSvc.IsLeader()
 }
-

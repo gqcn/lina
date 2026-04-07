@@ -1,15 +1,18 @@
-import type { SystemPlugin } from '#/api/system/plugin/model';
+import type { PluginRuntimeState } from '#/api/system/plugin/model';
 import type { PluginSlotKey } from '#/plugins/plugin-slots';
 import type { Component } from 'vue';
 import type { VirtualPluginSlotModuleEntry } from 'virtual:lina-plugin-slots';
 
-import { pluginList } from '#/api/system/plugin';
+import { pluginRuntimeList } from '#/api/system/plugin';
 import { isPluginSlotKey } from '#/plugins/plugin-slots';
 import { pluginSlotModules } from 'virtual:lina-plugin-slots';
 
-const pluginRegistryChangedEvent = 'lina:plugin-registry-changed';
+type PluginRegistryListener = () => void | Promise<void>;
 
-let pluginStatePromise: null | Promise<Map<string, SystemPlugin>> = null;
+type PluginRegistryGlobal = typeof globalThis & {
+  __linaPluginRegistryListeners?: Set<PluginRegistryListener>;
+  __linaPluginStatePromise?: null | Promise<Map<string, PluginRuntimeState>>;
+};
 
 export interface PluginSlotMeta {
   order?: number;
@@ -67,19 +70,40 @@ const registeredPluginSlotModules = pluginSlotModules
     return a.key.localeCompare(b.key);
   });
 
-function normalizePluginKeys(item: SystemPlugin): string[] {
+function normalizePluginKeys(item: PluginRuntimeState): string[] {
   const keys = [item.id];
-  if (item.statusKey?.startsWith('plugin:')) {
-    keys.push(item.statusKey.substring('plugin:'.length));
+  if (item.statusKey?.startsWith('sys_plugin.status:')) {
+    keys.push(item.statusKey.substring('sys_plugin.status:'.length));
   }
   return keys.filter((key): key is string => !!key);
 }
 
+function getPluginRegistryGlobal() {
+  return globalThis as PluginRegistryGlobal;
+}
+
+function getPluginRegistryListeners() {
+  const registryGlobal = getPluginRegistryGlobal();
+  registryGlobal.__linaPluginRegistryListeners ??= new Set();
+  return registryGlobal.__linaPluginRegistryListeners;
+}
+
+function getPluginStatePromise() {
+  return getPluginRegistryGlobal().__linaPluginStatePromise ?? null;
+}
+
+function setPluginStatePromise(
+  promise: null | Promise<Map<string, PluginRuntimeState>>,
+) {
+  getPluginRegistryGlobal().__linaPluginStatePromise = promise;
+}
+
 async function loadPluginStateMap(force = false) {
+  let pluginStatePromise = getPluginStatePromise();
   if (!pluginStatePromise || force) {
-    pluginStatePromise = pluginList({ pageNum: 1, pageSize: 1000 })
-      .then(({ items }) => {
-        const map = new Map<string, SystemPlugin>();
+    pluginStatePromise = pluginRuntimeList()
+      .then((items) => {
+        const map = new Map<string, PluginRuntimeState>();
         for (const item of items) {
           for (const key of normalizePluginKeys(item)) {
             map.set(key, item);
@@ -89,8 +113,9 @@ async function loadPluginStateMap(force = false) {
       })
       .catch((error) => {
         console.error('[plugin-slot] failed to load plugin state map', error);
-        return new Map<string, SystemPlugin>();
+        return new Map<string, PluginRuntimeState>();
       });
+    setPluginStatePromise(pluginStatePromise);
   }
   return pluginStatePromise;
 }
@@ -114,22 +139,22 @@ export async function getPluginStateMap(force = false) {
 /**
  * Notifies plugin-aware UI that plugin registry state changed.
  */
-export function notifyPluginRegistryChanged() {
-  pluginStatePromise = null;
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event(pluginRegistryChangedEvent));
-  }
+export async function notifyPluginRegistryChanged() {
+  setPluginStatePromise(null);
+  await Promise.allSettled(
+    Array.from(getPluginRegistryListeners(), (listener) =>
+      Promise.resolve(listener()),
+    ),
+  );
 }
 
 /**
  * Subscribes to plugin registry changes.
  */
-export function onPluginRegistryChanged(listener: () => void) {
-  if (typeof window === 'undefined') {
-    return () => {};
-  }
-  window.addEventListener(pluginRegistryChangedEvent, listener);
+export function onPluginRegistryChanged(listener: () => void | Promise<void>) {
+  const pluginRegistryListeners = getPluginRegistryListeners();
+  pluginRegistryListeners.add(listener);
   return () => {
-    window.removeEventListener(pluginRegistryChangedEvent, listener);
+    pluginRegistryListeners.delete(listener);
   };
 }

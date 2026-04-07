@@ -3,6 +3,8 @@ import type { MenuRecordRaw } from '@vben-core/typings';
 
 import type { MenuProps } from './types';
 
+import { computed } from 'vue';
+
 import { useForwardProps } from '@vben-core/composables';
 
 import { Menu } from './components';
@@ -21,10 +23,20 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const forward = useForwardProps(props);
+
+function buildMenuStructureKey(menus: MenuRecordRaw[]): string {
+  return menus
+    .map((menu) => {
+      return `${menu.path}:${buildMenuStructureKey(menu.children ?? [])}`;
+    })
+    .join('|');
+}
+
+const menuStructureKey = computed(() => buildMenuStructureKey(props.menus));
 </script>
 
 <template>
-  <Menu v-bind="forward">
+  <Menu :key="menuStructureKey" v-bind="forward">
     <template v-for="menu in menus" :key="menu.path">
       <SubMenu :menu="menu" />
     </template>

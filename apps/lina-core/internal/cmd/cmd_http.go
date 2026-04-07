@@ -34,6 +34,7 @@ import (
 	"lina-core/internal/service/locker"
 	"lina-core/internal/service/middleware"
 	pluginsvc "lina-core/internal/service/plugin"
+	"lina-core/pkg/pluginhost"
 )
 
 type HttpInput struct {
@@ -47,6 +48,8 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		configSvc     = config.New()
 		middlewareSvc = middleware.New()
 		authCtrl      = auth.NewV1()
+		pluginPublic  = pluginctrl.NewPublicV1()
+		pluginSvc     = pluginsvc.New()
 	)
 
 	// Initialize distributed locker and leader election
@@ -71,6 +74,11 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	// =============================================================================================
 
 	s.Group("/api/v1", func(group *ghttp.RouterGroup) {
+		var (
+			publicGroup    *ghttp.RouterGroup
+			protectedGroup *ghttp.RouterGroup
+		)
+
 		group.Middleware(
 			ghttp.MiddlewareNeverDoneCtx,
 			ghttp.MiddlewareHandlerResponse,
@@ -98,11 +106,16 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 
 		// Public routes (no auth required)
 		group.Group("/", func(group *ghttp.RouterGroup) {
-			group.Bind(authCtrl.Login)
+			publicGroup = group
+			group.Bind(
+				authCtrl.Login,
+				pluginPublic,
+			)
 		})
 
 		// Protected routes (auth required)
 		group.Group("/", func(group *ghttp.RouterGroup) {
+			protectedGroup = group
 			group.Middleware(
 				middlewareSvc.Auth,
 				middlewareSvc.OperLog,
@@ -126,6 +139,10 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				pluginctrl.NewV1(),
 			)
 		})
+
+		if err = pluginSvc.RegisterHTTPRoutes(ctx, publicGroup, protectedGroup); err != nil {
+			g.Log().Panicf(ctx, "register plugin routes failed: %v", err)
+		}
 	})
 
 	// =============================================================================================
@@ -153,8 +170,13 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		r.ExitAll()
 	})
 
-	if err = pluginsvc.New().DispatchHookEvent(ctx, pluginsvc.HookEventSystemStarted, map[string]interface{}{}); err != nil {
-		g.Log().Warningf(ctx, "dispatch system.started plugin hook failed: %v", err)
+	if err = pluginSvc.DispatchHookEvent(ctx, pluginhost.ExtensionPointSystemStarted, map[string]interface{}{}); err != nil {
+		g.Log().Warningf(
+			ctx,
+			"dispatch plugin backend extension point failed point=%s err=%v",
+			pluginhost.ExtensionPointSystemStarted,
+			err,
+		)
 	}
 
 	s.Run()

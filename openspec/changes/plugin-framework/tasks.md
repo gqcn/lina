@@ -3,16 +3,16 @@
 > 当前仓库已完成**第一期：源码插件底座**。本节用于说明已交付范围；后续 checklist 继续作为 `package/wasm`、多节点热更新与开发者工具的路线图。
 
 - [x] 0.1 新增 `apps/lina-plugins/plugin-demo/` 示例目录、`plugin.yaml` 与插件资源约定
-- [x] 0.2 新增 `sys_plugin` 与 `plugin_demo_login_audit`，并仅为宿主 `sys_*` 表生成 DAO/DO/Entity
+- [x] 0.2 新增 `sys_plugin` 并仅为宿主 `sys_*` 表生成 DAO/DO/Entity，插件私有表不进入宿主生成产物
 - [x] 0.3 实现源码插件扫描、注册表同步、启用/禁用 API 与插件管理页，源码插件默认作为随宿主编译的已集成插件管理
-- [x] 0.4 实现 `plugin-demo` 登录成功审计链路、插件页面/Slot 挂载与菜单联动隐藏，且插件特定前后端实现收敛在 `apps/lina-plugins/plugin-demo/`
+- [x] 0.4 实现 `plugin-demo` 最小回调注册式扩展示例、插件页面/Slot 挂载与菜单联动隐藏，且插件特定前后端实现收敛在 `apps/lina-plugins/plugin-demo/`
 - [x] 0.5 新增并补齐 `TC0066-source-plugin-lifecycle` 与插件管理 POM，覆盖 source plugin 的 sync/enable/disable、编译整合与 slot 渲染/隐藏
 - [x] 0.6 完成 source plugin 的免安装闭环、首批通用 Hook/Slot 与一期验收收口；后续进入 `package/wasm` 与多节点热更新阶段
 
 ## 第一期当前落地快照（2026-04-06）
 
 - [x] 建立 `apps/lina-plugins/<plugin-id>/` 目录规范，并要求 `plugin-demo` 的插件特定前后端实现收敛在插件目录维护
-- [x] 落地源码插件发现、同步、启用/禁用、菜单隐藏与登录成功 Hook 示例，源码插件默认不走安装/卸载流程
+- [x] 落地源码插件发现、同步、启用/禁用、菜单隐藏与后端扩展点示例，源码插件默认不走安装/卸载流程
 - [x] 将 `plugin-demo` 后端示例收敛到插件目录内的 Go 源码实现，并通过构建期静态注册表接入宿主
 - [x] 提供 `plugin-demo` 前端页面与 Slot 源码，并通过宿主通用运行时页/Slot 装载器挂载
 - [x] 补齐源码插件免安装管理闭环
@@ -31,7 +31,7 @@
 - [x] 2.1 实现源码插件扫描与后端注册表同步，确保新增插件目录后无需手工修改核心装配代码
 - [x] 2.2 实现前端源码插件清单生成、页面入口发现、Slot 注册与宿主构建集成
 - [x] 2.3 打通源码插件的同步发现、启用、禁用管理流程和后台管理界面；运行时安装/卸载留给 `package/wasm`
-- [x] 2.4 实现 `plugin-demo` 源码插件后端能力，覆盖插件目录 Go 源码接入、登录成功审计、资源注册与治理接入
+- [x] 2.4 实现 `plugin-demo` 源码插件后端能力，覆盖插件目录 Go 源码接入、摘要路由、鉴权后回调、定时任务注册与治理接入
 - [x] 2.5 实现 `plugin-demo` 源码插件前端能力，覆盖菜单页展示、宿主页面接入与基本管理交互
 
 ## 3. 第一期：治理接入与扩展点发布
@@ -69,7 +69,7 @@
 - [x] 7.1 完成 `hack/tests/e2e/plugin/TC0066-source-plugin-lifecycle.ts`，覆盖源码插件 `sync/enable/disable`、编译整合与工作台 slot 渲染切换
   - [x] TC-66a：同步 source 插件后自动处于已集成态，插件管理页无安装按钮
   - [x] TC-66b：启用插件后渲染工作台 slot，并展示左侧插件菜单页
-  - [x] TC-66c：启用后重新登录，验证插件目录内 Go 后端逻辑写入的登录审计仍可通过插件资源 API 查询
+  - [x] TC-66c：启用后可验证插件路由、鉴权后回调与定时任务元数据
   - [x] TC-66d：禁用后隐藏工作台 slot，并隐藏插件菜单
   - [x] TC-66e：禁用后源码插件仍保留已集成态，且无需重新安装
 - [ ] 7.2 创建 `hack/tests/e2e/plugin/TC0067-runtime-package-lifecycle.ts`，覆盖 `package` 插件安装、启停、卸载与资源托管
@@ -91,7 +91,7 @@
 - [x] **FB-9**: 删除 `plugin-demo` 冗余的 `manifest/menus.json` 与 `resources.menus` 索引，插件一期菜单以 SQL 为单一真相源
 - [x] **FB-10**: 源码插件改为随宿主编译即集成，插件管理页不再为 `source` 类型展示安装/卸载按钮，源码插件默认视为已集成
 - [x] **FB-11**: 支持插件目录内后端 Go 源码随宿主一起编译接入，并用 `plugin-demo` 走通“开发-编译-展示”完整链路
-- [x] **FB-12**: 调整 `TC0066-source-plugin-lifecycle`，改为验证源码插件“同步发现 + 启用/禁用 + 编译接入后的审计展示”闭环
+- [x] **FB-12**: 调整 `TC0066-source-plugin-lifecycle`，改为验证源码插件“同步发现 + 启用/禁用 + 编译接入后的后端扩展点行为”闭环
 - [x] **FB-13**: 修复 `make dev` 后端进程后台保活问题，保证源码插件一期“开发-编译-展示”链路可稳定验证
 - [x] **FB-14**: 调整 `plugin-demo` 插件首页体验，菜单打开后台 Tab 页后展示更直观的示例信息，明确告知插件已生效
 - [x] **FB-15**: 源码插件首次同步后默认启用，且后续同步不覆盖管理员显式禁用状态
@@ -112,3 +112,18 @@
 - [x] **FB-30**: 调整宿主系统菜单的 `menu_key` 命名，移除 `host:` 前缀，仅保留插件菜单使用 `plugin:` 命名空间，并避免宿主插件管理菜单与插件命名空间冲突
 - [x] **FB-31**: 清理 `plugin-demo` 清单中的冗余 `backend.apis` 声明，并同步更新 README，明确源码插件后端能力由 Go 编译期注册而非 `plugin.yaml` 路由声明驱动
 - [x] **FB-32**: 补齐插件前后端插槽目录、类型化安装位置定义与开发者技术文档，禁止在宿主与插件示例中硬编码 Hook/Slot 位置字符串
+- [x] **FB-33**: 将源码插件后端扩展模型升级为回调注册式宿主扩展点，补齐 `auth.login.failed`、`http.route.register`、`http.request.after-auth`、`cron.register`、`menu.filter`、`permission.filter`
+- [x] **FB-34**: 在布局、登录页、工作台与 CRUD 通用壳层补齐更多前端 Slot，避免扩展点过度集中在少数页面
+- [x] **FB-35**: 更新 `plugin-demo` 示例插件，覆盖新的回调注册后端能力与新增前端 Slot 示例
+- [x] **FB-36**: 更新 `apps/lina-plugins/README.md` 与相关插件示例文档，明确新的扩展点目录、注册方式与推荐用法
+- [x] **FB-37**: 扩展 `TC0066-source-plugin-lifecycle`，验证新增通用扩展点的可见性、路由装配与鉴权后回调行为
+- [x] **FB-38**: 统一后端事件 Hook 与注册式回调扩展点的 Go 类型常量目录，禁止宿主与插件代码继续硬编码后端扩展点字符串
+- [x] **FB-39**: 为后端回调注册接口补齐执行模式参数，区分 `blocking` 与 `async`，并由宿主校验每个扩展点允许的执行模式
+- [x] **FB-40**: 删除 `internal/service/plugin/plugin.go` 内对 Hook 常量的重复别名导出，并同步更新 `plugin-demo` 与 `apps/lina-plugins` 文档示例
+- [x] **FB-41**: 调整 `pkg/pluginhost` 包内源码文件命名，统一使用 `pluginhost_*.go` 风格并同步更新文档引用
+- [x] **FB-42**: 去掉后端扩展点公开类型与常量中的 `Backend` 前缀，统一收敛为 `ExtensionPoint*` 风格命名
+- [x] **FB-43**: 为插件定时任务注册输入对象补齐“当前是否主节点”的识别方法，供插件自行决定主节点专属执行逻辑
+- [x] **FB-44**: 将插件回调注册接口中的对象型输入参数抽象为公开接口，降低插件对宿主内部结构体的直接耦合
+- [x] **FB-45**: 精简 `plugin-demo` 后端示例，移除登录审计数据库演示代码，为关键逻辑补充注释，并将示例定时任务调整为每分钟执行
+- [x] **FB-46**: 同步更新 `apps/lina-plugins` 与 `plugin-demo` 文档、清单及 E2E 用例，匹配新的命名、接口契约与示例行为
+- [x] **FB-47**: 将 `plugin-demo` 子目录说明文档收敛到根目录 `README.md`，移除 `backend`、`frontend`、`manifest` 下的介绍性 `README.md`

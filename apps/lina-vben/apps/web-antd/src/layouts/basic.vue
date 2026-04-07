@@ -149,6 +149,7 @@ async function refreshPluginAwareAccess() {
   try {
     const currentFullPath = router.currentRoute.value.fullPath;
     const userInfo = await authStore.fetchUserInfo();
+    const userRoles = userStore.userInfo?.roles ?? [];
 
     resetRoutes();
     accessStore.setAccessMenus([]);
@@ -157,7 +158,7 @@ async function refreshPluginAwareAccess() {
 
     const { accessibleMenus, accessibleRoutes } = await generateAccess(
       {
-        roles: userInfo.roles ?? [],
+        roles: userRoles,
         router,
         routes: accessRoutes,
       },
@@ -199,7 +200,7 @@ function handlePluginRegistryMaybeChanged() {
   ) {
     return;
   }
-  notifyPluginRegistryChanged();
+  void notifyPluginRegistryChanged();
 }
 
 // Fetch messages when notification panel is likely to open
@@ -207,9 +208,9 @@ function handlePluginRegistryMaybeChanged() {
 // We fetch on mount to have data ready
 onMounted(() => {
   messageStore.fetchMessages();
-  disposePluginRegistryListener = onPluginRegistryChanged(() => {
-    void refreshPluginAwareAccess();
-  });
+  disposePluginRegistryListener = onPluginRegistryChanged(() =>
+    refreshPluginAwareAccess(),
+  );
   window.addEventListener('focus', handlePluginRegistryMaybeChanged);
   document.addEventListener(
     'visibilitychange',
@@ -251,6 +252,18 @@ watch(
 
 <template>
   <BasicLayout @clear-preferences-and-logout="handleLogout">
+    <template #header-right-45>
+      <PluginSlotOutlet
+        :slot-key="pluginSlotKeys.layoutHeaderActionsBefore"
+        class="mr-2"
+      />
+    </template>
+    <template #header-right-145>
+      <PluginSlotOutlet
+        :slot-key="pluginSlotKeys.layoutHeaderActionsAfter"
+        class="mr-2"
+      />
+    </template>
     <template #user-dropdown>
       <div class="flex items-center">
         <PluginSlotOutlet

@@ -3,8 +3,8 @@ name: 示例插件
 version: 0.1.0
 type: source
 runtime: source
-entry: "backend:plugins/{id}/resources/login-audits"
-description: 提供插件扫描、状态管理、左侧菜单页面与登录审计 Hook 示例的源码插件（一期源码插件MVP）
+entry: "backend:plugins/{id}/summary"
+description: 提供插件扫描、状态管理、左侧菜单页面、受保护路由、鉴权后回调与定时任务示例的源码插件（一期源码插件MVP）
 author: lina-team
 homepage: https://example.com/lina/plugins/plugin-demo
 license: Apache-2.0

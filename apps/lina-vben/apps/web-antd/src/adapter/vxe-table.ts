@@ -1,10 +1,16 @@
 import type { VxeTableGridOptions } from '@vben/plugins/vxe-table';
 
-import { h } from 'vue';
+import { defineComponent, h } from 'vue';
 
-import { setupVbenVxeTable, useVbenVxeGrid } from '@vben/plugins/vxe-table';
+import {
+  setupVbenVxeTable,
+  useVbenVxeGrid as useBaseVbenVxeGrid,
+} from '@vben/plugins/vxe-table';
 
 import { Button, Image } from 'ant-design-vue';
+
+import PluginSlotOutlet from '#/components/plugin/plugin-slot-outlet.vue';
+import { pluginSlotKeys } from '#/plugins/plugin-slots';
 
 import { useVbenForm } from './form';
 
@@ -84,7 +90,41 @@ setupVbenVxeTable({
   useVbenForm,
 });
 
-export { useVbenVxeGrid };
+export function useVbenVxeGrid(...args: Parameters<typeof useBaseVbenVxeGrid>) {
+  const [BaseGrid, gridApi] = useBaseVbenVxeGrid(...args);
+
+  const Grid = defineComponent(
+    (props, { attrs, slots }) => {
+      return () =>
+        h('div', { class: 'plugin-grid-shell' }, [
+          h(
+            BaseGrid as any,
+            { ...props, ...attrs },
+            {
+              ...slots,
+              'toolbar-tools': (slotProps: Record<string, any>) => [
+                slots['toolbar-tools']?.(slotProps),
+                h(PluginSlotOutlet, {
+                  class: 'ml-2',
+                  slotKey: pluginSlotKeys.crudToolbarAfter,
+                }),
+              ],
+            },
+          ),
+          h(PluginSlotOutlet, {
+            class: 'mt-3',
+            slotKey: pluginSlotKeys.crudTableAfter,
+          }),
+        ]);
+    },
+    {
+      inheritAttrs: false,
+      name: 'LinaPluginAwareGrid',
+    },
+  );
+
+  return [Grid, gridApi] as const;
+}
 
 /**
  * 判断vxe-table的复选框是否选中

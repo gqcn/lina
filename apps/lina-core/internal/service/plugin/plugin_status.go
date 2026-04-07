@@ -8,6 +8,7 @@ import (
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	"lina-core/pkg/pluginhost"
 )
 
 // syncPluginManifest creates or updates a source plugin registry row.
@@ -102,9 +103,9 @@ func (s *Service) setPluginStatus(ctx context.Context, pluginID string, enabled 
 		return err
 	}
 
-	eventName := HookEventPluginDisabled
+	eventName := pluginhost.ExtensionPointPluginDisabled
 	if enabled == pluginStatusEnabled {
-		eventName = HookEventPluginEnabled
+		eventName = pluginhost.ExtensionPointPluginEnabled
 	}
 	return s.DispatchHookEvent(ctx, eventName, map[string]interface{}{
 		"pluginId": pluginID,

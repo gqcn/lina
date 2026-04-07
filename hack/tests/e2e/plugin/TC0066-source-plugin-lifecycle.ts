@@ -11,6 +11,7 @@ import { PluginPage } from "../../pages/PluginPage";
 const apiBaseURL =
   process.env.E2E_API_BASE_URL ?? "http://127.0.0.1:8080/api/v1/";
 const pluginID = "plugin-demo";
+const pluginAfterAuthHeader = "x-lina-plugin-after-auth";
 const mysqlBin = process.env.E2E_MYSQL_BIN ?? "mysql";
 const mysqlUser = process.env.E2E_DB_USER ?? "root";
 const mysqlPassword = process.env.E2E_DB_PASSWORD ?? "12345678";
@@ -102,19 +103,8 @@ async function fetchCurrentUserRoutes(
   return payload?.list ?? [];
 }
 
-async function fetchPluginLoginAudits(
-  adminApi: APIRequestContext,
-): Promise<Record<string, any>[]> {
-  const response = await adminApi.get(`plugins/${pluginID}/resources/login-audits`, {
-    params: {
-      pageNum: 1,
-      pageSize: 20,
-      userName: config.adminUser,
-    },
-  });
-  assertOk(response, "查询插件登录审计资源失败");
-  const payload = unwrapApiData(await response.json());
-  return payload?.list ?? [];
+async function fetchPluginSummary(adminApi: APIRequestContext) {
+  return await adminApi.get(`plugins/${pluginID}/summary`);
 }
 
 function hasMenuName(list: UserMenuNode[], name: string): boolean {
@@ -210,7 +200,10 @@ test.describe("TC-66 源码插件生命周期", () => {
       "源码插件首次同步后应默认启用",
     ).toBe(1);
 
-    await loginAsAdmin(page);
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await expect(loginPage.pluginLoginSlot).toBeVisible();
+    await loginPage.loginAndWaitForRedirect(config.adminUser, config.adminPass);
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
     await expect(pluginPage.pluginRow(pluginID)).toBeVisible();
@@ -221,11 +214,10 @@ test.describe("TC-66 源码插件生命周期", () => {
     );
     await expect(pluginPage.pluginInstallButton(pluginID)).toHaveCount(0);
     await expect(pluginPage.pluginUninstallButton(pluginID)).toHaveCount(0);
+    await pluginPage.expectCrudSlotsVisible();
   });
 
-  test("TC-66b: 启用后工作台卡片与左侧菜单页可正常展示", async ({
-    page,
-  }) => {
+  test("TC-66b: 启用后工作台卡片与左侧菜单页可正常展示", async ({ page }) => {
     await syncPlugins(adminApi!);
     await updatePluginStatus(adminApi!, pluginID, true);
 
@@ -236,28 +228,57 @@ test.describe("TC-66 源码插件生命周期", () => {
     await loginAsAdmin(page);
 
     await pluginPage.gotoWorkspace();
+    await pluginPage.expectHeaderSlotsVisible();
     await pluginPage.expectWorkspaceSlotVisible();
-    await pluginPage.expectHeaderSlotHidden();
     await pluginPage.openSidebarExampleFromMenu();
   });
 
-  test("TC-66c: 启用后重新登录可通过插件资源API查询到登录审计", async ({
+  test("TC-66c: 启用后可验证插件路由、鉴权后回调与定时任务元数据", async ({
     page,
   }) => {
     await syncPlugins(adminApi!);
     await updatePluginStatus(adminApi!, pluginID, true);
 
-    await loginAsAdmin(page);
-    const audits = await fetchPluginLoginAudits(adminApi!);
+    const summaryResponse = await fetchPluginSummary(adminApi!);
+    assertOk(summaryResponse, "查询插件摘要路由失败");
     expect(
-      audits.some((item) => item.userName === config.adminUser),
-      "重新登录后应可通过插件资源 API 查询到当前管理员的登录审计",
+      summaryResponse.headers()[pluginAfterAuthHeader.toLowerCase()],
+      "鉴权后回调应向受保护请求追加插件响应头",
+    ).toBe(pluginID);
+    const summaryPayload = unwrapApiData(await summaryResponse.json());
+    expect(summaryPayload?.pluginId).toBe(pluginID);
+    expect(
+      summaryPayload?.extensionPoints ?? [],
+      "插件摘要应返回当前演示用到的后端扩展点",
+    ).toEqual([
+      "http.route.register",
+      "http.request.after-auth",
+      "cron.register",
+    ]);
+    expect(
+      summaryPayload?.callbackModes ?? [],
+      "插件摘要应返回当前演示使用的回调模式",
+    ).toEqual(["blocking"]);
+    expect(
+      summaryPayload?.cronPattern,
+      "插件摘要应返回每分钟执行一次的 cron 表达式",
+    ).toBe("# * * * * *");
+    expect(
+      summaryPayload?.cronPrimaryAware,
+      "插件摘要应声明定时任务支持主节点识别",
     ).toBeTruthy();
+
+    await loginAsAdmin(page);
   });
 
   test("TC-66d: 禁用后不渲染插件 slot 且隐藏菜单", async ({ page }) => {
     await syncPlugins(adminApi!);
     await updatePluginStatus(adminApi!, pluginID, false);
+
+    const summaryResponse = await fetchPluginSummary(adminApi!);
+    expect(summaryResponse.status(), "插件禁用后插件自有路由应返回 404").toBe(
+      404,
+    );
 
     const pluginAfterDisable = await findPlugin(adminApi!);
     expect(pluginAfterDisable?.enabled ?? pluginAfterDisable?.status ?? 0).toBe(
@@ -269,7 +290,7 @@ test.describe("TC-66 源码插件生命周期", () => {
 
     await pluginPage.gotoWorkspace();
     await pluginPage.expectWorkspaceSlotHidden();
-    await pluginPage.expectHeaderSlotHidden();
+    await pluginPage.expectHeaderSlotsHidden();
     await pluginPage.expectSidebarMenuHidden("插件示例");
   });
 
@@ -306,13 +327,13 @@ test.describe("TC-66 源码插件生命周期", () => {
     await loginAsAdmin(page);
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
-    await pluginPage.expectHeaderSlotHidden();
+    await pluginPage.expectHeaderSlotsHidden();
     await pluginPage.expectSidebarMenuHidden("插件示例");
 
     await pluginPage.setPluginEnabled(pluginID, true);
 
     await pluginPage.expectSidebarMenuVisible("插件示例");
-    await pluginPage.expectHeaderSlotHidden();
+    await pluginPage.expectHeaderSlotsVisible();
     await pluginPage.gotoWorkspace();
     await pluginPage.expectWorkspaceSlotVisible();
   });
@@ -328,11 +349,12 @@ test.describe("TC-66 源码插件生命周期", () => {
     await pluginPage.gotoWorkspace();
     await pluginPage.expectWorkspaceSlotVisible();
     await pluginPage.gotoManage();
+    await pluginPage.expectHeaderSlotsVisible();
     await pluginPage.expectSidebarMenuVisible("插件示例");
 
     await pluginPage.setPluginEnabled(pluginID, false);
 
-    await pluginPage.expectHeaderSlotHidden();
+    await pluginPage.expectHeaderSlotsHidden();
     await pluginPage.expectSidebarMenuHidden("插件示例");
     await pluginPage.gotoWorkspace();
     await pluginPage.expectWorkspaceSlotHidden();
@@ -347,7 +369,7 @@ test.describe("TC-66 源码插件生命周期", () => {
     await loginAsAdmin(page);
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
-    await pluginPage.expectHeaderSlotHidden();
+    await pluginPage.expectHeaderSlotsHidden();
     await pluginPage.expectSidebarMenuHidden("插件示例");
 
     await updatePluginStatus(adminApi!, pluginID, true);
@@ -357,7 +379,7 @@ test.describe("TC-66 源码插件生命周期", () => {
     });
 
     await pluginPage.expectSidebarMenuVisible("插件示例");
-    await pluginPage.expectHeaderSlotHidden();
+    await pluginPage.expectHeaderSlotsVisible();
     await pluginPage.gotoWorkspace();
     await pluginPage.expectWorkspaceSlotVisible();
   });

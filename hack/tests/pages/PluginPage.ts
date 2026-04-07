@@ -39,11 +39,12 @@ export class PluginPage {
     return this.pluginRow(pluginId).locator(".ant-switch").first();
   }
 
-  headerPluginMenuEntry(): Locator {
-    return this.page
-      .locator('[data-plugin-slot-key="layout.user-dropdown.after"]')
-      .getByText("插件示例")
-      .first();
+  headerActionBeforeSlot(): Locator {
+    return this.page.getByText("plugin-demo 头部前置扩展").first();
+  }
+
+  headerActionAfterSlot(): Locator {
+    return this.page.getByText("plugin-demo 头部后置扩展").first();
   }
 
   pluginSidebarSimpleTitle(): Locator {
@@ -56,9 +57,34 @@ export class PluginPage {
     );
   }
 
+  pluginSummaryMessage(): Locator {
+    return this.page.getByText(
+      "plugin-demo 仅演示最小源码插件接入，不包含数据库读写示例。",
+    );
+  }
+
+  workspaceBeforeSlot(): Locator {
+    return this.page.getByText(
+      "plugin-demo 正在通过 `dashboard.workspace.before` 在工作台顶部插入横幅内容。",
+    );
+  }
+
+  workspaceAfterSlot(): Locator {
+    return this.page.getByText("插件示例工作台卡片").first();
+  }
+
+  crudToolbarSlot(): Locator {
+    return this.page.getByText("plugin-demo CRUD 扩展").first();
+  }
+
+  crudTableSlot(): Locator {
+    return this.page.getByText(
+      "plugin-demo 正在复用通用 CRUD 表格下方扩展位，用于验证 `crud.table.after` 会自动作用于基于 `useVbenVxeGrid` 的页面。",
+    );
+  }
+
   async gotoManage() {
     await this.page.goto("/system/plugin");
-    await this.page.waitForLoadState("networkidle");
     await expect(this.tableTitle).toBeVisible();
   }
 
@@ -94,6 +120,9 @@ export class PluginPage {
         "aria-checked",
         enabled ? "true" : "false",
       );
+      await expect(
+        this.page.getByText(enabled ? "插件已启用" : "插件已禁用").last(),
+      ).toBeVisible();
     }
   }
 
@@ -122,27 +151,39 @@ export class PluginPage {
 
   async gotoWorkspace() {
     await this.page.goto("/dashboard/workspace");
-    await this.page.waitForLoadState("networkidle");
-  }
-
-  async expectWorkspaceSlotVisible() {
     await expect(
-      this.page.getByText("插件示例工作台卡片").first(),
+      this.page.getByText("开始您一天的工作吧！").first(),
     ).toBeVisible();
   }
 
+  async expectWorkspaceSlotVisible() {
+    await expect(this.workspaceBeforeSlot()).toBeVisible();
+    await expect(this.workspaceAfterSlot()).toBeVisible();
+  }
+
   async expectWorkspaceSlotHidden() {
-    await expect(this.page.getByText("插件示例工作台卡片").first()).toHaveCount(
-      0,
-    );
+    await expect(this.workspaceBeforeSlot()).toHaveCount(0);
+    await expect(this.workspaceAfterSlot()).toHaveCount(0);
   }
 
-  async expectHeaderSlotVisible() {
-    await expect(this.headerPluginMenuEntry()).toBeVisible();
+  async expectHeaderSlotsVisible() {
+    await expect(this.headerActionBeforeSlot()).toBeVisible();
+    await expect(this.headerActionAfterSlot()).toBeVisible();
   }
 
-  async expectHeaderSlotHidden() {
-    await expect(this.headerPluginMenuEntry()).toHaveCount(0);
+  async expectHeaderSlotsHidden() {
+    await expect(this.headerActionBeforeSlot()).toHaveCount(0);
+    await expect(this.headerActionAfterSlot()).toHaveCount(0);
+  }
+
+  async expectCrudSlotsVisible() {
+    await expect(this.crudToolbarSlot()).toBeVisible();
+    await expect(this.crudTableSlot()).toBeVisible();
+  }
+
+  async expectCrudSlotsHidden() {
+    await expect(this.crudToolbarSlot()).toHaveCount(0);
+    await expect(this.crudTableSlot()).toHaveCount(0);
   }
 
   async openSidebarExampleFromMenu() {
@@ -151,14 +192,8 @@ export class PluginPage {
       .getByText("插件示例", { exact: true })
       .first()
       .click();
-    await this.page.waitForLoadState("networkidle");
     await expect(this.pluginSidebarSimpleTitle()).toBeVisible();
     await expect(this.pluginSidebarSimpleDescription()).toBeVisible();
-    await expect(
-      this.page.getByRole("button", { name: "打开右上角示例页" }),
-    ).toHaveCount(0);
-    await expect(
-      this.page.getByRole("button", { name: "查看登录审计" }),
-    ).toHaveCount(0);
+    await expect(this.pluginSummaryMessage()).toBeVisible();
   }
 }
