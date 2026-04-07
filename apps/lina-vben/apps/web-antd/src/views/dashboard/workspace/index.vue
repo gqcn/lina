@@ -22,6 +22,7 @@ import { useUserStore } from '@vben/stores';
 import { openWindow } from '@vben/utils';
 
 import PluginSlotOutlet from '#/components/plugin/plugin-slot-outlet.vue';
+import { pluginSlotKeys } from '#/plugins/plugin-slots';
 
 import AnalyticsVisitsSource from '../analytics/analytics-visits-source.vue';
 
@@ -265,6 +266,9 @@ function navTo(nav: WorkbenchProjectItem | WorkbenchQuickNavItem) {
       </div>
     </div>
 
-    <PluginSlotOutlet class="mt-5" slot-key="dashboard.workspace.after" />
+    <PluginSlotOutlet
+      :slot-key="pluginSlotKeys.dashboardWorkspaceAfter"
+      class="mt-5"
+    />
   </div>
 </template>

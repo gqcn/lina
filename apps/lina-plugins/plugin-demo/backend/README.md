@@ -8,7 +8,7 @@
 ## 当前示例
 
 - `plugin.go`
-  - 注册 `auth.login.succeeded` Hook
+  - 通过 `pluginhost.HookSlotAuthLoginSucceeded` 注册登录成功 Hook
   - 注册 `login-audits` 资源
   - 由宿主通用执行器继续装配为可分页查询的数据源
 

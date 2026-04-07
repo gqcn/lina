@@ -25,6 +25,8 @@
 
 当前后端能力已支持把插件目录内的 Go 源码与宿主一起编译；`plugin-demo` 通过 `backend/plugin.go` 在编译期注册自己的 Hook 与资源能力，`plugin.yaml` 仅保留插件元数据、入口描述和资源索引，不再声明后端 API 列表。当前前端能力也已支持把插件目录内的 Vue 页面与 Slot 源码纳入宿主构建，由宿主在运行时装载。这是一阶段源码插件的最小接入方式，后续再演进到更完整的 runtime `package/wasm` 机制。
 
+插件插槽目录、类型化 Hook/Slot 常量与推荐接入方式，请优先参考宿主开发指南：`apps/lina-plugins/README.md`。
+
 当前 SQL 约定：
 
 - 安装 SQL 放在 `manifest/sql/` 根目录，并使用 `{序号}-{当前迭代名称}.sql` 命名

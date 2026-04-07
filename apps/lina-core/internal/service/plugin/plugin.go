@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 
 	"lina-core/internal/model/entity"
+	"lina-core/pkg/pluginhost"
 )
 
 const (
@@ -20,19 +21,19 @@ const (
 
 const (
 	// HookEventAuthLoginSucceeded is fired after user login succeeds.
-	HookEventAuthLoginSucceeded = "auth.login.succeeded"
+	HookEventAuthLoginSucceeded = pluginhost.HookSlotAuthLoginSucceeded
 	// HookEventAuthLogoutSucceeded is fired after user logout succeeds.
-	HookEventAuthLogoutSucceeded = "auth.logout.succeeded"
+	HookEventAuthLogoutSucceeded = pluginhost.HookSlotAuthLogoutSucceeded
 	// HookEventPluginEnabled is fired after a plugin is enabled.
-	HookEventPluginEnabled = "plugin.enabled"
+	HookEventPluginEnabled = pluginhost.HookSlotPluginEnabled
 	// HookEventPluginDisabled is fired after a plugin is disabled.
-	HookEventPluginDisabled = "plugin.disabled"
+	HookEventPluginDisabled = pluginhost.HookSlotPluginDisabled
 	// HookEventPluginInstalled is fired after a plugin is installed.
-	HookEventPluginInstalled = "plugin.installed"
+	HookEventPluginInstalled = pluginhost.HookSlotPluginInstalled
 	// HookEventPluginUninstalled is fired after a plugin is uninstalled.
-	HookEventPluginUninstalled = "plugin.uninstalled"
+	HookEventPluginUninstalled = pluginhost.HookSlotPluginUninstalled
 	// HookEventSystemStarted is fired after host http server startup.
-	HookEventSystemStarted = "system.started"
+	HookEventSystemStarted = pluginhost.HookSlotSystemStarted
 )
 
 // Service provides plugin management operations.

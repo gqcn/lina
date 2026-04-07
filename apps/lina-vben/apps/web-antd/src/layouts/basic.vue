@@ -20,6 +20,7 @@ import { Modal } from 'ant-design-vue';
 
 import PluginSlotOutlet from '#/components/plugin/plugin-slot-outlet.vue';
 import { $t } from '#/locales';
+import { pluginSlotKeys } from '#/plugins/plugin-slots';
 import {
   notifyPluginRegistryChanged,
   onPluginRegistryChanged,
@@ -252,7 +253,10 @@ watch(
   <BasicLayout @clear-preferences-and-logout="handleLogout">
     <template #user-dropdown>
       <div class="flex items-center">
-        <PluginSlotOutlet class="mr-2" slot-key="layout.user-dropdown.after" />
+        <PluginSlotOutlet
+          :slot-key="pluginSlotKeys.layoutUserDropdownAfter"
+          class="mr-2"
+        />
         <UserDropdown
           :avatar
           :menus

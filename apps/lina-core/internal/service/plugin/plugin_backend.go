@@ -21,10 +21,10 @@ var safePluginIdentifierPattern = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
 
 // pluginHookSpec defines a plugin-owned hook handler declaration.
 type pluginHookSpec struct {
-	Event  string            `yaml:"event"`
-	Action string            `yaml:"action"`
-	Table  string            `yaml:"table"`
-	Fields map[string]string `yaml:"fields"`
+	Event  pluginhost.HookSlot   `yaml:"event"`
+	Action pluginhost.HookAction `yaml:"action"`
+	Table  string                `yaml:"table"`
+	Fields map[string]string     `yaml:"fields"`
 }
 
 // pluginResourceSpec defines a plugin-owned backend resource declaration.
@@ -273,7 +273,7 @@ func (s *Service) ListResourceRecords(ctx context.Context, in ResourceListInput)
 }
 
 // DispatchHookEvent dispatches one named hook event to all enabled source plugins.
-func (s *Service) DispatchHookEvent(ctx context.Context, eventName string, payload map[string]interface{}) error {
+func (s *Service) DispatchHookEvent(ctx context.Context, eventName pluginhost.HookSlot, payload map[string]interface{}) error {
 	manifests, err := s.scanPluginManifests()
 	if err != nil {
 		return err
@@ -284,7 +284,7 @@ func (s *Service) DispatchHookEvent(ctx context.Context, eventName string, paylo
 			continue
 		}
 		for _, hook := range manifest.Hooks {
-			if hook.Event != eventName || hook.Action != "insert" {
+			if hook.Event != eventName || hook.Action != pluginhost.HookActionInsert {
 				continue
 			}
 			startedAt := gtime.Now()
@@ -299,7 +299,7 @@ func (s *Service) DispatchHookEvent(ctx context.Context, eventName string, paylo
 }
 
 // shouldDispatchHookToPlugin determines whether the hook event should be delivered to the target plugin.
-func (s *Service) shouldDispatchHookToPlugin(ctx context.Context, pluginID string, eventName string, targetPluginID string) bool {
+func (s *Service) shouldDispatchHookToPlugin(ctx context.Context, pluginID string, eventName pluginhost.HookSlot, targetPluginID string) bool {
 	switch eventName {
 	case HookEventPluginInstalled, HookEventPluginEnabled, HookEventPluginDisabled, HookEventPluginUninstalled:
 		return pluginID == targetPluginID
@@ -376,7 +376,10 @@ func (s *Service) validatePluginHookSpec(pluginID string, spec *pluginHookSpec, 
 	if spec.Event == "" {
 		return gerror.Newf("插件Hook缺少event: %s", filePath)
 	}
-	if spec.Action != "insert" {
+	if !pluginhost.IsPublishedHookSlot(spec.Event) {
+		return gerror.Newf("插件Hook插槽未发布: %s", filePath)
+	}
+	if !pluginhost.IsSupportedHookAction(spec.Action) {
 		return gerror.Newf("插件Hook动作仅支持insert: %s", filePath)
 	}
 	if err := s.validatePluginIdentifier(spec.Table); err != nil {

@@ -3,6 +3,12 @@
 ### Requirement: 宿主发布稳定的后端 Hook 契约
 系统 SHALL 发布一组具名、版本化、可审计的后端 Hook，供插件在宿主关键业务事件上扩展行为。
 
+#### Scenario: 宿主维护正式的后端 Hook 插槽目录
+- **WHEN** 宿主对外发布插件 Hook 能力
+- **THEN** 宿主必须维护正式的后端 Hook 插槽目录
+- **AND** 一期至少公开 `auth.login.succeeded`、`auth.logout.succeeded`、`system.started`、`plugin.installed`、`plugin.enabled`、`plugin.disabled`、`plugin.uninstalled`
+- **AND** 每个插槽都必须说明触发时机、上下文、执行顺序与失败隔离策略
+
 #### Scenario: 登录成功事件触发 Hook
 - **WHEN** 用户登录成功且宿主发布 `auth.login.succeeded` Hook
 - **THEN** 宿主按约定上下文向已启用插件分发该事件
@@ -24,6 +30,12 @@
 
 ### Requirement: 宿主发布前端 Slot 扩展点
 系统 SHALL 为前端页面和布局发布受控的 Slot 扩展点，允许插件在宿主公开位置插入 UI 内容。
+
+#### Scenario: 宿主维护正式的前端 Slot 插槽目录
+- **WHEN** 宿主对外发布前端 Slot 能力
+- **THEN** 宿主必须维护正式的前端 Slot 插槽目录
+- **AND** 一期至少公开 `layout.user-dropdown.after` 与 `dashboard.workspace.after`
+- **AND** 每个插槽都必须说明宿主位置、渲染容器、推荐用途、排序规则与失败降级策略
 
 #### Scenario: 插件向宿主布局插入内容
 - **WHEN** 一个已启用插件声明向 `layout.user-dropdown.after` 插入前端内容
@@ -64,3 +76,30 @@
 - **WHEN** 多个插件同时订阅同一个后端 Hook 或前端 Slot
 - **THEN** 宿主按照 manifest 显式优先级或统一的默认排序规则执行
 - **AND** 相同输入下的执行顺序在各节点保持一致
+
+### Requirement: Hook 与 Slot 标识必须使用专门类型定义
+系统 SHALL 使用专门的类型定义合法的插件安装位置，避免在宿主实现和插件示例中散落硬编码字符串。
+
+#### Scenario: 后端 Hook 插槽在 Go 中声明
+- **WHEN** 宿主实现后端 Hook 插槽
+- **THEN** 宿主必须使用 Go `type` 与常量声明合法 Hook 插槽标识
+- **AND** 插件后端示例通过该类型常量引用插槽，而不是直接写事件名字符串
+
+#### Scenario: 前端 Slot 插槽在 TypeScript 中声明
+- **WHEN** 宿主实现前端 Slot 插槽
+- **THEN** 宿主必须使用 TypeScript 常量与类型声明合法 Slot 标识
+- **AND** 宿主页面、Slot 装载器与插件前端示例通过统一类型引用插槽，而不是直接写 Slot 名字符串
+
+#### Scenario: 插件声明未知插槽
+- **WHEN** 插件声明一个未被宿主发布的 Hook 或 Slot 标识
+- **THEN** 宿主拒绝该声明或跳过装载
+- **AND** 宿主记录“插槽未发布或契约不支持”的错误信息
+
+### Requirement: 宿主提供面向插件开发者的插槽技术文档
+系统 SHALL 将前后端插槽目录、类型定义与示例用法沉淀到插件开发者可直接查阅的技术文档中。
+
+#### Scenario: 发布插件开发指南
+- **WHEN** 宿主新增、调整或正式发布 Hook/Slot 插槽
+- **THEN** 宿主同步更新 `apps/lina-plugins/README.md`
+- **AND** 文档中明确区分“已发布插槽”和“后续规划插槽”
+- **AND** 文档中给出 Go 与前端源码插件的推荐引用方式

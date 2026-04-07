@@ -1,7 +1,9 @@
 <script lang="ts">
+import { pluginSlotKeys } from '#/plugins/plugin-slots';
+
 export const pluginSlotMeta = {
   order: 0,
-  slotKey: 'dashboard.workspace.after',
+  slotKey: pluginSlotKeys.dashboardWorkspaceAfter,
 };
 </script>
 

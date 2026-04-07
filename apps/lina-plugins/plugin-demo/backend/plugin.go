@@ -7,8 +7,8 @@ func init() {
 		ID: "plugin-demo",
 		Hooks: []*pluginhost.HookSpec{
 			{
-				Event:  "auth.login.succeeded",
-				Action: "insert",
+				Event:  pluginhost.HookSlotAuthLoginSucceeded,
+				Action: pluginhost.HookActionInsert,
 				Table:  "plugin_demo_login_audit",
 				Fields: map[string]string{
 					"user_name":   "event.userName",

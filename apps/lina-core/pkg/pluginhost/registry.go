@@ -20,9 +20,9 @@ type SourcePlugin struct {
 // HookSpec defines one hook declaration contributed by a source plugin.
 type HookSpec struct {
 	// Event is the published host hook event name.
-	Event string
+	Event HookSlot
 	// Action is the hook execution type. Current host only supports `insert`.
-	Action string
+	Action HookAction
 	// Table is the target table name for the hook action.
 	Table string
 	// Fields maps database column names to host event expressions.

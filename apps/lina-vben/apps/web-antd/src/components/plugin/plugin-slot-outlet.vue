@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { PluginSlotKey } from '#/plugins/plugin-slots';
 import type { RegisteredPluginSlotModule } from '#/plugins/slot-registry';
 
 import {
@@ -22,7 +23,7 @@ defineOptions({
 });
 
 const props = defineProps<{
-  slotKey: string;
+  slotKey: PluginSlotKey;
 }>();
 
 const attrs = useAttrs();

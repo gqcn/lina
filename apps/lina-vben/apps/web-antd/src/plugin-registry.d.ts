@@ -20,13 +20,14 @@ declare module 'virtual:lina-plugin-pages' {
 
 declare module 'virtual:lina-plugin-slots' {
   import type { Component } from 'vue';
+  type PluginSlotKey = import('#/plugins/plugin-slots').PluginSlotKey;
 
   export interface VirtualPluginSlotModule {
     default?: Component;
     pluginSlotMeta?: {
       order?: number;
       pluginId?: string;
-      slotKey?: string;
+      slotKey?: PluginSlotKey;
     };
   }
 

@@ -1,8 +1,10 @@
 import type { SystemPlugin } from '#/api/system/plugin/model';
+import type { PluginSlotKey } from '#/plugins/plugin-slots';
 import type { Component } from 'vue';
 import type { VirtualPluginSlotModuleEntry } from 'virtual:lina-plugin-slots';
 
 import { pluginList } from '#/api/system/plugin';
+import { isPluginSlotKey } from '#/plugins/plugin-slots';
 import { pluginSlotModules } from 'virtual:lina-plugin-slots';
 
 const pluginRegistryChangedEvent = 'lina:plugin-registry-changed';
@@ -12,7 +14,7 @@ let pluginStatePromise: null | Promise<Map<string, SystemPlugin>> = null;
 export interface PluginSlotMeta {
   order?: number;
   pluginId?: string;
-  slotKey?: string;
+  slotKey?: PluginSlotKey;
 }
 
 export interface RegisteredPluginSlotModule {
@@ -21,7 +23,7 @@ export interface RegisteredPluginSlotModule {
   key: string;
   order: number;
   pluginId: string;
-  slotKey: string;
+  slotKey: PluginSlotKey;
 }
 
 const registeredPluginSlotModules = pluginSlotModules
@@ -41,7 +43,10 @@ const registeredPluginSlotModules = pluginSlotModules
       segments.slice(0, Math.max(segments.length - 1, 0)).join('/');
     const slotName = segments.at(-1) || relativePath;
 
-    if (!slotKey) {
+    if (!slotKey || !isPluginSlotKey(slotKey)) {
+      console.warn(
+        `[plugin-slot] skip unpublished slot "${slotKey}" from ${item.filePath}`,
+      );
       return null;
     }
 
@@ -93,7 +98,9 @@ async function loadPluginStateMap(force = false) {
 /**
  * Returns plugin slot definitions for a given slot key.
  */
-export function getPluginSlots(slotKey: string): RegisteredPluginSlotModule[] {
+export function getPluginSlots(
+  slotKey: PluginSlotKey,
+): RegisteredPluginSlotModule[] {
   return registeredPluginSlotModules.filter((item) => item.slotKey === slotKey);
 }
 
