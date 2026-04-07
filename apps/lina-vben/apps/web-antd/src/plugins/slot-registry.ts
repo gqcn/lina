@@ -32,7 +32,7 @@ export interface RegisteredPluginSlotModule {
 const registeredPluginSlotModules = pluginSlotModules
   .map((item: VirtualPluginSlotModuleEntry) => {
     const match = item.filePath.match(
-      /\/lina-plugins\/([^/]+)\/frontend\/src\/slots\/(.+)\.vue$/,
+      /\/lina-plugins\/([^/]+)\/frontend\/slots\/(.+)\.vue$/,
     );
     if (!match?.[1] || !match[2] || !item.module.default) {
       return null;

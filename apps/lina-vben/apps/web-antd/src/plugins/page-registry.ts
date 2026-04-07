@@ -29,7 +29,7 @@ function normalizeRoutePath(routePath: string) {
 const pluginPages = pluginPageModules
   .map((item: VirtualPluginPageModuleEntry) => {
     const match = item.filePath.match(
-      /\/lina-plugins\/([^/]+)\/frontend\/src\/pages\/(.+)\.vue$/,
+      /\/lina-plugins\/([^/]+)\/frontend\/pages\/(.+)\.vue$/,
     );
     if (!match?.[1] || !match[2] || !item.module.default) {
       return null;

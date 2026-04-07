@@ -17,8 +17,8 @@ plugin-demo/
   backend/
     plugin.go
   frontend/
-    src/pages/
-    src/slots/
+    pages/
+    slots/
   manifest/
     sql/
       001-plugin-demo.sql
@@ -45,9 +45,9 @@ plugin-demo/
 
 `frontend/` 目录提供插件真实前端源码，交由宿主在运行时发现和装载。
 
-- `frontend/src/pages/` 存放插件页面源码，当前保留左侧菜单示例页，用于验证插件页面可通过宿主菜单与运行时页装载链路挂载。
-- `frontend/src/slots/` 存放插件前端 Slot 源码，当前覆盖登录页、头部动作区、工作台与 CRUD 通用壳层。
-- 当前真实生效的接入链路是 `frontend/src/pages/*.vue + frontend/src/slots/**/*.vue + system/plugin/runtime-page`。
+- `frontend/pages/` 存放插件页面源码，当前保留左侧菜单示例页，用于验证插件页面可通过宿主菜单与运行时页装载链路挂载。
+- `frontend/slots/` 存放插件前端 Slot 源码，当前覆盖登录页、头部动作区、工作台与 CRUD 通用壳层。
+- 当前真实生效的接入链路是 `frontend/pages/*.vue + frontend/slots/**/*.vue + system/plugin/runtime-page`。
 - 建议约定保持 `route` 前缀为 `/plugin-demo-*`、权限前缀为 `plugin-demo:*`。
 - 当前示例优先验证“插件目录中的前端源码文件可被宿主发现、挂载并以内页 Tab 打开”；更完整的宿主 SDK 与微前端挂载协议留待后续阶段。
 

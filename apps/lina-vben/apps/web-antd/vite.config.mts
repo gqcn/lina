@@ -29,10 +29,10 @@ function collectPluginSourceFiles(pluginRoot: string) {
         continue;
       }
       const normalizedPath = fullPath.split(sep).join('/');
-      if (normalizedPath.includes('/frontend/src/pages/')) {
+      if (normalizedPath.includes('/frontend/pages/')) {
         pageFiles.push(fullPath);
       }
-      if (normalizedPath.includes('/frontend/src/slots/')) {
+      if (normalizedPath.includes('/frontend/slots/')) {
         slotFiles.push(fullPath);
       }
     }
@@ -66,8 +66,8 @@ function isPluginFrontendSourceFile(pluginRoot: string, filePath: string) {
   }
 
   return (
-    normalizedFilePath.includes('/frontend/src/pages/') ||
-    normalizedFilePath.includes('/frontend/src/slots/')
+    normalizedFilePath.includes('/frontend/pages/') ||
+    normalizedFilePath.includes('/frontend/slots/')
   );
 }
 
@@ -88,7 +88,7 @@ function buildPluginPageModuleCode(pluginRoot: string) {
   pageFiles.toSorted().forEach((filePath, index) => {
     const relativePath = normalizeFsPath(relative(pluginRoot, filePath));
     const match = relativePath.match(
-      /^([^/]+)\/frontend\/src\/pages\/(.+)\.vue$/,
+      /^([^/]+)\/frontend\/pages\/(.+)\.vue$/,
     );
     if (!match?.[1] || !match[2]) {
       return;
@@ -118,7 +118,7 @@ function buildPluginSlotModuleCode(pluginRoot: string) {
   slotFiles.toSorted().forEach((filePath, index) => {
     const relativePath = normalizeFsPath(relative(pluginRoot, filePath));
     const match = relativePath.match(
-      /^([^/]+)\/frontend\/src\/slots\/(.+)\.vue$/,
+      /^([^/]+)\/frontend\/slots\/(.+)\.vue$/,
     );
     if (!match?.[1] || !match[2]) {
       return;

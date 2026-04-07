@@ -16,7 +16,7 @@
 - [x] 将 `plugin-demo` 后端示例收敛到插件目录内的 Go 源码实现，并通过构建期静态注册表接入宿主
 - [x] 提供 `plugin-demo` 前端页面与 Slot 源码，并通过宿主通用运行时页/Slot 装载器挂载
 - [x] 补齐源码插件免安装管理闭环
-- [x] 基于插件目录后端注册与 `frontend/src/slots/**/*.vue` 抽象首批通用 Hook/Slot 总线
+- [x] 基于插件目录后端注册与 `frontend/slots/**/*.vue` 抽象首批通用 Hook/Slot 总线
 
 ## 1. 契约与元数据底座
 
@@ -127,3 +127,4 @@
 - [x] **FB-45**: 精简 `plugin-demo` 后端示例，移除登录审计数据库演示代码，为关键逻辑补充注释，并将示例定时任务调整为每分钟执行
 - [x] **FB-46**: 同步更新 `apps/lina-plugins` 与 `plugin-demo` 文档、清单及 E2E 用例，匹配新的命名、接口契约与示例行为
 - [x] **FB-47**: 将 `plugin-demo` 子目录说明文档收敛到根目录 `README.md`，移除 `backend`、`frontend`、`manifest` 下的介绍性 `README.md`
+- [x] **FB-48**: 将源码插件前端目录约定从 `frontend/src/pages|slots` 统一收敛为 `frontend/pages|slots`，同步宿主扫描逻辑、示例文件与文档规格

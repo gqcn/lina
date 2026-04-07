@@ -29,8 +29,8 @@ apps/lina-plugins/
 |------|--------------------------------|
 | `plugin.yaml` | 维护插件元数据、资源索引与前端接入提示            |
 | `backend/plugin.go` | 使用`Go`代码通过回调注册源码插件的后端扩展点与资源能力    |
-| `frontend/src/pages/` | 提供插件页面源码，交由宿主运行时页装载            |
-| `frontend/src/slots/` | 提供插件`Slot`源码，交由宿主公开扩展点装载         |
+| `frontend/pages/` | 提供插件页面源码，交由宿主运行时页装载                |
+| `frontend/slots/` | 提供插件`Slot`源码，交由宿主公开扩展点装载             |
 | `manifest/sql/` | 存放安装`SQL`，命名遵循`{序号}-{当前迭代名称}.sql` |
 | `manifest/sql/uninstall/` | 存放卸载`SQL`，避免被宿主初始化流程误扫           |
 
@@ -165,7 +165,7 @@ export const pluginSlotMeta = {
 
 1. 不要在插件代码中直接写`auth.login.succeeded`、`http.route.register`、`crud.toolbar.after`这类裸字符串，统一引用宿主定义的类型常量。
 2. 只使用本文档“已发布的扩展点”，不要假设宿主存在未文档化的私有扩展点或回调。
-3. 插件页面源码放在`frontend/src/pages/`，插件Slot源码放在`frontend/src/slots/`，不要混放。
+3. 插件页面源码放在`frontend/pages/`，插件Slot源码放在`frontend/slots/`，不要混放。
 4. 插件SQL中的菜单与权限仍然通过宿主治理体系接入，菜单稳定标识使用`menu_key`，不要写死整型`id`。
 5. 若需要新增扩展点，必须先更新`OpenSpec`规格、宿主类型定义与本文档，再开始实现插件接入。
 
@@ -177,7 +177,7 @@ export const pluginSlotMeta = {
 |------|------|
 | `apps/lina-plugins/plugin-demo/plugin.yaml` | 插件元数据与资源索引 |
 | `apps/lina-plugins/plugin-demo/backend/plugin.go` | 后端`Route`、`After-Auth`、`Cron`与接口化回调注册示例 |
-| `apps/lina-plugins/plugin-demo/frontend/src/pages/sidebar-entry.vue` | 左侧菜单页面示例 |
-| `apps/lina-plugins/plugin-demo/frontend/src/slots/` | 多个前端`Slot`示例 |
+| `apps/lina-plugins/plugin-demo/frontend/pages/sidebar-entry.vue` | 左侧菜单页面示例 |
+| `apps/lina-plugins/plugin-demo/frontend/slots/` | 多个前端`Slot`示例 |
 
 如果需要新增插件，建议先复制`plugin-demo`目录结构，再按本文档调整插件`ID`、`SQL`、页面与回调注册代码。

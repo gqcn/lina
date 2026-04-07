@@ -33,8 +33,8 @@ Lina 当前的前后端扩展方式仍以“宿主源码直接改造”为主，
 
 当前第一期源码插件的前端也同步采用“插件目录前端源码 + 宿主通用装载器”的方式落地：
 
-- 插件页面源码放在 `frontend/src/pages/*.vue`
-- 插件 Slot 源码放在 `frontend/src/slots/**/*.vue`
+- 插件页面源码放在 `frontend/pages/*.vue`
+- 插件 Slot 源码放在 `frontend/slots/**/*.vue`
 - 宿主使用通用运行时页 `system/plugin/runtime-page` 作为页面宿主，并按路由装载插件页面源码
 - 宿主使用 `PluginSlotOutlet` 基于插件 Slot 源码挂载工作台/布局扩展内容
 
