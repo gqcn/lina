@@ -9,20 +9,6 @@ author: lina-team
 homepage: https://example.com/lina/plugins/plugin-demo
 license: Apache-2.0
 capabilities:
-  backend:
-    apis:
-      - method: GET
-        path: /plugins
-        purpose: 查询插件列表
-      - method: PUT
-        path: /plugins/{id}/enable
-        purpose: 启用插件
-      - method: PUT
-        path: /plugins/{id}/disable
-        purpose: 禁用插件
-      - method: GET
-        path: /plugins/{id}/resources/login-audits
-        purpose: 查询示例登录审计资源
   frontend:
     integrationModes:
       - host-embed

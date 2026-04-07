@@ -110,3 +110,4 @@
 - [x] **FB-28**: 补齐宿主系统菜单初始化种子数据的 `menu_key` 字段值，避免 `008-menu-role-management.sql` 初始化后出现空业务标识
 - [x] **FB-29**: 在无历史数据债务前提下，直接修改 `008-menu-role-management.sql` 原始菜单种子 `INSERT`，为每条宿主菜单显式写入 `menu_key`，并移除初始化后的回填 `UPDATE`
 - [x] **FB-30**: 调整宿主系统菜单的 `menu_key` 命名，移除 `host:` 前缀，仅保留插件菜单使用 `plugin:` 命名空间，并避免宿主插件管理菜单与插件命名空间冲突
+- [x] **FB-31**: 清理 `plugin-demo` 清单中的冗余 `backend.apis` 声明，并同步更新 README，明确源码插件后端能力由 Go 编译期注册而非 `plugin.yaml` 路由声明驱动
