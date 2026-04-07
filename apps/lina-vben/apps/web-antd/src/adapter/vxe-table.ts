@@ -1,6 +1,6 @@
 import type { VxeTableGridOptions } from '@vben/plugins/vxe-table';
 
-import { defineComponent, h } from 'vue';
+import { Fragment, defineComponent, h } from 'vue';
 
 import {
   setupVbenVxeTable,
@@ -96,7 +96,7 @@ export function useVbenVxeGrid(...args: Parameters<typeof useBaseVbenVxeGrid>) {
   const Grid = defineComponent(
     (props, { attrs, slots }) => {
       return () =>
-        h('div', { class: 'plugin-grid-shell' }, [
+        h(Fragment, null, [
           h(
             BaseGrid as any,
             { ...props, ...attrs },

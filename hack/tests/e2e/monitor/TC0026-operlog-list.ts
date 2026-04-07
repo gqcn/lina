@@ -1,5 +1,23 @@
 import { test, expect } from '../../fixtures/auth';
 
+async function expectPageHeightStable(page: any, pageName: string) {
+  const samples: number[] = [];
+
+  for (let index = 0; index < 4; index += 1) {
+    samples.push(
+      await page.evaluate(() => document.documentElement.scrollHeight),
+    );
+    if (index < 3) {
+      await page.waitForTimeout(400);
+    }
+  }
+
+  expect(
+    Math.max(...samples) - Math.min(...samples),
+    `${pageName}高度未稳定，采样结果: ${samples.join(', ')}`,
+  ).toBeLessThanOrEqual(16);
+}
+
 test.describe('TC0026 操作日志列表查询与筛选', () => {
   test.beforeEach(async ({ adminPage }) => {
     // Navigate to operlog page and wait for data to load
@@ -26,6 +44,7 @@ test.describe('TC0026 操作日志列表查询与筛选', () => {
     await expect(
       adminPage.getByRole('button', { name: /导\s*出/ }),
     ).toBeVisible();
+    await expectPageHeightStable(adminPage, '操作日志页');
   });
 
   test('TC0026b: 按模块名称搜索', async ({ adminPage }) => {

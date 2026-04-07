@@ -129,3 +129,5 @@
 - [x] **FB-47**: 将 `plugin-demo` 子目录说明文档收敛到根目录 `README.md`，移除 `backend`、`frontend`、`manifest` 下的介绍性 `README.md`
 - [x] **FB-48**: 将源码插件前端目录约定从 `frontend/src/pages|slots` 统一收敛为 `frontend/pages|slots`，同步宿主扫描逻辑、示例文件与文档规格
 - [x] **FB-49**: 移除 `plugin-demo` 的 `crud.table.after` 前端示例，避免在所有基于 `useVbenVxeGrid` 的页面下方默认展示说明内容
+- [x] **FB-50**: 修复菜单管理页在树表自动高度场景下页面高度持续增长的问题，并补齐页面高度稳定性的回归验证
+- [x] **FB-51**: 将列表页高度持续增长问题收敛到 `useVbenVxeGrid` 共享层修复，并补齐菜单管理、角色管理、操作日志页面的高度稳定回归验证

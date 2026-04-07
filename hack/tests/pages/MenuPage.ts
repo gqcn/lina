@@ -411,4 +411,27 @@ export class MenuPage {
       .locator('.vxe-table')
       .waitFor({ state: 'visible', timeout: 10000 });
   }
+
+  async expectLayoutHeightStable(sampleCount: number = 4, intervalMs: number = 400) {
+    const samples: number[] = [];
+
+    for (let index = 0; index < sampleCount; index += 1) {
+      const height = await this.page.evaluate(() => {
+        return document.documentElement.scrollHeight;
+      });
+      samples.push(height);
+      if (index < sampleCount - 1) {
+        await this.page.waitForTimeout(intervalMs);
+      }
+    }
+
+    const minHeight = Math.min(...samples);
+    const maxHeight = Math.max(...samples);
+
+    if (maxHeight - minHeight > 16) {
+      throw new Error(
+        `菜单管理页高度未稳定，采样结果: ${samples.join(', ')}`,
+      );
+    }
+  }
 }

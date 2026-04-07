@@ -1,6 +1,24 @@
 import { test, expect } from '../../fixtures/auth';
 import { RolePage } from '../../pages/RolePage';
 
+async function expectPageHeightStable(page: any, pageName: string) {
+  const samples: number[] = [];
+
+  for (let index = 0; index < 4; index += 1) {
+    samples.push(
+      await page.evaluate(() => document.documentElement.scrollHeight),
+    );
+    if (index < 3) {
+      await page.waitForTimeout(400);
+    }
+  }
+
+  expect(
+    Math.max(...samples) - Math.min(...samples),
+    `${pageName}高度未稳定，采样结果: ${samples.join(', ')}`,
+  ).toBeLessThanOrEqual(16);
+}
+
 /**
  * TC0061 角色管理 E2E 测试
  *
@@ -28,6 +46,7 @@ test.describe('TC0061 角色管理 CRUD', () => {
     await expect(
       adminPage.getByRole('button', { name: /新\s*增/ }).first(),
     ).toBeVisible({ timeout: 5000 });
+    await expectPageHeightStable(adminPage, '角色管理页');
   });
 
   test('TC0061b: 创建角色对话框打开', async ({ adminPage }) => {

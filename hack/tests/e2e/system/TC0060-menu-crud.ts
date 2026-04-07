@@ -13,6 +13,7 @@ test.describe('TC0060 菜单管理 CRUD', () => {
     // Check that toolbar buttons are visible
     await expect(adminPage.getByRole('button', { name: /新\s*增/ }).first()).toBeVisible({ timeout: 5000 });
     await expect(adminPage.getByRole('button', { name: /折\s*叠/ }).first()).toBeVisible({ timeout: 5000 });
+    await menuPage.expectLayoutHeightStable();
   });
 
   test('TC0060b: 创建菜单对话框打开', async ({ adminPage }) => {
