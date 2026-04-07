@@ -14,6 +14,7 @@ type SysMenu struct {
 	g.Meta     `orm:"table:sys_menu, do:true"`
 	Id         any         // 菜单ID
 	ParentId   any         // 父菜单ID（0=根菜单）
+	MenuKey    any         // 菜单稳定业务标识
 	Name       any         // 菜单名称（支持i18n）
 	Path       any         // 路由地址
 	Component  any         // 组件路径

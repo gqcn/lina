@@ -121,6 +121,10 @@ func buildFilteredTree(items []*menusvc.MenuItem) []*menusvc.MenuItem {
 func convertToRouteItems(items []*menusvc.MenuItem) []*v1.MenuRouteItem {
 	result := make([]*v1.MenuRouteItem, 0, len(items))
 	for _, item := range items {
+		if item.Type == "B" {
+			continue
+		}
+
 		route := &v1.MenuRouteItem{
 			Id:       item.Id,
 			ParentId: item.ParentId,
@@ -145,17 +149,14 @@ func convertToRouteItems(items []*menusvc.MenuItem) []*v1.MenuRouteItem {
 			route.Component = generateComponentPath(item.Component)
 		}
 
-		// Set redirect for directory type (D) with children
-		if item.Type == "D" && len(item.Children) > 0 {
-			// Redirect to first child
-			if item.Children[0].Type == "M" {
-				route.Redirect = generateRoutePath(item.Children[0])
-			}
-		}
-
-		// Convert children recursively
+		// Convert children recursively, excluding button-type nodes.
 		if len(item.Children) > 0 {
 			route.Children = convertToRouteItems(item.Children)
+		}
+
+		// Set redirect for directory type (D) with children.
+		if item.Type == "D" && len(route.Children) > 0 {
+			route.Redirect = route.Children[0].Path
 		}
 
 		result = append(result, route)

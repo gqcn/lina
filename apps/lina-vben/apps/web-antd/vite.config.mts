@@ -1,16 +1,202 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 
 import { defineConfig } from '@vben/vite-config';
+import type { ViteDevServer } from 'vite';
 
 // Cache the HTML content to avoid repeated synchronous file reads
 let cachedApidocsHtml: string | undefined;
 
+const pluginPageModuleId = 'virtual:lina-plugin-pages';
+const pluginSlotModuleId = 'virtual:lina-plugin-slots';
+
+function collectPluginSourceFiles(pluginRoot: string) {
+  const pageFiles: string[] = [];
+  const slotFiles: string[] = [];
+
+  if (!existsSync(pluginRoot)) {
+    return { pageFiles, slotFiles };
+  }
+
+  const walk = (currentPath: string) => {
+    for (const entry of readdirSync(currentPath, { withFileTypes: true })) {
+      const fullPath = join(currentPath, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+        continue;
+      }
+      if (!entry.isFile() || !entry.name.endsWith('.vue')) {
+        continue;
+      }
+      const normalizedPath = fullPath.split(sep).join('/');
+      if (normalizedPath.includes('/frontend/src/pages/')) {
+        pageFiles.push(fullPath);
+      }
+      if (normalizedPath.includes('/frontend/src/slots/')) {
+        slotFiles.push(fullPath);
+      }
+    }
+  };
+
+  walk(pluginRoot);
+  return { pageFiles, slotFiles };
+}
+
+function normalizeFsPath(filePath: string) {
+  return filePath.split(sep).join('/');
+}
+
+function toViteFsPath(filePath: string) {
+  const normalizedPath = normalizeFsPath(filePath);
+  return normalizedPath.startsWith('/@fs/')
+    ? normalizedPath
+    : `/@fs${normalizedPath}`;
+}
+
+function isPluginFrontendSourceFile(pluginRoot: string, filePath: string) {
+  const normalizedPluginRoot = normalizeFsPath(pluginRoot);
+  const normalizedFilePath = normalizeFsPath(filePath);
+
+  if (!normalizedFilePath.startsWith(normalizedPluginRoot)) {
+    return false;
+  }
+
+  if (!normalizedFilePath.endsWith('.vue')) {
+    return false;
+  }
+
+  return (
+    normalizedFilePath.includes('/frontend/src/pages/') ||
+    normalizedFilePath.includes('/frontend/src/slots/')
+  );
+}
+
+function invalidatePluginVirtualModules(server: ViteDevServer) {
+  for (const moduleId of [pluginPageModuleId, pluginSlotModuleId]) {
+    const module = server.moduleGraph.getModuleById(`\0${moduleId}`);
+    if (module) {
+      server.moduleGraph.invalidateModule(module);
+    }
+  }
+}
+
+function buildPluginPageModuleCode(pluginRoot: string) {
+  const { pageFiles } = collectPluginSourceFiles(pluginRoot);
+  const imports: string[] = [];
+  const records: string[] = [];
+
+  pageFiles.toSorted().forEach((filePath, index) => {
+    const relativePath = normalizeFsPath(relative(pluginRoot, filePath));
+    const match = relativePath.match(
+      /^([^/]+)\/frontend\/src\/pages\/(.+)\.vue$/,
+    );
+    if (!match?.[1] || !match[2]) {
+      return;
+    }
+
+    imports.push(
+      `import * as pluginPageModule${index} from ${JSON.stringify(toViteFsPath(filePath))};`,
+    );
+    records.push(
+      `  { filePath: ${JSON.stringify(normalizeFsPath(filePath))}, module: pluginPageModule${index} },`,
+    );
+  });
+
+  return [
+    ...imports,
+    'export const pluginPageModules = [',
+    ...records,
+    '];',
+  ].join('\n');
+}
+
+function buildPluginSlotModuleCode(pluginRoot: string) {
+  const { slotFiles } = collectPluginSourceFiles(pluginRoot);
+  const imports: string[] = [];
+  const records: string[] = [];
+
+  slotFiles.toSorted().forEach((filePath, index) => {
+    const relativePath = normalizeFsPath(relative(pluginRoot, filePath));
+    const match = relativePath.match(
+      /^([^/]+)\/frontend\/src\/slots\/(.+)\.vue$/,
+    );
+    if (!match?.[1] || !match[2]) {
+      return;
+    }
+
+    imports.push(
+      `import * as pluginSlotModule${index} from ${JSON.stringify(toViteFsPath(filePath))};`,
+    );
+    records.push(
+      `  { filePath: ${JSON.stringify(normalizeFsPath(filePath))}, module: pluginSlotModule${index} },`,
+    );
+  });
+
+  return [
+    ...imports,
+    'export const pluginSlotModules = [',
+    ...records,
+    '];',
+  ].join('\n');
+}
+
 export default defineConfig(async () => {
+  const vbenRoot = join(import.meta.dirname, '../..');
+  const pluginRoot = join(import.meta.dirname, '../../../lina-plugins');
+
   return {
     application: {},
     vite: {
+      plugins: [
+        {
+          name: 'lina-plugin-registry',
+          configureServer(server) {
+            server.watcher.add(pluginRoot);
+
+            const handlePluginSourceChange = (filePath: string) => {
+              if (!isPluginFrontendSourceFile(pluginRoot, filePath)) {
+                return;
+              }
+              invalidatePluginVirtualModules(server);
+              server.ws.send({ type: 'full-reload' });
+            };
+
+            server.watcher.on('add', handlePluginSourceChange);
+            server.watcher.on('change', handlePluginSourceChange);
+            server.watcher.on('unlink', handlePluginSourceChange);
+          },
+          resolveId(source) {
+            if (
+              source === pluginPageModuleId ||
+              source === pluginSlotModuleId
+            ) {
+              return `\0${source}`;
+            }
+            return null;
+          },
+          load(id) {
+            if (id === `\0${pluginPageModuleId}`) {
+              return buildPluginPageModuleCode(pluginRoot);
+            }
+            if (id === `\0${pluginSlotModuleId}`) {
+              return buildPluginSlotModuleCode(pluginRoot);
+            }
+            return null;
+          },
+        },
+      ],
+      resolve: {
+        alias: [
+          {
+            find: /^#\//,
+            replacement: `${join(import.meta.dirname, 'src')}/`,
+          },
+        ],
+      },
       server: {
+        fs: {
+          allow: [vbenRoot, pluginRoot],
+        },
         proxy: {
           '/api': {
             changeOrigin: true,
@@ -27,7 +213,7 @@ export default defineConfig(async () => {
                   import.meta.dirname,
                   'public/stoplight/apidocs.html',
                 );
-                cachedApidocsHtml = readFileSync(filePath, 'utf-8');
+                cachedApidocsHtml = readFileSync(filePath, 'utf8');
               }
               res.setHeader('Content-Type', 'text/html; charset=utf-8');
               res.end(cachedApidocsHtml);

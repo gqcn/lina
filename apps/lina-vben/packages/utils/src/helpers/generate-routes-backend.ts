@@ -96,9 +96,22 @@ function normalizeViewPath(path: string): string {
   if (normalizedPath.startsWith('#')) {
     normalizedPath = normalizedPath.substring(1);
   }
+  normalizedPath = normalizedPath.replaceAll('\\', '/');
 
   // 去除相对路径前缀
   normalizedPath = normalizedPath.replace(/^(\.\/|\.\.\/)+/, '');
+
+  const pluginPageMatch = normalizedPath.match(
+    /(?:^|\/)lina-plugins\/([^/]+)\/frontend\/src\/pages\/(.+)$/,
+  );
+  if (pluginPageMatch?.[1] && pluginPageMatch[2]) {
+    const pluginId = pluginPageMatch[1];
+    let pluginPagePath = pluginPageMatch[2];
+    if (!pluginPagePath.endsWith('.vue')) {
+      pluginPagePath = `${pluginPagePath}.vue`;
+    }
+    return `/plugins/${pluginId}/pages/${pluginPagePath}`;
+  }
 
   // 确保路径以 '/' 开头
   const viewPath = normalizedPath.startsWith('/')

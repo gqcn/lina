@@ -10,14 +10,19 @@ import (
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	pluginsvc "lina-core/internal/service/plugin"
 )
 
 // Service provides role management operations.
-type Service struct{}
+type Service struct {
+	pluginSvc *pluginsvc.Service // plugin service
+}
 
 // New creates and returns a new Service instance.
 func New() *Service {
-	return &Service{}
+	return &Service{
+		pluginSvc: pluginsvc.New(),
+	}
 }
 
 // ListInput defines input for List function.
@@ -75,7 +80,7 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	// Apply pagination
 	offset := (in.Page - 1) * in.Size
 	var roles []*entity.SysRole
-	err = m.Order(cols.Sort + " ASC").
+	err = m.Order(cols.Sort+" ASC").
 		Limit(offset, in.Size).
 		Scan(&roles)
 	if err != nil {
@@ -129,8 +134,8 @@ func (s *Service) GetById(ctx context.Context, id int) (*entity.SysRole, error) 
 
 // GetDetailOutput defines output for GetDetail function.
 type GetDetailOutput struct {
-	Role      *entity.SysRole
-	MenuIds   []int
+	Role    *entity.SysRole
+	MenuIds []int
 }
 
 // GetDetail retrieves role detail with menu IDs.
@@ -471,7 +476,7 @@ func (s *Service) GetUsers(ctx context.Context, in GetUsersInput) (*GetUsersOutp
 	// Apply pagination
 	offset := (in.Page - 1) * in.Size
 	var users []*entity.SysUser
-	err = m.Order(userCols.Id + " DESC").
+	err = m.Order(userCols.Id+" DESC").
 		Limit(offset, in.Size).
 		Scan(&users)
 	if err != nil {
@@ -725,6 +730,7 @@ func (s *Service) GetUserPermissions(ctx context.Context, userId int) ([]string,
 	if err != nil {
 		return nil, err
 	}
+	menus = s.pluginSvc.FilterMenus(ctx, menus)
 
 	perms := make([]string, 0, len(menus))
 	for _, m := range menus {

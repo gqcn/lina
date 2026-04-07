@@ -17,18 +17,13 @@ type InitOutput struct{}
 
 func (m *Main) Init(ctx context.Context, in InitInput) (out *InitOutput, err error) {
 	sqlDir := config.New().GetInit(ctx).SqlDir
-	if !gfile.Exists(sqlDir) {
-		g.Log().Warningf(ctx, "SQL directory does not exist: %s", sqlDir)
-		return
-	}
-
-	files, err := gfile.ScanDirFile(sqlDir, "*.sql", false)
+	files, err := scanInitSqlFiles(ctx, sqlDir)
 	if err != nil {
-		g.Log().Warningf(ctx, "failed to scan SQL directory %s: %v", sqlDir, err)
+		g.Log().Warningf(ctx, "failed to scan SQL files: %v", err)
 		return nil, nil
 	}
 	if len(files) == 0 {
-		g.Log().Warning(ctx, "no SQL files found in directory: ", sqlDir)
+		g.Log().Warning(ctx, "no SQL files found for initialization")
 		return
 	}
 	sort.Strings(files)
@@ -49,4 +44,43 @@ func execSqlFiles(ctx context.Context, files []string) {
 			g.Log().Warningf(ctx, "execute %s: %v", gfile.Basename(file), err)
 		}
 	}
+}
+
+func scanInitSqlFiles(ctx context.Context, sqlDir string) ([]string, error) {
+	var (
+		files      = make([]string, 0)
+		pluginRoot = gfile.RealPath(gfile.Join("..", "lina-plugins"))
+	)
+
+	if gfile.Exists(sqlDir) {
+		coreFiles, err := gfile.ScanDirFile(sqlDir, "*.sql", false)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, coreFiles...)
+	} else {
+		g.Log().Warningf(ctx, "SQL directory does not exist: %s", sqlDir)
+	}
+
+	if pluginRoot == "" || !gfile.Exists(pluginRoot) {
+		return files, nil
+	}
+
+	pluginEntries, err := gfile.ScanDir(pluginRoot, "*", false)
+	if err != nil {
+		return nil, err
+	}
+	for _, pluginPath := range pluginEntries {
+		pluginSqlDir := gfile.Join(pluginPath, "manifest", "sql")
+		if !gfile.Exists(pluginSqlDir) {
+			continue
+		}
+		pluginFiles, scanErr := gfile.ScanDirFile(pluginSqlDir, "*.sql", false)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		files = append(files, pluginFiles...)
+	}
+
+	return files, nil
 }

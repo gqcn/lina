@@ -23,6 +23,7 @@ type SysMenuDao struct {
 type SysMenuColumns struct {
 	Id         string // 菜单ID
 	ParentId   string // 父菜单ID（0=根菜单）
+	MenuKey    string // 菜单稳定业务标识
 	Name       string // 菜单名称（支持i18n）
 	Path       string // 路由地址
 	Component  string // 组件路径
@@ -45,6 +46,7 @@ type SysMenuColumns struct {
 var sysMenuColumns = SysMenuColumns{
 	Id:         "id",
 	ParentId:   "parent_id",
+	MenuKey:    "menu_key",
 	Name:       "name",
 	Path:       "path",
 	Component:  "component",

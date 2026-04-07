@@ -9,9 +9,9 @@ dev: stop
 	@> /tmp/lina-vben.log
 	@echo "正在重启服务..."
 	@cd $(BACKEND_DIR) && go build -o temp/bin/lina . || { echo "后端编译失败"; exit 1; }
-	@cd $(BACKEND_DIR) && ./temp/bin/lina >> /tmp/lina-core.log 2>&1 & echo $$! > $(BACKEND_PID)
+	@nohup sh -c 'cd "$(BACKEND_DIR)" && exec ./temp/bin/lina' >> /tmp/lina-core.log 2>&1 < /dev/null & echo $$! > $(BACKEND_PID)
 	@sleep 1
-	@cd $(FRONTEND_DIR) && npx turbo run dev --filter=@lina/web-antd >> /tmp/lina-vben.log 2>&1 & echo $$! > $(FRONTEND_PID)
+	@nohup sh -c 'cd "$(FRONTEND_DIR)" && exec npx turbo run dev --filter=@lina/web-antd' >> /tmp/lina-vben.log 2>&1 < /dev/null & echo $$! > $(FRONTEND_PID)
 	@sleep 4
 	@make status
 

@@ -188,6 +188,10 @@ func isExternalPath(path string) bool {
 func convertToMenuTree(items []*menu.MenuItem) []*v1.MenuTree {
 	result := make([]*v1.MenuTree, 0, len(items))
 	for _, item := range items {
+		if item.Type == "B" {
+			continue
+		}
+
 		node := &v1.MenuTree{
 			Id:        item.Id,
 			ParentId:  item.ParentId,

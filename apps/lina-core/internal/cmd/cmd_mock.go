@@ -17,19 +17,13 @@ type MockOutput struct{}
 
 func (m *Main) Mock(ctx context.Context, in MockInput) (out *MockOutput, err error) {
 	sqlDir := config.New().GetInit(ctx).SqlDir
-	mockDir := gfile.Join(sqlDir, "mock-data")
-	if !gfile.Exists(mockDir) {
-		g.Log().Warningf(ctx, "mock-data directory does not exist: %s", mockDir)
-		return
-	}
-
-	files, err := gfile.ScanDirFile(mockDir, "*.sql", false)
+	files, err := scanMockSqlFiles(ctx, sqlDir)
 	if err != nil {
-		g.Log().Warningf(ctx, "failed to scan mock-data directory %s: %v", mockDir, err)
+		g.Log().Warningf(ctx, "failed to scan mock SQL files: %v", err)
 		return nil, nil
 	}
 	if len(files) == 0 {
-		g.Log().Warning(ctx, "no SQL files found in directory: ", mockDir)
+		g.Log().Warning(ctx, "no mock SQL files found")
 		return
 	}
 	sort.Strings(files)
@@ -37,4 +31,44 @@ func (m *Main) Mock(ctx context.Context, in MockInput) (out *MockOutput, err err
 
 	g.Log().Info(ctx, "Mock data loaded.")
 	return
+}
+
+func scanMockSqlFiles(ctx context.Context, sqlDir string) ([]string, error) {
+	var (
+		files      = make([]string, 0)
+		mockDir    = gfile.Join(sqlDir, "mock-data")
+		pluginRoot = gfile.RealPath(gfile.Join("..", "lina-plugins"))
+	)
+
+	if gfile.Exists(mockDir) {
+		coreFiles, err := gfile.ScanDirFile(mockDir, "*.sql", false)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, coreFiles...)
+	} else {
+		g.Log().Warningf(ctx, "mock-data directory does not exist: %s", mockDir)
+	}
+
+	if pluginRoot == "" || !gfile.Exists(pluginRoot) {
+		return files, nil
+	}
+
+	pluginEntries, err := gfile.ScanDir(pluginRoot, "*", false)
+	if err != nil {
+		return nil, err
+	}
+	for _, pluginPath := range pluginEntries {
+		pluginMockDir := gfile.Join(pluginPath, "manifest", "mock-data")
+		if !gfile.Exists(pluginMockDir) {
+			continue
+		}
+		pluginFiles, scanErr := gfile.ScanDirFile(pluginMockDir, "*.sql", false)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		files = append(files, pluginFiles...)
+	}
+
+	return files, nil
 }

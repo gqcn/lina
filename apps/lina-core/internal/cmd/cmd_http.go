@@ -21,6 +21,7 @@ import (
 	monitorctrl "lina-core/internal/controller/monitor"
 	"lina-core/internal/controller/notice"
 	"lina-core/internal/controller/operlog"
+	pluginctrl "lina-core/internal/controller/plugin"
 	"lina-core/internal/controller/post"
 	"lina-core/internal/controller/role"
 	"lina-core/internal/controller/sysinfo"
@@ -32,6 +33,7 @@ import (
 	"lina-core/internal/service/election"
 	"lina-core/internal/service/locker"
 	"lina-core/internal/service/middleware"
+	pluginsvc "lina-core/internal/service/plugin"
 )
 
 type HttpInput struct {
@@ -121,6 +123,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				filectrl.NewV1(),
 				monitorctrl.NewV1(),
 				configctrl.NewV1(),
+				pluginctrl.NewV1(),
 			)
 		})
 	})
@@ -149,6 +152,10 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		fileServer.ServeHTTP(r.Response.RawWriter(), r.Request)
 		r.ExitAll()
 	})
+
+	if err = pluginsvc.New().DispatchHookEvent(ctx, pluginsvc.HookEventSystemStarted, map[string]interface{}{}); err != nil {
+		g.Log().Warningf(ctx, "dispatch system.started plugin hook failed: %v", err)
+	}
 
 	s.Run()
 	return

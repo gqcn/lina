@@ -10,14 +10,19 @@ import (
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	pluginsvc "lina-core/internal/service/plugin"
 )
 
 // Service provides menu management operations.
-type Service struct{}
+type Service struct {
+	pluginSvc *pluginsvc.Service // plugin service
+}
 
 // New creates and returns a new Service instance.
 func New() *Service {
-	return &Service{}
+	return &Service{
+		pluginSvc: pluginsvc.New(),
+	}
 }
 
 // ListInput defines input for List function.
@@ -52,10 +57,11 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 
 	// Query all, ordered by sort ASC
 	var list []*entity.SysMenu
-	err := m.Order(cols.Sort + " ASC").Scan(&list)
+	err := m.Order(cols.ParentId + " ASC," + cols.Sort + " ASC," + cols.Id + " ASC").Scan(&list)
 	if err != nil {
 		return nil, err
 	}
+	list = s.pluginSvc.FilterMenus(ctx, list)
 
 	return &ListOutput{
 		List: list,
@@ -306,7 +312,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 
 // DeleteInput defines input for Delete function.
 type DeleteInput struct {
-	Id             int
+	Id            int
 	CascadeDelete bool
 }
 
@@ -382,7 +388,7 @@ func (s *Service) GetTreeSelect(ctx context.Context) ([]*MenuTreeNode, error) {
 	// Query all menus (including button type for permission selection)
 	var list []*entity.SysMenu
 	err := dao.SysMenu.Ctx(ctx).
-		Order(cols.Sort + " ASC").
+		Order(cols.ParentId + " ASC," + cols.Sort + " ASC," + cols.Id + " ASC").
 		Scan(&list)
 	if err != nil {
 		return nil, err

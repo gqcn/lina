@@ -1,0 +1,42 @@
+id: plugin-demo
+name: 示例插件
+version: 0.1.0
+type: source
+runtime: source
+entry: "backend:plugins/{id}/resources/login-audits"
+description: 提供插件扫描、状态管理、左侧菜单页面与登录审计 Hook 示例的源码插件（一期源码插件MVP）
+author: lina-team
+homepage: https://example.com/lina/plugins/plugin-demo
+license: Apache-2.0
+capabilities:
+  backend:
+    apis:
+      - method: GET
+        path: /plugins
+        purpose: 查询插件列表
+      - method: PUT
+        path: /plugins/{id}/enable
+        purpose: 启用插件
+      - method: PUT
+        path: /plugins/{id}/disable
+        purpose: 禁用插件
+      - method: GET
+        path: /plugins/{id}/resources/login-audits
+        purpose: 查询示例登录审计资源
+  frontend:
+    integrationModes:
+      - host-embed
+    mountHints:
+      - route: /plugin-demo-sidebar-entry
+        component: "system/plugin/runtime-page"
+resources:
+  sql:
+    install:
+      - manifest/sql/001-plugin-demo.sql
+    uninstall:
+      - manifest/sql/uninstall/001-plugin-demo.sql
+  frontend:
+    root: frontend/
+metadata:
+  menuKeyPrefix: "plugin:plugin-demo"
+  permsPrefix: "plugin-demo:"

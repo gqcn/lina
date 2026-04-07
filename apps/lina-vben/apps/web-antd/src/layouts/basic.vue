@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import type { NotificationItem } from '@vben/layouts';
+import type { RouteRecordRaw } from 'vue-router';
 
-import { computed, onMounted, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AuthenticationLoginExpiredModal, useVbenModal } from '@vben/common-ui';
@@ -17,7 +18,15 @@ import { useAccessStore, useUserStore } from '@vben/stores';
 
 import { Modal } from 'ant-design-vue';
 
+import PluginSlotOutlet from '#/components/plugin/plugin-slot-outlet.vue';
 import { $t } from '#/locales';
+import {
+  notifyPluginRegistryChanged,
+  onPluginRegistryChanged,
+} from '#/plugins/slot-registry';
+import { generateAccess } from '#/router/access';
+import { resetRoutes } from '#/router/index';
+import { accessRoutes } from '#/router/routes';
 import { useAuthStore } from '#/store';
 import { useMessageStore } from '#/store/message';
 import LoginForm from '#/views/_core/authentication/login.vue';
@@ -33,6 +42,9 @@ const { destroyWatermark, updateWatermark } = useWatermark();
 const [PreviewModal, previewModalApi] = useVbenModal({
   connectedComponent: NoticePreviewModal,
 });
+
+let disposePluginRegistryListener: (() => void) | null = null;
+let pluginAccessRefreshing = false;
 
 // Map server messages to NotificationItem format
 const notifications = computed<NotificationItem[]>(() =>
@@ -112,11 +124,106 @@ function handleNotificationClick(item: NotificationItem) {
   }
 }
 
+function collectAccessibleRouteNames(
+  routes: RouteRecordRaw[],
+  names: Set<string> = new Set(),
+) {
+  for (const route of routes) {
+    if (typeof route.name === 'string' && route.name) {
+      names.add(route.name);
+    }
+    if (route.children?.length) {
+      collectAccessibleRouteNames(route.children, names);
+    }
+  }
+  return names;
+}
+
+async function refreshPluginAwareAccess() {
+  if (pluginAccessRefreshing) {
+    return;
+  }
+  pluginAccessRefreshing = true;
+
+  try {
+    const currentFullPath = router.currentRoute.value.fullPath;
+    const userInfo = await authStore.fetchUserInfo();
+
+    resetRoutes();
+    accessStore.setAccessMenus([]);
+    accessStore.setAccessRoutes([]);
+    accessStore.setIsAccessChecked(false);
+
+    const { accessibleMenus, accessibleRoutes } = await generateAccess(
+      {
+        roles: userInfo.roles ?? [],
+        router,
+        routes: accessRoutes,
+      },
+      {
+        showLoadingToast: false,
+      },
+    );
+
+    accessStore.setAccessMenus(accessibleMenus);
+    accessStore.setAccessRoutes(accessibleRoutes);
+    accessStore.setIsAccessChecked(true);
+
+    const accessibleNames = collectAccessibleRouteNames(accessibleRoutes);
+    const resolved = router.resolve(currentFullPath);
+    const hasAccessibleMatch = resolved.matched.some((route) => {
+      return typeof route.name === 'string' && accessibleNames.has(route.name);
+    });
+
+    if (hasAccessibleMatch) {
+      await router.replace(currentFullPath);
+      return;
+    }
+
+    const fallbackPath =
+      userInfo.homePath || preferences.app.defaultHomePath || '/';
+    if (router.currentRoute.value.fullPath !== fallbackPath) {
+      await router.replace(fallbackPath);
+    }
+  } finally {
+    pluginAccessRefreshing = false;
+  }
+}
+
+function handlePluginRegistryMaybeChanged() {
+  if (
+    typeof document !== 'undefined' &&
+    document.visibilityState &&
+    document.visibilityState !== 'visible'
+  ) {
+    return;
+  }
+  notifyPluginRegistryChanged();
+}
+
 // Fetch messages when notification panel is likely to open
 // The Notification component triggers @read when opened
 // We fetch on mount to have data ready
 onMounted(() => {
   messageStore.fetchMessages();
+  disposePluginRegistryListener = onPluginRegistryChanged(() => {
+    void refreshPluginAwareAccess();
+  });
+  window.addEventListener('focus', handlePluginRegistryMaybeChanged);
+  document.addEventListener(
+    'visibilitychange',
+    handlePluginRegistryMaybeChanged,
+  );
+});
+
+onBeforeUnmount(() => {
+  disposePluginRegistryListener?.();
+  disposePluginRegistryListener = null;
+  window.removeEventListener('focus', handlePluginRegistryMaybeChanged);
+  document.removeEventListener(
+    'visibilitychange',
+    handlePluginRegistryMaybeChanged,
+  );
 });
 
 watch(
@@ -144,14 +251,17 @@ watch(
 <template>
   <BasicLayout @clear-preferences-and-logout="handleLogout">
     <template #user-dropdown>
-      <UserDropdown
-        :avatar
-        :menus
-        :text="userStore.userInfo?.realName"
-        :description="userStore.userInfo?.email || ''"
-        :tag-text="userStore.userInfo?.username"
-        @logout="handleLogout"
-      />
+      <div class="flex items-center">
+        <PluginSlotOutlet class="mr-2" slot-key="layout.user-dropdown.after" />
+        <UserDropdown
+          :avatar
+          :menus
+          :text="userStore.userInfo?.realName"
+          :description="userStore.userInfo?.email || ''"
+          :tag-text="userStore.userInfo?.username"
+          @logout="handleLogout"
+        />
+      </div>
     </template>
     <template #notification>
       <Notification

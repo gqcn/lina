@@ -30,7 +30,7 @@ type MenuRouteMeta struct {
 	HideInBreadcrumb bool   `json:"hideInBreadcrumb,omitempty" dc:"是否在面包屑中隐藏" eg:"false"`
 	HideInTab        bool   `json:"hideInTab,omitempty" dc:"是否在标签页中隐藏" eg:"false"`
 	KeepAlive        bool   `json:"keepAlive,omitempty" dc:"是否缓存页面" eg:"true"`
-	Order            int    `json:"order,omitempty" dc:"排序号" eg:"1"`
+	Order            int    `json:"order" dc:"排序号，0表示最高优先级，数值越小越靠前" eg:"1"`
 	Authority        string `json:"authority,omitempty" dc:"权限标识" eg:"system:user:list"`
 	IgnoreAccess     bool   `json:"ignoreAccess,omitempty" dc:"是否忽略权限" eg:"false"`
 }

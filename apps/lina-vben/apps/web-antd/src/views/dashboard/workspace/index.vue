@@ -21,6 +21,8 @@ import { preferences } from '@vben/preferences';
 import { useUserStore } from '@vben/stores';
 import { openWindow } from '@vben/utils';
 
+import PluginSlotOutlet from '#/components/plugin/plugin-slot-outlet.vue';
+
 import AnalyticsVisitsSource from '../analytics/analytics-visits-source.vue';
 
 const userStore = useUserStore();
@@ -262,5 +264,7 @@ function navTo(nav: WorkbenchProjectItem | WorkbenchQuickNavItem) {
         </AnalysisChartCard>
       </div>
     </div>
+
+    <PluginSlotOutlet class="mt-5" slot-key="dashboard.workspace.after" />
   </div>
 </template>

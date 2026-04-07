@@ -18,6 +18,7 @@ import (
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/config"
 	"lina-core/internal/service/loginlog"
+	pluginsvc "lina-core/internal/service/plugin"
 	"lina-core/internal/service/session"
 )
 
@@ -25,6 +26,7 @@ import (
 type Service struct {
 	configSvc    *config.Service    // Configuration service
 	loginLogSvc  *loginlog.Service  // Login log service
+	pluginSvc    *pluginsvc.Service // Plugin service
 	sessionStore session.Store      // Session store
 }
 
@@ -33,6 +35,7 @@ func New() *Service {
 	return &Service{
 		configSvc:    config.New(),
 		loginLogSvc:  loginlog.New(),
+		pluginSvc:    pluginsvc.New(),
 		sessionStore: session.NewDBStore(),
 	}
 }
@@ -136,6 +139,15 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 	})
 
 	recordLoginLog(in.Username, loginlog.LoginStatusSuccess, "登录成功")
+	if err := s.pluginSvc.HandleAuthLoginSucceeded(ctx, pluginsvc.AuthLoginSucceededInput{
+		UserName:   in.Username,
+		Status:     loginlog.LoginStatusSuccess,
+		Ip:         ip,
+		ClientType: "web",
+		Message:    "登录成功",
+	}); err != nil {
+		g.Log().Warningf(ctx, "plugin login succeeded hook failed: %v", err)
+	}
 	return &LoginOutput{AccessToken: token}, nil
 }
 
@@ -185,6 +197,15 @@ func (s *Service) Logout(ctx context.Context, username string, tokenId string) {
 		Os:       osName,
 		Msg:      "登出成功",
 	})
+	if err := s.pluginSvc.HandleAuthLogoutSucceeded(ctx, pluginsvc.AuthLoginSucceededInput{
+		UserName:   username,
+		Status:     loginlog.LoginStatusSuccess,
+		Ip:         ip,
+		ClientType: "web",
+		Message:    "登出成功",
+	}); err != nil {
+		g.Log().Warningf(ctx, "plugin logout succeeded hook failed: %v", err)
+	}
 }
 
 // generateToken generates JWT token for given user, returns token string and tokenId.

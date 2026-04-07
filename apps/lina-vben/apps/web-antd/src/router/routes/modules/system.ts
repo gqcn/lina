@@ -94,6 +94,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'PluginManagement',
+        path: '/system/plugin',
+        component: () => import('#/views/system/plugin/index.vue'),
+        meta: {
+          icon: 'lucide:puzzle',
+          title: '插件管理',
+        },
+      },
+      {
         name: 'MessageList',
         path: '/system/message',
         component: () => import('#/views/system/message/index.vue'),

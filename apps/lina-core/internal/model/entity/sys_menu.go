@@ -12,6 +12,7 @@ import (
 type SysMenu struct {
 	Id         int         `json:"id"         orm:"id"          description:"菜单ID"`
 	ParentId   int         `json:"parentId"   orm:"parent_id"   description:"父菜单ID（0=根菜单）"`
+	MenuKey    string      `json:"menuKey"    orm:"menu_key"    description:"菜单稳定业务标识"`
 	Name       string      `json:"name"       orm:"name"        description:"菜单名称（支持i18n）"`
 	Path       string      `json:"path"       orm:"path"        description:"路由地址"`
 	Component  string      `json:"component"  orm:"component"   description:"组件路径"`
