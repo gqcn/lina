@@ -54,7 +54,7 @@ apps/lina-plugins/
 - 插件和宿主都不应硬编码 `auth.login.succeeded`、`http.route.register` 这类裸字符串
 - 对插件开发者而言，只需要理解“选择一个 `ExtensionPoint`，再注册一个带执行模式的回调函数”；事件触发和注册触发只是宿主内部的触发语义区别
 
-### 1. 已发布后端扩展点目录
+### 后端扩展点目录概览
 
 | Go 常量 | Canonical 值 | 触发语义 | 支持模式 | 常见用途 |
 |------|------|------|------|------|
@@ -83,7 +83,7 @@ apps/lina-plugins/
 7. `RouteRegistrar.Middlewares()` 会公开宿主已发布的中间件目录；插件可按需组合 `NeverDoneCtx`、`HandlerResponse`、`CORS`、`Ctx`、`Auth`、`OperLog`等中间件，也可以与插件自定义中间件混用。
 8. 若同一插件需要同时暴露免鉴权和需鉴权接口，直接通过 `RouteRegistrar.Group(prefix, func(group *ghttp.RouterGroup) { ... })` 创建外层分组，再在组内按需拆分子分组和组合宿主中间件。
 
-### 2. 推荐注册方式
+### 推荐注册方式
 
 ```go
 package backend
@@ -154,8 +154,6 @@ func registerRoutes(ctx context.Context, registrar pluginhost.RouteRegistrar) er
 8. 插件后端 `api/` 与 `controller/` 目录也必须遵循宿主 GoFrame 脚手架规范：`api/<module>/<module>.go + api/<module>/v1/*.go`，以及 `internal/controller/<module>/<module>.go + <module>_new.go + <module>_v1_*.go` 这类 `gf gen ctrl` 风格命名。
 
 ## 前端扩展点
-
-以下前端 `UI` 扩展点已正式发布，可在源码插件前端中使用：
 
 | 扩展点 | 宿主位置 | 推荐内容 |
 |------|---------|---------|
