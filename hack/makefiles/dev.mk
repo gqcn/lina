@@ -1,19 +1,52 @@
 # Lina Development Server Targets
 # ================================
 
-## dev: 启动前后端开发服务器
+## dev: 重启前后端开发服务器
 .PHONY: dev
 dev: stop
-	@mkdir -p $(PID_DIR)
-	@> /tmp/lina-core.log
-	@> /tmp/lina-vben.log
-	@echo "正在重启服务..."
-	@cd $(BACKEND_DIR) && go build -o temp/bin/lina . || { echo "后端编译失败"; exit 1; }
-	@nohup sh -c 'cd "$(BACKEND_DIR)" && exec ./temp/bin/lina' >> /tmp/lina-core.log 2>&1 < /dev/null & echo $$! > $(BACKEND_PID)
-	@sleep 1
-	@nohup sh -c 'cd "$(FRONTEND_DIR)" && exec npx turbo run dev --filter=@lina/web-antd' >> /tmp/lina-vben.log 2>&1 < /dev/null & echo $$! > $(FRONTEND_PID)
-	@sleep 4
-	@make status
+	@set -e; \
+	root_dir="$(CURDIR)"; \
+	_wait_http() { \
+		name="$$1"; \
+		pid_file="$$2"; \
+		url="$$3"; \
+		timeout="$$4"; \
+		log_file="$$5"; \
+		elapsed=0; \
+		while [ "$$elapsed" -lt "$$timeout" ]; do \
+			if [ ! -f "$$pid_file" ]; then \
+				echo "$$name 启动失败：PID 文件不存在"; \
+				echo "请查看日志：$$log_file"; \
+				exit 1; \
+			fi; \
+			pid=$$(cat "$$pid_file"); \
+			if ! kill -0 "$$pid" 2>/dev/null; then \
+				echo "$$name 启动失败：进程已退出"; \
+				echo "请查看日志：$$log_file"; \
+				exit 1; \
+			fi; \
+			if curl -fsS -o /dev/null "$$url" 2>/dev/null; then \
+				echo "✓ $$name 已就绪: $$url"; \
+				return 0; \
+			fi; \
+			sleep 1; \
+			elapsed=$$((elapsed + 1)); \
+		done; \
+		echo "$$name 启动超时（$${timeout}秒）: $$url"; \
+		echo "请查看日志：$$log_file"; \
+		exit 1; \
+	}; \
+	mkdir -p $(PID_DIR); \
+	> /tmp/lina-core.log; \
+	> /tmp/lina-vben.log; \
+	echo "正在重启服务..."; \
+	(cd "$$root_dir/$(BACKEND_DIR)" && go build -o temp/bin/lina .) || { echo "后端编译失败"; exit 1; }; \
+	nohup sh -c 'cd "'"$$root_dir"'/$(BACKEND_DIR)" && exec ./temp/bin/lina' >> /tmp/lina-core.log 2>&1 < /dev/null & echo $$! > $(BACKEND_PID); \
+	sleep 1; \
+	nohup sh -c 'cd "'"$$root_dir"'/$(FRONTEND_DIR)" && exec npx turbo run dev --filter=@lina/web-antd' >> /tmp/lina-vben.log 2>&1 < /dev/null & echo $$! > $(FRONTEND_PID); \
+	_wait_http "前端" "$(FRONTEND_PID)" "http://127.0.0.1:$(FRONTEND_PORT)/" 60 "/tmp/lina-vben.log"; \
+	cd "$$root_dir"; \
+	$(MAKE) status
 
 ## stop: 停止前后端开发服务器
 .PHONY: stop
