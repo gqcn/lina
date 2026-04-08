@@ -233,7 +233,7 @@ test.describe("TC-66 源码插件生命周期", () => {
     await pluginPage.openSidebarExampleFromMenu();
   });
 
-  test("TC-66c: 启用后可验证插件路由、鉴权后回调与定时任务元数据", async ({
+  test("TC-66c: 启用后可验证插件路由与鉴权后回调", async ({
     page,
   }) => {
     await syncPlugins(adminApi!);
@@ -246,27 +246,12 @@ test.describe("TC-66 源码插件生命周期", () => {
       "鉴权后回调应向受保护请求追加插件响应头",
     ).toBe(pluginID);
     const summaryPayload = unwrapApiData(await summaryResponse.json());
-    expect(summaryPayload?.pluginId).toBe(pluginID);
     expect(
-      summaryPayload?.extensionPoints ?? [],
-      "插件摘要应返回当前演示用到的后端扩展点",
-    ).toEqual([
-      "http.route.register",
-      "http.request.after-auth",
-      "cron.register",
-    ]);
-    expect(
-      summaryPayload?.callbackModes ?? [],
-      "插件摘要应返回当前演示使用的回调模式",
-    ).toEqual(["blocking"]);
-    expect(
-      summaryPayload?.cronPattern,
-      "插件摘要应返回每分钟执行一次的 cron 表达式",
-    ).toBe("# * * * * *");
-    expect(
-      summaryPayload?.cronPrimaryAware,
-      "插件摘要应声明定时任务支持主节点识别",
-    ).toBeTruthy();
+      summaryPayload?.message,
+      "插件摘要应仅返回页面实际使用的简介文案",
+    ).toBe(
+      "这是一条来自 plugin-demo 接口的简要介绍，用于验证插件页面可读取插件后端数据。",
+    );
 
     await loginAsAdmin(page);
   });

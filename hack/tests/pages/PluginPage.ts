@@ -51,9 +51,15 @@ export class PluginPage {
     return this.page.getByRole("heading", { name: "插件示例已生效" }).first();
   }
 
-  pluginSidebarSimpleDescription(): Locator {
+  pluginSidebarBriefDescription(): Locator {
     return this.page.getByText(
-      "当前页面来自 plugin-demo 的左侧菜单入口，用于验证源码插件可以向宿主左侧导航插入页面，并在后台主内容区正常打开。",
+      "这是一条来自 plugin-demo 接口的简要介绍，用于验证插件页面可读取插件后端数据。",
+    );
+  }
+
+  pluginSidebarLegacyDescription(): Locator {
+    return this.page.getByText(
+      "当前页面用于验证 plugin-demo 已成功接入宿主左侧菜单，并能在后台主内容区正常打开。",
     );
   }
 
@@ -61,6 +67,15 @@ export class PluginPage {
     return this.page.getByText(
       "plugin-demo 仅演示最小源码插件接入，不包含数据库读写示例。",
     );
+  }
+
+  pluginSummaryErrorToast(): Locator {
+    return this.page
+      .locator(".ant-message-notice")
+      .filter({
+        hasText: "这是一条来自 plugin-demo 接口的简要介绍，用于验证插件页面可读取插件后端数据。",
+      })
+      .first();
   }
 
   workspaceBeforeSlot(): Locator {
@@ -185,7 +200,9 @@ export class PluginPage {
       .first()
       .click();
     await expect(this.pluginSidebarSimpleTitle()).toBeVisible();
-    await expect(this.pluginSidebarSimpleDescription()).toBeVisible();
-    await expect(this.pluginSummaryMessage()).toBeVisible();
+    await expect(this.pluginSidebarBriefDescription()).toBeVisible();
+    await expect(this.pluginSidebarLegacyDescription()).toHaveCount(0);
+    await expect(this.pluginSummaryMessage()).toHaveCount(0);
+    await expect(this.pluginSummaryErrorToast()).toHaveCount(0);
   }
 }

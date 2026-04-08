@@ -4,10 +4,9 @@ import (
 	"context"
 
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/net/ghttp"
-	"github.com/gogf/gf/v2/os/gtime"
 
 	"lina-core/pkg/pluginhost"
+	democtrl "lina-plugin-demo/backend/controller/demo"
 )
 
 const (
@@ -63,25 +62,7 @@ func registerSummaryRoute(
 		return nil
 	}
 
-	registrars.Protected().GET(pluginSummaryRoute, func(r *ghttp.Request) {
-		r.Response.WriteJson(g.Map{
-			"pluginId": pluginID,
-			"message":  "plugin-demo 仅演示最小源码插件接入，不包含数据库读写示例。",
-			"extensionPoints": []string{
-				pluginhost.ExtensionPointHTTPRouteRegister.String(),
-				pluginhost.ExtensionPointHTTPRequestAfterAuth.String(),
-				pluginhost.ExtensionPointCronRegister.String(),
-			},
-			"callbackModes": []string{
-				pluginhost.CallbackExecutionModeBlocking.String(),
-			},
-			"cronJobName":      pluginHeartbeatCronName,
-			"cronPattern":      pluginHeartbeatCronRule,
-			"cronPrimaryAware": true,
-			"generatedAt":      gtime.Now().String(),
-		})
-		r.ExitAll()
-	})
+	registrars.Protected().Bind(democtrl.NewV1())
 
 	g.Log().Infof(ctx, "plugin-demo registered summary route: %s", pluginSummaryRoute)
 	return nil

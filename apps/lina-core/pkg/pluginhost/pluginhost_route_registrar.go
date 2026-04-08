@@ -18,6 +18,8 @@ type RouteRegistrars interface {
 
 // RouteGroupRegistrar exposes guarded route registration methods.
 type RouteGroupRegistrar interface {
+	// Bind registers one or more guarded handler objects using GoFrame object routing.
+	Bind(handlerOrObject ...interface{})
 	// GET registers one guarded GET route.
 	GET(pattern string, handler RouteHandler)
 	// POST registers one guarded POST route.
@@ -123,11 +125,38 @@ func (r *routeGroup) wrap(handler RouteHandler) RouteHandler {
 		panic("pluginhost: route handler is nil")
 	}
 	return func(req *ghttp.Request) {
-		if r.enabledChecker != nil && !r.enabledChecker(r.pluginID) {
-			req.Response.WriteStatus(404)
-			req.ExitAll()
+		if !r.allow(req) {
 			return
 		}
 		handler(req)
 	}
+}
+
+// Bind registers one or more guarded handler objects using GoFrame object routing.
+func (r *routeGroup) Bind(handlerOrObject ...interface{}) {
+	if r == nil || r.group == nil || len(handlerOrObject) == 0 {
+		return
+	}
+
+	r.group.Group("/", func(group *ghttp.RouterGroup) {
+		group.Middleware(func(req *ghttp.Request) {
+			if !r.allow(req) {
+				return
+			}
+			req.Middleware.Next()
+		})
+		group.Bind(handlerOrObject...)
+	})
+}
+
+func (r *routeGroup) allow(req *ghttp.Request) bool {
+	if req == nil {
+		return false
+	}
+	if r.enabledChecker != nil && !r.enabledChecker(r.pluginID) {
+		req.Response.WriteStatus(404)
+		req.ExitAll()
+		return false
+	}
+	return true
 }
