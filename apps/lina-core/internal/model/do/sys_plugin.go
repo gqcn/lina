@@ -17,7 +17,6 @@ type SysPlugin struct {
 	Name         any         // 插件名称
 	Version      any         // 插件版本号
 	Type         any         // 插件类型（source/wasm/package）
-	Runtime      any         // 运行时类型（source/wasm/package）
 	Installed    any         // 安装状态（1=已安装 0=未安装）
 	Status       any         // 启用状态（1=启用 0=禁用）
 	ManifestPath any         // 插件清单文件路径

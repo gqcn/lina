@@ -151,3 +151,4 @@
 - [x] **FB-69**: 修复插件管理页描述列 hover 数秒后仍出现浏览器原生提示的问题，仅保留页面自定义 tooltip
 - [x] **FB-70**: 移除插件管理页描述列自定义 tooltip，改为仅保留单一系统默认提示
 - [x] **FB-71**: 精简 `plugin-demo` 后端示例，移除 `RegisterAfterAuthHandler` 与 `RegisterCron` 注册，并同步更新文档与回归用例
+- [x] **FB-72**: 收敛插件元数据模型，移除 `sys_plugin` 与 `plugin.yaml` 中重复的 `runtime` 字段，一期仅保留 `type=source|package|wasm`

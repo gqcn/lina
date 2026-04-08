@@ -20,7 +20,6 @@ func init() {
 		pluginhost.CallbackExecutionModeBlocking,
 		registerRoutes,
 	)
-
 	pluginhost.RegisterSourcePlugin(plugin)
 }
 

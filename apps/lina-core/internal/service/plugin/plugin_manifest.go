@@ -21,7 +21,6 @@ type pluginManifest struct {
 	Name             string                  `yaml:"name"`
 	Version          string                  `yaml:"version"`
 	Type             string                  `yaml:"type"`
-	Runtime          string                  `yaml:"runtime"`
 	Entry            string                  `yaml:"entry"`
 	Description      string                  `yaml:"description"`
 	Resources        pluginManifestResources `yaml:"resources"`
@@ -121,9 +120,6 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 	}
 	if manifest.Type == "" {
 		manifest.Type = "source"
-	}
-	if manifest.Runtime == "" {
-		manifest.Runtime = "source"
 	}
 	if !strings.Contains(manifest.ID, "-") {
 		return gerror.Newf("插件ID需使用kebab-case风格: %s", manifest.ID)

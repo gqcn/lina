@@ -29,7 +29,6 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 			Name:         manifest.Name,
 			Version:      manifest.Version,
 			Type:         manifest.Type,
-			Runtime:      manifest.Runtime,
 			Installed:    installedState,
 			Status:       pluginStatusDisabled,
 			ManifestPath: manifest.ManifestPath,
@@ -52,7 +51,6 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 		Name:         manifest.Name,
 		Version:      manifest.Version,
 		Type:         manifest.Type,
-		Runtime:      manifest.Runtime,
 		ManifestPath: manifest.ManifestPath,
 		Remark:       manifest.Description,
 	}

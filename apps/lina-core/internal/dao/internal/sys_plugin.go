@@ -26,7 +26,6 @@ type SysPluginColumns struct {
 	Name         string // 插件名称
 	Version      string // 插件版本号
 	Type         string // 插件类型（source/wasm/package）
-	Runtime      string // 运行时类型（source/wasm/package）
 	Installed    string // 安装状态（1=已安装 0=未安装）
 	Status       string // 启用状态（1=启用 0=禁用）
 	ManifestPath string // 插件清单文件路径
@@ -47,7 +46,6 @@ var sysPluginColumns = SysPluginColumns{
 	Name:         "name",
 	Version:      "version",
 	Type:         "type",
-	Runtime:      "runtime",
 	Installed:    "installed",
 	Status:       "status",
 	ManifestPath: "manifest_path",

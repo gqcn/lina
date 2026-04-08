@@ -199,6 +199,10 @@ test.describe("TC-66 源码插件生命周期", () => {
     expect(pluginAfterSync?.installed, "源码插件同步后应直接处于已集成态").toBe(
       1,
     );
+    expect(
+      "runtime" in ((pluginAfterSync ?? {}) as Record<string, unknown>),
+      "插件列表接口不应再返回重复的 runtime 字段",
+    ).toBeFalsy();
     expect(pluginAfterSync?.installedAt, "源码插件同步后应记录接入时间").toBeTruthy();
     expect(
       pluginAfterSync?.enabled ?? pluginAfterSync?.status,

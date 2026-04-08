@@ -1,6 +1,6 @@
 # plugin-demo
 
-`plugin-demo` 是一期源码插件 MVP 的示例插件。
+`plugin-demo` 是一期源码插件`MVP`的示例插件。
 
 本插件强调一条边界：
 
@@ -26,16 +26,16 @@ plugin-demo/
         001-plugin-demo.sql
 ```
 
-当前后端能力已支持把插件目录内的 Go 源码与宿主一起编译；`plugin-demo` 通过 `backend/plugin.go` 在编译期注册最小化的后端路由回调示例，并统一使用 `pluginhost.ExtensionPoint* + pluginhost.CallbackExecutionMode*` 常量声明宿主安装点与执行模式。`plugin.yaml` 仅保留插件元数据、入口描述和资源索引，不再声明后端 API 列表。当前前端能力也已支持把插件目录内的 Vue 页面与 Slot 源码纳入宿主构建，由宿主在运行时装载。这是一阶段源码插件的最小接入方式，后续再演进到更完整的 runtime `package/wasm` 机制。
+当前后端能力已支持把插件目录内的`Go`源码与宿主一起编译；`plugin-demo` 通过 `backend/plugin.go` 在编译期注册最小化的后端路由回调示例，并统一使用 `pluginhost.ExtensionPoint* + pluginhost.CallbackExecutionMode*` 常量声明宿主安装点与执行模式。`plugin.yaml` 仅保留插件元数据、入口描述和资源索引，不再声明后端 API 列表。当前前端能力也已支持把插件目录内的`Vue`页面与`Slot`源码纳入宿主构建，由宿主在运行时装载。这是一阶段源码插件的最小接入方式，后续再演进到更完整的`runtime package/wasm` 机制。
 
-插件插槽目录、类型化 Hook/Slot 常量与推荐接入方式，请优先参考宿主开发指南：`apps/lina-plugins/README.md`。
+插件插槽目录、类型化`Hook/Slot`常量与推荐接入方式，请优先参考宿主开发指南：`apps/lina-plugins/README.md`。
 
 ## 后端实现
 
-`backend/` 目录存放 `plugin-demo` 的后端 Go 源码实现。源码插件的后端能力以本目录的 Go 注册代码为准，而不是由 `plugin.yaml` 直接声明后端 API。
+`backend/` 目录存放 `plugin-demo` 的后端`Go`源码实现。源码插件的后端能力以本目录的`Go`注册代码为准，而不是由 `plugin.yaml`直接声明后端`API`。
 
-- `backend/plugin.go` 在编译期注册插件订阅的宿主 HTTP 路由，是当前最小后端接入示例。
-- `backend/api/demo` 与 `backend/internal/controller/demo` 目录命名遵循宿主现有 GoFrame `gf gen ctrl` 约定，保持接口定义和控制器文件命名风格一致。
+- `backend/plugin.go` 在编译期注册插件订阅的宿主`HTTP`路由，是当前最小后端接入示例。
+- `backend/api/demo` 与 `backend/internal/controller/demo` 目录命名遵循宿主现有`GoFrame` `gf gen ctrl` 约定，保持接口定义和控制器文件命名风格一致。
 - 路由示例通过 `pluginhost.ExtensionPointHTTPRouteRegister` 获取宿主开放的无前缀插件路由根分组，并使用与宿主主服务一致的 `group.Group(..., func(group *ghttp.RouterGroup){ ... })` 风格注册：
   - 外层 `registrars.Group("/api/v1", func(group *ghttp.RouterGroup) { ... })` 先挂基础中间件
   - 内层匿名子分组 `group.Group("/", func(group *ghttp.RouterGroup) { group.Bind(demoController.Ping) })` 注册免鉴权 `GET /api/v1/plugins/plugin-demo/ping`
