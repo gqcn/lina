@@ -82,7 +82,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
       { field: 'name', minWidth: 160, title: '插件名称' },
       { field: 'type', slots: { default: 'type' }, title: '插件类型', width: 120 },
       { field: 'version', title: '版本', width: 120 },
-      { field: 'description', minWidth: 260, title: '描述' },
+      {
+        className: 'plugin-description-column',
+        field: 'description',
+        minWidth: 260,
+        showOverflow: false,
+        slots: { default: 'description' },
+        title: '描述',
+      },
       {
         field: 'enabled',
         slots: { default: 'enabled' },
@@ -102,6 +109,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     height: 'auto',
     keepSource: true,
     pagerConfig: {},
+    showOverflow: 'ellipsis',
     proxyConfig: {
       ajax: {
         query: async (
@@ -186,6 +194,18 @@ async function handleSync() {
         <Tag :color="getPluginTypeColor(row.type)">
           {{ getPluginTypeLabel(row.type) }}
         </Tag>
+      </template>
+
+      <template #description="{ row, isHidden }">
+        <div
+          v-if="!isHidden"
+          :data-testid="`plugin-description-${row.id}`"
+          class="max-w-full truncate"
+          :title="row.description || '-'"
+        >
+          {{ row.description || '-' }}
+        </div>
+        <span v-else aria-hidden="true" class="sr-only"></span>
       </template>
 
       <template #enabled="{ row }">

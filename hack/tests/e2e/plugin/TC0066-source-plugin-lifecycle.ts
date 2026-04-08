@@ -223,6 +223,7 @@ test.describe("TC-66 源码插件生命周期", () => {
     await pluginPage.expectTableColumnHidden("接入态");
     await pluginPage.expectTableColumnHidden("入口");
     await pluginPage.expectTableColumnBetween("描述", "版本", "状态");
+    await pluginPage.expectDescriptionUsesNativeTooltip(pluginID);
     await expect(pluginPage.pluginInstallButton(pluginID)).toHaveCount(0);
     await expect(pluginPage.pluginUninstallButton(pluginID)).toHaveCount(0);
     await pluginPage.expectCrudSlotsVisible();

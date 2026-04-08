@@ -41,6 +41,20 @@ export class PluginPage {
     return this.pluginRow(pluginId).locator(".ant-switch").first();
   }
 
+  pluginDescriptionCell(pluginId: string): Locator {
+    return this.pluginRow(pluginId)
+      .getByTestId(`plugin-description-${pluginId}`)
+      .first();
+  }
+
+  antTooltip(): Locator {
+    return this.page.locator(".ant-tooltip:visible");
+  }
+
+  vxeTooltip(): Locator {
+    return this.page.locator(".vxe-table--tooltip-wrapper:visible");
+  }
+
   headerActionBeforeSlot(): Locator {
     return this.page.getByText("plugin-demo 头部前置扩展").first();
   }
@@ -227,6 +241,29 @@ export class PluginPage {
     expect(targetIndex, `${targetTitle} 应位于 ${nextTitle} 之前`).toBeLessThan(
       nextIndex,
     );
+  }
+
+  async expectDescriptionUsesNativeTooltip(pluginId: string) {
+    const descriptionTestId = `plugin-description-${pluginId}`;
+    const descriptionCell = this.pluginDescriptionCell(pluginId);
+    const descriptionText = ((await descriptionCell.textContent()) || "").trim() || "-";
+    await expect(descriptionCell).toBeVisible();
+    await expect(this.page.getByTestId(descriptionTestId)).toHaveCount(1);
+    await expect(descriptionCell).toHaveAttribute("title", descriptionText);
+    await descriptionCell.hover();
+    await expect(this.vxeTooltip()).toHaveCount(0);
+    await expect(this.antTooltip()).toHaveCount(0);
+    await this.page.waitForTimeout(5000);
+    await expect(this.vxeTooltip()).toHaveCount(0);
+    await expect(this.antTooltip()).toHaveCount(0);
+    const delayedTitleCount = await this.page
+      .locator("[title]")
+      .evaluateAll((elements, text) => {
+        return elements.filter((element) =>
+          (element.getAttribute("title") || "").includes(text),
+        ).length;
+      }, descriptionText);
+    expect(delayedTitleCount, "描述列应只保留单一系统默认提示来源").toBe(1);
   }
 
   async openSidebarExampleFromMenu() {
