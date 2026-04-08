@@ -1,3 +1,6 @@
+// This file stores the in-memory registry of compile-time source plugins that
+// are linked into the host binary during build time.
+
 package pluginhost
 
 import "sync"

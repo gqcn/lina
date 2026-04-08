@@ -20,14 +20,19 @@ type ListRes struct {
 
 // PluginItem represents plugin information.
 type PluginItem struct {
-	Id          string `json:"id" dc:"插件唯一标识" eg:"plugin-demo"`
-	Name        string `json:"name" dc:"插件名称" eg:"示例插件"`
-	Version     string `json:"version" dc:"插件版本号" eg:"0.1.0"`
-	Type        string `json:"type" dc:"插件一级类型：source=源码插件 runtime=运行时插件；当前 runtime 类型由 WASM 运行时实现支撑" eg:"source"`
-	Description string `json:"description" dc:"插件描述" eg:"提供左侧菜单页面、前端 Slot 与公开/受保护路由示例的源码插件"`
-	Installed   int    `json:"installed" dc:"安装状态：1=已安装/已集成 0=未安装；源码插件默认返回1表示已随宿主集成" eg:"1"`
-	InstalledAt string `json:"installedAt" dc:"插件安装或源码接入时间，未安装时返回空字符串" eg:"2026-01-01 12:00:00"`
-	Enabled     int    `json:"enabled" dc:"启用状态：1=启用 0=禁用" eg:"1"`
-	StatusKey   string `json:"statusKey" dc:"插件状态在系统插件注册表中的定位键名" eg:"sys_plugin.status:plugin-demo"`
-	UpdatedAt   string `json:"updatedAt" dc:"插件注册表最后更新时间" eg:"2026-01-01 12:00:00"`
+	Id             string `json:"id" dc:"插件唯一标识" eg:"plugin-demo"`
+	Name           string `json:"name" dc:"插件名称" eg:"示例插件"`
+	Version        string `json:"version" dc:"插件当前清单版本号" eg:"v0.1.0"`
+	Type           string `json:"type" dc:"插件一级类型：source=源码插件 runtime=运行时插件；当前 runtime 类型由 WASM 运行时实现支撑" eg:"source"`
+	Description    string `json:"description" dc:"插件描述" eg:"提供左侧菜单页面、前端 Slot 与公开/受保护路由示例的源码插件"`
+	ReleaseVersion string `json:"releaseVersion" dc:"当前宿主视角下的生效版本号；源码插件通常与清单版本一致" eg:"v0.1.0"`
+	Installed      int    `json:"installed" dc:"安装状态：1=已安装/已集成 0=未安装；源码插件默认返回1表示已随宿主集成" eg:"1"`
+	InstalledAt    string `json:"installedAt" dc:"插件安装或源码接入时间，未安装时返回空字符串" eg:"2026-01-01 12:00:00"`
+	Enabled        int    `json:"enabled" dc:"启用状态：1=启用 0=禁用" eg:"1"`
+	LifecycleState string `json:"lifecycleState" dc:"生命周期状态键：source_enabled=源码插件已启用 source_disabled=源码插件已禁用 runtime_uninstalled=运行时插件未安装 runtime_installed=运行时插件已安装未启用 runtime_enabled=运行时插件已启用" eg:"source_enabled"`
+	NodeState      string `json:"nodeState" dc:"当前节点观测到的插件状态：enabled=已启用 installed=已安装未启用 uninstalled=未安装" eg:"enabled"`
+	ResourceCount  int    `json:"resourceCount" dc:"宿主为当前生效版本登记的资源引用数量，便于人工 review 核对页面、Slot 与 SQL 发现结果" eg:"8"`
+	MigrationState string `json:"migrationState" dc:"当前生效版本最近一次迁移结果：none=无迁移记录 succeeded=成功 failed=失败" eg:"none"`
+	StatusKey      string `json:"statusKey" dc:"插件状态在系统插件注册表中的定位键名" eg:"sys_plugin.status:plugin-demo"`
+	UpdatedAt      string `json:"updatedAt" dc:"插件注册表最后更新时间" eg:"2026-01-01 12:00:00"`
 }

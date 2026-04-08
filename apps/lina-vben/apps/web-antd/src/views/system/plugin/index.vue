@@ -21,6 +21,46 @@ const typeColorMap: Record<string, string> = {
   source: 'blue',
 };
 
+const lifecycleStateLabelMap: Record<string, string> = {
+  runtime_enabled: '运行时已启用',
+  runtime_installed: '运行时已安装',
+  runtime_uninstalled: '运行时未安装',
+  source_disabled: '源码已禁用',
+  source_enabled: '源码已启用',
+};
+
+const lifecycleStateColorMap: Record<string, string> = {
+  runtime_enabled: 'success',
+  runtime_installed: 'warning',
+  runtime_uninstalled: 'default',
+  source_disabled: 'warning',
+  source_enabled: 'processing',
+};
+
+const nodeStateLabelMap: Record<string, string> = {
+  enabled: '节点已启用',
+  installed: '节点已接入',
+  uninstalled: '节点未接入',
+};
+
+const nodeStateColorMap: Record<string, string> = {
+  enabled: 'success',
+  installed: 'processing',
+  uninstalled: 'default',
+};
+
+const migrationStateLabelMap: Record<string, string> = {
+  failed: '迁移失败',
+  none: '无迁移',
+  succeeded: '迁移成功',
+};
+
+const migrationStateColorMap: Record<string, string> = {
+  failed: 'error',
+  none: 'default',
+  succeeded: 'success',
+};
+
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
     schema: [
@@ -80,7 +120,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
     columns: [
       { field: 'id', minWidth: 160, title: '插件标识' },
       { field: 'name', minWidth: 160, title: '插件名称' },
-      { field: 'type', slots: { default: 'type' }, title: '插件类型', width: 120 },
+      {
+        field: 'type',
+        slots: { default: 'type' },
+        title: '插件类型',
+        width: 120,
+      },
       { field: 'version', title: '版本', width: 120 },
       {
         className: 'plugin-description-column',
@@ -95,6 +140,18 @@ const [Grid, gridApi] = useVbenVxeGrid({
         slots: { default: 'enabled' },
         title: '状态',
         width: 130,
+      },
+      {
+        field: 'lifecycleState',
+        slots: { default: 'lifecycleState' },
+        title: '生命周期',
+        width: 150,
+      },
+      {
+        field: 'governance',
+        minWidth: 280,
+        slots: { default: 'governance' },
+        title: '治理摘要',
       },
       {
         field: 'action',
@@ -137,6 +194,30 @@ function getPluginTypeLabel(type: string) {
 
 function getPluginTypeColor(type: string) {
   return typeColorMap[type === 'source' ? 'source' : 'runtime'] || 'default';
+}
+
+function getLifecycleStateLabel(state: string) {
+  return lifecycleStateLabelMap[state] || state || '-';
+}
+
+function getLifecycleStateColor(state: string) {
+  return lifecycleStateColorMap[state] || 'default';
+}
+
+function getNodeStateLabel(state: string) {
+  return nodeStateLabelMap[state] || state || '-';
+}
+
+function getNodeStateColor(state: string) {
+  return nodeStateColorMap[state] || 'default';
+}
+
+function getMigrationStateLabel(state: string) {
+  return migrationStateLabelMap[state] || state || '-';
+}
+
+function getMigrationStateColor(state: string) {
+  return migrationStateColorMap[state] || 'default';
 }
 
 function isSourcePlugin(row: SystemPlugin) {
@@ -216,6 +297,25 @@ async function handleSync() {
           un-checked-children="禁用"
           @change="(checked) => handleStatusChange(row, !!checked)"
         />
+      </template>
+
+      <template #lifecycleState="{ row }">
+        <Tag :color="getLifecycleStateColor(row.lifecycleState)">
+          {{ getLifecycleStateLabel(row.lifecycleState) }}
+        </Tag>
+      </template>
+
+      <template #governance="{ row }">
+        <Space wrap size="small">
+          <Tag :color="getNodeStateColor(row.nodeState)">
+            {{ getNodeStateLabel(row.nodeState) }}
+          </Tag>
+          <Tag :color="getMigrationStateColor(row.migrationState)">
+            {{ getMigrationStateLabel(row.migrationState) }}
+          </Tag>
+          <Tag color="default">生效版本 {{ row.releaseVersion || '-' }}</Tag>
+          <Tag color="default">资源 {{ row.resourceCount ?? 0 }}</Tag>
+        </Space>
       </template>
 
       <template #action="{ row }">

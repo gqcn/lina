@@ -1,3 +1,6 @@
+// This file defines the public cron registrar contract exposed to source
+// plugins and the guarded host-side implementation used at runtime.
+
 package pluginhost
 
 import (
@@ -55,6 +58,8 @@ func (r *cronRegistrar) Add(
 		if r.enabledChecker != nil && !r.enabledChecker(r.pluginID) {
 			return
 		}
+		// Guard every cron callback at runtime so disabling a plugin immediately stops
+		// future executions without requiring host restart or plugin re-registration.
 		if runErr := handler(jobCtx); runErr != nil {
 			g.Log().Warningf(jobCtx, "plugin cron failed plugin=%s name=%s err=%v", r.pluginID, name, runErr)
 		}

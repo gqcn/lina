@@ -33,6 +33,11 @@
 | 插件卸载 SQL | 已实现 | 通过`manifest/sql/uninstall/*.sql`目录约定发现 |
 | 脚手架脚本 | 未提供 | 当前不再提供`hack/plugin`下的脚本，避免生成物与真实实现脱节 |
 
+补充说明：
+
+- 运维与 review 说明已整理到 [OPERATIONS.md](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/OPERATIONS.md)。
+- 当前仓库继续只保留 `plugin-demo` 作为唯一插件样例，不再新增额外插件模板目录；新插件目录规范以本文档和 `plugin-demo` 为准。
+
 ## 设计原则
 
 当前插件机制遵循以下原则：
@@ -140,6 +145,37 @@ apps/lina-plugins/
 | `<plugin-id>/frontend/slots/` | 插件`Slot`源码目录 | 有`Slot`时必需 |
 | `<plugin-id>/manifest/sql/` | 插件安装 SQL 目录 | 有安装 SQL 时必需 |
 | `<plugin-id>/manifest/sql/uninstall/` | 插件卸载 SQL 目录 | 有卸载 SQL 时必需 |
+
+## 元数据底座
+
+为了让后续人工 review 不必只依赖日志，宿主当前会把插件治理元数据同步到以下表中：
+
+| 表名 | 当前用途 |
+|------|------|
+| `sys_plugin` | 插件注册表，记录插件基础状态 |
+| `sys_plugin_release` | 记录插件版本、清单基础信息和资源数量摘要快照 |
+| `sys_plugin_migration` | 记录安装/卸载迁移的执行结果与抽象执行键 |
+| `sys_plugin_resource_ref` | 记录宿主发现到的抽象资源类型、稳定标识与摘要说明 |
+| `sys_plugin_node_state` | 记录当前节点对插件状态的观测结果 |
+
+这些表的目标不是把二三期能力一次性做完，而是先把后续 runtime 生命周期需要的宿主元数据底座稳定下来。
+
+同时需要明确当前持久化边界：
+
+- 宿主会按目录约定扫描 SQL、页面和 `Slot`，但这些具体文件路径只用于校验与执行，不写入插件治理表。
+- `manifest_snapshot` 只保存基础清单字段、是否声明清单以及各类资源数量摘要。
+- `sys_plugin_resource_ref` 只保存抽象资源键、owner 标识和 summary remark，不保存具体前端文件路径或 SQL 文件路径。
+- `sys_plugin_migration` 只保存类似 `install-step-001` 的抽象迁移执行键，不保存具体 SQL 相对路径。
+
+当前插件管理页已经基于这些表补齐了以下治理摘要字段，便于人工 review：
+
+| 字段 | 说明 |
+|------|------|
+| `releaseVersion` | 宿主当前视角下的生效版本号 |
+| `lifecycleState` | 生命周期状态键，如 `source_enabled`、`runtime_installed` |
+| `nodeState` | 当前节点观测状态，如 `enabled`、`installed`、`uninstalled` |
+| `resourceCount` | 当前生效版本登记的资源引用数量 |
+| `migrationState` | 最近一次迁移结果，如 `none`、`succeeded`、`failed` |
 
 ## `plugin.yaml`
 

@@ -1,3 +1,6 @@
+// This file contains unit tests for manifest validation, convention-based
+// resource discovery, and review-oriented plugin metadata helpers.
+
 package plugin
 
 import (
@@ -16,7 +19,7 @@ func TestValidatePluginManifestAcceptsMinimalSourcePlugin(t *testing.T) {
 		ID:          "plugin-manifest-valid",
 		Name:        "Manifest Validation Plugin",
 		Version:     "0.1.0",
-		Type:        pluginTypeSource,
+		Type:        pluginTypeSource.String(),
 		Description: "A valid source plugin manifest used by unit tests.",
 		Author:      "test-suite",
 		License:     "Apache-2.0",
@@ -39,7 +42,7 @@ func TestValidatePluginManifestRejectsMissingBackendEntryForSourcePlugin(t *test
 		ID:      "plugin-missing-backend",
 		Name:    "Missing Backend Plugin",
 		Version: "0.1.0",
-		Type:    pluginTypeSource,
+		Type:    pluginTypeSource.String(),
 	}
 
 	err := service.validatePluginManifest(manifest, manifestFile)
@@ -85,6 +88,188 @@ func TestDiscoverPluginSQLPathsUsesDirectoryConvention(t *testing.T) {
 	uninstallPaths := service.discoverPluginSQLPaths(pluginDir, true)
 	if len(uninstallPaths) != 1 || uninstallPaths[0] != "manifest/sql/uninstall/001-plugin-sql-convention.sql" {
 		t.Fatalf("unexpected uninstall sql paths: %#v", uninstallPaths)
+	}
+}
+
+func TestDiscoverPluginVuePathsUseDirectoryConvention(t *testing.T) {
+	service := New()
+	pluginDir := createTestPluginDir(t, "plugin-vue-convention")
+
+	slotDir := filepath.Join(pluginDir, "frontend", "slots", "dashboard.workspace.after")
+	if err := os.MkdirAll(slotDir, 0o755); err != nil {
+		t.Fatalf("failed to create slot dir: %v", err)
+	}
+	writeTestFile(t, filepath.Join(slotDir, "workspace-card.vue"), "<template><div /></template>\n")
+
+	pagePaths := service.discoverPluginPagePaths(pluginDir)
+	if len(pagePaths) != 1 || pagePaths[0] != "frontend/pages/main-entry.vue" {
+		t.Fatalf("unexpected page paths: %#v", pagePaths)
+	}
+
+	slotPaths := service.discoverPluginSlotPaths(pluginDir)
+	if len(slotPaths) != 1 || slotPaths[0] != "frontend/slots/dashboard.workspace.after/workspace-card.vue" {
+		t.Fatalf("unexpected slot paths: %#v", slotPaths)
+	}
+}
+
+func TestBuildPluginManifestSnapshotIncludesDirectoryDiscoveredAssets(t *testing.T) {
+	service := New()
+	pluginDir := createTestPluginDir(t, "plugin-snapshot")
+
+	slotDir := filepath.Join(pluginDir, "frontend", "slots", "dashboard.workspace.after")
+	if err := os.MkdirAll(slotDir, 0o755); err != nil {
+		t.Fatalf("failed to create slot dir: %v", err)
+	}
+	writeTestFile(t, filepath.Join(slotDir, "workspace-card.vue"), "<template><div /></template>\n")
+
+	snapshot, err := service.buildPluginManifestSnapshot(&pluginManifest{
+		ID:           "plugin-snapshot",
+		Name:         "Snapshot Plugin",
+		Version:      "0.1.0",
+		Type:         pluginTypeSource.String(),
+		Description:  "Snapshot test plugin",
+		ManifestPath: filepath.Join(pluginDir, "plugin.yaml"),
+		RootDir:      pluginDir,
+	})
+	if err != nil {
+		t.Fatalf("expected snapshot to build, got error: %v", err)
+	}
+
+	for _, expected := range []string{
+		"frontendPageCount: 1",
+		"frontendSlotCount: 1",
+		"installSqlCount: 1",
+	} {
+		if !strings.Contains(snapshot, expected) {
+			t.Fatalf("expected snapshot to contain %s, got: %s", expected, snapshot)
+		}
+	}
+}
+
+func TestBuildPluginResourceRefDescriptorsDoNotPersistConcreteFilePaths(t *testing.T) {
+	service := New()
+	pluginDir := createTestPluginDir(t, "plugin-resource-summary")
+
+	slotDir := filepath.Join(pluginDir, "frontend", "slots", "dashboard.workspace.after")
+	if err := os.MkdirAll(slotDir, 0o755); err != nil {
+		t.Fatalf("failed to create slot dir: %v", err)
+	}
+	writeTestFile(t, filepath.Join(slotDir, "workspace-card.vue"), "<template><div /></template>\n")
+
+	descriptors := service.buildPluginResourceRefDescriptors(&pluginManifest{
+		ID:           "plugin-resource-summary",
+		Name:         "Resource Summary Plugin",
+		Version:      "0.1.0",
+		Type:         pluginTypeSource.String(),
+		ManifestPath: filepath.Join(pluginDir, "plugin.yaml"),
+		RootDir:      pluginDir,
+	})
+	if len(descriptors) == 0 {
+		t.Fatalf("expected resource descriptors to be generated")
+	}
+
+	for _, descriptor := range descriptors {
+		if descriptor == nil {
+			continue
+		}
+		if strings.Contains(descriptor.Key, "/") || strings.Contains(descriptor.OwnerKey, "/") {
+			t.Fatalf("expected abstract resource identifiers without concrete file paths, got %#v", descriptor)
+		}
+		if strings.Contains(descriptor.Remark, ".vue") || strings.Contains(descriptor.Remark, ".sql") {
+			t.Fatalf("expected remark to summarize resources without concrete file paths, got %#v", descriptor)
+		}
+	}
+}
+
+func TestDerivePluginLifecycleState(t *testing.T) {
+	testCases := []struct {
+		name       string
+		pluginType string
+		installed  int
+		enabled    int
+		expected   string
+	}{
+		{
+			name:       "source enabled",
+			pluginType: pluginTypeSource.String(),
+			installed:  pluginInstalledYes,
+			enabled:    pluginStatusEnabled,
+			expected:   pluginLifecycleStateSourceEnabled.String(),
+		},
+		{
+			name:       "source disabled",
+			pluginType: pluginTypeSource.String(),
+			installed:  pluginInstalledYes,
+			enabled:    pluginStatusDisabled,
+			expected:   pluginLifecycleStateSourceDisabled.String(),
+		},
+		{
+			name:       "runtime uninstalled",
+			pluginType: pluginTypeRuntime.String(),
+			installed:  pluginInstalledNo,
+			enabled:    pluginStatusDisabled,
+			expected:   pluginLifecycleStateRuntimeUninstalled.String(),
+		},
+		{
+			name:       "runtime installed disabled",
+			pluginType: pluginTypeRuntime.String(),
+			installed:  pluginInstalledYes,
+			enabled:    pluginStatusDisabled,
+			expected:   pluginLifecycleStateRuntimeInstalled.String(),
+		},
+		{
+			name:       "runtime enabled",
+			pluginType: pluginTypeRuntime.String(),
+			installed:  pluginInstalledYes,
+			enabled:    pluginStatusEnabled,
+			expected:   pluginLifecycleStateRuntimeEnabled.String(),
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			actual := derivePluginLifecycleState(testCase.pluginType, testCase.installed, testCase.enabled)
+			if actual != testCase.expected {
+				t.Fatalf("expected lifecycle state %s, got %s", testCase.expected, actual)
+			}
+		})
+	}
+}
+
+func TestDerivePluginNodeState(t *testing.T) {
+	testCases := []struct {
+		name      string
+		installed int
+		enabled   int
+		expected  string
+	}{
+		{
+			name:      "node uninstalled",
+			installed: pluginInstalledNo,
+			enabled:   pluginStatusDisabled,
+			expected:  pluginNodeStateUninstalled.String(),
+		},
+		{
+			name:      "node installed",
+			installed: pluginInstalledYes,
+			enabled:   pluginStatusDisabled,
+			expected:  pluginNodeStateInstalled.String(),
+		},
+		{
+			name:      "node enabled",
+			installed: pluginInstalledYes,
+			enabled:   pluginStatusEnabled,
+			expected:  pluginNodeStateEnabled.String(),
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			actual := derivePluginNodeState(testCase.installed, testCase.enabled)
+			if actual != testCase.expected {
+				t.Fatalf("expected node state %s, got %s", testCase.expected, actual)
+			}
+		})
 	}
 }
 

@@ -1,3 +1,6 @@
+// This file provides repository-root, manifest-id, and semantic-version
+// validation helpers used while scanning plugin manifests.
+
 package plugin
 
 import (

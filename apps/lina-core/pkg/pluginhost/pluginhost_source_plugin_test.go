@@ -1,3 +1,6 @@
+// This file contains unit tests for extension-point registration rules and
+// published callback input contracts defined by the pluginhost package.
+
 package pluginhost
 
 import (

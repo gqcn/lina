@@ -1,3 +1,6 @@
+// This file loads plugin backend declarations, converts published pluginhost
+// resource contracts, and dispatches generic plugin hook and resource queries.
+
 package plugin
 
 import (
@@ -56,19 +59,54 @@ type pluginOrderBySpec struct {
 	Direction string `yaml:"direction"`
 }
 
+func normalizePluginResourceSpecType(value string) pluginResourceSpecType {
+	switch strings.TrimSpace(strings.ToLower(value)) {
+	case pluginResourceSpecTypeTableList.String():
+		return pluginResourceSpecTypeTableList
+	default:
+		return pluginResourceSpecType("")
+	}
+}
+
+func normalizePluginResourceFilterOperator(value string) pluginResourceFilterOperator {
+	switch strings.TrimSpace(strings.ToLower(value)) {
+	case pluginResourceFilterOperatorEQ.String():
+		return pluginResourceFilterOperatorEQ
+	case pluginResourceFilterOperatorLike.String():
+		return pluginResourceFilterOperatorLike
+	case pluginResourceFilterOperatorGTEDate.String():
+		return pluginResourceFilterOperatorGTEDate
+	case pluginResourceFilterOperatorLTEDate.String():
+		return pluginResourceFilterOperatorLTEDate
+	default:
+		return pluginResourceFilterOperator("")
+	}
+}
+
+func normalizePluginResourceOrderDirection(value string) pluginResourceOrderDirection {
+	switch strings.TrimSpace(strings.ToLower(value)) {
+	case pluginResourceOrderDirectionASC.String():
+		return pluginResourceOrderDirectionASC
+	case pluginResourceOrderDirectionDESC.String():
+		return pluginResourceOrderDirectionDESC
+	default:
+		return pluginResourceOrderDirection("")
+	}
+}
+
 // ResourceListInput defines input for querying a plugin-owned backend resource.
 type ResourceListInput struct {
-	PluginID   string            // plugin id
-	ResourceID string            // resource id declared by plugin
-	Filters    map[string]string // request filters from query string
-	PageNum    int               // page number
-	PageSize   int               // page size
+	PluginID   string            // PluginID is the plugin identifier.
+	ResourceID string            // ResourceID is the plugin-declared resource key.
+	Filters    map[string]string // Filters contains query-string filters.
+	PageNum    int               // PageNum is the requested page number.
+	PageSize   int               // PageSize is the requested page size.
 }
 
 // ResourceListOutput defines output for querying a plugin-owned backend resource.
 type ResourceListOutput struct {
-	List  []map[string]interface{} // result rows
-	Total int                      // total count
+	List  []map[string]interface{} // List contains the queried resource rows.
+	Total int                      // Total is the total row count.
 }
 
 // loadPluginBackendConfig loads plugin-owned hook and resource declarations from plugin directory.
@@ -127,6 +165,8 @@ func (s *Service) convertSourcePluginResources(resources []*pluginhost.ResourceS
 			continue
 		}
 
+		// Convert the published pluginhost contract into the internal resource shape
+		// used by generic query execution.
 		fields := make([]*pluginResourceField, 0, len(resource.Fields))
 		for _, field := range resource.Fields {
 			if field == nil {
@@ -200,14 +240,14 @@ func (s *Service) ListResourceRecords(ctx context.Context, in ResourceListInput)
 		if value == "" {
 			continue
 		}
-		switch filter.Operator {
-		case "eq":
+		switch normalizePluginResourceFilterOperator(filter.Operator) {
+		case pluginResourceFilterOperatorEQ:
 			m = m.Where(filter.Column, value)
-		case "like":
+		case pluginResourceFilterOperatorLike:
 			m = m.WhereLike(filter.Column, "%"+value+"%")
-		case "gte-date":
+		case pluginResourceFilterOperatorGTEDate:
 			m = m.WhereGTE(filter.Column, value+" 00:00:00")
-		case "lte-date":
+		case pluginResourceFilterOperatorLTEDate:
 			m = m.WhereLTE(filter.Column, value+" 23:59:59")
 		default:
 			return nil, gerror.Newf("插件资源过滤操作符不支持: %s", filter.Operator)
@@ -229,7 +269,7 @@ func (s *Service) ListResourceRecords(ctx context.Context, in ResourceListInput)
 	}
 
 	orderBy := resource.OrderBy.Column
-	if strings.EqualFold(resource.OrderBy.Direction, "desc") {
+	if normalizePluginResourceOrderDirection(resource.OrderBy.Direction) == pluginResourceOrderDirectionDESC {
 		orderBy += " DESC"
 	} else {
 		orderBy += " ASC"
@@ -329,6 +369,8 @@ func (s *Service) executeSourcePluginHookHandler(
 
 	values := cloneHookPayloadValues(payload)
 	if item.Mode == pluginhost.CallbackExecutionModeAsync {
+		// Clone payload values before spawning a goroutine so plugin callbacks never
+		// race on the mutable request-scoped map owned by the caller.
 		go execute(context.WithoutCancel(ctx), values, true)
 		return
 	}
@@ -481,9 +523,9 @@ func (s *Service) validatePluginResourceSpec(pluginID string, spec *pluginResour
 		return gerror.Newf("插件资源缺少key: %s", filePath)
 	}
 	if spec.Type == "" {
-		spec.Type = "table-list"
+		spec.Type = pluginResourceSpecTypeTableList.String()
 	}
-	if spec.Type != "table-list" {
+	if normalizePluginResourceSpecType(spec.Type) != pluginResourceSpecTypeTableList {
 		return gerror.Newf("插件资源类型仅支持table-list: %s", filePath)
 	}
 	if err := s.validatePluginIdentifier(spec.Table); err != nil {
@@ -513,12 +555,18 @@ func (s *Service) validatePluginResourceSpec(pluginID string, spec *pluginResour
 		if err := s.validatePluginIdentifier(filter.Column); err != nil {
 			return gerror.Wrapf(err, "插件%s资源过滤列非法: %s", pluginID, filePath)
 		}
+		if normalizePluginResourceFilterOperator(filter.Operator) == "" {
+			return gerror.Newf("插件资源过滤操作符不支持: %s", filePath)
+		}
 	}
 	if err := s.validatePluginIdentifier(spec.OrderBy.Column); err != nil {
 		return gerror.Wrapf(err, "插件%s资源排序列非法: %s", pluginID, filePath)
 	}
 	if spec.OrderBy.Direction == "" {
-		spec.OrderBy.Direction = "asc"
+		spec.OrderBy.Direction = pluginResourceOrderDirectionASC.String()
+	}
+	if normalizePluginResourceOrderDirection(spec.OrderBy.Direction) == "" {
+		return gerror.Newf("插件资源排序方向仅支持 asc/desc: %s", filePath)
 	}
 	return nil
 }

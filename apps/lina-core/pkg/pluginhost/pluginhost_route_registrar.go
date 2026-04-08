@@ -1,3 +1,6 @@
+// This file defines the public HTTP route registrar contract exposed to source
+// plugins and the guarded host implementation that enforces plugin state.
+
 package pluginhost
 
 import (

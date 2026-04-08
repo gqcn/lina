@@ -1,3 +1,6 @@
+// This file scans plugin directories and validates convention-based manifest,
+// SQL, page, and slot resources discovered from the plugin workspace.
+
 package plugin
 
 import (
@@ -14,6 +17,9 @@ import (
 )
 
 var pluginSQLFileNamePattern = regexp.MustCompile(`^\d{3}-[a-z0-9-]+\.sql$`)
+var pluginVueFileExts = map[string]struct{}{
+	".vue": {},
+}
 
 // pluginManifest defines plugin metadata loaded from plugin.yaml.
 type pluginManifest struct {
@@ -69,6 +75,8 @@ func (s *Service) scanPluginManifests() ([]*pluginManifest, error) {
 		seenIDs[manifest.ID] = manifestFile
 		manifest.ManifestPath = manifestFile
 		manifest.RootDir = filepath.Dir(manifestFile)
+		// Load backend declarations after the manifest passes structural validation so
+		// runtime resource scanning always starts from a trusted plugin root.
 		if err = s.loadPluginBackendConfig(manifest); err != nil {
 			return nil, err
 		}
@@ -127,9 +135,9 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 		return gerror.Newf("插件清单缺少version: %s", filePath)
 	}
 	if manifest.Type == "" {
-		manifest.Type = pluginTypeSource
+		manifest.Type = pluginTypeSource.String()
 	} else {
-		manifest.Type = normalizePluginType(manifest.Type)
+		manifest.Type = normalizePluginType(manifest.Type).String()
 	}
 	if !isSupportedPluginType(manifest.Type) {
 		return gerror.Newf("插件类型仅支持 source/runtime: %s", filePath)
@@ -140,7 +148,7 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 	if err := validatePluginManifestSemanticVersion(manifest.Version); err != nil {
 		return gerror.Wrapf(err, "插件版本不合法: %s", filePath)
 	}
-	if manifest.Type == pluginTypeSource {
+	if normalizePluginType(manifest.Type) == pluginTypeSource {
 		goModPath := filepath.Join(rootDir, "go.mod")
 		if !gfile.Exists(goModPath) {
 			return gerror.Newf("源码插件目录缺少 go.mod: %s", rootDir)
@@ -155,6 +163,22 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 	}
 	if err := validatePluginSQLPaths(rootDir, s.discoverPluginSQLPaths(rootDir, true), true); err != nil {
 		return gerror.Wrapf(err, "插件清单 uninstall SQL 约束不合法: %s", filePath)
+	}
+	if err := validatePluginManifestFilePaths(
+		rootDir,
+		s.discoverPluginPagePaths(rootDir),
+		"frontend/pages/",
+		pluginVueFileExts,
+	); err != nil {
+		return gerror.Wrapf(err, "插件清单 frontend page 约束不合法: %s", filePath)
+	}
+	if err := validatePluginManifestFilePaths(
+		rootDir,
+		s.discoverPluginSlotPaths(rootDir),
+		"frontend/slots/",
+		pluginVueFileExts,
+	); err != nil {
+		return gerror.Wrapf(err, "插件清单 frontend slot 约束不合法: %s", filePath)
 	}
 	return nil
 }
@@ -182,7 +206,42 @@ func (s *Service) discoverPluginSQLPaths(rootDir string, uninstall bool) []strin
 
 	items := make([]string, 0, len(sqlFiles))
 	for _, sqlFile := range sqlFiles {
+		// Return normalized relative paths for validation and execution only. These
+		// paths are intentionally not persisted into plugin review tables.
 		items = append(items, path.Join(relPrefix, filepath.Base(sqlFile)))
+	}
+	sort.Strings(items)
+	return items
+}
+
+// discoverPluginPagePaths discovers plugin page source files by directory convention.
+func (s *Service) discoverPluginPagePaths(rootDir string) []string {
+	return s.discoverPluginVuePaths(rootDir, filepath.Join("frontend", "pages"))
+}
+
+// discoverPluginSlotPaths discovers plugin slot source files by directory convention.
+func (s *Service) discoverPluginSlotPaths(rootDir string) []string {
+	return s.discoverPluginVuePaths(rootDir, filepath.Join("frontend", "slots"))
+}
+
+func (s *Service) discoverPluginVuePaths(rootDir string, relativeDir string) []string {
+	searchDir := filepath.Join(rootDir, relativeDir)
+	if !gfile.Exists(searchDir) || !gfile.IsDir(searchDir) {
+		return []string{}
+	}
+
+	resourceFiles, err := gfile.ScanDirFile(searchDir, "*.vue", true)
+	if err != nil {
+		return []string{}
+	}
+
+	items := make([]string, 0, len(resourceFiles))
+	for _, resourceFile := range resourceFiles {
+		relativePath, relErr := filepath.Rel(rootDir, resourceFile)
+		if relErr != nil {
+			continue
+		}
+		items = append(items, path.Clean(strings.ReplaceAll(relativePath, "\\", "/")))
 	}
 	sort.Strings(items)
 	return items

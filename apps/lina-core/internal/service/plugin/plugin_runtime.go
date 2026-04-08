@@ -1,18 +1,21 @@
+// This file exposes public runtime-state projections consumed by plugin-aware
+// frontend shells that need minimal installation and enablement state.
+
 package plugin
 
 import "context"
 
 // RuntimeStateListOutput defines output for public runtime state queries.
 type RuntimeStateListOutput struct {
-	List []*PluginRuntimeStateItem // plugin runtime state list
+	List []*PluginRuntimeStateItem // List contains public plugin runtime states.
 }
 
 // PluginRuntimeStateItem represents public runtime state of one plugin.
 type PluginRuntimeStateItem struct {
-	Id        string // plugin id
-	Installed int    // installed status: 1=installed, 0=not installed
-	Enabled   int    // enabled status: 1=enabled, 0=disabled
-	StatusKey string // plugin status config key
+	Id        string // Id is the stable plugin identifier.
+	Installed int    // Installed reports whether the plugin is installed or integrated.
+	Enabled   int    // Enabled reports whether the plugin is currently enabled.
+	StatusKey string // StatusKey is the host config key used by the public shell.
 }
 
 // ListRuntimeStates returns public plugin runtime states for shell slot rendering.

@@ -158,6 +158,7 @@ pnpm report            # 查看 HTML 报告
 - 所有的公开方法、变量、结构体属性必须要有注释介绍
 - `DAO/DO/Entity`源码文件由`gf gen dao`自动生成，不要手动创建或修改
 - `Controller`源码文件由`gf gen ctrl`自动生成骨架，在生成的文件中填写业务逻辑
+- **禁止在后端实现源码中硬编码具有枚举语义的字符串值**：凡是状态、类型、阶段、动作、执行模式、排序方向、过滤操作符等枚举语义值，必须使用 Go 命名类型与常量统一管理，禁止在业务分支、比较、赋值和持久化逻辑中直接写字符串字面量
 - **优先使用GoFrame框架提供的组件和方法**：所有`Go`方法调用优先使用`GoFrame`框架已有的方法，避免重复造轮子。例如：
   - 错误处理：使用`GoFrame`的 `gerror` 包进行结构化错误处理
   - 日志记录：使用 `g.Log()` 并传入上下文进行日志记录
@@ -349,4 +350,3 @@ dao.SysDictType.Ctx(ctx).Where(do.SysDictType{Id: id}).Delete()
 5. **图标使用**: 使用 `IconifyIcon` 组件（来自 `@vben/icons`），图标名使用`Iconify`格式（如 `ant-design:inbox-outlined`）
 
 开发新页面前，**必须先查看参考项目中对应页面的实现**，确保`UI`和交互保持一致。
-

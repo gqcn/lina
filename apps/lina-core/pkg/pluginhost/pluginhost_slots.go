@@ -1,3 +1,6 @@
+// This file declares published backend extension points, execution modes, and
+// hook-action enums that together form the stable pluginhost contract.
+
 package pluginhost
 
 // ExtensionPoint defines one published backend plugin extension point.

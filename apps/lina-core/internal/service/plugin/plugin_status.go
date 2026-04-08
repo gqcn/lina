@@ -1,3 +1,6 @@
+// This file synchronizes sys_plugin registry rows and updates install and
+// enablement state transitions for discovered plugins.
+
 package plugin
 
 import (
@@ -14,7 +17,7 @@ import (
 // syncPluginManifest creates or updates a source plugin registry row.
 func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManifest) (*entity.SysPlugin, error) {
 	installedState := pluginInstalledNo
-	if manifest.Type == "source" {
+	if normalizePluginType(manifest.Type) == pluginTypeSource {
 		installedState = pluginInstalledYes
 	}
 
@@ -34,7 +37,9 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 			ManifestPath: manifest.ManifestPath,
 			Remark:       manifest.Description,
 		}
-		if manifest.Type == "source" {
+		if normalizePluginType(manifest.Type) == pluginTypeSource {
+			// Source plugins are compiled into the host, so they appear as already
+			// installed and enabled as soon as discovery succeeds.
 			data.Status = pluginStatusEnabled
 			data.InstalledAt = gtime.Now()
 			data.EnabledAt = gtime.Now()
@@ -44,7 +49,14 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 		if err != nil {
 			return nil, err
 		}
-		return s.getPluginRegistry(ctx, manifest.ID)
+		registry, err := s.getPluginRegistry(ctx, manifest.ID)
+		if err != nil {
+			return nil, err
+		}
+		if err = s.syncPluginMetadata(ctx, manifest, registry, "Source plugin manifest synchronized into host registry."); err != nil {
+			return nil, err
+		}
+		return registry, nil
 	}
 
 	data := do.SysPlugin{
@@ -54,7 +66,7 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 		ManifestPath: manifest.ManifestPath,
 		Remark:       manifest.Description,
 	}
-	if manifest.Type == "source" {
+	if normalizePluginType(manifest.Type) == pluginTypeSource {
 		data.Installed = installedState
 		if existing.InstalledAt == nil {
 			data.InstalledAt = gtime.Now()
@@ -73,7 +85,14 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 		return nil, err
 	}
 
-	return s.getPluginRegistry(ctx, manifest.ID)
+	registry, err := s.getPluginRegistry(ctx, manifest.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err = s.syncPluginMetadata(ctx, manifest, registry, "Source plugin manifest synchronized into host registry."); err != nil {
+		return nil, err
+	}
+	return registry, nil
 }
 
 func shouldAutoEnableSourcePlugin(plugin *entity.SysPlugin) bool {
@@ -109,10 +128,28 @@ func (s *Service) setPluginStatus(ctx context.Context, pluginID string, enabled 
 	if enabled == pluginStatusEnabled {
 		eventName = pluginhost.ExtensionPointPluginEnabled
 	}
-	return s.DispatchHookEvent(ctx, eventName, map[string]interface{}{
+	if err = s.DispatchHookEvent(ctx, eventName, map[string]interface{}{
 		"pluginId": pluginID,
 		"status":   enabled,
-	})
+	}); err != nil {
+		return err
+	}
+
+	registry, err := s.getPluginRegistry(ctx, pluginID)
+	if err != nil {
+		return err
+	}
+	if registry == nil {
+		return nil
+	}
+	return s.syncPluginNodeState(
+		ctx,
+		registry.PluginId,
+		registry.Version,
+		registry.Installed,
+		registry.Status,
+		"Plugin status updated from management API.",
+	)
 }
 
 // getPluginRegistry queries plugin registry by plugin ID.

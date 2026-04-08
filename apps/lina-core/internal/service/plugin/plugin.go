@@ -1,3 +1,5 @@
+// Package plugin implements plugin manifest discovery, lifecycle orchestration,
+// governance metadata synchronization, and host integration for Lina plugins.
 package plugin
 
 import (
@@ -49,42 +51,47 @@ func getPrimaryNodeChecker() func() bool {
 
 // ListOutput defines output for plugin list query.
 type ListOutput struct {
-	List  []*PluginItem // plugin list
-	Total int           // total count
+	List  []*PluginItem // List contains the filtered plugin list.
+	Total int           // Total is the number of returned plugins.
 }
 
 // PluginItem represents plugin metadata with status.
 type PluginItem struct {
-	Id          string // plugin id
-	Name        string // plugin name
-	Version     string // plugin version
-	Type        string // plugin type
-	Description string // plugin description
-	Installed   int    // installed status: 1=installed, 0=not installed
-	InstalledAt string // install time or source integration time
-	Enabled     int    // enabled status: 1=enabled, 0=disabled
-	StatusKey   string // plugin status config key
-	UpdatedAt   string // registry updated time
+	Id             string // Id is the stable plugin identifier.
+	Name           string // Name is the display name shown in governance screens.
+	Version        string // Version is the version declared by plugin.yaml.
+	Type           string // Type is the normalized top-level plugin type.
+	Description    string // Description is the plugin summary declared by the manifest.
+	ReleaseVersion string // ReleaseVersion is the effective release version from host metadata.
+	Installed      int    // Installed reports whether the plugin is installed or integrated.
+	InstalledAt    string // InstalledAt is the install or source-integration timestamp.
+	Enabled        int    // Enabled reports whether the plugin is currently enabled.
+	LifecycleState string // LifecycleState is the derived lifecycle state key.
+	NodeState      string // NodeState is the current node projection state key.
+	ResourceCount  int    // ResourceCount is the number of abstract resource review records.
+	MigrationState string // MigrationState is the latest migration result state key.
+	StatusKey      string // StatusKey is the host config key used to persist plugin status.
+	UpdatedAt      string // UpdatedAt is the last registry update time.
 }
 
 // ListInput defines input for plugin list query.
 type ListInput struct {
-	ID        string // plugin id filter
-	Name      string // plugin name filter
-	Type      string // plugin type filter: source/runtime
-	Status    *int   // plugin status filter
-	Installed *int   // install status filter
+	ID        string // ID filters by plugin identifier.
+	Name      string // Name filters by plugin display name.
+	Type      string // Type filters by normalized plugin type.
+	Status    *int   // Status filters by enabled flag.
+	Installed *int   // Installed filters by installed flag.
 }
 
 // AuthLoginSucceededInput defines input for login succeeded hook.
 type AuthLoginSucceededInput struct {
-	UserName   string // login user name
-	Status     int    // login status
-	Ip         string // login ip
-	ClientType string // client type
-	Browser    string // browser information
-	Os         string // operating system information
-	Message    string // audit message
+	UserName   string // UserName is the authenticated username.
+	Status     int    // Status is the login status code.
+	Ip         string // Ip is the client IP address.
+	ClientType string // ClientType identifies the login client type.
+	Browser    string // Browser is the detected browser description.
+	Os         string // Os is the detected operating-system description.
+	Message    string // Message is the audit message delivered to plugins.
 }
 
 // SyncSourcePlugins scans source plugin manifests and synchronizes default status.
@@ -101,6 +108,8 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	}
 	filtered := make([]*PluginItem, 0, len(out.List))
 	for _, item := range out.List {
+		// Apply in-memory filtering after synchronization so source plugin discovery
+		// remains the single source of truth for the returned list.
 		if in.ID != "" && !strings.Contains(item.Id, in.ID) {
 			continue
 		}
@@ -122,12 +131,12 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 }
 
 func matchPluginType(actual string, expected string) bool {
-	actual = normalizePluginType(actual)
-	expected = normalizePluginType(expected)
-	if expected == "" {
+	actualType := normalizePluginType(actual)
+	expectedType := normalizePluginType(expected)
+	if expectedType == "" {
 		return true
 	}
-	return actual == expected
+	return actualType == expectedType
 }
 
 // UpdateStatus updates plugin status, where status is 1=enabled and 0=disabled.
@@ -208,18 +217,34 @@ func (s *Service) SyncAndList(ctx context.Context) (*ListOutput, error) {
 		if registry.UpdatedAt != nil {
 			updatedAt = registry.UpdatedAt.String()
 		}
+		governance, err := s.buildPluginGovernanceSnapshot(
+			ctx,
+			manifest.ID,
+			manifest.Version,
+			manifest.Type,
+			registry.Installed,
+			registry.Status,
+		)
+		if err != nil {
+			return nil, err
+		}
 
 		items = append(items, &PluginItem{
-			Id:          manifest.ID,
-			Name:        manifest.Name,
-			Version:     manifest.Version,
-			Type:        manifest.Type,
-			Description: manifest.Description,
-			Installed:   registry.Installed,
-			InstalledAt: installedAt,
-			Enabled:     registry.Status,
-			StatusKey:   s.buildPluginStatusKey(manifest.ID),
-			UpdatedAt:   updatedAt,
+			Id:             manifest.ID,
+			Name:           manifest.Name,
+			Version:        manifest.Version,
+			Type:           manifest.Type,
+			Description:    manifest.Description,
+			ReleaseVersion: governance.ReleaseVersion,
+			Installed:      registry.Installed,
+			InstalledAt:    installedAt,
+			Enabled:        registry.Status,
+			LifecycleState: governance.LifecycleState,
+			NodeState:      governance.NodeState,
+			ResourceCount:  governance.ResourceCount,
+			MigrationState: governance.MigrationState,
+			StatusKey:      s.buildPluginStatusKey(manifest.ID),
+			UpdatedAt:      updatedAt,
 		})
 	}
 

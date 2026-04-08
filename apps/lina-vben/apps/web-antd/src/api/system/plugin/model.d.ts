@@ -16,9 +16,14 @@ export interface SystemPlugin {
   version: string;
   type: PluginType;
   description: string;
+  releaseVersion: string;
   installed: number;
   installedAt: string;
   enabled: number;
+  lifecycleState: string;
+  nodeState: string;
+  resourceCount: number;
+  migrationState: string;
   statusKey: string;
   updatedAt: string;
 }

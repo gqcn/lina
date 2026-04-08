@@ -1,21 +1,33 @@
+// This file normalizes supported plugin type values and provides lightweight
+// helpers used by validation and lifecycle code paths.
+
 package plugin
 
 import "strings"
 
+// pluginTypeValue defines the normalized top-level plugin type enum.
+type pluginTypeValue string
+
 const (
-	pluginTypeSource      = "source"
-	pluginTypeRuntime     = "runtime"
-	pluginRuntimeKindWasm = "wasm"
+	pluginTypeSource      pluginTypeValue = "source"
+	pluginTypeRuntime     pluginTypeValue = "runtime"
+	pluginRuntimeKindWasm pluginTypeValue = "wasm"
 )
 
-func normalizePluginType(value string) string {
-	switch strings.TrimSpace(strings.ToLower(value)) {
-	case pluginRuntimeKindWasm, pluginTypeRuntime:
+// String returns the canonical plugin type value.
+func (value pluginTypeValue) String() string {
+	return string(value)
+}
+
+func normalizePluginType(value string) pluginTypeValue {
+	normalizedValue := strings.TrimSpace(strings.ToLower(value))
+	switch normalizedValue {
+	case pluginRuntimeKindWasm.String(), pluginTypeRuntime.String():
 		return pluginTypeRuntime
-	case pluginTypeSource:
+	case pluginTypeSource.String():
 		return pluginTypeSource
 	default:
-		return strings.TrimSpace(strings.ToLower(value))
+		return pluginTypeValue(normalizedValue)
 	}
 }
 

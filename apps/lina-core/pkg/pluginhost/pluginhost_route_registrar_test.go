@@ -1,3 +1,6 @@
+// This file contains unit tests for the route registrar helpers exposed by the
+// pluginhost package to source plugins and host bootstrap code.
+
 package pluginhost
 
 import (

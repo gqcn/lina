@@ -1,3 +1,6 @@
+// This file implements runtime plugin install and uninstall flows together with
+// shared helpers that resolve plugin-owned resource paths safely.
+
 package plugin
 
 import (
@@ -6,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gfile"
 	"github.com/gogf/gf/v2/os/gtime"
 
@@ -21,7 +23,7 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 	if err != nil {
 		return err
 	}
-	if manifest.Type == "source" {
+	if normalizePluginType(manifest.Type) == pluginTypeSource {
 		return gerror.New("源码插件随宿主编译集成，不支持安装")
 	}
 
@@ -33,11 +35,20 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 		return nil
 	}
 
-	if err = s.executeManifestSQLFiles(ctx, manifest.RootDir, s.discoverPluginSQLPaths(manifest.RootDir, false)); err != nil {
+	// Runtime installation still executes SQL assets by directory convention, but the
+	// persisted metadata only stores abstract migration identifiers and summary data.
+	if err = s.executeManifestSQLFiles(ctx, manifest, s.discoverPluginSQLPaths(manifest.RootDir, false), pluginMigrationDirectionInstall); err != nil {
 		return err
 	}
 
 	if err = s.setPluginInstalled(ctx, pluginID, pluginInstalledYes); err != nil {
+		return err
+	}
+	registry, err = s.getPluginRegistry(ctx, pluginID)
+	if err != nil {
+		return err
+	}
+	if err = s.syncPluginMetadata(ctx, manifest, registry, "Runtime plugin install lifecycle completed on current node."); err != nil {
 		return err
 	}
 	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointPluginInstalled, map[string]interface{}{
@@ -53,7 +64,7 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 	if err != nil {
 		return err
 	}
-	if manifest.Type == "source" {
+	if normalizePluginType(manifest.Type) == pluginTypeSource {
 		return gerror.New("源码插件随宿主编译集成，不支持卸载")
 	}
 
@@ -66,14 +77,31 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 	}
 
 	if registry.Status == pluginStatusEnabled {
+		// Disable before uninstall so routes, menus, and hooks stop participating
+		// before any plugin-owned uninstall SQL is executed.
 		if err = s.Disable(ctx, pluginID); err != nil {
 			return err
 		}
 	}
-	if err = s.executeManifestSQLFiles(ctx, manifest.RootDir, s.discoverPluginSQLPaths(manifest.RootDir, true)); err != nil {
+	if err = s.executeManifestSQLFiles(ctx, manifest, s.discoverPluginSQLPaths(manifest.RootDir, true), pluginMigrationDirectionUninstall); err != nil {
 		return err
 	}
 	if err = s.setPluginInstalled(ctx, pluginID, pluginInstalledNo); err != nil {
+		return err
+	}
+	if _, err = dao.SysPluginResourceRef.Ctx(ctx).
+		Where(do.SysPluginResourceRef{PluginId: pluginID}).
+		Delete(); err != nil {
+		return err
+	}
+	if err = s.syncPluginNodeState(
+		ctx,
+		pluginID,
+		manifest.Version,
+		pluginInstalledNo,
+		pluginStatusDisabled,
+		"Runtime plugin uninstall lifecycle completed on current node.",
+	); err != nil {
 		return err
 	}
 	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointPluginUninstalled, map[string]interface{}{
@@ -81,24 +109,6 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 		"name":     manifest.Name,
 		"version":  manifest.Version,
 	})
-}
-
-// executeManifestSQLFiles executes plugin manifest SQL files sequentially.
-func (s *Service) executeManifestSQLFiles(ctx context.Context, rootDir string, relativePaths []string) error {
-	for _, relativePath := range relativePaths {
-		sqlPath, err := s.resolvePluginResourcePath(rootDir, relativePath)
-		if err != nil {
-			return err
-		}
-		sqlContent := gfile.GetContents(sqlPath)
-		if sqlContent == "" {
-			return gerror.Newf("插件SQL文件为空: %s", sqlPath)
-		}
-		if _, err = g.DB().Exec(ctx, sqlContent); err != nil {
-			return gerror.Wrapf(err, "执行插件SQL失败: %s", filepath.Base(sqlPath))
-		}
-	}
-	return nil
 }
 
 // resolvePluginResourcePath resolves a plugin relative resource path to an absolute path inside plugin root.

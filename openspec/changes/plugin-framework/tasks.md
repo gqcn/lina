@@ -9,6 +9,16 @@
 - [x] 0.5 新增并补齐 `TC0066-source-plugin-lifecycle` 与插件管理 POM，覆盖 source plugin 的 sync/enable/disable、编译整合与 slot 渲染/隐藏
 - [x] 0.6 完成 source plugin 的免安装闭环、首批通用 Hook/Slot 与一期验收收口；后续进入运行时 `wasm` 与多节点热更新阶段
 
+## 0. 当前实现快照（2026-04-08）
+
+> 本次继续补齐了一期仍缺失的“review 友好型元数据底座”和开发/运维文档，而没有提前承诺二三期 `runtime wasm` 与多节点热更新能力已经完成。
+
+- [x] 0.7 在宿主 `011-plugin-framework.sql` 中新增 `sys_plugin_release`、`sys_plugin_migration`、`sys_plugin_resource_ref`、`sys_plugin_node_state`
+- [x] 0.8 在插件服务层补齐发布记录、迁移记录、资源引用与节点状态同步骨架，并接入现有 `sync/install/uninstall/enable/disable` 链路
+- [x] 0.9 将源码插件目录约定进一步固化为可校验规则，新增前端页面/Slot 目录发现校验
+- [x] 0.10 新增插件运维指南，并将源码插件目录规范继续收敛到 `plugin-demo` 样例与现有开发指南，便于后续人工 review
+- [x] 0.11 扩展插件管理后台列表 DTO 与页面治理摘要，补齐生命周期状态、节点状态、资源引用数与最近迁移结果，便于人工 review
+
 ## 第一期当前落地快照（2026-04-06）
 
 - [x] 建立 `apps/lina-plugins/<plugin-id>/` 目录规范，并要求 `plugin-demo` 的插件特定前后端实现收敛在插件目录维护
@@ -22,9 +32,9 @@
 
 - [x] 1.1 定义 `plugin.yaml` 清单 schema、版本策略与宿主校验流程
 - [ ] 1.2 规划 `apps/lina-plugins/<plugin-id>/` 标准目录结构，并补齐源码插件脚手架模板
-- [ ] 1.3 新增插件元数据 SQL 方案，落地 `sys_plugin`、`sys_plugin_release`、`sys_plugin_migration`、`sys_plugin_resource_ref`、`sys_plugin_node_state` 等基础表
-- [ ] 1.4 基于新增表生成 DAO/DO/Entity，并建立插件注册、生命周期、资源引用、迁移记录的后端服务骨架
-- [ ] 1.5 定义插件管理后台 API、DTO、管理页面信息结构以及状态机枚举
+- [x] 1.3 新增插件元数据 SQL 方案，落地 `sys_plugin`、`sys_plugin_release`、`sys_plugin_migration`、`sys_plugin_resource_ref`、`sys_plugin_node_state` 等基础表
+- [x] 1.4 基于新增表生成 DAO/DO/Entity，并建立插件注册、生命周期、资源引用、迁移记录的后端服务骨架
+- [x] 1.5 定义插件管理后台 API、DTO、管理页面信息结构以及状态机枚举
 
 ## 2. 第一期：源码插件接入
 
@@ -60,7 +70,7 @@
 ## 6. 文档、模板与开发者工具
 
 - [x] 6.1 编写插件开发指南，覆盖 `source` 与运行时 `wasm` 两种模式的目录、清单、权限、菜单和扩展点约定
-- [ ] 6.2 编写插件运维指南，覆盖安装、启停、卸载、升级、回滚、多节点注意事项与故障排查
+- [x] 6.2 编写插件运维指南，覆盖安装、启停、卸载、升级、回滚、多节点注意事项与故障排查
 - [ ] 6.3 提供插件模板与打包脚本，帮助开发者快速创建源码插件和运行时产物
 - [x] 6.4 补充 `plugin-demo` 的设计说明、发布说明与宿主接入说明，作为后续插件开发参考样板
 
@@ -160,3 +170,6 @@
 - [x] **FB-78**: 删除 `metadata` 中重复的菜单/权限前缀配置，统一以插件 SQL 和插件代码作为单一真相源
 - [x] **FB-79**: 将 `apps/lina-plugins/README.md` 重写为“当前插件机制设计文档 + 开发指南”，补齐目录约定、校验规则、开发步骤、扩展点契约与 review 清单
 - [x] **FB-80**: 将插件相关示例中的版本号写法统一为带 `v` 前缀的形式，例如 `v0.1.0`，保持与常见发布标签习惯一致，同时保留宿主对无前缀写法的兼容
+- [x] **FB-81**: 为插件机制核心后端源码补齐文件头说明、公开方法/字段注释和关键逻辑英文注释，便于人工 review
+- [x] **FB-82**: 调整插件元数据表与服务实现，禁止持久化具体 SQL 文件路径和前端源码文件路径，改为抽象资源标识与数量摘要
+- [x] **FB-83**: 审查插件后端实现中的枚举语义字符串硬编码，统一改为 Go 命名类型常量管理，并将该约束写入项目后端代码规范

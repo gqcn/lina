@@ -1,3 +1,6 @@
+// This file bridges pluginhost callback registrations into host route, cron,
+// after-auth, menu-filter, and permission-filter integration flows.
+
 package plugin
 
 import (
@@ -37,6 +40,8 @@ func (s *Service) RegisterHTTPRoutes(
 			if handler == nil || handler.Handler == nil {
 				continue
 			}
+			// Route registration happens at host startup, so the host executes every
+			// published registrar once while still guarding runtime access by plugin state.
 			if err = handler.Handler(ctx, registrar); err != nil {
 				return err
 			}
@@ -114,6 +119,8 @@ func (s *Service) shouldKeepMenu(ctx context.Context, menu *entity.SysMenu) bool
 		return false
 	}
 
+	// Translate the internal menu entity into the published contract before invoking
+	// plugin filters so plugins never depend on host-only model types.
 	descriptor := pluginhost.NewMenuDescriptor(
 		menu.Id,
 		menu.ParentId,

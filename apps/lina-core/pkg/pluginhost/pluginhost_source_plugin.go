@@ -1,3 +1,6 @@
+// This file defines the public source-plugin contract, callback registration
+// APIs, and wrapper interfaces that isolate plugins from host internals.
+
 package pluginhost
 
 import (
@@ -323,6 +326,8 @@ func (p *SourcePlugin) RegisterHook(
 		panic("pluginhost: hook handler is nil")
 	}
 	mode = normalizeCallbackExecutionMode(point, mode)
+	// Store the normalized registration so the host can execute callbacks without
+	// repeatedly re-validating plugin declarations at dispatch time.
 	p.hookHandlers = append(p.hookHandlers, &HookHandlerRegistration{
 		Mode:    mode,
 		Point:   point,
