@@ -1,6 +1,15 @@
 # Lina Plugins 开发指南
 
-`apps/lina-plugins/`用于承载`Lina`插件源码与插件开发文档。本文档面向插件开发者，说明源码插件的目录约定、前后端插槽目录，以及推荐的类型化接入方式。
+`apps/lina-plugins/`用于承载`Lina`插件源码与插件开发文档。本文档面向插件开发者，说明插件的一级类型约束、源码插件目录约定、前后端插槽目录，以及推荐的类型化接入方式。
+
+## 插件类型
+
+当前插件一级类型只保留两种：
+
+| 类型 | 含义 | 说明 |
+|------|------|------|
+| `source` | 源码插件 | 放在`apps/lina-plugins/<plugin-id>/`下，随宿主一起编译和交付 |
+| `runtime` | 运行时插件 | 运行时安装与治理；当前仅支持`wasm`产物 |
 
 ## 目录结构
 
@@ -14,8 +23,8 @@ apps/lina-plugins/
     backend/
       plugin.go
     frontend/
-      src/pages/*.vue
-      src/slots/**/*.vue
+      pages/*.vue
+      slots/**/*.vue
     manifest/
       sql/
         001-<plugin-name>.sql
@@ -27,7 +36,7 @@ apps/lina-plugins/
 
 | 项目 | 约束                             |
 |------|--------------------------------|
-| `plugin.yaml` | 维护插件元数据、资源索引与前端接入提示            |
+| `plugin.yaml` | 维护插件元数据、一级类型、资源索引与前端接入提示       |
 | `backend/plugin.go` | 使用`Go`代码通过回调注册源码插件的后端扩展点与资源能力    |
 | `frontend/pages/` | 提供插件页面源码，交由宿主运行时页装载                |
 | `frontend/slots/` | 提供插件`Slot`源码，交由宿主公开扩展点装载             |

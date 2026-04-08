@@ -119,7 +119,12 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 		return gerror.Newf("插件清单缺少version: %s", filePath)
 	}
 	if manifest.Type == "" {
-		manifest.Type = "source"
+		manifest.Type = pluginTypeSource
+	} else {
+		manifest.Type = normalizePluginType(manifest.Type)
+	}
+	if !isSupportedPluginType(manifest.Type) {
+		return gerror.Newf("插件类型仅支持 source/runtime: %s", filePath)
 	}
 	if !strings.Contains(manifest.ID, "-") {
 		return gerror.Newf("插件ID需使用kebab-case风格: %s", manifest.ID)

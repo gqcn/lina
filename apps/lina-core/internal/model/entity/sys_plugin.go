@@ -14,7 +14,7 @@ type SysPlugin struct {
 	PluginId     string      `json:"pluginId"     orm:"plugin_id"     description:"插件唯一标识（kebab-case）"`
 	Name         string      `json:"name"         orm:"name"          description:"插件名称"`
 	Version      string      `json:"version"      orm:"version"       description:"插件版本号"`
-	Type         string      `json:"type"         orm:"type"          description:"插件类型（source/wasm/package）"`
+	Type         string      `json:"type"         orm:"type"          description:"插件一级类型（source/runtime）"`
 	Installed    int         `json:"installed"    orm:"installed"     description:"安装状态（1=已安装 0=未安装）"`
 	Status       int         `json:"status"       orm:"status"        description:"启用状态（1=启用 0=禁用）"`
 	ManifestPath string      `json:"manifestPath" orm:"manifest_path" description:"插件清单文件路径"`

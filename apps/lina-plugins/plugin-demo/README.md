@@ -26,7 +26,7 @@ plugin-demo/
         001-plugin-demo.sql
 ```
 
-当前后端能力已支持把插件目录内的`Go`源码与宿主一起编译；`plugin-demo` 通过 `backend/plugin.go` 在编译期注册最小化的后端路由回调示例，并统一使用 `pluginhost.ExtensionPoint* + pluginhost.CallbackExecutionMode*` 常量声明宿主安装点与执行模式。`plugin.yaml` 仅保留插件元数据、入口描述和资源索引，不再声明后端 API 列表。当前前端能力也已支持把插件目录内的`Vue`页面与`Slot`源码纳入宿主构建，由宿主在运行时装载。这是一阶段源码插件的最小接入方式，后续再演进到更完整的`runtime package/wasm` 机制。
+当前后端能力已支持把插件目录内的`Go`源码与宿主一起编译；`plugin-demo` 通过 `backend/plugin.go` 在编译期注册最小化的后端路由回调示例，并统一使用 `pluginhost.ExtensionPoint* + pluginhost.CallbackExecutionMode*` 常量声明宿主安装点与执行模式。`plugin.yaml` 仅保留插件元数据、一级类型、入口描述和资源索引，不再声明后端`API`列表。当前前端能力也已支持把插件目录内的`Vue`页面与`Slot`源码纳入宿主构建，由宿主在运行时装载。这是一阶段源码插件的最小接入方式；若后续补齐运行时插件能力，当前规划仅落地 `wasm` 实现。
 
 插件插槽目录、类型化`Hook/Slot`常量与推荐接入方式，请优先参考宿主开发指南：`apps/lina-plugins/README.md`。
 

@@ -16,7 +16,7 @@ type SysPlugin struct {
 	PluginId     any         // 插件唯一标识（kebab-case）
 	Name         any         // 插件名称
 	Version      any         // 插件版本号
-	Type         any         // 插件类型（source/wasm/package）
+	Type         any         // 插件一级类型（source/runtime）
 	Installed    any         // 安装状态（1=已安装 0=未安装）
 	Status       any         // 启用状态（1=启用 0=禁用）
 	ManifestPath any         // 插件清单文件路径

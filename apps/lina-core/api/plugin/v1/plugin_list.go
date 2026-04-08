@@ -7,7 +7,7 @@ type ListReq struct {
 	g.Meta    `path:"/plugins" method:"get" tags:"插件管理" summary:"查询插件列表" dc:"扫描源码插件目录并同步插件基础状态，返回插件清单与启用状态"`
 	Id        string `json:"id" dc:"按插件唯一标识筛选，模糊匹配，不传则查询全部" eg:"plugin-demo"`
 	Name      string `json:"name" dc:"按插件名称筛选，模糊匹配，不传则查询全部" eg:"示例插件"`
-	Type      string `json:"type" dc:"按插件类型筛选：source=源码插件 runtime=运行时插件（同时匹配package/wasm） package=打包运行时插件 wasm=WASM运行时插件，不传则查询全部" eg:"runtime"`
+	Type      string `json:"type" dc:"按插件类型筛选：source=源码插件 runtime=运行时插件，不传则查询全部；当前运行时插件实现仅支持WASM" eg:"runtime"`
 	Status    *int   `json:"status" dc:"按启用状态筛选：1=启用 0=禁用，不传则查询全部" eg:"1"`
 	Installed *int   `json:"installed" dc:"按安装状态筛选：1=已安装/已集成 0=未安装，不传则查询全部；源码插件默认视为已集成" eg:"1"`
 }
@@ -23,7 +23,7 @@ type PluginItem struct {
 	Id          string `json:"id" dc:"插件唯一标识" eg:"plugin-demo"`
 	Name        string `json:"name" dc:"插件名称" eg:"示例插件"`
 	Version     string `json:"version" dc:"插件版本号" eg:"0.1.0"`
-	Type        string `json:"type" dc:"插件形态：source=源码插件 package=打包运行时插件 wasm=WASM运行时插件" eg:"source"`
+	Type        string `json:"type" dc:"插件一级类型：source=源码插件 runtime=运行时插件；当前 runtime 类型由 WASM 运行时实现支撑" eg:"source"`
 	Entry       string `json:"entry" dc:"插件入口描述，可为路由、文件或模块标识" eg:"backend:plugins/{id}/summary"`
 	Description string `json:"description" dc:"插件描述" eg:"提供左侧菜单页面、前端 Slot 与公开/受保护路由示例的源码插件"`
 	Installed   int    `json:"installed" dc:"安装状态：1=已安装/已集成 0=未安装；源码插件默认返回1表示已随宿主集成" eg:"1"`

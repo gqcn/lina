@@ -1,16 +1,22 @@
 ## ADDED Requirements
 
 ### Requirement: 插件目录与清单契约统一
-系统 SHALL 为所有插件提供统一的目录结构与清单契约。源码插件 MUST 放置在 `apps/lina-plugins/<plugin-id>/` 目录下；运行时 `package` 与 `wasm` 插件 MUST 能解析出与源码插件等价的 manifest 信息。
+系统 SHALL 为所有插件提供统一的目录结构与清单契约。源码插件 MUST 放置在 `apps/lina-plugins/<plugin-id>/` 目录下；当前运行时 `wasm` 插件 MUST 能解析出与源码插件等价的 manifest 信息。
 
 #### Scenario: 发现源码插件目录
 - **WHEN** 宿主扫描 `apps/lina-plugins/` 下的插件目录
 - **THEN** 仅将包含合法清单文件的目录识别为插件
 - **AND** 每个插件的 `plugin-id` 在宿主范围内唯一
-- **AND** 清单中包含插件形态、前端接入模式、资源声明与宿主扩展声明
+- **AND** 清单中包含一级插件类型、前端接入模式、资源声明与宿主扩展声明
+
+#### Scenario: 清单一级类型只保留源码与运行时两类
+- **WHEN** 宿主解析 `plugin.yaml` 中的 `type`
+- **THEN** `type` 仅允许 `source` 或 `runtime`
+- **AND** 当前仅 `wasm` 作为运行时插件的产物语义，不再作为一级插件类型
+- **AND** 对历史上的 `wasm` 一级类型值，宿主在治理视角下统一按 `runtime` 处理
 
 #### Scenario: 安装运行时插件产物
-- **WHEN** 管理员上传一个 `package` 文件或单独的 `wasm` 文件安装插件
+- **WHEN** 管理员上传一个 `wasm` 文件安装运行时插件
 - **THEN** 宿主能够解析出与源码模式一致的插件标识、版本、兼容信息与资源清单
 - **AND** 对缺少必填 manifest 字段或版本不兼容的插件拒绝安装
 
@@ -35,7 +41,7 @@
 - **AND** 宿主后续同步不会覆盖管理员对该源码插件做出的显式禁用操作
 
 #### Scenario: 安装运行时插件
-- **WHEN** 管理员安装一个合法的 `package` 或 `wasm` 运行时插件
+- **WHEN** 管理员安装一个合法的 `wasm` 运行时插件
 - **THEN** 宿主创建插件安装记录与当前版本记录
 - **AND** 宿主按清单依次处理迁移、资源注册、权限接入与前后端装载准备
 - **AND** 插件在显式启用前不会对普通用户可见

@@ -1,4 +1,4 @@
-export type PluginType = 'package' | 'source' | 'wasm' | string;
+export type PluginType = 'runtime' | 'source' | string;
 
 export interface PluginListParams {
   pageNum?: number;

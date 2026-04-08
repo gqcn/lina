@@ -72,7 +72,7 @@ type PluginItem struct {
 type ListInput struct {
 	ID        string // plugin id filter
 	Name      string // plugin name filter
-	Type      string // plugin type filter: source/runtime/package/wasm
+	Type      string // plugin type filter: source/runtime
 	Status    *int   // plugin status filter
 	Installed *int   // install status filter
 }
@@ -123,13 +123,10 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 }
 
 func matchPluginType(actual string, expected string) bool {
-	actual = strings.TrimSpace(strings.ToLower(actual))
-	expected = strings.TrimSpace(strings.ToLower(expected))
+	actual = normalizePluginType(actual)
+	expected = normalizePluginType(expected)
 	if expected == "" {
 		return true
-	}
-	if expected == "runtime" {
-		return actual == "package" || actual == "wasm"
 	}
 	return actual == expected
 }
