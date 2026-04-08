@@ -77,8 +77,11 @@ apps/lina-plugins/
 1. `blocking` 表示回调在宿主当前流程内执行，可以阻塞宿主后续步骤。
 2. `async` 表示宿主将回调异步执行，插件回调不能再假设自己能阻塞当前主流程。
 3. 当前只有“事件触发”类后端扩展点支持 `async`；“注册触发”类点位出于一致性和正确性要求，仅支持 `blocking`。
-4. 宿主传入插件的 `HookPayload`、`AfterAuthInput`、`RouteRegistrars`、`CronRegistrar`、`MenuDescriptor`、`PermissionDescriptor` 都是接口对象，而不是宿主内部结构体指针。
+4. 宿主传入插件的 `HookPayload`、`AfterAuthInput`、`RouteRegistrar`、`CronRegistrar`、`MenuDescriptor`、`PermissionDescriptor` 都是接口对象，而不是宿主内部结构体指针。
 5. `CronRegistrar` 额外暴露 `IsPrimaryNode()`，插件可据此决定某些定时逻辑是否只在主节点执行。
+6. 插件 HTTP 路由注册使用宿主单独开放的无前缀插件路由根分组；插件可通过 `RouteRegistrar.Group(prefix, func(group *ghttp.RouterGroup) { ... })` 自行决定是否使用 `/api/v1` 等前缀。
+7. `RouteRegistrar.Middlewares()` 会公开宿主已发布的中间件目录；插件可按需组合 `NeverDoneCtx`、`HandlerResponse`、`CORS`、`Ctx`、`Auth`、`OperLog`，也可以与插件自定义中间件混用。
+8. 若同一插件需要同时暴露免鉴权和需鉴权接口，直接通过 `RouteRegistrar.Group(prefix, func(group *ghttp.RouterGroup) { ... })` 创建外层分组，再在组内按需拆分子分组和组合宿主中间件。
 
 ### 2. 推荐注册方式
 
@@ -121,6 +124,42 @@ func init() {
 }
 ```
 
+```go
+func registerRoutes(ctx context.Context, registrar pluginhost.RouteRegistrar) error {
+	if registrar == nil {
+		return nil
+	}
+
+	middlewares := registrar.Middlewares()
+	if middlewares == nil {
+		return nil
+	}
+
+	demoController := democtrl.NewV1()
+	registrar.Group("/api/v1", func(group *ghttp.RouterGroup) {
+		group.Middleware(
+			middlewares.NeverDoneCtx(),
+			middlewares.HandlerResponse(),
+			middlewares.CORS(),
+			middlewares.Ctx(),
+		)
+
+		group.Group("/", func(group *ghttp.RouterGroup) {
+			group.Bind(demoController.Ping)
+		})
+
+		group.Group("/", func(group *ghttp.RouterGroup) {
+			group.Middleware(
+				middlewares.Auth(),
+				middlewares.OperLog(),
+			)
+			group.Bind(demoController.Summary)
+		})
+	})
+	return nil
+}
+```
+
 约束如下：
 
 1. 事件 `Hook`、路由、定时任务、过滤器都通过回调注册，并显式声明执行模式。
@@ -128,6 +167,9 @@ func init() {
 3. 若插件需要只在主节点执行业务，可在 `CronRegistrar` 回调中通过 `IsPrimaryNode()` 做分支判断。
 4. 插件自有查询数据仍建议通过 `ResourceSpec` 暴露给宿主统一资源 API。
 5. 插件注册未知后端扩展点，或为某扩展点声明不支持的执行模式时，宿主会在注册阶段拒绝该声明。
+6. 宿主不再为插件 HTTP 路由隐式附加 `/api/v1` 等前缀；插件需自行声明目标路由前缀。
+7. `Group()` 回调中可继续使用原生 `group.Group()` 拆分子分组，因此同一插件可以像宿主主服务一样组织公开/受保护路由，并按需组合宿主中间件。
+8. 插件后端 `api/` 与 `controller/` 目录也必须遵循宿主 GoFrame 脚手架规范：`api/<module>/<module>.go + api/<module>/v1/*.go`，以及 `internal/controller/<module>/<module>.go + <module>_new.go + <module>_v1_*.go` 这类 `gf gen ctrl` 风格命名。
 
 ## 前端扩展点
 

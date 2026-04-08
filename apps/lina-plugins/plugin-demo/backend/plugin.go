@@ -4,14 +4,16 @@ import (
 	"context"
 
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/net/ghttp"
 
 	"lina-core/pkg/pluginhost"
-	democtrl "lina-plugin-demo/backend/controller/demo"
+	democtrl "lina-plugin-demo/backend/internal/controller/demo"
 )
 
 const (
 	pluginID                = "plugin-demo"
 	pluginAfterAuthHeader   = "X-Lina-Plugin-After-Auth"
+	pluginPingRoute         = "/plugins/plugin-demo/ping"
 	pluginSummaryRoute      = "/plugins/plugin-demo/summary"
 	pluginHeartbeatCronName = "plugin-demo-heartbeat"
 	pluginHeartbeatCronRule = "# * * * * *"
@@ -19,11 +21,6 @@ const (
 
 func init() {
 	plugin := pluginhost.NewSourcePlugin(pluginID)
-
-	// plugin-demo 只保留最小后端接入示例，聚焦展示：
-	// 1. 插件如何注册宿主路由；
-	// 2. 插件如何在鉴权完成后扩展响应；
-	// 3. 插件如何注册受宿主启停控制的定时任务。
 	plugin.RegisterAfterAuthHandler(
 		pluginhost.ExtensionPointHTTPRequestAfterAuth,
 		pluginhost.CallbackExecutionModeBlocking,
@@ -32,7 +29,7 @@ func init() {
 	plugin.RegisterRoutes(
 		pluginhost.ExtensionPointHTTPRouteRegister,
 		pluginhost.CallbackExecutionModeBlocking,
-		registerSummaryRoute,
+		registerRoutes,
 	)
 	plugin.RegisterCron(
 		pluginhost.ExtensionPointCronRegister,
@@ -53,18 +50,31 @@ func markAfterAuthRequest(ctx context.Context, input pluginhost.AfterAuthInput) 
 	return nil
 }
 
-// registerSummaryRoute exposes one lightweight protected route so the host can verify plugin route assembly.
-func registerSummaryRoute(
-	ctx context.Context,
-	registrars pluginhost.RouteRegistrars,
-) error {
-	if registrars == nil || registrars.Protected() == nil {
-		return nil
-	}
+func registerRoutes(ctx context.Context, registrar pluginhost.RouteRegistrar) error {
+	var (
+		middlewares    = registrar.Middlewares()
+		demoController = democtrl.NewV1()
+	)
+	registrar.Group("/api/v1", func(group *ghttp.RouterGroup) {
+		group.Middleware(
+			middlewares.NeverDoneCtx(),
+			middlewares.HandlerResponse(),
+			middlewares.CORS(),
+			middlewares.Ctx(),
+		)
 
-	registrars.Protected().Bind(democtrl.NewV1())
+		group.Group("/", func(group *ghttp.RouterGroup) {
+			group.Bind(demoController.Ping)
+		})
 
-	g.Log().Infof(ctx, "plugin-demo registered summary route: %s", pluginSummaryRoute)
+		group.Group("/", func(group *ghttp.RouterGroup) {
+			group.Middleware(
+				middlewares.Auth(),
+				middlewares.OperLog(),
+			)
+			group.Bind(demoController.Summary)
+		})
+	})
 	return nil
 }
 

@@ -35,10 +35,15 @@ plugin-demo/
 `backend/` 目录存放 `plugin-demo` 的后端 Go 源码实现。源码插件的后端能力以本目录的 Go 注册代码为准，而不是由 `plugin.yaml` 直接声明后端 API。
 
 - `backend/plugin.go` 在编译期注册插件订阅的宿主后端扩展点、HTTP 路由、鉴权后回调与定时任务。
-- 路由示例通过 `pluginhost.ExtensionPointHTTPRouteRegister` 注册 `GET /api/v1/plugins/plugin-demo/summary`。
+- `backend/api/demo` 与 `backend/internal/controller/demo` 目录命名遵循宿主现有 GoFrame `gf gen ctrl` 约定，保持接口定义和控制器文件命名风格一致。
+- 路由示例通过 `pluginhost.ExtensionPointHTTPRouteRegister` 获取宿主开放的无前缀插件路由根分组，并使用与宿主主服务一致的 `group.Group(..., func(group *ghttp.RouterGroup){ ... })` 风格注册：
+  - 外层 `registrars.Group("/api/v1", func(group *ghttp.RouterGroup) { ... })` 先挂基础中间件
+  - 内层匿名子分组 `group.Group("/", func(group *ghttp.RouterGroup) { group.Bind(demoController.Ping) })` 注册免鉴权 `GET /api/v1/plugins/plugin-demo/ping`
+  - 内层鉴权子分组 `group.Group("/", func(group *ghttp.RouterGroup) { group.Middleware(Auth, OperLog); group.Bind(demoController.Summary) })` 注册需鉴权 `GET /api/v1/plugins/plugin-demo/summary`
+- 这些分组都受插件启停控制，是否鉴权完全由插件自行选择是否组合宿主公开的 `Auth`、`OperLog` 等中间件决定。
 - 鉴权后回调示例通过 `pluginhost.ExtensionPointHTTPRequestAfterAuth` 为受保护请求追加响应头。
 - 定时任务示例通过 `pluginhost.ExtensionPointCronRegister` 注册受插件启停控制的任务，并可通过 `CronRegistrar.IsPrimaryNode()` 判断当前是否主节点。
-- 插件回调接收的 `AfterAuthInput`、`RouteRegistrars`、`CronRegistrar` 都是接口对象，避免插件与宿主内部结构体强耦合。
+- 插件回调接收的 `AfterAuthInput`、`RouteRegistrar`、`CronRegistrar` 都是接口对象，避免插件与宿主内部结构体强耦合。
 - `plugin-demo` 只演示最小源码插件接入，不承担数据库读写示例；宿主 `lina-core` 不再手写 `plugin-demo` 专属控制器、服务或路由逻辑。
 
 ## 前端实现

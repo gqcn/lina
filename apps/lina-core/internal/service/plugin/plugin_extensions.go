@@ -13,8 +13,8 @@ import (
 // RegisterHTTPRoutes registers callback-contributed HTTP routes for source plugins.
 func (s *Service) RegisterHTTPRoutes(
 	ctx context.Context,
-	publicGroup *ghttp.RouterGroup,
-	protectedGroup *ghttp.RouterGroup,
+	pluginGroup *ghttp.RouterGroup,
+	middlewares pluginhost.RouteMiddlewares,
 ) error {
 	manifests, err := s.scanPluginManifests()
 	if err != nil {
@@ -27,17 +27,17 @@ func (s *Service) RegisterHTTPRoutes(
 		if !ok {
 			continue
 		}
-		registrars := pluginhost.NewRouteRegistrars(
-			publicGroup,
-			protectedGroup,
+		registrar := pluginhost.NewRouteRegistrar(
+			pluginGroup,
 			manifest.ID,
 			checker,
+			middlewares,
 		)
 		for _, handler := range sourcePlugin.GetRouteRegistrars() {
 			if handler == nil || handler.Handler == nil {
 				continue
 			}
-			if err = handler.Handler(ctx, registrars); err != nil {
+			if err = handler.Handler(ctx, registrar); err != nil {
 				return err
 			}
 		}

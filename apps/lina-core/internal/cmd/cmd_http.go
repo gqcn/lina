@@ -74,11 +74,6 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	// =============================================================================================
 
 	s.Group("/api/v1", func(group *ghttp.RouterGroup) {
-		var (
-			publicGroup    *ghttp.RouterGroup
-			protectedGroup *ghttp.RouterGroup
-		)
-
 		group.Middleware(
 			ghttp.MiddlewareNeverDoneCtx,
 			ghttp.MiddlewareHandlerResponse,
@@ -106,7 +101,6 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 
 		// Public routes (no auth required)
 		group.Group("/", func(group *ghttp.RouterGroup) {
-			publicGroup = group
 			group.Bind(
 				authCtrl.Login,
 				pluginPublic,
@@ -115,7 +109,6 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 
 		// Protected routes (auth required)
 		group.Group("/", func(group *ghttp.RouterGroup) {
-			protectedGroup = group
 			group.Middleware(
 				middlewareSvc.Auth,
 				middlewareSvc.OperLog,
@@ -139,11 +132,15 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				pluginctrl.NewV1(),
 			)
 		})
-
-		if err = pluginSvc.RegisterHTTPRoutes(ctx, publicGroup, protectedGroup); err != nil {
-			g.Log().Panicf(ctx, "register plugin routes failed: %v", err)
-		}
 	})
+
+	var pluginGroup *ghttp.RouterGroup
+	s.Group("/", func(group *ghttp.RouterGroup) {
+		pluginGroup = group
+	})
+	if err = pluginSvc.RegisterHTTPRoutes(ctx, pluginGroup, middlewareSvc.PublishedRouteMiddlewares()); err != nil {
+		g.Log().Panicf(ctx, "register plugin routes failed: %v", err)
+	}
 
 	// =============================================================================================
 	// Static service for frontend assets.
@@ -170,7 +167,9 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		r.ExitAll()
 	})
 
-	if err = pluginSvc.DispatchHookEvent(ctx, pluginhost.ExtensionPointSystemStarted, map[string]interface{}{}); err != nil {
+	if err = pluginSvc.DispatchHookEvent(
+		ctx, pluginhost.ExtensionPointSystemStarted, map[string]any{},
+	); err != nil {
 		g.Log().Warningf(
 			ctx,
 			"dispatch plugin backend extension point failed point=%s err=%v",

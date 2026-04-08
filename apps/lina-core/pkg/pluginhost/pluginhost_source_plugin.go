@@ -126,7 +126,7 @@ type afterAuthInput struct {
 type AfterAuthHandler func(ctx context.Context, input AfterAuthInput) error
 
 // RouteRegisterHandler defines one callback that registers plugin-owned HTTP routes.
-type RouteRegisterHandler func(ctx context.Context, registrars RouteRegistrars) error
+type RouteRegisterHandler func(ctx context.Context, registrar RouteRegistrar) error
 
 // CronRegisterHandler defines one callback that registers plugin-owned cron jobs.
 type CronRegisterHandler func(ctx context.Context, registrar CronRegistrar) error

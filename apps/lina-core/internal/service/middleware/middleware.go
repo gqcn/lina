@@ -38,6 +38,22 @@ func (s *Service) SessionStore() session.Store {
 	return s.authSvc.SessionStore()
 }
 
+// PublishedRouteMiddlewares returns the published host middleware directory for plugin route composition.
+func (s *Service) PublishedRouteMiddlewares() pluginhost.RouteMiddlewares {
+	if s == nil {
+		return nil
+	}
+
+	return pluginhost.NewRouteMiddlewares(
+		ghttp.MiddlewareNeverDoneCtx,
+		ghttp.MiddlewareHandlerResponse,
+		s.CORS,
+		s.Ctx,
+		s.Auth,
+		s.OperLog,
+	)
+}
+
 // Ctx injects business context into request.
 func (s *Service) Ctx(r *ghttp.Request) {
 	customCtx := &model.Context{}

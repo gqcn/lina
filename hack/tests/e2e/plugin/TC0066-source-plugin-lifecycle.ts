@@ -107,6 +107,10 @@ async function fetchPluginSummary(adminApi: APIRequestContext) {
   return await adminApi.get(`plugins/${pluginID}/summary`);
 }
 
+async function fetchPluginPing(apiContext: APIRequestContext) {
+  return await apiContext.get(`plugins/${pluginID}/ping`);
+}
+
 function hasMenuName(list: UserMenuNode[], name: string): boolean {
   return list.some((item) => {
     if (item.name === name) {
@@ -238,6 +242,19 @@ test.describe("TC-66 源码插件生命周期", () => {
   }) => {
     await syncPlugins(adminApi!);
     await updatePluginStatus(adminApi!, pluginID, true);
+
+    const anonymousApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
+    const pingResponse = await fetchPluginPing(anonymousApi);
+    assertOk(pingResponse, "查询插件公开 ping 路由失败");
+    const pingPayload = unwrapApiData(await pingResponse.json());
+    expect(pingPayload?.message, "插件公开路由应允许匿名访问").toBe("pong");
+
+    const anonymousSummaryResponse = await fetchPluginSummary(anonymousApi);
+    expect(
+      anonymousSummaryResponse.status(),
+      "插件受保护摘要路由在未鉴权时应返回 401",
+    ).toBe(401);
+    await anonymousApi.dispose();
 
     const summaryResponse = await fetchPluginSummary(adminApi!);
     assertOk(summaryResponse, "查询插件摘要路由失败");

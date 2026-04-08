@@ -1,155 +1,117 @@
 package pluginhost
 
-import "github.com/gogf/gf/v2/net/ghttp"
+import (
+	"strings"
+
+	"github.com/gogf/gf/v2/net/ghttp"
+)
 
 // PluginEnabledChecker defines one host callback that reports whether a plugin is currently enabled.
 type PluginEnabledChecker func(pluginID string) bool
 
-// RouteHandler defines one plugin-owned HTTP handler.
-type RouteHandler = ghttp.HandlerFunc
+// RouteMiddleware defines one plugin-usable HTTP middleware.
+type RouteMiddleware = ghttp.HandlerFunc
 
-// RouteRegistrars exposes public and protected route registrars for one plugin.
-type RouteRegistrars interface {
-	// Public returns the public route registrar.
-	Public() RouteGroupRegistrar
-	// Protected returns the protected route registrar.
-	Protected() RouteGroupRegistrar
+// RouteMiddlewares exposes published host middlewares for plugin route composition.
+type RouteMiddlewares interface {
+	// NeverDoneCtx returns the host never-done context middleware.
+	NeverDoneCtx() RouteMiddleware
+	// HandlerResponse returns the host unified response middleware.
+	HandlerResponse() RouteMiddleware
+	// CORS returns the host CORS middleware.
+	CORS() RouteMiddleware
+	// Ctx returns the host business-context injection middleware.
+	Ctx() RouteMiddleware
+	// Auth returns the host JWT authentication middleware.
+	Auth() RouteMiddleware
+	// OperLog returns the host operation-log middleware.
+	OperLog() RouteMiddleware
 }
 
-// RouteGroupRegistrar exposes guarded route registration methods.
-type RouteGroupRegistrar interface {
-	// Bind registers one or more guarded handler objects using GoFrame object routing.
-	Bind(handlerOrObject ...interface{})
-	// GET registers one guarded GET route.
-	GET(pattern string, handler RouteHandler)
-	// POST registers one guarded POST route.
-	POST(pattern string, handler RouteHandler)
-	// PUT registers one guarded PUT route.
-	PUT(pattern string, handler RouteHandler)
-	// DELETE registers one guarded DELETE route.
-	DELETE(pattern string, handler RouteHandler)
-	// ALL registers one guarded all-method route.
-	ALL(pattern string, handler RouteHandler)
+// RouteRegistrar exposes plugin route group registration helpers for one plugin.
+type RouteRegistrar interface {
+	// Group registers one plugin route group bound to the dedicated plugin router root.
+	Group(prefix string, register func(group *ghttp.RouterGroup))
+	// Middlewares returns the published host middlewares available to plugins.
+	Middlewares() RouteMiddlewares
 }
 
-type routeRegistrars struct {
-	public    RouteGroupRegistrar
-	protected RouteGroupRegistrar
-}
-
-type routeGroup struct {
+type routeRegistrar struct {
 	group          *ghttp.RouterGroup
 	pluginID       string
 	enabledChecker PluginEnabledChecker
+	middlewares    RouteMiddlewares
 }
 
-// NewRouteRegistrars creates and returns a new RouteRegistrars instance.
-func NewRouteRegistrars(
-	publicGroup *ghttp.RouterGroup,
-	protectedGroup *ghttp.RouterGroup,
+type routeMiddlewares struct {
+	neverDoneCtx    RouteMiddleware
+	handlerResponse RouteMiddleware
+	cors            RouteMiddleware
+	ctx             RouteMiddleware
+	auth            RouteMiddleware
+	operLog         RouteMiddleware
+}
+
+// NewRouteMiddlewares creates and returns a new published host middleware directory for plugins.
+func NewRouteMiddlewares(
+	neverDoneCtx RouteMiddleware,
+	handlerResponse RouteMiddleware,
+	cors RouteMiddleware,
+	ctx RouteMiddleware,
+	auth RouteMiddleware,
+	operLog RouteMiddleware,
+) RouteMiddlewares {
+	return &routeMiddlewares{
+		neverDoneCtx:    neverDoneCtx,
+		handlerResponse: handlerResponse,
+		cors:            cors,
+		ctx:             ctx,
+		auth:            auth,
+		operLog:         operLog,
+	}
+}
+
+// NewRouteRegistrar creates and returns a new RouteRegistrar instance.
+func NewRouteRegistrar(
+	pluginGroup *ghttp.RouterGroup,
 	pluginID string,
 	enabledChecker PluginEnabledChecker,
-) RouteRegistrars {
-	return &routeRegistrars{
-		public: &routeGroup{
-			group:          publicGroup,
-			pluginID:       pluginID,
-			enabledChecker: enabledChecker,
-		},
-		protected: &routeGroup{
-			group:          protectedGroup,
-			pluginID:       pluginID,
-			enabledChecker: enabledChecker,
-		},
+	middlewares RouteMiddlewares,
+) RouteRegistrar {
+	return &routeRegistrar{
+		group:          pluginGroup,
+		pluginID:       pluginID,
+		enabledChecker: enabledChecker,
+		middlewares:    middlewares,
 	}
 }
 
-// Public returns the public route registrar.
-func (r *routeRegistrars) Public() RouteGroupRegistrar {
-	if r == nil {
-		return nil
-	}
-	return r.public
-}
-
-// Protected returns the protected route registrar.
-func (r *routeRegistrars) Protected() RouteGroupRegistrar {
-	if r == nil {
-		return nil
-	}
-	return r.protected
-}
-
-// GET registers one guarded GET route.
-func (r *routeGroup) GET(pattern string, handler RouteHandler) {
-	if r == nil || r.group == nil {
-		return
-	}
-	r.group.GET(pattern, r.wrap(handler))
-}
-
-// POST registers one guarded POST route.
-func (r *routeGroup) POST(pattern string, handler RouteHandler) {
-	if r == nil || r.group == nil {
-		return
-	}
-	r.group.POST(pattern, r.wrap(handler))
-}
-
-// PUT registers one guarded PUT route.
-func (r *routeGroup) PUT(pattern string, handler RouteHandler) {
-	if r == nil || r.group == nil {
-		return
-	}
-	r.group.PUT(pattern, r.wrap(handler))
-}
-
-// DELETE registers one guarded DELETE route.
-func (r *routeGroup) DELETE(pattern string, handler RouteHandler) {
-	if r == nil || r.group == nil {
-		return
-	}
-	r.group.DELETE(pattern, r.wrap(handler))
-}
-
-// ALL registers one guarded all-method route.
-func (r *routeGroup) ALL(pattern string, handler RouteHandler) {
-	if r == nil || r.group == nil {
-		return
-	}
-	r.group.ALL(pattern, r.wrap(handler))
-}
-
-func (r *routeGroup) wrap(handler RouteHandler) RouteHandler {
-	if handler == nil {
-		panic("pluginhost: route handler is nil")
-	}
-	return func(req *ghttp.Request) {
-		if !r.allow(req) {
-			return
-		}
-		handler(req)
-	}
-}
-
-// Bind registers one or more guarded handler objects using GoFrame object routing.
-func (r *routeGroup) Bind(handlerOrObject ...interface{}) {
-	if r == nil || r.group == nil || len(handlerOrObject) == 0 {
+// Group registers one plugin route group bound to the dedicated plugin router root.
+func (r *routeRegistrar) Group(prefix string, register func(group *ghttp.RouterGroup)) {
+	if r == nil || r.group == nil || register == nil {
 		return
 	}
 
-	r.group.Group("/", func(group *ghttp.RouterGroup) {
+	r.group.Group(normalizeRoutePrefix(prefix), func(group *ghttp.RouterGroup) {
 		group.Middleware(func(req *ghttp.Request) {
 			if !r.allow(req) {
 				return
 			}
 			req.Middleware.Next()
 		})
-		group.Bind(handlerOrObject...)
+		register(group)
 	})
 }
 
-func (r *routeGroup) allow(req *ghttp.Request) bool {
+// Middlewares returns the published host middlewares available to plugins.
+func (r *routeRegistrar) Middlewares() RouteMiddlewares {
+	if r == nil {
+		return nil
+	}
+	return r.middlewares
+}
+
+func (r *routeRegistrar) allow(req *ghttp.Request) bool {
 	if req == nil {
 		return false
 	}
@@ -159,4 +121,57 @@ func (r *routeGroup) allow(req *ghttp.Request) bool {
 		return false
 	}
 	return true
+}
+
+func (m *routeMiddlewares) NeverDoneCtx() RouteMiddleware {
+	if m == nil {
+		return nil
+	}
+	return m.neverDoneCtx
+}
+
+func (m *routeMiddlewares) HandlerResponse() RouteMiddleware {
+	if m == nil {
+		return nil
+	}
+	return m.handlerResponse
+}
+
+func (m *routeMiddlewares) CORS() RouteMiddleware {
+	if m == nil {
+		return nil
+	}
+	return m.cors
+}
+
+func (m *routeMiddlewares) Ctx() RouteMiddleware {
+	if m == nil {
+		return nil
+	}
+	return m.ctx
+}
+
+func (m *routeMiddlewares) Auth() RouteMiddleware {
+	if m == nil {
+		return nil
+	}
+	return m.auth
+}
+
+func (m *routeMiddlewares) OperLog() RouteMiddleware {
+	if m == nil {
+		return nil
+	}
+	return m.operLog
+}
+
+func normalizeRoutePrefix(prefix string) string {
+	trimmed := strings.TrimSpace(prefix)
+	if trimmed == "" || trimmed == "/" {
+		return "/"
+	}
+	if !strings.HasPrefix(trimmed, "/") {
+		trimmed = "/" + trimmed
+	}
+	return strings.TrimRight(trimmed, "/")
 }

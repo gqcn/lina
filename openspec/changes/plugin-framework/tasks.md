@@ -137,3 +137,10 @@
 - [x] **FB-55**: 让 `plugin-demo` 页面展示的一小部分内容来自插件后端接口，并将插件后端路由注册升级为与宿主一致的对象式 `Bind` 管理方式
 - [x] **FB-56**: 收敛 `plugin-demo` 摘要接口，只保留页面实际使用的 `message` 字段，并同步清理冗余 DTO、service 输出与 E2E 断言
 - [x] **FB-57**: 将 `plugin-demo` 后端新增对象式路由模块命名从 `example` 统一收敛为 `demo`，保持插件名与源码模块命名一致
+- [x] **FB-58**: 插件 HTTP 路由注册改为宿主独立无前缀分组，并向插件公开宿主可选中间件目录，由插件自行决定路由前缀与中间件组合
+- [x] **FB-59**: 明确并示范插件可拆分多个治理策略不同的路由分组进行注册，支持同一插件同时暴露免鉴权与需鉴权接口
+- [x] **FB-60**: 规范源码插件后端 `api/controller` 目录命名，要求与宿主 GoFrame `gf gen ctrl` 生成风格保持一致
+- [x] **FB-61**: 按 `gf gen ctrl` 实际生成结果重整 `plugin-demo` 控制器目录，拆分 public/protected API 模块并删除旧的手写控制器目录
+- [x] **FB-62**: 精简插件路由注册契约，移除 `Public/Protected` 封装分组，仅保留根分组与宿主已发布中间件目录供插件自行组合
+- [x] **FB-63**: 插件路由注册支持宿主同款 `group.Group(..., func(*ghttp.RouterGroup){...})` 风格，并将 `plugin-demo` 收敛回单一 `demo` API 模块，通过方法级绑定演示匿名与鉴权路由
+- [x] **FB-64**: 将插件路由注册输入对象 `RouteRegistrars` 收敛为单数命名 `RouteRegistrar`，并同步更新构造函数、调用点与开发文档

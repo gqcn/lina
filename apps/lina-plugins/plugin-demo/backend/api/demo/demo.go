@@ -1,3 +1,7 @@
+// =================================================================================
+// Code generated and maintained by GoFrame CLI tool. DO NOT EDIT.
+// =================================================================================
+
 package demo
 
 import (
@@ -6,8 +10,7 @@ import (
 	"lina-plugin-demo/backend/api/demo/v1"
 )
 
-// IDemoV1 defines plugin-demo demo APIs.
 type IDemoV1 interface {
-	// Summary returns one concise plugin summary for page rendering and route verification.
+	Ping(ctx context.Context, req *v1.PingReq) (res *v1.PingRes, err error)
 	Summary(ctx context.Context, req *v1.SummaryReq) (res *v1.SummaryRes, err error)
 }

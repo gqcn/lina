@@ -7,7 +7,7 @@ import (
 )
 
 // Summary returns one concise plugin summary for page rendering.
-func (c *ControllerV1) Summary(ctx context.Context, req *v1.SummaryReq) (res *v1.SummaryRes, err error) {
+func (c *ControllerV1) Summary(ctx context.Context, _ *v1.SummaryReq) (res *v1.SummaryRes, err error) {
 	out, err := c.demoSvc.Summary(ctx)
 	if err != nil {
 		return nil, err
