@@ -28,6 +28,7 @@ type PluginItem struct {
 	Entry       string `json:"entry" dc:"插件入口描述，可为路由、文件或模块标识" eg:"backend:plugins/{id}/summary"`
 	Description string `json:"description" dc:"插件描述" eg:"提供受保护路由、鉴权后回调与定时任务示例的源码插件"`
 	Installed   int    `json:"installed" dc:"安装状态：1=已安装/已集成 0=未安装；源码插件默认返回1表示已随宿主集成" eg:"1"`
+	InstalledAt string `json:"installedAt" dc:"插件安装或源码接入时间，未安装时返回空字符串" eg:"2026-01-01 12:00:00"`
 	Enabled     int    `json:"enabled" dc:"启用状态：1=启用 0=禁用" eg:"1"`
 	StatusKey   string `json:"statusKey" dc:"插件状态在系统插件注册表中的定位键名" eg:"sys_plugin.status:plugin-demo"`
 	UpdatedAt   string `json:"updatedAt" dc:"插件注册表最后更新时间" eg:"2026-01-01 12:00:00"`

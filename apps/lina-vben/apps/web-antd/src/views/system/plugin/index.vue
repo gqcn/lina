@@ -21,18 +21,6 @@ const typeColorMap: Record<string, string> = {
   source: 'blue',
 };
 
-const deliveryColorMap: Record<string, string> = {
-  package: 'green',
-  source: 'default',
-  wasm: 'purple',
-};
-
-const deliveryLabelMap: Record<string, string> = {
-  package: '打包发布',
-  source: '源码集成',
-  wasm: 'WASM 发布',
-};
-
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
     schema: [
@@ -92,20 +80,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
     columns: [
       { field: 'id', minWidth: 160, title: '插件标识' },
       { field: 'name', minWidth: 160, title: '插件名称' },
-      { field: 'type', slots: { default: 'type' }, title: '类型', width: 120 },
+      { field: 'type', slots: { default: 'type' }, title: '插件类型', width: 120 },
       { field: 'version', title: '版本', width: 120 },
-      {
-        field: 'runtime',
-        slots: { default: 'runtime' },
-        title: '交付方式',
-        width: 130,
-      },
-      {
-        field: 'installed',
-        slots: { default: 'installed' },
-        title: '接入态',
-        width: 120,
-      },
+      { field: 'description', minWidth: 260, title: '描述' },
       {
         field: 'enabled',
         slots: { default: 'enabled' },
@@ -119,9 +96,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
         title: '操作',
         width: 180,
       },
-      { field: 'entry', minWidth: 220, title: '入口' },
+      { field: 'installedAt', title: '安装时间', width: 180 },
       { field: 'updatedAt', title: '更新时间', width: 180 },
-      { field: 'description', minWidth: 260, title: '描述' },
     ],
     height: 'auto',
     keepSource: true,
@@ -155,27 +131,8 @@ function getPluginTypeColor(type: string) {
   return typeColorMap[type === 'source' ? 'source' : 'runtime'] || 'default';
 }
 
-function getPluginDeliveryLabel(runtime: string) {
-  return deliveryLabelMap[runtime] || runtime || '-';
-}
-
-function getPluginDeliveryColor(runtime: string) {
-  return deliveryColorMap[runtime] || 'default';
-}
-
-function getInstalledColor(installed: number) {
-  return installed === 1 ? 'success' : 'default';
-}
-
 function isSourcePlugin(row: SystemPlugin) {
   return row.type === 'source';
-}
-
-function getInstalledLabel(row: SystemPlugin) {
-  if (isSourcePlugin(row)) {
-    return '已集成';
-  }
-  return row.installed === 1 ? '已安装' : '未安装';
 }
 
 async function handleStatusChange(row: SystemPlugin, checked: boolean) {
@@ -228,18 +185,6 @@ async function handleSync() {
       <template #type="{ row }">
         <Tag :color="getPluginTypeColor(row.type)">
           {{ getPluginTypeLabel(row.type) }}
-        </Tag>
-      </template>
-
-      <template #runtime="{ row }">
-        <Tag :color="getPluginDeliveryColor(row.runtime)">
-          {{ getPluginDeliveryLabel(row.runtime) }}
-        </Tag>
-      </template>
-
-      <template #installed="{ row }">
-        <Tag :color="getInstalledColor(row.installed)">
-          {{ getInstalledLabel(row) }}
         </Tag>
       </template>
 

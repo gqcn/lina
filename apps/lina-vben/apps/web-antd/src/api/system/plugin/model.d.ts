@@ -19,6 +19,7 @@ export interface SystemPlugin {
   entry: string;
   description: string;
   installed: number;
+  installedAt: string;
   enabled: number;
   statusKey: string;
   updatedAt: string;

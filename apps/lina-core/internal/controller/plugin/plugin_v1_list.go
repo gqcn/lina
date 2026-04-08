@@ -31,6 +31,7 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListR
 			Entry:       item.Entry,
 			Description: item.Description,
 			Installed:   item.Installed,
+			InstalledAt: item.InstalledAt,
 			Enabled:     item.Enabled,
 			StatusKey:   item.StatusKey,
 			UpdatedAt:   item.UpdatedAt,

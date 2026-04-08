@@ -63,6 +63,7 @@ type PluginItem struct {
 	Entry       string // plugin entry
 	Description string // plugin description
 	Installed   int    // installed status: 1=installed, 0=not installed
+	InstalledAt string // install time or source integration time
 	Enabled     int    // enabled status: 1=enabled, 0=disabled
 	StatusKey   string // plugin status config key
 	UpdatedAt   string // registry updated time
@@ -204,6 +205,10 @@ func (s *Service) SyncAndList(ctx context.Context) (*ListOutput, error) {
 		if err != nil {
 			return nil, err
 		}
+		installedAt := ""
+		if registry.InstalledAt != nil {
+			installedAt = registry.InstalledAt.String()
+		}
 		updatedAt := ""
 		if registry.UpdatedAt != nil {
 			updatedAt = registry.UpdatedAt.String()
@@ -218,6 +223,7 @@ func (s *Service) SyncAndList(ctx context.Context) (*ListOutput, error) {
 			Entry:       manifest.Entry,
 			Description: manifest.Description,
 			Installed:   registry.Installed,
+			InstalledAt: installedAt,
 			Enabled:     registry.Status,
 			StatusKey:   s.buildPluginStatusKey(manifest.ID),
 			UpdatedAt:   updatedAt,

@@ -15,6 +15,12 @@ export class PluginPage {
     return this.page.getByRole("menu").first();
   }
 
+  tableColumn(title: string): Locator {
+    return this.page
+      .locator(".vxe-table--header .vxe-cell--title", { hasText: title })
+      .first();
+  }
+
   pluginRow(pluginId: string): Locator {
     return this.page.locator(".vxe-body--row", { hasText: pluginId }).first();
   }
@@ -29,10 +35,6 @@ export class PluginPage {
     return this.pluginRow(pluginId)
       .getByText(/卸\s*载/)
       .first();
-  }
-
-  pluginIntegratedTag(pluginId: string): Locator {
-    return this.pluginRow(pluginId).getByText("已集成").first();
   }
 
   pluginEnabledSwitch(pluginId: string): Locator {
@@ -191,6 +193,40 @@ export class PluginPage {
 
   async expectCrudSlotsHidden() {
     await expect(this.crudToolbarSlot()).toHaveCount(0);
+  }
+
+  async expectTableColumnVisible(title: string) {
+    await expect(this.tableColumn(title)).toBeVisible();
+  }
+
+  async expectTableColumnHidden(title: string) {
+    await expect(this.tableColumn(title)).toHaveCount(0);
+  }
+
+  async expectTableColumnBetween(
+    targetTitle: string,
+    previousTitle: string,
+    nextTitle: string,
+  ) {
+    const headerTitles = (await this.page
+      .locator(".vxe-table--header .vxe-cell--title")
+      .allTextContents())
+      .map((title) => title.trim())
+      .filter(Boolean);
+
+    const targetIndex = headerTitles.indexOf(targetTitle);
+    const previousIndex = headerTitles.indexOf(previousTitle);
+    const nextIndex = headerTitles.indexOf(nextTitle);
+
+    expect(targetIndex, `未找到列表列: ${targetTitle}`).toBeGreaterThanOrEqual(0);
+    expect(previousIndex, `未找到列表列: ${previousTitle}`).toBeGreaterThanOrEqual(0);
+    expect(nextIndex, `未找到列表列: ${nextTitle}`).toBeGreaterThanOrEqual(0);
+    expect(targetIndex, `${targetTitle} 应位于 ${previousTitle} 之后`).toBeGreaterThan(
+      previousIndex,
+    );
+    expect(targetIndex, `${targetTitle} 应位于 ${nextTitle} 之前`).toBeLessThan(
+      nextIndex,
+    );
   }
 
   async openSidebarExampleFromMenu() {

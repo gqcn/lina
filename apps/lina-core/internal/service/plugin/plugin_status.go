@@ -37,6 +37,7 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 		}
 		if manifest.Type == "source" {
 			data.Status = pluginStatusEnabled
+			data.InstalledAt = gtime.Now()
 			data.EnabledAt = gtime.Now()
 		}
 
@@ -57,6 +58,9 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 	}
 	if manifest.Type == "source" {
 		data.Installed = installedState
+		if existing.InstalledAt == nil {
+			data.InstalledAt = gtime.Now()
+		}
 		if shouldAutoEnableSourcePlugin(existing) {
 			data.Status = pluginStatusEnabled
 			data.EnabledAt = gtime.Now()

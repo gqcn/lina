@@ -21,6 +21,7 @@ type PluginListItem = {
   id: string;
   enabled?: number;
   installed?: number;
+  installedAt?: string;
   status?: number;
 };
 
@@ -199,6 +200,7 @@ test.describe("TC-66 源码插件生命周期", () => {
     expect(pluginAfterSync?.installed, "源码插件同步后应直接处于已集成态").toBe(
       1,
     );
+    expect(pluginAfterSync?.installedAt, "源码插件同步后应记录接入时间").toBeTruthy();
     expect(
       pluginAfterSync?.enabled ?? pluginAfterSync?.status,
       "源码插件首次同步后应默认启用",
@@ -211,11 +213,16 @@ test.describe("TC-66 源码插件生命周期", () => {
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
     await expect(pluginPage.pluginRow(pluginID)).toBeVisible();
-    await expect(pluginPage.pluginIntegratedTag(pluginID)).toBeVisible();
     await expect(pluginPage.pluginEnabledSwitch(pluginID)).toHaveAttribute(
       "aria-checked",
       "true",
     );
+    await pluginPage.expectTableColumnVisible("插件类型");
+    await pluginPage.expectTableColumnVisible("安装时间");
+    await pluginPage.expectTableColumnHidden("交付方式");
+    await pluginPage.expectTableColumnHidden("接入态");
+    await pluginPage.expectTableColumnHidden("入口");
+    await pluginPage.expectTableColumnBetween("描述", "版本", "状态");
     await expect(pluginPage.pluginInstallButton(pluginID)).toHaveCount(0);
     await expect(pluginPage.pluginUninstallButton(pluginID)).toHaveCount(0);
     await pluginPage.expectCrudSlotsVisible();
@@ -315,7 +322,11 @@ test.describe("TC-66 源码插件生命周期", () => {
     await loginAsAdmin(page);
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
-    await expect(pluginPage.pluginIntegratedTag(pluginID)).toBeVisible();
+    await expect(pluginPage.pluginRow(pluginID)).toBeVisible();
+    await expect(pluginPage.pluginEnabledSwitch(pluginID)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
     await expect(pluginPage.pluginInstallButton(pluginID)).toHaveCount(0);
     await expect(pluginPage.pluginUninstallButton(pluginID)).toHaveCount(0);
   });
