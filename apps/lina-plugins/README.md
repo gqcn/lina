@@ -92,30 +92,10 @@ import "lina-core/pkg/pluginhost"
 
 func init() {
 	plugin := pluginhost.NewSourcePlugin("plugin-demo")
-	plugin.RegisterHook(
-		pluginhost.ExtensionPointAuthLoginSucceeded,
-		pluginhost.CallbackExecutionModeBlocking,
-		writeAuditEvent,
-	)
-	plugin.RegisterHook(
-		pluginhost.ExtensionPointAuthLoginFailed,
-		pluginhost.CallbackExecutionModeAsync,
-		writeAuditEvent,
-	)
-	plugin.RegisterAfterAuthHandler(
-		pluginhost.ExtensionPointHTTPRequestAfterAuth,
-		pluginhost.CallbackExecutionModeBlocking,
-		markAfterAuthRequest,
-	)
 	plugin.RegisterRoutes(
 		pluginhost.ExtensionPointHTTPRouteRegister,
 		pluginhost.CallbackExecutionModeBlocking,
 		registerRoutes,
-	)
-	plugin.RegisterCron(
-		pluginhost.ExtensionPointCronRegister,
-		pluginhost.CallbackExecutionModeBlocking,
-		registerCrons,
 	)
 	plugin.RegisterResource(&pluginhost.ResourceSpec{
 		Key: "example-records",
@@ -123,6 +103,8 @@ func init() {
 	pluginhost.RegisterSourcePlugin(plugin)
 }
 ```
+
+`plugin-demo` 当前刻意只保留最小路由注册示例；若插件需要鉴权后回调、定时任务或事件 Hook，可按同样模式继续追加 `RegisterAfterAuthHandler`、`RegisterCron`、`RegisterHook`。
 
 ```go
 func registerRoutes(ctx context.Context, registrar pluginhost.RouteRegistrar) error {
@@ -218,7 +200,7 @@ export const pluginSlotMeta = {
 | 文件 | 作用 |
 |------|------|
 | `apps/lina-plugins/plugin-demo/plugin.yaml` | 插件元数据与资源索引 |
-| `apps/lina-plugins/plugin-demo/backend/plugin.go` | 后端`Route`、`After-Auth`、`Cron`与接口化回调注册示例 |
+| `apps/lina-plugins/plugin-demo/backend/plugin.go` | 后端 `Route` 与接口化回调注册示例 |
 | `apps/lina-plugins/plugin-demo/frontend/pages/sidebar-entry.vue` | 左侧菜单页面示例 |
 | `apps/lina-plugins/plugin-demo/frontend/slots/` | 多个前端`Slot`示例 |
 

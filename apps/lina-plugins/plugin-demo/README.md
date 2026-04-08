@@ -26,7 +26,7 @@ plugin-demo/
         001-plugin-demo.sql
 ```
 
-当前后端能力已支持把插件目录内的 Go 源码与宿主一起编译；`plugin-demo` 通过 `backend/plugin.go` 在编译期注册自己的后端扩展点回调，并统一使用 `pluginhost.ExtensionPoint* + pluginhost.CallbackExecutionMode*` 常量声明宿主安装点与执行模式。`plugin.yaml` 仅保留插件元数据、入口描述和资源索引，不再声明后端 API 列表。当前前端能力也已支持把插件目录内的 Vue 页面与 Slot 源码纳入宿主构建，由宿主在运行时装载。这是一阶段源码插件的最小接入方式，后续再演进到更完整的 runtime `package/wasm` 机制。
+当前后端能力已支持把插件目录内的 Go 源码与宿主一起编译；`plugin-demo` 通过 `backend/plugin.go` 在编译期注册最小化的后端路由回调示例，并统一使用 `pluginhost.ExtensionPoint* + pluginhost.CallbackExecutionMode*` 常量声明宿主安装点与执行模式。`plugin.yaml` 仅保留插件元数据、入口描述和资源索引，不再声明后端 API 列表。当前前端能力也已支持把插件目录内的 Vue 页面与 Slot 源码纳入宿主构建，由宿主在运行时装载。这是一阶段源码插件的最小接入方式，后续再演进到更完整的 runtime `package/wasm` 机制。
 
 插件插槽目录、类型化 Hook/Slot 常量与推荐接入方式，请优先参考宿主开发指南：`apps/lina-plugins/README.md`。
 
@@ -34,16 +34,14 @@ plugin-demo/
 
 `backend/` 目录存放 `plugin-demo` 的后端 Go 源码实现。源码插件的后端能力以本目录的 Go 注册代码为准，而不是由 `plugin.yaml` 直接声明后端 API。
 
-- `backend/plugin.go` 在编译期注册插件订阅的宿主后端扩展点、HTTP 路由、鉴权后回调与定时任务。
+- `backend/plugin.go` 在编译期注册插件订阅的宿主 HTTP 路由，是当前最小后端接入示例。
 - `backend/api/demo` 与 `backend/internal/controller/demo` 目录命名遵循宿主现有 GoFrame `gf gen ctrl` 约定，保持接口定义和控制器文件命名风格一致。
 - 路由示例通过 `pluginhost.ExtensionPointHTTPRouteRegister` 获取宿主开放的无前缀插件路由根分组，并使用与宿主主服务一致的 `group.Group(..., func(group *ghttp.RouterGroup){ ... })` 风格注册：
   - 外层 `registrars.Group("/api/v1", func(group *ghttp.RouterGroup) { ... })` 先挂基础中间件
   - 内层匿名子分组 `group.Group("/", func(group *ghttp.RouterGroup) { group.Bind(demoController.Ping) })` 注册免鉴权 `GET /api/v1/plugins/plugin-demo/ping`
   - 内层鉴权子分组 `group.Group("/", func(group *ghttp.RouterGroup) { group.Middleware(Auth, OperLog); group.Bind(demoController.Summary) })` 注册需鉴权 `GET /api/v1/plugins/plugin-demo/summary`
 - 这些分组都受插件启停控制，是否鉴权完全由插件自行选择是否组合宿主公开的 `Auth`、`OperLog` 等中间件决定。
-- 鉴权后回调示例通过 `pluginhost.ExtensionPointHTTPRequestAfterAuth` 为受保护请求追加响应头。
-- 定时任务示例通过 `pluginhost.ExtensionPointCronRegister` 注册受插件启停控制的任务，并可通过 `CronRegistrar.IsPrimaryNode()` 判断当前是否主节点。
-- 插件回调接收的 `AfterAuthInput`、`RouteRegistrar`、`CronRegistrar` 都是接口对象，避免插件与宿主内部结构体强耦合。
+- `RouteRegistrar` 等宿主暴露给插件的回调输入对象均为接口类型，避免插件与宿主内部结构体强耦合。
 - `plugin-demo` 只演示最小源码插件接入，不承担数据库读写示例；宿主 `lina-core` 不再手写 `plugin-demo` 专属控制器、服务或路由逻辑。
 
 ## 前端实现
@@ -72,4 +70,4 @@ plugin-demo/
 
 - 左侧主菜单入口“插件示例”，用于验证源码插件页面可被宿主菜单挂载。
 - 前端 Slot 示例覆盖 `auth.login.after`、`layout.header.actions.before`、`layout.header.actions.after`、`dashboard.workspace.before`、`dashboard.workspace.after`、`crud.toolbar.after`。
-- 后端示例仅保留摘要路由、鉴权后响应头与定时任务注册，用于验证最小回调注册式扩展点。
+- 后端示例仅保留一个公开 `ping` 路由和一个受保护 `summary` 路由，用于验证最小路由注册式扩展点与页面取数链路。

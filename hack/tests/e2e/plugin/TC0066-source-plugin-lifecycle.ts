@@ -11,7 +11,6 @@ import { PluginPage } from "../../pages/PluginPage";
 const apiBaseURL =
   process.env.E2E_API_BASE_URL ?? "http://127.0.0.1:8080/api/v1/";
 const pluginID = "plugin-demo";
-const pluginAfterAuthHeader = "x-lina-plugin-after-auth";
 const mysqlBin = process.env.E2E_MYSQL_BIN ?? "mysql";
 const mysqlUser = process.env.E2E_DB_USER ?? "root";
 const mysqlPassword = process.env.E2E_DB_PASSWORD ?? "12345678";
@@ -245,7 +244,7 @@ test.describe("TC-66 源码插件生命周期", () => {
     await pluginPage.openSidebarExampleFromMenu();
   });
 
-  test("TC-66c: 启用后可验证插件路由与鉴权后回调", async ({
+  test("TC-66c: 启用后可验证插件路由与鉴权访问控制", async ({
     page,
   }) => {
     await syncPlugins(adminApi!);
@@ -266,10 +265,6 @@ test.describe("TC-66 源码插件生命周期", () => {
 
     const summaryResponse = await fetchPluginSummary(adminApi!);
     assertOk(summaryResponse, "查询插件摘要路由失败");
-    expect(
-      summaryResponse.headers()[pluginAfterAuthHeader.toLowerCase()],
-      "鉴权后回调应向受保护请求追加插件响应头",
-    ).toBe(pluginID);
     const summaryPayload = unwrapApiData(await summaryResponse.json());
     expect(
       summaryPayload?.message,
