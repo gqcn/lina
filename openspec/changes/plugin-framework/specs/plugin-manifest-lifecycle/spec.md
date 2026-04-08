@@ -7,7 +7,13 @@
 - **WHEN** 宿主扫描 `apps/lina-plugins/` 下的插件目录
 - **THEN** 仅将包含合法清单文件的目录识别为插件
 - **AND** 每个插件的 `plugin-id` 在宿主范围内唯一
-- **AND** 清单中包含一级插件类型、前端接入模式、资源声明与宿主扩展声明
+- **AND** 清单仅需包含插件基础信息与一级插件类型
+
+#### Scenario: `plugin.yaml` 保持最小化基础元数据
+- **WHEN** 宿主解析 `plugin.yaml`
+- **THEN** 清单只要求 `id`、`name`、`version`、`type` 等基础字段
+- **AND** 宿主不再要求 `schemaVersion`、`compatibility`、`entry` 等扩展元数据
+- **AND** 菜单、权限、前端页面、`Slot` 和 SQL 文件位置优先按照目录与代码约定推导，而不是在清单中重复配置
 
 #### Scenario: 清单一级类型只保留源码与运行时两类
 - **WHEN** 宿主解析 `plugin.yaml` 中的 `type`
@@ -17,14 +23,8 @@
 
 #### Scenario: 安装运行时插件产物
 - **WHEN** 管理员上传一个 `wasm` 文件安装运行时插件
-- **THEN** 宿主能够解析出与源码模式一致的插件标识、版本、兼容信息与资源清单
-- **AND** 对缺少必填 manifest 字段或版本不兼容的插件拒绝安装
-
-#### Scenario: `plugin.yaml` 索引分文件资源声明
-- **WHEN** 一个插件需要声明 SQL、页面、Hook、资源接口或其他宿主治理资源
-- **THEN** 插件 MUST 以 `plugin.yaml` 作为统一入口清单声明这些资源文件的索引路径
-- **AND** 具体资源内容 SHOULD 放在独立的 `manifest/*.json|yaml` 文件中维护，而不是全部内联到 `plugin.yaml`
-- **AND** 宿主会校验这些索引路径的存在性与目录合法性
+- **THEN** 宿主能够解析出与源码模式一致的插件标识、名称、版本与一级插件类型
+- **AND** 对缺少这些基础字段的运行时插件拒绝安装
 
 ### Requirement: 插件生命周期状态机可治理
 系统 SHALL 为插件提供可审计的生命周期状态机，并按源码插件与运行时插件区分生命周期语义。
@@ -83,7 +83,7 @@
 - **AND** 同一个 release 的同一个迁移项不会被重复执行
 
 #### Scenario: 插件版本 SQL 命名与目录约束
-- **WHEN** 插件在 `manifest/sql/` 下声明安装阶段 SQL
+- **WHEN** 插件在 `manifest/sql/` 目录下提供安装阶段 SQL
 - **THEN** 安装 SQL 文件 MUST 使用与宿主一致的命名格式 `{序号}-{当前迭代名称}.sql`
 - **AND** 这些安装 SQL 文件 MUST 放在插件的 `manifest/sql/` 根目录下，供宿主按顺序扫描执行
 - **AND** 插件卸载 SQL MUST 独立放在 `manifest/sql/uninstall/` 目录下

@@ -1,132 +1,285 @@
-# Lina Plugins 开发指南
+# Lina 插件机制设计与开发指南
 
-`apps/lina-plugins/`用于承载`Lina`插件源码与插件开发文档。本文档面向插件开发者，说明插件的一级类型约束、源码插件目录约定、前后端插槽目录，以及推荐的类型化接入方式。
+`apps/lina-plugins/`既是当前插件机制的一期设计文档，也是后续插件开发时的统一参考入口。本文档只描述**仓库中已经落地的真实实现**，同时明确哪些内容仍属于后续规划，避免设计文档、代码实现和开发习惯之间出现偏差。
+
+## 文档定位
+
+本文档同时服务两类读者：
+
+- 插件开发者：需要按照当前约定创建、接入、调试和维护插件。
+- 人工 reviewer：需要快速确认某个插件是否符合当前插件框架的设计边界和接入规范。
+
+因此本文档的目标不是“讲概念”，而是回答以下问题：
+
+- 当前插件机制到底支持什么，不支持什么。
+- 一个新的源码插件应该放在哪里，哪些文件是必需的。
+- 宿主如何发现插件页面、`Slot`、SQL 和后端注册入口。
+- `plugin.yaml` 为什么保持最小化，以及哪些字段明确不允许再放进去。
+- 开发者在提交插件前应该自查哪些关键点。
+
+## 当前范围
+
+当前仓库已经落地的是**第一期：源码插件底座**。插件机制的能力边界如下：
+
+| 能力 | 当前状态 | 说明 |
+|------|------|------|
+| `source`源码插件 | 已实现 | 插件目录位于`apps/lina-plugins/<plugin-id>/`，随宿主一起编译、打包和交付 |
+| `runtime`运行时插件 | 规划中 | 当前数据库、接口和规格中保留了治理入口，但完整安装链路尚未交付 |
+| 插件管理页 | 已实现 | 支持源码插件同步、启用、禁用与治理联动 |
+| 后端扩展点 | 已实现 | 通过`pluginhost`发布的回调式扩展点接入 |
+| 前端页面接入 | 已实现 | 扫描`frontend/pages/**/*.vue`并挂到宿主运行时页 |
+| 前端`Slot`接入 | 已实现 | 扫描`frontend/slots/**/*.vue`并挂到宿主公开插槽 |
+| 插件安装 SQL | 已实现 | 通过`manifest/sql/*.sql`目录约定发现 |
+| 插件卸载 SQL | 已实现 | 通过`manifest/sql/uninstall/*.sql`目录约定发现 |
+| 脚手架脚本 | 未提供 | 当前不再提供`hack/plugin`下的脚本，避免生成物与真实实现脱节 |
+
+## 设计原则
+
+当前插件机制遵循以下原则：
+
+### 约定优于配置
+
+- 前端页面位置、前端`Slot`位置、安装 SQL 和卸载 SQL 都通过固定目录约定发现。
+- `plugin.yaml` 不再重复声明这些信息，避免同一份事实在多个位置维护。
+
+### 单一真相源
+
+- 菜单、权限和父子关系以 SQL 为单一真相源。
+- 后端扩展能力以插件代码注册为单一真相源。
+- 前端页面和`Slot`以真实源码文件为单一真相源。
+
+### 显式接线
+
+- 当前源码插件的后端接线方式不是脚本生成，也不是隐式自动装配。
+- 开发者需要显式维护`apps/lina-plugins/lina-plugins.go`，让宿主编译期导入插件后端包。
+- 这样做的目的是让接线关系清晰、可 grep、可 review、可追踪。
+
+### 设计与实现一致
+
+- 文档中不再保留已经移除的元数据模型和自动化脚本描述。
+- 对未来能力的描述会明确标注为“规划中”，不能和“已实现”混写。
 
 ## 插件类型
 
-当前插件一级类型只保留两种：
+当前插件一级类型只保留两类：
 
-| 类型 | 含义 | 说明 |
+| 类型 | 含义 | 当前状态 |
 |------|------|------|
-| `source` | 源码插件 | 放在`apps/lina-plugins/<plugin-id>/`下，随宿主一起编译和交付 |
-| `runtime` | 运行时插件 | 运行时安装与治理；当前仅支持`wasm`产物 |
+| `source` | 源码插件，目录在`apps/lina-plugins/<plugin-id>/` | 已实现 |
+| `runtime` | 运行时插件，面向后续热安装与热升级 | 规划中 |
+
+重要说明：
+
+- 当前虽然规格中保留了`runtime`类型，但仓库真正已经闭环验证的是`source`源码插件。
+- 历史上把`wasm`当一级类型的设计已经收敛掉了。当前治理视角只区分`source`和`runtime`。
+- 如果当前要开发新插件，默认应按照`source`源码插件方式开发。
+
+## 源码插件生命周期
+
+源码插件和运行时插件的生命周期语义并不相同。源码插件当前遵循下表：
+
+| 动作 | 源码插件行为 |
+|------|------|
+| 发现 | 宿主扫描`apps/lina-plugins/*/plugin.yaml`识别插件 |
+| 同步 | 宿主同步`sys_plugin`记录，保持插件列表和实际目录一致 |
+| 安装 | 不提供。源码插件视为随宿主编译即已集成 |
+| 卸载 | 不提供。移除源码插件需要修改源码目录和注册关系后重新构建 |
+| 启用 | 已支持。启用后路由、菜单、页面和`Slot`恢复生效 |
+| 禁用 | 已支持。禁用后路由、菜单、页面和`Slot`隐藏或拒绝访问 |
+
+这意味着：
+
+- 插件管理页中，源码插件不应出现“安装”“卸载”按钮。
+- 新增一个源码插件后，如果目录、清单和注册关系都正确，宿主同步后会把它视为已集成插件。
+- 禁用插件不会删除已有业务数据；重新启用后，应能恢复原有治理关系。
 
 ## 目录结构
 
-当前源码插件统一放在`apps/lina-plugins/<plugin-id>/`下，推荐结构如下：
+当前源码插件统一放在`apps/lina-plugins/<plugin-id>/`下。推荐目录如下：
 
 ```text
 apps/lina-plugins/
   README.md
+  lina-plugins.go
   <plugin-id>/
+    go.mod
     plugin.yaml
+    README.md
     backend/
       plugin.go
+      api/
+      internal/
+        controller/
+      service/
     frontend/
-      pages/*.vue
-      slots/**/*.vue
+      pages/
+        *.vue
+      slots/
+        <slot-key>/
+          *.vue
     manifest/
       sql/
-        001-<plugin-name>.sql
+        001-<iteration-name>.sql
         uninstall/
-          001-<plugin-name>.sql
+          001-<iteration-name>.sql
 ```
 
-关键约束如下：
+各目录职责如下：
 
-| 项目 | 约束                             |
-|------|--------------------------------|
-| `plugin.yaml` | 维护插件元数据、一级类型、资源索引与前端接入提示       |
-| `backend/plugin.go` | 使用`Go`代码通过回调注册源码插件的后端扩展点与资源能力    |
-| `frontend/pages/` | 提供插件页面源码，交由宿主运行时页装载                |
-| `frontend/slots/` | 提供插件`Slot`源码，交由宿主公开扩展点装载             |
-| `manifest/sql/` | 存放安装`SQL`，命名遵循`{序号}-{当前迭代名称}.sql` |
-| `manifest/sql/uninstall/` | 存放卸载`SQL`，避免被宿主初始化流程误扫           |
+| 路径 | 作用 | 是否必需 |
+|------|------|------|
+| `apps/lina-plugins/lina-plugins.go` | 宿主源码插件后端导入注册表 | 是 |
+| `<plugin-id>/go.mod` | 插件独立 Go 模块声明 | `source`插件必需 |
+| `<plugin-id>/plugin.yaml` | 插件最小元数据清单 | 是 |
+| `<plugin-id>/README.md` | 插件自身说明文档 | 强烈建议 |
+| `<plugin-id>/backend/plugin.go` | 插件后端注册入口 | `source`插件必需 |
+| `<plugin-id>/backend/api/` | 插件 API 定义 | 按需 |
+| `<plugin-id>/backend/internal/controller/` | 插件控制器实现 | 按需 |
+| `<plugin-id>/backend/service/` | 插件服务层实现 | 按需 |
+| `<plugin-id>/frontend/pages/` | 插件页面源码目录 | 有页面时必需 |
+| `<plugin-id>/frontend/slots/` | 插件`Slot`源码目录 | 有`Slot`时必需 |
+| `<plugin-id>/manifest/sql/` | 插件安装 SQL 目录 | 有安装 SQL 时必需 |
+| `<plugin-id>/manifest/sql/uninstall/` | 插件卸载 SQL 目录 | 有卸载 SQL 时必需 |
 
-## 扩展点模型
+## `plugin.yaml`
 
-`Lina`中的“插件可安装位置”分为两类：
+### 设计目标
 
-| 类别 | 含义 | 类型定义位置 |
-|------|------|-------------|
-| 后端扩展点 | 宿主主服务上公开的类型化回调注册点 | `apps/lina-core/pkg/pluginhost/pluginhost_slots.go` |
-| 前端扩展点 | 宿主公开`UI`容器上的内容插入点 | `apps/lina-vben/apps/web-antd/src/plugins/plugin-slots.ts` |
+当前`plugin.yaml`故意保持最小化。它的职责只有两类：
 
-插件开发时必须直接引用这些类型定义，不能在插件代码里硬编码扩展点字符串。
+- 声明“这个目录是一个插件”。
+- 提供插件在治理侧展示和校验所需的基础身份信息。
 
-## 后端扩展点
+它**不再负责**：
 
-当前源码插件后端以**回调注册**为统一模型。事件型 `Hook` 与路由/鉴权后回调/定时任务/过滤器，本质上都属于“插件向宿主某个已发布后端扩展点注册回调函数”：
+- 声明页面入口。
+- 声明前端`Slot`。
+- 声明 SQL 文件列表。
+- 声明菜单前缀、权限前缀或菜单结构。
+- 声明宿主兼容矩阵、脚本入口、打包入口。
 
-- 扩展点常量统一使用 `pluginhost.ExtensionPoint*`
-- 回调执行模式统一使用 `pluginhost.CallbackExecutionMode*`
-- 插件和宿主都不应硬编码 `auth.login.succeeded`、`http.route.register` 这类裸字符串
-- 对插件开发者而言，只需要理解“选择一个 `ExtensionPoint`，再注册一个带执行模式的回调函数”；事件触发和注册触发只是宿主内部的触发语义区别
+### 推荐示例
 
-### 后端扩展点目录概览
+```yaml
+id: plugin-demo
+name: 示例插件
+version: v0.1.0
+type: source
+description: 提供插件扫描、状态管理、左侧菜单页面、前端 Slot 与公开/受保护路由示例的源码插件
+author: lina-team
+homepage: https://example.com/lina/plugins/plugin-demo
+license: Apache-2.0
+```
 
-| Go 常量 | Canonical 值 | 触发语义 | 支持模式 | 常见用途 |
-|------|------|------|------|------|
-| `ExtensionPointAuthLoginSucceeded` | `auth.login.succeeded` | 事件触发 | `blocking`,`async` | 登录审计、登录后初始化 |
-| `ExtensionPointAuthLoginFailed` | `auth.login.failed` | 事件触发 | `blocking`,`async` | 失败审计、风控记录 |
-| `ExtensionPointAuthLogoutSucceeded` | `auth.logout.succeeded` | 事件触发 | `blocking`,`async` | 会话回收、退出审计 |
-| `ExtensionPointSystemStarted` | `system.started` | 事件触发 | `blocking`,`async` | 启动预热、自检、注册 |
-| `ExtensionPointPluginInstalled` | `plugin.installed` | 事件触发 | `blocking`,`async` | 插件自初始化 |
-| `ExtensionPointPluginEnabled` | `plugin.enabled` | 事件触发 | `blocking`,`async` | 启用后补偿逻辑 |
-| `ExtensionPointPluginDisabled` | `plugin.disabled` | 事件触发 | `blocking`,`async` | 禁用后清理逻辑 |
-| `ExtensionPointPluginUninstalled` | `plugin.uninstalled` | 事件触发 | `blocking`,`async` | 卸载回收逻辑 |
-| `ExtensionPointHTTPRouteRegister` | `http.route.register` | 注册触发 | `blocking` | 注册插件自有 API |
-| `ExtensionPointHTTPRequestAfterAuth` | `http.request.after-auth` | 注册触发 | `blocking` | 鉴权后补充响应头、请求上下文处理 |
-| `ExtensionPointCronRegister` | `cron.register` | 注册触发 | `blocking` | 注册插件定时任务 |
-| `ExtensionPointMenuFilter` | `menu.filter` | 注册触发 | `blocking` | 对宿主菜单进行可见性过滤 |
-| `ExtensionPointPermissionFilter` | `permission.filter` | 注册触发 | `blocking` | 对宿主权限进行可见性过滤 |
+### 字段说明
 
-说明：
+| 字段 | 是否必填 | 说明 |
+|------|------|------|
+| `id` | 是 | 插件稳定标识，必须使用`kebab-case`，且在宿主范围内唯一 |
+| `name` | 是 | 插件显示名称 |
+| `version` | 是 | 插件版本号，必须使用`semver`格式；本文档示例统一使用带`v`前缀的写法 |
+| `type` | 是 | 当前仅允许`source`或`runtime` |
+| `description` | 否 | 插件简要描述，建议明确功能边界 |
+| `author` | 否 | 插件作者或团队标识 |
+| `homepage` | 否 | 插件主页或项目地址 |
+| `license` | 否 | 插件许可信息 |
 
-1. `blocking` 表示回调在宿主当前流程内执行，可以阻塞宿主后续步骤。
-2. `async` 表示宿主将回调异步执行，插件回调不能再假设自己能阻塞当前主流程。
-3. 当前只有“事件触发”类后端扩展点支持 `async`；“注册触发”类点位出于一致性和正确性要求，仅支持 `blocking`。
-4. 宿主传入插件的 `HookPayload`、`AfterAuthInput`、`RouteRegistrar`、`CronRegistrar`、`MenuDescriptor`、`PermissionDescriptor` 都是接口对象，而不是宿主内部结构体指针。
-5. `CronRegistrar` 额外暴露 `IsPrimaryNode()`，如果在分布式部署场景下，插件可据此决定某些定时逻辑是否只在主节点执行。
-6. 插件`HTTP`路由注册使用宿主单独开放的无前缀插件路由根分组；插件可通过 `RouteRegistrar.Group(prefix, func(group *ghttp.RouterGroup) { ... })` 自行决定是否使用 `/api/v1` 等前缀。
-7. `RouteRegistrar.Middlewares()` 会公开宿主已发布的中间件目录；插件可按需组合 `NeverDoneCtx`、`HandlerResponse`、`CORS`、`Ctx`、`Auth`、`OperLog`等中间件，也可以与插件自定义中间件混用。
-8. 若同一插件需要同时暴露免鉴权和需鉴权接口，直接通过 `RouteRegistrar.Group(prefix, func(group *ghttp.RouterGroup) { ... })` 创建外层分组，再在组内按需拆分子分组和组合宿主中间件。
+### 宿主校验规则
 
-### 推荐注册方式
+宿主当前会对`plugin.yaml`做以下校验：
+
+| 校验项 | 规则 |
+|------|------|
+| `id` 非空 | 缺失则判定清单非法 |
+| `id` 格式 | 必须匹配`^[a-z0-9]+(?:-[a-z0-9]+)*$` |
+| `id` 唯一性 | 不允许两个插件目录使用同一个`id` |
+| `name` 非空 | 缺失则判定清单非法 |
+| `version` 非空 | 缺失则判定清单非法 |
+| `version` 格式 | 必须满足`semver`格式，例如`v0.1.0`；宿主当前同时兼容不带`v`前缀的写法 |
+| `type` 合法性 | 仅允许`source`或`runtime` |
+| `source`目录完整性 | `source`插件必须存在`go.mod`和`backend/plugin.go` |
+
+### 明确不再允许的字段
+
+以下字段已经被当前设计明确淘汰，不应再写入`plugin.yaml`：
+
+- `schemaVersion`
+- `compatibility`
+- `entry`
+- `capabilities`
+- `resources`
+- `metadata`
+
+这些字段被移除的原因是它们会把以下信息重复建模：
+
+- SQL 文件路径，本来就可以从固定目录推导。
+- 前端页面和`Slot`文件，本来就可以从真实源码目录推导。
+- 菜单和权限信息，本来就应该以 SQL 为真相源。
+- 路由和扩展点接入，本来就应该以插件代码注册为真相源。
+
+## 后端接入
+
+### 总体模型
+
+源码插件的后端接入是“插件目录内实现 + `pluginhost`注册 + 宿主显式导入”三段式模型：
+
+1. 插件在`backend/plugin.go`里创建并注册`SourcePlugin`。
+2. 插件通过`pluginhost`向宿主注册路由、Hook、过滤器等回调。
+3. 宿主通过`apps/lina-plugins/lina-plugins.go`匿名导入插件后端包，让其`init()`逻辑参与宿主编译产物。
+
+### 宿主导入注册表
+
+当前导入注册表文件是：
+
+```go
+package linaplugins
+
+import (
+	_ "lina-plugin-demo/backend"
+)
+```
+
+新增插件时，开发者需要手工追加匿名导入，例如：
+
+```go
+package linaplugins
+
+import (
+	_ "lina-plugin-demo/backend"
+	_ "lina-plugin-foo/backend"
+)
+```
+
+这是当前源码插件后端接入的**唯一显式接线点**。
+
+### `backend/plugin.go` 最小示例
 
 ```go
 package backend
 
-import "lina-core/pkg/pluginhost"
+import (
+	"context"
+
+	"github.com/gogf/gf/v2/net/ghttp"
+
+	"lina-core/pkg/pluginhost"
+)
+
+const pluginID = "plugin-demo"
 
 func init() {
-	plugin := pluginhost.NewSourcePlugin("plugin-demo")
+	plugin := pluginhost.NewSourcePlugin(pluginID)
 	plugin.RegisterRoutes(
 		pluginhost.ExtensionPointHTTPRouteRegister,
 		pluginhost.CallbackExecutionModeBlocking,
 		registerRoutes,
 	)
-	plugin.RegisterResource(&pluginhost.ResourceSpec{
-		Key: "example-records",
-	})
 	pluginhost.RegisterSourcePlugin(plugin)
 }
-```
 
-`plugin-demo` 当前刻意只保留最小路由注册示例；若插件需要鉴权后回调、定时任务或事件`Hook`，可按同样模式继续追加 `RegisterAfterAuthHandler`、`RegisterCron`、`RegisterHook`。
-
-```go
 func registerRoutes(ctx context.Context, registrar pluginhost.RouteRegistrar) error {
-	if registrar == nil {
-		return nil
-	}
-
 	middlewares := registrar.Middlewares()
-	if middlewares == nil {
-		return nil
-	}
 
-	demoController := democtrl.NewV1()
 	registrar.Group("/api/v1", func(group *ghttp.RouterGroup) {
 		group.Middleware(
 			middlewares.NeverDoneCtx(),
@@ -134,48 +287,161 @@ func registerRoutes(ctx context.Context, registrar pluginhost.RouteRegistrar) er
 			middlewares.CORS(),
 			middlewares.Ctx(),
 		)
-
-		group.Group("/", func(group *ghttp.RouterGroup) {
-			group.Bind(demoController.Ping)
-		})
-
-		group.Group("/", func(group *ghttp.RouterGroup) {
-			group.Middleware(
-				middlewares.Auth(),
-				middlewares.OperLog(),
-			)
-			group.Bind(demoController.Summary)
-		})
 	})
 	return nil
 }
 ```
 
-约束如下：
+### 当前已发布的后端扩展点
 
-1. 事件 `Hook`、路由、定时任务、过滤器都通过回调注册，并显式声明执行模式。
-2. 宿主传入插件的对象型参数统一使用接口抽象，插件只依赖宿主公开方法，不依赖宿主内部结构体。
-3. 若插件需要只在主节点执行业务，可在 `CronRegistrar` 回调中通过 `IsPrimaryNode()` 做分支判断。
-4. 插件自有查询数据仍建议通过 `ResourceSpec` 暴露给宿主统一资源 API。
-5. 插件注册未知后端扩展点，或为某扩展点声明不支持的执行模式时，宿主会在注册阶段拒绝该声明。
-6. 宿主不为插件`HTTP`路由隐式附加 `/api/v1` 等前缀；插件需自行声明目标路由前缀。
-7. `Group()` 回调中可继续使用原生 `group.Group()` 拆分子分组，因此同一插件可以像宿主主服务一样组织公开/受保护路由，并按需组合宿主中间件。
-8. 插件后端 `api/` 与 `controller/` 目录也必须遵循宿主 GoFrame 脚手架规范：`api/<module>/<module>.go + api/<module>/v1/*.go`，以及 `internal/controller/<module>/<module>.go + <module>_new.go + <module>_v1_*.go` 这类 `gf gen ctrl` 风格命名。
+宿主当前已经正式发布的后端扩展点如下：
 
-## 前端扩展点
+| Go 常量 | Canonical 值 | 类型 | 支持模式 |
+|------|------|------|------|
+| `ExtensionPointAuthLoginSucceeded` | `auth.login.succeeded` | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointAuthLoginFailed` | `auth.login.failed` | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointAuthLogoutSucceeded` | `auth.logout.succeeded` | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointPluginInstalled` | `plugin.installed` | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointPluginEnabled` | `plugin.enabled` | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointPluginDisabled` | `plugin.disabled` | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointPluginUninstalled` | `plugin.uninstalled` | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointSystemStarted` | `system.started` | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointHTTPRouteRegister` | `http.route.register` | 注册点 | `blocking` |
+| `ExtensionPointHTTPRequestAfterAuth` | `http.request.after-auth` | 注册点 | `blocking` |
+| `ExtensionPointCronRegister` | `cron.register` | 注册点 | `blocking` |
+| `ExtensionPointMenuFilter` | `menu.filter` | 注册点 | `blocking` |
+| `ExtensionPointPermissionFilter` | `permission.filter` | 注册点 | `blocking` |
 
-| 扩展点 | 宿主位置 | 推荐内容 |
-|------|---------|---------|
-| `auth.login.after` | 登录页表单下方 | 提示信息、轻量入口 |
-| `layout.header.actions.before` | 头部动作区前置 | 全局状态、全局入口 |
-| `layout.header.actions.after` | 头部动作区后置 | 快捷入口、状态提示 |
-| `layout.user-dropdown.after` | 后台右上角用户菜单左侧 | 轻量入口、状态提示、快捷操作 |
-| `dashboard.workspace.before` | 工作台主内容区顶部 | 横幅、概览块、提醒 |
-| `dashboard.workspace.after` | 工作台主内容区底部 | 卡片、统计块、快捷入口 |
-| `crud.toolbar.after` | 通用`CRUD`工具栏右侧 | 状态标签、快捷操作 |
-| `crud.table.after` | 通用`CRUD`表格区域下方 | 说明卡片、辅助面板 |
+开发约束：
 
-前端源码插件应当从宿主前端导出的扩展点常量中引用合法位置：
+- 事件 Hook 可以使用`blocking`或`async`。
+- 注册式扩展点当前只允许`blocking`。
+- 如果为扩展点声明了不支持的执行模式，宿主会在注册阶段拒绝。
+
+### `RouteRegistrar` 能力
+
+插件路由注册当前通过`RouteRegistrar`完成。它提供两类能力：
+
+| 能力 | 说明 |
+|------|------|
+| `Group(prefix, fn)` | 在宿主插件路由根分组下创建路由分组 |
+| `Middlewares()` | 获取宿主已发布的中间件目录 |
+
+当前可供插件组合的宿主中间件包括：
+
+- `NeverDoneCtx()`
+- `HandlerResponse()`
+- `CORS()`
+- `Ctx()`
+- `Auth()`
+- `OperLog()`
+
+重要语义：
+
+- 插件路由本身受插件启停状态保护。插件被禁用后，宿主会在路由入口处直接拒绝访问。
+- 宿主不会为插件自动追加固定前缀。插件自己决定是否挂到`/api/v1`或其他前缀下。
+- 同一个插件可以在一次注册中拆分多个分组，分别挂载匿名和鉴权路由。
+
+### `CronRegistrar` 能力
+
+如果插件需要注册定时任务，可以使用`RegisterCron`和`CronRegistrar`：
+
+| 能力 | 说明 |
+|------|------|
+| `Add(ctx, pattern, name, handler)` | 注册一个受插件启停保护的定时任务 |
+| `IsPrimaryNode()` | 返回当前节点是否为主节点 |
+
+建议：
+
+- 如果任务只应该在主节点执行，插件应自行在回调内通过`IsPrimaryNode()`做判断。
+- 定时任务的业务逻辑应放在插件自己的服务层，不要把大段业务逻辑堆在注册回调里。
+
+### 插件后端资源声明
+
+当前源码插件仍支持通过`RegisterResource`声明后端资源，以便复用宿主通用资源查询接口：
+
+- 资源声明在插件代码中完成，而不是在`plugin.yaml`中配置。
+- 资源查询统一走宿主的`GET /plugins/{id}/resources/{resource}`契约。
+
+如果插件不需要暴露这类统一资源接口，可以完全不注册。
+
+## 前端页面接入
+
+### 目录约定
+
+插件页面统一放在：
+
+```text
+frontend/pages/**/*.vue
+```
+
+宿主构建时会扫描这些页面源码，并将其挂载到插件运行时页面容器中。
+
+### `pluginPageMeta`
+
+页面文件可以通过导出`pluginPageMeta`提供显式元数据，例如：
+
+```vue
+<script lang="ts">
+export const pluginPageMeta = {
+  routePath: 'plugin-demo-sidebar-entry',
+  title: '插件示例',
+};
+</script>
+```
+
+当前支持的页面元数据字段如下：
+
+| 字段 | 是否必填 | 说明 |
+|------|------|------|
+| `pluginId` | 否 | 不传时默认从文件路径推导 |
+| `routePath` | 否 | 不传时宿主会根据文件路径自动推导 |
+| `title` | 否 | 不传时默认使用`routePath` |
+
+### 默认路由推导规则
+
+如果页面没有显式声明`routePath`，宿主会根据文件路径推导。规则是：
+
+- 取插件 ID。
+- 取`frontend/pages/`后的相对路径。
+- 将路径中的`/`替换为`-`。
+- 将路径中的`_`替换为`-`。
+- 最终拼成`<plugin-id>-<page-path>`。
+
+例如：
+
+| 文件路径 | 推导结果 |
+|------|------|
+| `frontend/pages/sidebar-entry.vue` | `plugin-demo-sidebar-entry` |
+| `frontend/pages/user/profile.vue` | `plugin-demo-user-profile` |
+
+### 页面开发约束
+
+- 插件页面必须是**真实 Vue 源码文件**，而不是 JSON 描述。
+- 页面内容应使用宿主已经公开的前端能力，不要直接依赖宿主未发布的内部实现。
+- 如果页面需要请求插件自己的后端接口，建议接口路径保持清晰命名，例如`/plugins/<plugin-id>/summary`。
+
+## 前端 `Slot` 接入
+
+### 目录约定
+
+插件`Slot`统一放在：
+
+```text
+frontend/slots/**/*.vue
+```
+
+推荐目录结构是“目录名即`slotKey`”，例如：
+
+```text
+frontend/slots/
+  dashboard.workspace.after/
+    workspace-card.vue
+```
+
+### `pluginSlotMeta`
+
+`Slot`文件可以导出`pluginSlotMeta`：
 
 ```vue
 <script lang="ts">
@@ -188,27 +454,242 @@ export const pluginSlotMeta = {
 </script>
 ```
 
-宿主页面与插件装载器也使用同一份常量，因此插件一旦声明未发布的扩展点，宿主会跳过装载并记录错误。
+当前支持字段如下：
+
+| 字段 | 是否必填 | 说明 |
+|------|------|------|
+| `pluginId` | 否 | 不传时默认从文件路径推导 |
+| `slotKey` | 否 | 不传时默认从文件所在目录推导 |
+| `order` | 否 | 同一`Slot`下的排序值，越小越靠前，默认`0` |
+
+### 默认 `slotKey` 推导规则
+
+如果文件没有显式声明`slotKey`，宿主会读取其相对路径：
+
+- 先去掉`frontend/slots/`前缀。
+- 再去掉文件名。
+- 剩余目录路径作为`slotKey`。
+
+例如：
+
+| 文件路径 | 推导出的`slotKey` |
+|------|------|
+| `frontend/slots/dashboard.workspace.after/workspace-card.vue` | `dashboard.workspace.after` |
+| `frontend/slots/auth.login.after/login-tip.vue` | `auth.login.after` |
+
+### 未发布插槽的处理方式
+
+宿主只允许挂载已发布的`slotKey`。如果插件声明了未发布的插槽：
+
+- 宿主会跳过该文件的挂载。
+- 控制台会打印告警信息。
+- 不会因为单个错误`Slot`影响其他页面或其他`Slot`。
+
+### 当前已发布的前端插槽
+
+| `slotKey` | 宿主位置 | 推荐用途 |
+|------|------|------|
+| `auth.login.after` | 登录页表单下方 | 提示信息、轻量入口 |
+| `crud.table.after` | 通用表格区域下方 | 说明卡片、辅助面板 |
+| `crud.toolbar.after` | 通用工具栏右侧 | 状态标签、快捷操作 |
+| `dashboard.workspace.before` | 工作台顶部 | 横幅、提醒、概览块 |
+| `dashboard.workspace.after` | 工作台底部 | 卡片、统计块、快捷入口 |
+| `layout.header.actions.before` | 头部动作区前置 | 全局状态、入口 |
+| `layout.header.actions.after` | 头部动作区后置 | 快捷入口、轻量提示 |
+| `layout.user-dropdown.after` | 用户菜单左侧 | 轻量入口、状态提示 |
+
+## SQL 约定
+
+### 安装 SQL
+
+插件安装 SQL 放在：
+
+```text
+manifest/sql/*.sql
+```
+
+规则如下：
+
+| 规则 | 说明 |
+|------|------|
+| 文件名格式 | 必须是`{序号}-{当前迭代名称}.sql` |
+| 序号格式 | 三位数字，例如`001`、`002` |
+| 目录层级 | 必须直接位于`manifest/sql/`根目录，不能再嵌套子目录 |
+| 扫描顺序 | 宿主按文件名排序后顺序执行 |
+
+### 卸载 SQL
+
+插件卸载 SQL 放在：
+
+```text
+manifest/sql/uninstall/*.sql
+```
+
+规则如下：
+
+| 规则 | 说明 |
+|------|------|
+| 文件名格式 | 与安装 SQL 相同 |
+| 目录层级 | 必须直接位于`manifest/sql/uninstall/`根目录 |
+| 发现方式 | 宿主在卸载流程中按目录约定单独发现 |
+| 初始化隔离 | 宿主初始化流程不会扫描该目录，避免误执行卸载 SQL |
+
+### 菜单与权限治理
+
+菜单和权限相关信息必须遵循以下规则：
+
+- 菜单、按钮权限、授权种子统一写在 SQL 中。
+- 菜单稳定标识统一使用`sys_menu.menu_key`。
+- 菜单父子关系应通过父级`menu_key`解析真实`parent_id`。
+- 不要在 SQL 中写死整型`id`或`parent_id`。
+- 不要在`plugin.yaml`中再声明菜单结构、权限前缀或菜单前缀。
+
+换句话说：
+
+- 菜单是否存在，以 SQL 为准。
+- 插件是否启用，以插件治理状态为准。
+- 页面文件是否可挂载，以前端源码文件和宿主运行时为准。
+
+三者各自负责自己的真相源，不互相重复描述。
+
+## 开发步骤
+
+新增一个源码插件时，建议按以下顺序进行：
+
+### 创建插件目录和模块
+
+1. 在`apps/lina-plugins/`下创建`<plugin-id>/`目录。
+2. 新建插件自己的`go.mod`。
+3. 在根目录`go.work`中加入该插件模块路径。
+
+### 编写最小清单
+
+1. 新建`plugin.yaml`。
+2. 只填写最小元数据。
+3. 确认`id`使用`kebab-case`，并且与目录语义一致。
+
+### 编写后端入口
+
+1. 新建`backend/plugin.go`。
+2. 调用`pluginhost.NewSourcePlugin("<plugin-id>")`。
+3. 注册所需的路由、Hook 或其他扩展点。
+
+### 更新宿主显式注册表
+
+1. 修改`apps/lina-plugins/lina-plugins.go`。
+2. 新增插件后端包的匿名导入。
+
+### 编写前端页面和`Slot`
+
+1. 页面放到`frontend/pages/`。
+2. `Slot`放到`frontend/slots/`。
+3. 需要显式元数据时分别导出`pluginPageMeta`和`pluginSlotMeta`。
+
+### 编写 SQL
+
+1. 安装 SQL 放到`manifest/sql/`。
+2. 卸载 SQL 放到`manifest/sql/uninstall/`。
+3. 菜单和权限写进 SQL，不要再写入`plugin.yaml`。
+
+### 验证
+
+建议至少执行以下验证：
+
+- `go test ./internal/service/plugin ./pkg/pluginhost`
+- 插件相关的 E2E 用例
+- 手工检查插件管理页、菜单显示、路由访问和禁用后的隐藏行为
 
 ## 开发约束
 
-开发插件时请遵循以下规则：
+### 后端约束
 
-1. 不要在插件代码中直接写`auth.login.succeeded`、`http.route.register`、`crud.toolbar.after`这类裸字符串，统一引用宿主定义的类型常量。
-2. 只使用本文档“已发布的扩展点”，不要假设宿主存在未文档化的私有扩展点或回调。
-3. 插件页面源码放在`frontend/pages/`，插件`Slot`源码放在`frontend/slots/`，不要混放。
-4. 插件`SQL`中的菜单与权限仍然通过宿主治理体系接入，菜单稳定标识使用`menu_key`，不要写死整型`id`。
-5. 若需要新增扩展点，必须先更新`OpenSpec`规格、宿主类型定义与本文档，再开始实现插件接入。
+- 插件后端代码应遵循宿主当前的`GoFrame`目录风格。
+- `api/`和`internal/controller/`建议保持与宿主`gf gen ctrl`生成风格一致。
+- 公开类型、结构体字段和方法应有足够英文注释，便于人工 review。
+- 不要在插件里直接硬编码宿主未公开的内部包路径。
 
-## 示例参考
+### 前端约束
 
-当前仓库提供了`plugin-demo`作为最小源码插件样板，可直接参考以下文件：
+- 页面和`Slot`必须是可直接参与宿主构建的真实 Vue 文件。
+- 优先复用宿主已公开的组件和运行时能力。
+- 不要依赖已经被删除的`pages.json`、`slots.json`或类似声明式文件。
+
+### 元数据约束
+
+- 只保留基础元数据。
+- 不要把“约定可推导”的信息塞回`plugin.yaml`。
+- 不要为了“配置更全”而重建已经被设计移除的模型。
+
+## Review 清单
+
+人工 review 一个源码插件时，建议按下面清单逐项确认：
+
+| 检查项 | 结论标准 |
+|------|------|
+| 插件目录位置是否正确 | 位于`apps/lina-plugins/<plugin-id>/` |
+| 是否存在`go.mod`和`backend/plugin.go` | `source`插件必须具备 |
+| `plugin.yaml`是否最小化 | 不应再出现`schemaVersion`、`compatibility`、`entry`、`resources`、`metadata`等字段 |
+| `id`是否唯一且符合`kebab-case` | 宿主范围内唯一 |
+| `lina-plugins.go`是否补了匿名导入 | 新插件必须显式接线 |
+| 页面和`Slot`是否位于约定目录 | 页面在`frontend/pages/`，`Slot`在`frontend/slots/` |
+| 菜单和权限是否只在 SQL 中维护 | 不在`plugin.yaml`重复建模 |
+| SQL 文件名和目录是否正确 | 安装和卸载 SQL 分别放在正确目录，且文件名合规 |
+| 禁用后是否能正确隐藏 | 菜单、页面、`Slot`和路由都应受启停状态保护 |
+| 文档是否足够清晰 | 插件自身`README.md`应说明功能范围、路由、SQL 和验证方式 |
+
+## 常见错误
+
+### 插件已写好，但插件管理页看不到
+
+优先检查：
+
+- `plugin.yaml`是否存在。
+- `plugin.yaml`字段是否缺失。
+- `id`是否与其他插件重复。
+
+### 后端代码编译不过
+
+优先检查：
+
+- 是否创建了插件自己的`go.mod`。
+- 根目录`go.work`是否已经包含该插件模块。
+- `apps/lina-plugins/lina-plugins.go`是否已经追加匿名导入。
+
+### 页面文件存在，但页面没有挂载
+
+优先检查：
+
+- 文件是否在`frontend/pages/`下。
+- 组件是否存在默认导出。
+- `pluginPageMeta.routePath`是否与菜单配置对应。
+
+### `Slot`文件存在，但没有渲染
+
+优先检查：
+
+- 文件是否在`frontend/slots/`下。
+- `slotKey`是否为宿主已发布的插槽。
+- 插件当前是否已启用。
+
+### 菜单存在，但访问返回 404
+
+优先检查：
+
+- 插件是否已启用。
+- 后端路由是否通过`RegisterRoutes`正确注册。
+- 路由是否挂到了期望的前缀下。
+
+## 参考实现
+
+当前仓库中最小可运行样例是`plugin-demo`：
 
 | 文件 | 作用 |
 |------|------|
-| `apps/lina-plugins/plugin-demo/plugin.yaml` | 插件元数据与资源索引 |
-| `apps/lina-plugins/plugin-demo/backend/plugin.go` | 后端 `Route` 与接口化回调注册示例 |
-| `apps/lina-plugins/plugin-demo/frontend/pages/sidebar-entry.vue` | 左侧菜单页面示例 |
-| `apps/lina-plugins/plugin-demo/frontend/slots/` | 多个前端`Slot`示例 |
+| `apps/lina-plugins/plugin-demo/plugin.yaml` | 最小清单示例 |
+| `apps/lina-plugins/plugin-demo/backend/plugin.go` | 后端注册入口示例 |
+| `apps/lina-plugins/plugin-demo/frontend/pages/sidebar-entry.vue` | 插件页面示例 |
+| `apps/lina-plugins/plugin-demo/frontend/slots/` | 插件`Slot`示例 |
+| `apps/lina-plugins/plugin-demo/manifest/sql/001-plugin-demo.sql` | 菜单与权限种子示例 |
+| `apps/lina-plugins/plugin-demo/README.md` | 插件自身接入说明 |
 
-如果需要新增插件，建议先复制`plugin-demo`目录结构，再按本文档调整插件`ID`、`SQL`、页面与回调注册代码。
+如果要新增新插件，建议先复制`plugin-demo`的整体结构，再按本文档约束删减或扩展，而不是从零随意拼目录。

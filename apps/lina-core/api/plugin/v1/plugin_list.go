@@ -24,7 +24,6 @@ type PluginItem struct {
 	Name        string `json:"name" dc:"插件名称" eg:"示例插件"`
 	Version     string `json:"version" dc:"插件版本号" eg:"0.1.0"`
 	Type        string `json:"type" dc:"插件一级类型：source=源码插件 runtime=运行时插件；当前 runtime 类型由 WASM 运行时实现支撑" eg:"source"`
-	Entry       string `json:"entry" dc:"插件入口描述，可为路由、文件或模块标识" eg:"backend:plugins/{id}/summary"`
 	Description string `json:"description" dc:"插件描述" eg:"提供左侧菜单页面、前端 Slot 与公开/受保护路由示例的源码插件"`
 	Installed   int    `json:"installed" dc:"安装状态：1=已安装/已集成 0=未安装；源码插件默认返回1表示已随宿主集成" eg:"1"`
 	InstalledAt string `json:"installedAt" dc:"插件安装或源码接入时间，未安装时返回空字符串" eg:"2026-01-01 12:00:00"`

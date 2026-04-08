@@ -27,7 +27,6 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListR
 			Name:        item.Name,
 			Version:     item.Version,
 			Type:        item.Type,
-			Entry:       item.Entry,
 			Description: item.Description,
 			Installed:   item.Installed,
 			InstalledAt: item.InstalledAt,

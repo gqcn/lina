@@ -15,7 +15,6 @@ export interface SystemPlugin {
   name: string;
   version: string;
   type: PluginType;
-  entry: string;
   description: string;
   installed: number;
   installedAt: string;

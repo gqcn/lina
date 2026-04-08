@@ -1,24 +1,29 @@
 # plugin-demo
 
-`plugin-demo` 是一期源码插件`MVP`的示例插件。
+`plugin-demo`是当前`plugin-framework`迭代的一期源码插件样例，用来验证“插件目录内维护实现 + 宿主侧手工注册 + 前后端按约定发现”的最小闭环。
 
-本插件强调一条边界：
-
-- 插件特定的前端页面放在 `frontend/`
-- 插件特定的后端实现与资源声明放在 `backend/`
-- 插件元数据与安装资源放在 `plugin.yaml`、`manifest/`
-- 宿主只提供通用的扫描、启用/禁用、菜单治理与回调注册式扩展框架
-
-当前目录说明：
+## 目录结构
 
 ```text
 plugin-demo/
+  go.mod
   plugin.yaml
+  README.md
   backend/
     plugin.go
+    api/
+    internal/controller/
+    service/
   frontend/
     pages/
+      sidebar-entry.vue
     slots/
+      auth.login.after/
+      crud.toolbar.after/
+      dashboard.workspace.before/
+      dashboard.workspace.after/
+      layout.header.actions.before/
+      layout.header.actions.after/
   manifest/
     sql/
       001-plugin-demo.sql
@@ -26,48 +31,66 @@ plugin-demo/
         001-plugin-demo.sql
 ```
 
-当前后端能力已支持把插件目录内的`Go`源码与宿主一起编译；`plugin-demo` 通过 `backend/plugin.go` 在编译期注册最小化的后端路由回调示例，并统一使用 `pluginhost.ExtensionPoint* + pluginhost.CallbackExecutionMode*` 常量声明宿主安装点与执行模式。`plugin.yaml` 仅保留插件元数据、一级类型、入口描述和资源索引，不再声明后端`API`列表。当前前端能力也已支持把插件目录内的`Vue`页面与`Slot`源码纳入宿主构建，由宿主在运行时装载。这是一阶段源码插件的最小接入方式；若后续补齐运行时插件能力，当前规划仅落地 `wasm` 实现。
+## 清单约定
 
-插件插槽目录、类型化`Hook/Slot`常量与推荐接入方式，请优先参考宿主开发指南：`apps/lina-plugins/README.md`。
+`plugin-demo/plugin.yaml`当前只保留基础元数据：
 
-## 后端实现
+- `id`
+- `name`
+- `version`
+- `type`
+- `description`
+- `author`
+- `homepage`
+- `license`
 
-`backend/` 目录存放 `plugin-demo` 的后端`Go`源码实现。源码插件的后端能力以本目录的`Go`注册代码为准，而不是由 `plugin.yaml`直接声明后端`API`。
+插件页面、`Slot`、SQL 文件和菜单前缀都不再写入清单，而是分别通过目录约定、页面源码、`Slot`源码和 SQL 本身维护。
 
-- `backend/plugin.go` 在编译期注册插件订阅的宿主`HTTP`路由，是当前最小后端接入示例。
-- `backend/api/demo` 与 `backend/internal/controller/demo` 目录命名遵循宿主现有`GoFrame` `gf gen ctrl` 约定，保持接口定义和控制器文件命名风格一致。
-- 路由示例通过 `pluginhost.ExtensionPointHTTPRouteRegister` 获取宿主开放的无前缀插件路由根分组，并使用与宿主主服务一致的 `group.Group(..., func(group *ghttp.RouterGroup){ ... })` 风格注册：
-  - 外层 `registrars.Group("/api/v1", func(group *ghttp.RouterGroup) { ... })` 先挂基础中间件
-  - 内层匿名子分组 `group.Group("/", func(group *ghttp.RouterGroup) { group.Bind(demoController.Ping) })` 注册免鉴权 `GET /api/v1/plugins/plugin-demo/ping`
-  - 内层鉴权子分组 `group.Group("/", func(group *ghttp.RouterGroup) { group.Middleware(Auth, OperLog); group.Bind(demoController.Summary) })` 注册需鉴权 `GET /api/v1/plugins/plugin-demo/summary`
-- 这些分组都受插件启停控制，是否鉴权完全由插件自行选择是否组合宿主公开的 `Auth`、`OperLog` 等中间件决定。
-- `RouteRegistrar` 等宿主暴露给插件的回调输入对象均为接口类型，避免插件与宿主内部结构体强耦合。
-- `plugin-demo` 只演示最小源码插件接入，不承担数据库读写示例；宿主 `lina-core` 不再手写 `plugin-demo` 专属控制器、服务或路由逻辑。
+## 后端接入
 
-## 前端实现
+`backend/plugin.go`是当前插件后端接入入口，职责保持单一：
 
-`frontend/` 目录提供插件真实前端源码，交由宿主在运行时发现和装载。
+1. 创建`pluginhost.NewSourcePlugin("plugin-demo")`
+2. 注册插件后端路由和其他宿主扩展点
+3. 由宿主侧[apps/lina-plugins/lina-plugins.go](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/lina-plugins.go)手工匿名导入该插件后端包
 
-- `frontend/pages/` 存放插件页面源码，当前保留左侧菜单示例页，用于验证插件页面可通过宿主菜单与运行时页装载链路挂载。
-- `frontend/slots/` 存放插件前端 Slot 源码，当前覆盖登录页、头部动作区、工作台与 CRUD 通用壳层。
-- 当前真实生效的接入链路是 `frontend/pages/*.vue + frontend/slots/**/*.vue + system/plugin/runtime-page`。
-- 建议约定保持 `route` 前缀为 `/plugin-demo-*`、权限前缀为 `plugin-demo:*`。
-- 当前示例优先验证“插件目录中的前端源码文件可被宿主发现、挂载并以内页 Tab 打开”；更完整的宿主 SDK 与微前端挂载协议留待后续阶段。
+当前示例保留两条路由：
 
-## 清单与安装资源
+| 路由 | 类型 | 说明 |
+|------|------|------|
+| `GET /api/v1/plugins/plugin-demo/ping` | 匿名访问 | 验证插件可注册公开路由 |
+| `GET /api/v1/plugins/plugin-demo/summary` | 鉴权访问 | 验证插件页面可以从插件后端接口取数 |
 
-`plugin.yaml` 是插件统一入口清单，负责维护插件元数据、入口描述并索引 `manifest/` 下的资源文件，但不负责注册后端路由或后端回调。
+## 前端接入
 
-- 安装 SQL 放在 `manifest/sql/` 根目录，并使用 `{序号}-{当前迭代名称}.sql` 命名。
-- 卸载 SQL 放在 `manifest/sql/uninstall/`，避免被宿主初始化流程误执行。
-- 一期源码插件 MVP 下，宿主初始化流程只扫描 `sql/` 根目录，不会顺序执行 `sql/uninstall/`。
-- 插件菜单安装与卸载以 `manifest/sql/` 下的 SQL 为单一真相源。
-- 菜单稳定标识使用 `sys_menu.menu_key`，父子关系通过父菜单 `menu_key` 解析，不再写死整型 `id`。
-- 当前 `plugin-demo` 不再创建插件私有业务表，安装 SQL 只保留菜单与授权种子。
-- 若宿主已有对应对象，安装 SQL 应优先使用幂等写法，例如 `INSERT IGNORE`。
+当前前端接入完全按目录约定发现：
 
-## 当前示例覆盖范围
+- `frontend/pages/sidebar-entry.vue` 作为插件页面示例
+- `frontend/slots/` 下多个`.vue`文件作为插件`Slot`示例
 
-- 左侧主菜单入口“插件示例”，用于验证源码插件页面可被宿主菜单挂载。
-- 前端 Slot 示例覆盖 `auth.login.after`、`layout.header.actions.before`、`layout.header.actions.after`、`dashboard.workspace.before`、`dashboard.workspace.after`、`crud.toolbar.after`。
-- 后端示例仅保留一个公开 `ping` 路由和一个受保护 `summary` 路由，用于验证最小路由注册式扩展点与页面取数链路。
+宿主在构建时会扫描：
+
+- `frontend/pages/**/*.vue`
+- `frontend/slots/**/*.vue`
+
+不再要求这些文件在`plugin.yaml`中重复登记。
+
+## SQL 约定
+
+当前 SQL 也按目录约定处理：
+
+- 安装 SQL 位于 `manifest/sql/`
+- 卸载 SQL 位于 `manifest/sql/uninstall/`
+
+菜单相关的`menu_key`、权限码和父子关系都以 SQL 为单一真相源，不再在清单中重复声明。
+
+## Review 关注点
+
+人工 review `plugin-demo`时，建议重点核对：
+
+| 检查项 | 说明 |
+|------|------|
+| `plugin.yaml`是否保持最小化 | 不应再出现`schemaVersion`、`compatibility`、`resources`、`metadata`等重复配置 |
+| 宿主注册是否显式 | `apps/lina-plugins/lina-plugins.go`中应手工导入插件后端包 |
+| 页面与 `Slot` 是否按目录约定发现 | 不依赖清单额外声明 |
+| 菜单和权限是否只在 SQL 中维护 | 不在元数据中重复建模 |

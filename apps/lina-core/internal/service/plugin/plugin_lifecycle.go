@@ -33,7 +33,7 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 		return nil
 	}
 
-	if err = s.executeManifestSQLFiles(ctx, manifest.RootDir, manifest.Resources.SQL.Install); err != nil {
+	if err = s.executeManifestSQLFiles(ctx, manifest.RootDir, s.discoverPluginSQLPaths(manifest.RootDir, false)); err != nil {
 		return err
 	}
 
@@ -70,7 +70,7 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 			return err
 		}
 	}
-	if err = s.executeManifestSQLFiles(ctx, manifest.RootDir, manifest.Resources.SQL.Uninstall); err != nil {
+	if err = s.executeManifestSQLFiles(ctx, manifest.RootDir, s.discoverPluginSQLPaths(manifest.RootDir, true)); err != nil {
 		return err
 	}
 	if err = s.setPluginInstalled(ctx, pluginID, pluginInstalledNo); err != nil {

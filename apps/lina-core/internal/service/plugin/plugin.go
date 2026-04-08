@@ -59,7 +59,6 @@ type PluginItem struct {
 	Name        string // plugin name
 	Version     string // plugin version
 	Type        string // plugin type
-	Entry       string // plugin entry
 	Description string // plugin description
 	Installed   int    // installed status: 1=installed, 0=not installed
 	InstalledAt string // install time or source integration time
@@ -215,7 +214,6 @@ func (s *Service) SyncAndList(ctx context.Context) (*ListOutput, error) {
 			Name:        manifest.Name,
 			Version:     manifest.Version,
 			Type:        manifest.Type,
-			Entry:       manifest.Entry,
 			Description: manifest.Description,
 			Installed:   registry.Installed,
 			InstalledAt: installedAt,

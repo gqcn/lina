@@ -17,28 +17,18 @@ var pluginSQLFileNamePattern = regexp.MustCompile(`^\d{3}-[a-z0-9-]+\.sql$`)
 
 // pluginManifest defines plugin metadata loaded from plugin.yaml.
 type pluginManifest struct {
-	ID               string                  `yaml:"id"`
-	Name             string                  `yaml:"name"`
-	Version          string                  `yaml:"version"`
-	Type             string                  `yaml:"type"`
-	Entry            string                  `yaml:"entry"`
-	Description      string                  `yaml:"description"`
-	Resources        pluginManifestResources `yaml:"resources"`
+	ID               string `yaml:"id"`
+	Name             string `yaml:"name"`
+	Version          string `yaml:"version"`
+	Type             string `yaml:"type"`
+	Description      string `yaml:"description"`
+	Author           string `yaml:"author"`
+	Homepage         string `yaml:"homepage"`
+	License          string `yaml:"license"`
 	ManifestPath     string
 	RootDir          string
 	Hooks            []*pluginHookSpec
 	BackendResources map[string]*pluginResourceSpec
-}
-
-// pluginManifestResources defines manifest-declared resource files.
-type pluginManifestResources struct {
-	SQL pluginManifestSQL `yaml:"sql"`
-}
-
-// pluginManifestSQL defines install/uninstall SQL files in manifest.
-type pluginManifestSQL struct {
-	Install   []string `yaml:"install"`
-	Uninstall []string `yaml:"uninstall"`
 }
 
 // scanPluginManifests scans source plugins from apps/lina-plugins and parses plugin.yaml.
@@ -54,6 +44,7 @@ func (s *Service) scanPluginManifests() ([]*pluginManifest, error) {
 	}
 
 	manifests := make([]*pluginManifest, 0, len(manifestFiles))
+	seenIDs := make(map[string]string, len(manifestFiles))
 	for _, manifestFile := range manifestFiles {
 		content := gfile.GetBytes(manifestFile)
 		if len(content) == 0 {
@@ -67,6 +58,15 @@ func (s *Service) scanPluginManifests() ([]*pluginManifest, error) {
 		if err = s.validatePluginManifest(manifest, manifestFile); err != nil {
 			return nil, err
 		}
+		if previousFile, ok := seenIDs[manifest.ID]; ok {
+			return nil, gerror.Newf(
+				"插件ID重复: %s 同时出现在 %s 和 %s",
+				manifest.ID,
+				previousFile,
+				manifestFile,
+			)
+		}
+		seenIDs[manifest.ID] = manifestFile
 		manifest.ManifestPath = manifestFile
 		manifest.RootDir = filepath.Dir(manifestFile)
 		if err = s.loadPluginBackendConfig(manifest); err != nil {
@@ -87,6 +87,14 @@ func (s *Service) resolvePluginRootDir() (string, error) {
 	workingDir, err := os.Getwd()
 	if err != nil {
 		return "", err
+	}
+
+	repoRoot, err := findRepoRoot(workingDir)
+	if err == nil {
+		pluginRootDir := filepath.Join(repoRoot, "apps", "lina-plugins")
+		if gfile.Exists(pluginRootDir) && gfile.IsDir(pluginRootDir) {
+			return pluginRootDir, nil
+		}
 	}
 
 	candidateDirs := []string{
@@ -126,16 +134,58 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 	if !isSupportedPluginType(manifest.Type) {
 		return gerror.Newf("插件类型仅支持 source/runtime: %s", filePath)
 	}
-	if !strings.Contains(manifest.ID, "-") {
+	if !pluginManifestIDPattern.MatchString(manifest.ID) {
 		return gerror.Newf("插件ID需使用kebab-case风格: %s", manifest.ID)
 	}
-	if err := validatePluginSQLPaths(rootDir, manifest.Resources.SQL.Install, false); err != nil {
+	if err := validatePluginManifestSemanticVersion(manifest.Version); err != nil {
+		return gerror.Wrapf(err, "插件版本不合法: %s", filePath)
+	}
+	if manifest.Type == pluginTypeSource {
+		goModPath := filepath.Join(rootDir, "go.mod")
+		if !gfile.Exists(goModPath) {
+			return gerror.Newf("源码插件目录缺少 go.mod: %s", rootDir)
+		}
+		backendEntryPath := filepath.Join(rootDir, "backend", "plugin.go")
+		if !gfile.Exists(backendEntryPath) {
+			return gerror.Newf("源码插件目录缺少 backend/plugin.go: %s", rootDir)
+		}
+	}
+	if err := validatePluginSQLPaths(rootDir, s.discoverPluginSQLPaths(rootDir, false), false); err != nil {
 		return gerror.Wrapf(err, "插件清单 install SQL 约束不合法: %s", filePath)
 	}
-	if err := validatePluginSQLPaths(rootDir, manifest.Resources.SQL.Uninstall, true); err != nil {
+	if err := validatePluginSQLPaths(rootDir, s.discoverPluginSQLPaths(rootDir, true), true); err != nil {
 		return gerror.Wrapf(err, "插件清单 uninstall SQL 约束不合法: %s", filePath)
 	}
 	return nil
+}
+
+// discoverPluginSQLPaths discovers plugin SQL files by directory convention.
+func (s *Service) discoverPluginSQLPaths(rootDir string, uninstall bool) []string {
+	var (
+		searchDir = filepath.Join(rootDir, "manifest", "sql")
+		relPrefix = "manifest/sql"
+	)
+
+	if uninstall {
+		searchDir = filepath.Join(rootDir, "manifest", "sql", "uninstall")
+		relPrefix = "manifest/sql/uninstall"
+	}
+
+	if !gfile.Exists(searchDir) || !gfile.IsDir(searchDir) {
+		return []string{}
+	}
+
+	sqlFiles, err := gfile.ScanDirFile(searchDir, "*.sql", false)
+	if err != nil {
+		return []string{}
+	}
+
+	items := make([]string, 0, len(sqlFiles))
+	for _, sqlFile := range sqlFiles {
+		items = append(items, path.Join(relPrefix, filepath.Base(sqlFile)))
+	}
+	sort.Strings(items)
+	return items
 }
 
 func validatePluginSQLPaths(rootDir string, relativePaths []string, uninstall bool) error {
