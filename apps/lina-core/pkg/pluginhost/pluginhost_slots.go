@@ -69,6 +69,10 @@ type HookAction string
 const (
 	// HookActionInsert inserts one row into plugin-owned table.
 	HookActionInsert HookAction = "insert"
+	// HookActionSleep blocks for the declared duration until the host timeout fires or the delay completes.
+	HookActionSleep HookAction = "sleep"
+	// HookActionError returns one configured error immediately for runtime isolation verification.
+	HookActionError HookAction = "error"
 )
 
 var publishedExtensionPoints = map[ExtensionPoint]ExtensionPointDefinition{
@@ -147,6 +151,8 @@ var publishedCallbackExecutionModes = map[CallbackExecutionMode]struct{}{
 
 var publishedHookActions = map[HookAction]struct{}{
 	HookActionInsert: {},
+	HookActionSleep:  {},
+	HookActionError:  {},
 }
 
 // String returns the canonical backend extension point key.

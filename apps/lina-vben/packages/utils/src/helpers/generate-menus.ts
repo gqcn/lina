@@ -61,8 +61,9 @@ function generateMenus(
       });
     }
 
-    // 确定最终路径
-    const resultPath = hideChildrenInMenu ? redirect || path : link || path;
+    // Menu keys must keep the router path so click handlers can still resolve
+    // route meta such as `link` and `openInNewWindow` from the router table.
+    const resultPath = hideChildrenInMenu ? redirect || path : path;
 
     return {
       activeIcon,

@@ -4,4 +4,6 @@ use (
 	./apps/lina-core
 	./apps/lina-plugins
 	./apps/lina-plugins/plugin-demo
+	./apps/lina-plugins/plugin-demo-runtime
+	./hack/build-wasm
 )

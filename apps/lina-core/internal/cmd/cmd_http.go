@@ -141,6 +141,9 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	if err = pluginSvc.RegisterHTTPRoutes(ctx, pluginGroup, middlewareSvc.PublishedRouteMiddlewares()); err != nil {
 		g.Log().Panicf(ctx, "register plugin routes failed: %v", err)
 	}
+	if err = pluginSvc.PrewarmRuntimeFrontendBundles(ctx); err != nil {
+		g.Log().Warningf(ctx, "prewarm runtime frontend bundles failed: %v", err)
+	}
 
 	// =============================================================================================
 	// Static service for frontend assets.
@@ -153,6 +156,29 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		path := strings.TrimPrefix(r.URL.Path, "/")
 		if path == "" {
 			path = "index.html"
+		}
+		// Runtime plugin assets must be checked before the host falls back to the
+		// embedded frontend bundle. They share the same public static entrypoint,
+		// but plugin assets are governed by plugin ID, version, and enabled state.
+		// If the host served the generic SPA assets first, a valid plugin asset URL
+		// could be swallowed by the host fallback and bypass the runtime-specific
+		// access rules that ResolveRuntimeFrontendAsset enforces.
+		if pluginID, version, assetPath, ok := parsePluginAssetRequestPath(path); ok {
+			out, resolveErr := pluginSvc.ResolveRuntimeFrontendAsset(
+				r.Context(),
+				pluginID,
+				version,
+				assetPath,
+			)
+			if resolveErr != nil {
+				r.Response.WriteStatus(http.StatusNotFound)
+				r.ExitAll()
+				return
+			}
+			r.Response.Header().Set("Content-Type", out.ContentType)
+			r.Response.Write(out.Content)
+			r.ExitAll()
+			return
 		}
 		f, err := subFS.Open(path)
 		if err == nil {
@@ -222,4 +248,31 @@ func (m *Main) enhanceOpenAPIDocs(
 	oai.Security = &goai.SecurityRequirements{
 		{"BearerAuth": {}},
 	}
+}
+
+func parsePluginAssetRequestPath(path string) (
+	pluginID string,
+	version string,
+	assetPath string,
+	ok bool,
+) {
+	normalizedPath := strings.Trim(strings.TrimSpace(path), "/")
+	if normalizedPath == "" {
+		return "", "", "", false
+	}
+
+	pathParts := strings.Split(normalizedPath, "/")
+	if len(pathParts) < 3 || pathParts[0] != "plugin-assets" {
+		return "", "", "", false
+	}
+	if strings.TrimSpace(pathParts[1]) == "" || strings.TrimSpace(pathParts[2]) == "" {
+		return "", "", "", false
+	}
+
+	pluginID = pathParts[1]
+	version = pathParts[2]
+	if len(pathParts) == 3 {
+		return pluginID, version, "", true
+	}
+	return pluginID, version, strings.Join(pathParts[3:], "/"), true
 }

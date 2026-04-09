@@ -14,6 +14,8 @@ type IPluginV1 interface {
 	Sync(ctx context.Context, req *v1.SyncReq) (res *v1.SyncRes, err error)
 	// Install executes runtime plugin install lifecycle.
 	Install(ctx context.Context, req *v1.InstallReq) (res *v1.InstallRes, err error)
+	// UploadRuntimePackage uploads one runtime wasm package into the plugin workspace.
+	UploadRuntimePackage(ctx context.Context, req *v1.UploadRuntimePackageReq) (res *v1.UploadRuntimePackageRes, err error)
 	// Enable sets a plugin to enabled status.
 	Enable(ctx context.Context, req *v1.EnableReq) (res *v1.EnableRes, err error)
 	// Disable sets a plugin to disabled status.

@@ -4,6 +4,7 @@
 package plugin
 
 import (
+	"context"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,6 +15,8 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gfile"
 	"gopkg.in/yaml.v3"
+
+	configsvc "lina-core/internal/service/config"
 )
 
 var pluginSQLFileNamePattern = regexp.MustCompile(`^\d{3}-[a-z0-9-]+\.sql$`)
@@ -35,10 +38,52 @@ type pluginManifest struct {
 	RootDir          string
 	Hooks            []*pluginHookSpec
 	BackendResources map[string]*pluginResourceSpec
+	RuntimeArtifact  *pluginRuntimeArtifact
 }
 
-// scanPluginManifests scans source plugins from apps/lina-plugins and parses plugin.yaml.
+// scanPluginManifests merges source-plugin discovery and runtime-wasm discovery
+// into one normalized manifest list used by lifecycle and governance services.
 func (s *Service) scanPluginManifests() ([]*pluginManifest, error) {
+	sourceManifests, err := s.scanSourcePluginManifests()
+	if err != nil {
+		return nil, err
+	}
+	runtimeManifests, err := s.scanRuntimePluginManifests(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	manifests := make([]*pluginManifest, 0, len(sourceManifests)+len(runtimeManifests))
+	seenIDs := make(map[string]string, len(sourceManifests)+len(runtimeManifests))
+	for _, items := range [][]*pluginManifest{sourceManifests, runtimeManifests} {
+		for _, manifest := range items {
+			if manifest == nil {
+				continue
+			}
+			location := s.buildPluginDiscoveryLocation(manifest)
+			if previousFile, ok := seenIDs[manifest.ID]; ok {
+				return nil, gerror.Newf(
+					"插件ID重复: %s 同时出现在 %s 和 %s",
+					manifest.ID,
+					previousFile,
+					location,
+				)
+			}
+			seenIDs[manifest.ID] = location
+			manifests = append(manifests, manifest)
+		}
+	}
+
+	sort.Slice(manifests, func(i, j int) bool {
+		return manifests[i].ID < manifests[j].ID
+	})
+	return manifests, nil
+}
+
+// scanSourcePluginManifests scans source plugins from apps/lina-plugins. Runtime
+// sample directories are skipped here because their clear-text plugin.yaml files
+// are only build inputs, not runtime discovery sources.
+func (s *Service) scanSourcePluginManifests() ([]*pluginManifest, error) {
 	pluginRootDir, err := s.resolvePluginRootDir()
 	if err != nil {
 		return []*pluginManifest{}, nil
@@ -48,9 +93,9 @@ func (s *Service) scanPluginManifests() ([]*pluginManifest, error) {
 	if err != nil {
 		return nil, err
 	}
+	sort.Strings(manifestFiles)
 
 	manifests := make([]*pluginManifest, 0, len(manifestFiles))
-	seenIDs := make(map[string]string, len(manifestFiles))
 	for _, manifestFile := range manifestFiles {
 		content := gfile.GetBytes(manifestFile)
 		if len(content) == 0 {
@@ -61,33 +106,104 @@ func (s *Service) scanPluginManifests() ([]*pluginManifest, error) {
 		if err = yaml.Unmarshal(content, manifest); err != nil {
 			return nil, gerror.Wrapf(err, "解析插件清单失败: %s", manifestFile)
 		}
+		if normalizePluginType(manifest.Type) == pluginTypeRuntime {
+			continue
+		}
 		if err = s.validatePluginManifest(manifest, manifestFile); err != nil {
 			return nil, err
 		}
-		if previousFile, ok := seenIDs[manifest.ID]; ok {
-			return nil, gerror.Newf(
-				"插件ID重复: %s 同时出现在 %s 和 %s",
-				manifest.ID,
-				previousFile,
-				manifestFile,
-			)
-		}
-		seenIDs[manifest.ID] = manifestFile
 		manifest.ManifestPath = manifestFile
 		manifest.RootDir = filepath.Dir(manifestFile)
 		// Load backend declarations after the manifest passes structural validation so
-		// runtime resource scanning always starts from a trusted plugin root.
+		// source-plugin resource scanning always starts from a trusted plugin root.
 		if err = s.loadPluginBackendConfig(manifest); err != nil {
 			return nil, err
 		}
 
 		manifests = append(manifests, manifest)
 	}
-
-	sort.Slice(manifests, func(i, j int) bool {
-		return manifests[i].ID < manifests[j].ID
-	})
 	return manifests, nil
+}
+
+// scanRuntimePluginManifests scans the configured runtime wasm storage directory.
+// Discovery is intentionally non-recursive so the host does not impose any extra
+// outer directory convention beyond dropping .wasm files into storagePath.
+func (s *Service) scanRuntimePluginManifests(ctx context.Context) ([]*pluginManifest, error) {
+	storageDir, err := s.resolveRuntimePluginStorageDir(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !gfile.Exists(storageDir) || !gfile.IsDir(storageDir) {
+		return []*pluginManifest{}, nil
+	}
+
+	artifactFiles, err := gfile.ScanDirFile(storageDir, "*.wasm", false)
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(artifactFiles)
+
+	manifests := make([]*pluginManifest, 0, len(artifactFiles))
+	seenIDs := make(map[string]string, len(artifactFiles))
+	for _, artifactPath := range artifactFiles {
+		manifest, loadErr := s.loadRuntimePluginManifestFromArtifact(artifactPath)
+		if loadErr != nil {
+			return nil, gerror.Wrapf(loadErr, "解析运行时插件产物失败: %s", artifactPath)
+		}
+		if previousPath, ok := seenIDs[manifest.ID]; ok {
+			return nil, gerror.Newf(
+				"运行时插件ID重复: %s 同时出现在 %s 和 %s",
+				manifest.ID,
+				previousPath,
+				artifactPath,
+			)
+		}
+		seenIDs[manifest.ID] = artifactPath
+		if err = s.loadPluginBackendConfig(manifest); err != nil {
+			return nil, err
+		}
+		manifests = append(manifests, manifest)
+	}
+	return manifests, nil
+}
+
+func (s *Service) buildPluginDiscoveryLocation(manifest *pluginManifest) string {
+	if manifest == nil {
+		return ""
+	}
+	if manifest.RuntimeArtifact != nil && strings.TrimSpace(manifest.RuntimeArtifact.Path) != "" {
+		return manifest.RuntimeArtifact.Path
+	}
+	if strings.TrimSpace(manifest.ManifestPath) != "" {
+		return manifest.ManifestPath
+	}
+	return manifest.RootDir
+}
+
+func (s *Service) loadRuntimePluginManifestFromArtifact(artifactPath string) (*pluginManifest, error) {
+	artifact, err := s.parseRuntimeWasmArtifact(artifactPath)
+	if err != nil {
+		return nil, err
+	}
+	if artifact.Manifest == nil {
+		return nil, gerror.Newf("运行时插件缺少嵌入清单: %s", artifactPath)
+	}
+
+	manifest := &pluginManifest{
+		ID:              strings.TrimSpace(artifact.Manifest.ID),
+		Name:            strings.TrimSpace(artifact.Manifest.Name),
+		Version:         strings.TrimSpace(artifact.Manifest.Version),
+		Type:            normalizePluginType(artifact.Manifest.Type).String(),
+		Description:     strings.TrimSpace(artifact.Manifest.Description),
+		ManifestPath:    "",
+		RootDir:         filepath.Dir(artifactPath),
+		RuntimeArtifact: artifact,
+	}
+	if err = s.validateUploadedRuntimeManifest(manifest); err != nil {
+		return nil, gerror.Wrapf(err, "运行时插件嵌入清单不合法: %s", artifactPath)
+	}
+	artifact.Manifest.Type = manifest.Type
+	return manifest, nil
 }
 
 // resolvePluginRootDir resolves plugin root directory from current working directory.
@@ -121,9 +237,31 @@ func (s *Service) resolvePluginRootDir() (string, error) {
 	return "", gerror.Newf("未找到插件目录，候选路径: %s", strings.Join(candidateDirs, ", "))
 }
 
+// resolveRuntimePluginStorageDir resolves the configured runtime wasm storage
+// directory. Relative paths are anchored at the repository root when available
+// so uploads, manual copies, and automated scans all agree on one shared path.
+func (s *Service) resolveRuntimePluginStorageDir(ctx context.Context) (string, error) {
+	storagePath := configsvc.New().GetPluginRuntimeStoragePath(ctx)
+	if filepath.IsAbs(storagePath) {
+		return filepath.Clean(storagePath), nil
+	}
+
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	if repoRoot, repoErr := findRepoRoot(workingDir); repoErr == nil {
+		return filepath.Clean(filepath.Join(repoRoot, storagePath)), nil
+	}
+	return filepath.Clean(filepath.Join(workingDir, storagePath)), nil
+}
+
 // validatePluginManifest validates required fields in plugin manifest.
 func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath string) error {
 	rootDir := filepath.Dir(filePath)
+	if strings.TrimSpace(filePath) == "" && strings.TrimSpace(manifest.RootDir) != "" {
+		rootDir = manifest.RootDir
+	}
 
 	if manifest.ID == "" {
 		return gerror.Newf("插件清单缺少id: %s", filePath)
@@ -156,6 +294,13 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 		backendEntryPath := filepath.Join(rootDir, "backend", "plugin.go")
 		if !gfile.Exists(backendEntryPath) {
 			return gerror.Newf("源码插件目录缺少 backend/plugin.go: %s", rootDir)
+		}
+	} else if err := s.validateRuntimePluginArtifact(manifest, rootDir); err != nil {
+		// Runtime plugin discovery no longer depends on source-tree build output.
+		// This tolerance now only protects local validation flows that stage a
+		// manifest beside a not-yet-generated wasm artifact during tests/review.
+		if !isMissingRuntimePluginArtifactError(err) {
+			return gerror.Wrapf(err, "运行时插件产物校验失败: %s", filePath)
 		}
 	}
 	if err := validatePluginSQLPaths(rootDir, s.discoverPluginSQLPaths(rootDir, false), false); err != nil {

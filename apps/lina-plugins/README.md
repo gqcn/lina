@@ -17,26 +17,37 @@
 - `plugin.yaml` 为什么保持最小化，以及哪些字段明确不允许再放进去。
 - 开发者在提交插件前应该自查哪些关键点。
 
+## 当前收尾范围
+
+为了让后续人工 review 不再把“当前必须交付的基础项”和“明确后延的工具链/热升级能力”混在一起，这里补充当前收尾口径：
+
+- 当前除第三期外，真正仍需补齐的核心项是：真实 runtime 执行链路、runtime 失败隔离/回滚验收、插件权限治理验收，以及 `1.2` 中尚未提供的脚手架模板部分。
+- `apps/lina-plugins/<plugin-id>/` 的标准目录结构、目录职责和 review 要点已经在本文档中落地，因此“目录结构规划”本身不再是缺失项。
+- 仓库当前仍然不提供插件脚手架或打包脚本；这是有意保留的约束，而不是遗漏实现。
+- 如果后续评估认为这些脚本会明显增加复杂度、且收益不足，则继续保持“手工维护显式注册关系 + 文档约束”的模式即可。
+
 ## 当前范围
 
 当前仓库已经落地的是**第一期：源码插件底座**。插件机制的能力边界如下：
 
-| 能力 | 当前状态 | 说明 |
-|------|------|------|
-| `source`源码插件 | 已实现 | 插件目录位于`apps/lina-plugins/<plugin-id>/`，随宿主一起编译、打包和交付 |
-| `runtime`运行时插件 | 规划中 | 当前数据库、接口和规格中保留了治理入口，但完整安装链路尚未交付 |
-| 插件管理页 | 已实现 | 支持源码插件同步、启用、禁用与治理联动 |
-| 后端扩展点 | 已实现 | 通过`pluginhost`发布的回调式扩展点接入 |
-| 前端页面接入 | 已实现 | 扫描`frontend/pages/**/*.vue`并挂到宿主运行时页 |
-| 前端`Slot`接入 | 已实现 | 扫描`frontend/slots/**/*.vue`并挂到宿主公开插槽 |
-| 插件安装 SQL | 已实现 | 通过`manifest/sql/*.sql`目录约定发现 |
-| 插件卸载 SQL | 已实现 | 通过`manifest/sql/uninstall/*.sql`目录约定发现 |
-| 脚手架脚本 | 未提供 | 当前不再提供`hack/plugin`下的脚本，避免生成物与真实实现脱节 |
+| 能力                | 当前状态 | 说明                                                                                                                                                                                                                                               |
+| ------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source`源码插件    | 已实现   | 插件目录位于`apps/lina-plugins/<plugin-id>/`，随宿主一起编译、打包和交付                                                                                                                                                                           |
+| `runtime`运行时插件 | 部分实现 | 当前已落地 `wasm` 产物自定义节校验、ABI 版本校验、checksum 与治理元数据同步，并支持上传、安装/卸载 SQL 执行、前端静态资源内存 bundle 托管，以及基于托管资源的 `iframe` / 新标签页 / 宿主内嵌挂载三种页面接入；热装载、真正的运行时执行与回滚仍未交付 |
+| 插件管理页          | 已实现   | 支持源码插件同步、启用、禁用与治理联动                                                                                                                                                                                                             |
+| 后端扩展点          | 已实现   | 通过`pluginhost`发布的回调式扩展点接入                                                                                                                                                                                                             |
+| 前端页面接入        | 已实现   | 扫描`frontend/pages/**/*.vue`并挂到宿主运行时页                                                                                                                                                                                                    |
+| 前端`Slot`接入      | 已实现   | 扫描`frontend/slots/**/*.vue`并挂到宿主公开插槽                                                                                                                                                                                                    |
+| 插件安装 SQL        | 已实现   | 通过`manifest/sql/*.sql`目录约定发现                                                                                                                                                                                                               |
+| 插件卸载 SQL        | 已实现   | 通过`manifest/sql/uninstall/*.sql`目录约定发现                                                                                                                                                                                                     |
+| 脚手架脚本          | 未提供   | 当前不再提供`hack/plugin`下的脚本；如果这些脚本会增加复杂度且收益很低，则继续保持不引入                                                                                                                                                              |
 
 补充说明：
 
 - 运维与 review 说明已整理到 [OPERATIONS.md](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/OPERATIONS.md)。
-- 当前仓库继续只保留 `plugin-demo` 作为唯一插件样例，不再新增额外插件模板目录；新插件目录规范以本文档和 `plugin-demo` 为准。
+- 当前仓库提供两个 review 样例：
+  - `plugin-demo`：源码插件样例
+  - `plugin-demo-runtime`：运行时插件样例
 
 ## 设计原则
 
@@ -58,6 +69,7 @@
 - 当前源码插件的后端接线方式不是脚本生成，也不是隐式自动装配。
 - 开发者需要显式维护`apps/lina-plugins/lina-plugins.go`，让宿主编译期导入插件后端包。
 - 这样做的目的是让接线关系清晰、可 grep、可 review、可追踪。
+- 在当前阶段，这种“手工接线 + 文档约束”的模式优先级高于额外引入脚手架或打包脚本。
 
 ### 设计与实现一致
 
@@ -68,29 +80,307 @@
 
 当前插件一级类型只保留两类：
 
-| 类型 | 含义 | 当前状态 |
-|------|------|------|
-| `source` | 源码插件，目录在`apps/lina-plugins/<plugin-id>/` | 已实现 |
-| `runtime` | 运行时插件，面向后续热安装与热升级 | 规划中 |
+| 类型      | 含义                                             | 当前状态 |
+| --------- | ------------------------------------------------ | -------- |
+| `source`  | 源码插件，目录在`apps/lina-plugins/<plugin-id>/` | 已实现   |
+| `runtime` | 运行时插件，面向后续热安装与热升级               | 部分实现 |
 
 重要说明：
 
-- 当前虽然规格中保留了`runtime`类型，但仓库真正已经闭环验证的是`source`源码插件。
+- 当前运行时插件已经补齐了上传、安装/卸载 SQL、静态资源托管以及**宿主可控的 declarative backend execution** 基线，但它仍然不是“任意插件 Go 代码直接热执行”的能力模型。
 - 历史上把`wasm`当一级类型的设计已经收敛掉了。当前治理视角只区分`source`和`runtime`。
 - 如果当前要开发新插件，默认应按照`source`源码插件方式开发。
+
+## 当前 `runtime wasm` 产物约定
+
+当前仓库已经交付“上传 `wasm` -> 安装/启用 -> 前端托管 -> declarative backend Hook / 资源执行”的二期运行时链路，并把**产物契约与宿主校验规则**真正落到了代码里，便于人工 review。
+
+为了让 reviewer 能看到一个“不是抽象 JSON，而是实际资源文件”的 runtime 样例，仓库提供了独立的 [plugin-demo-runtime](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-runtime/README.md) 插件目录。该目录现在直接以 `backend/`、`frontend/`、`manifest/` 下的明文源码作为单一真相源，`temp/<plugin-id>.wasm` 只作为本地构建产物按需生成，自动化测试会验证生成产物与明文源码保持一致。
+
+当前约定如下：
+
+- `apps/lina-plugins/<plugin-id>/` 仅作为 runtime 样例插件的明文源码与构建输入目录，不再作为宿主运行时发现入口。
+- 宿主当前通过配置项 `plugin.runtime.storagePath` 发现和管理 runtime `wasm` 插件，默认值为 `temp/runtime`。
+- 当 `storagePath` 使用相对路径时，宿主会以仓库根目录作为解析基准，保证上传、手工拷贝和后台同步识别走同一目录。
+- 宿主只扫描 `storagePath` 根目录下的 `*.wasm` 文件，不对外层目录层级做额外约定。
+- 运行时插件上传后，宿主会以 `<storagePath>/<plugin-id>.wasm` 的规范文件名落盘；若运维手工拷贝 `.wasm` 到该目录，则可通过管理页“同步插件”识别。
+- `apps/lina-plugins/<plugin-id>/temp/<plugin-id>.wasm` 只是样例插件的本地构建输出；若要被宿主识别，仍需上传或复制到 `plugin.runtime.storagePath`。
+- 宿主当前会读取 `storagePath/*.wasm` 中两个必选自定义节：
+  - `lina.plugin.manifest`
+  - `lina.plugin.runtime`
+- 宿主当前还支持一个可选前端资源自定义节：
+  - `lina.plugin.frontend.assets`
+- 宿主当前还支持两个可选 SQL 自定义节：
+  - `lina.plugin.install.sql`
+  - `lina.plugin.uninstall.sql`
+- 宿主当前还支持两个可选后端契约自定义节：
+  - `lina.plugin.backend.hooks`
+  - `lina.plugin.backend.resources`
+- 这些自定义节当前统一使用 JSON 编码，便于 reviewer 直接理解其字段语义。
+
+`lina.plugin.manifest` 当前要求至少包含：
+
+```json
+{
+  "id": "plugin-demo-runtime",
+  "name": "运行时示例插件",
+  "version": "v0.1.0",
+  "type": "runtime"
+}
+```
+
+`lina.plugin.runtime` 当前要求至少包含：
+
+```json
+{
+  "runtimeKind": "wasm",
+  "abiVersion": "v1",
+  "frontendAssetCount": 0,
+  "sqlAssetCount": 0
+}
+```
+
+如果运行时插件需要携带迁移 SQL，可以额外嵌入如下 JSON 数组：
+
+```json
+[
+  {
+    "key": "001-plugin-demo-runtime.sql",
+    "content": "INSERT INTO sys_menu (...);"
+  }
+]
+```
+
+约束如下：
+
+- `key` 必须符合宿主同款 SQL 命名规范：`{序号}-{当前迭代名称}.sql`
+- `key` 不能包含目录分隔符
+- `content` 不能为空
+- 宿主当前会保持数组顺序，并按顺序执行 install / uninstall SQL 步骤
+
+如果运行时插件需要声明宿主可执行的后端 Hook，可以额外嵌入如下 JSON 数组：
+
+```json
+[
+  {
+    "event": "auth.login.succeeded",
+    "action": "insert",
+    "mode": "blocking",
+    "timeoutMs": 1000,
+    "table": "plugin_runtime_login_log",
+    "fields": {
+      "user_name": "event.userName",
+      "created_at": "now"
+    }
+  }
+]
+```
+
+当前后端 Hook 契约约束如下：
+
+- `event` 必须是宿主已发布的 Hook 插槽。
+- `mode` 当前仅允许宿主已发布的执行模式；Hook 支持 `blocking` 与 `async`。
+- `timeoutMs` 可选；若不声明，宿主使用默认超时。
+- `action` 当前仅支持宿主内建动作：
+  - `insert`：向插件自有表插入一行审计/事件数据
+  - `sleep`：等待指定 `sleepMs`，主要用于验证 timeout / isolation 行为
+  - `error`：直接返回一个声明式错误，主要用于验证 failure isolation 行为
+- `insert` 动作要求 `table` 与 `fields` 合法。
+- `sleep` 动作要求 `sleepMs > 0`。
+- `error` 动作要求 `errorMessage` 非空。
+
+如果运行时插件需要声明宿主可查询的后端资源，可以额外嵌入如下 JSON 数组：
+
+```json
+[
+  {
+    "key": "records",
+    "type": "table-list",
+    "table": "plugin_runtime_records",
+    "fields": [
+      { "name": "id", "column": "id" },
+      { "name": "title", "column": "title" }
+    ],
+    "orderBy": {
+      "column": "id",
+      "direction": "asc"
+    },
+    "dataScope": {
+      "userColumn": "owner_user_id",
+      "deptColumn": "owner_dept_id"
+    }
+  }
+]
+```
+
+当前后端资源契约约束如下：
+
+- `type` 当前仅支持 `table-list`。
+- `table`、`fields`、`filters`、`orderBy` 中涉及的表名和列名都必须通过宿主标识校验。
+- `dataScope` 可选；一旦声明，宿主会将当前登录用户的角色数据权限自动应用到该资源查询。
+- `dataScope.userColumn` 对应“仅本人”过滤。
+- `dataScope.deptColumn` 对应“本部门”过滤。
+- 若当前用户无可用角色数据权限，或插件声明的数据权限列不足以支撑当前范围，宿主会按最小权限原则返回空结果。
+
+宿主当前会执行以下校验：
+
+- 宿主识别到的 `.wasm` 文件必须存在于 `plugin.runtime.storagePath`。
+- `wasm` 文件头和版本必须合法。
+- 必须包含 `lina.plugin.manifest` 和 `lina.plugin.runtime` 两个自定义节。
+- 若声明了 `lina.plugin.frontend.assets`，宿主会校验每个前端资源的 `path`、`contentBase64`，并拒绝路径越界。
+- 嵌入清单中的 `id/name/version/type` 必须完整且合法，且 `type` 当前只能为 `runtime`。
+- `runtimeKind` 当前只能是 `wasm`。
+- `abiVersion` 当前只能是 `v1`。
+- 若存在 `lina.plugin.install.sql` / `lina.plugin.uninstall.sql`，宿主会校验每个 SQL 资源键和值是否合法。
+- 若存在 `lina.plugin.backend.hooks`，宿主会校验每个 Hook 的 `event/action/mode/timeoutMs` 及其动作专属字段是否合法。
+- 若存在 `lina.plugin.backend.resources`，宿主会校验资源键、字段、过滤器、排序和 `dataScope` 列声明是否合法。
+
+当前已经落地到治理元数据中的内容包括：
+
+- `sys_plugin.checksum` 会记录运行时产物的 `sha256`。
+- `sys_plugin_release.runtime_kind` 会记录 `wasm`。
+- `manifest_snapshot` 会记录 `runtimeKind`、`runtimeAbiVersion`、`runtimeFrontendAssetCount`、`runtimeSqlAssetCount`。
+- `sys_plugin_resource_ref` 会新增一条抽象的 `runtime_wasm` 资源摘要，方便 reviewer 确认宿主确实识别到了运行时产物。
+- 若运行时产物声明了前端静态资源，`sys_plugin_resource_ref` 还会新增 `runtime_frontend` 摘要，便于 reviewer 确认宿主识别到了多少个可托管资源。
+- `sys_plugin_migration` 在运行时插件安装/卸载时，会优先针对嵌入在 `wasm` 中的 SQL 资源记录执行结果；只有当未声明嵌入 SQL 时，才会回退到目录约定 SQL。
+- runtime Hook 在宿主执行时，会统一经过 timeout、error 与 panic isolation 包装，不允许单个 runtime 插件阻断宿主主流程。
+- runtime 资源查询会复用宿主当前登录用户的角色数据权限上下文，而不是绕开 Lina 现有治理模型。
+
+### 当前已提供的前端静态资源托管基线
+
+如果运行时插件在 `lina.plugin.frontend.assets` 中嵌入了前端静态资源，宿主当前会直接以 `plugin.runtime.storagePath` 中的 `.wasm` 作为单一真相源，在内存中构建只读资源视图并对外提供稳定访问地址。服务重启后，宿主会在启动时预热已安装且已启用的 runtime 插件资源；若某个 bundle 未预热成功，请求链路仍会按需重新从 `.wasm` 懒加载。
+
+资源对外公开路径固定为：
+
+```text
+/plugin-assets/<plugin-id>/<version>/<relative-path>
+```
+
+例如：
+
+```text
+/plugin-assets/plugin-demo-runtime/v0.1.0/standalone.html
+```
+
+当前托管边界如下：
+
+- 只有 `runtime` 插件才允许走这条公开资源路径。
+- 请求中的 `<version>` 必须与宿主当前识别到的插件版本一致。
+- 插件必须处于“已安装 + 已启用”状态，否则宿主会返回不可访问。
+- 当请求路径为空时，宿主默认回退到 `index.html`。
+- 当插件菜单 SQL 将 `path` 写成 `/plugin-assets/<plugin-id>/<version>/...` 这类托管地址时，宿主当前已经支持两种菜单驱动接入模式：
+  - `is_frame = 0`：自动转换为 `iframe` 路由，托管页面在宿主主内容区内嵌打开。
+  - `is_frame = 1`：自动转换为新标签页路由，点击菜单后直接打开托管地址。
+- 当插件菜单同时满足以下条件时，宿主会走第三种“宿主内嵌挂载”模式：
+  - `component = system/plugin/runtime-page`
+  - `path = /plugin-assets/<plugin-id>/<version>/<entry-file>`
+  - `query_param` 包含 `{"pluginAccessMode":"embedded-mount"}`
+- 进入该模式后，宿主不会把菜单当成 `iframe` 或新标签页，而是：
+  - 为菜单生成一个宿主内部动态路由路径
+  - 将原始托管资源地址透传为 `embeddedSrc` 查询参数
+  - 由 `system/plugin/runtime-page` 壳在宿主内容容器内动态导入该 ESM 入口
+- runtime 插件在启用前还会额外校验这些菜单引用的托管资源是否真实存在；若菜单引用了缺失资源，或宿主内嵌挂载入口不是 `.js/.mjs` ESM 文件，则启用会被拒绝。
+
+### 当前已提供的宿主内嵌挂载契约
+
+当前运行时插件的宿主内嵌挂载不是“任意 HTML 页面直接塞进 DOM”，而是一个**最小 ESM 契约**。宿主当前要求被内嵌的托管入口至少导出：
+
+```ts
+export function mount(context) {
+  // render into context.container
+}
+```
+
+当前宿主会传入的 `context` 至少包括：
+
+- `container`: 宿主为当前插件页面准备好的挂载 DOM 容器
+- `assetURL`: 当前 ESM 入口的完整访问地址
+- `baseURL`: 当前 ESM 入口所在目录的基础 URL，便于插件自行拼接其他静态资源
+- `routePath`: 当前宿主动态路由路径
+- `title`: 当前菜单标题
+- `query`: 宿主路由层合并后的查询参数
+
+当前宿主还支持两个可选生命周期能力：
+
+```ts
+export function unmount(context) {}
+export function update(context) {}
+```
+
+或者由 `mount(context)` 返回一个对象：
+
+```ts
+export function mount(context) {
+  return {
+    unmount(nextContext) {},
+    update(nextContext) {},
+  };
+}
+```
+
+当前实现边界如下：
+
+- 宿主只负责“准备容器 + 动态导入 ESM + 调用 mount/unmount/update”。
+- 宿主不会替插件注入额外 SDK、状态管理、路由桥接或主题桥接。
+- 若插件需要更复杂的宿主能力，当前仍应优先退回 `iframe` 或新标签页模式。
+- 宿主当前会在页面内显式展示挂载失败结果，便于人工 review 判断到底是菜单接入问题还是插件入口自身实现问题。
+
+### 当前已提供的上传入口
+
+宿主当前已经提供运行时插件包上传 API：
+
+```text
+POST /api/v1/plugins/runtime/package
+Content-Type: multipart/form-data
+```
+
+表单字段如下：
+
+- `file`: 必填，`.wasm` 文件
+- `overwriteSupport`: 可选，`1` 表示允许覆盖**尚未安装**的同 ID runtime 插件文件
+
+当前上传接口的行为边界如下：
+
+- 宿主会先解析上传包中的嵌入清单和运行时元数据。
+- 宿主会将产物直接写入 `plugin.runtime.storagePath/<plugin-id>.wasm`，不再在 `apps/lina-plugins/` 下额外生成 `plugin.yaml` 或运行时工作目录。
+- 若 `wasm` 中声明了 `lina.plugin.frontend.assets`，宿主会在运行时直接从 `.wasm` 解析这些资源，并按需刷新内存缓存。
+- 宿主会立即同步 `sys_plugin` / `sys_plugin_release` / `sys_plugin_resource_ref` 等治理元数据。
+- 上传完成后，插件默认仍是“未安装、未启用”状态。
+- 当前**不允许**通过上传直接覆盖一个已经安装的 runtime 插件；升级/回滚的正式 release 切换能力还没有交付。
+- 除上传外，运维也可以手工把 `.wasm` 文件复制到 `plugin.runtime.storagePath`，然后在管理页执行同步识别。
+
+当前仓库同时提供通用构建入口，供样例 runtime 插件生成宿主可扫描的 wasm 产物：
+
+```bash
+make wasm
+make wasm p=plugin-demo-runtime
+```
+
+其中：
+
+- `make wasm` 会遍历 `apps/lina-plugins/` 下所有 `type: runtime` 的插件目录并生成 `temp/<plugin-id>.wasm`
+- `make wasm p=<plugin-id>` 只构建指定 runtime 插件
+- `make wasm` 当前直接通过根级 `hack/build-wasm/` 独立 Go 工具生成产物；该工具有自己的 `go.mod`，不依赖 `apps/lina-core`
+- 生成产物不会提交到 Git，`.gitignore` 已忽略 `apps/lina-plugins/*/temp/`
+- 根级 `make dev` / `make build` 会自动复用同一个通用构建入口，避免因为仓库中不提交 wasm 而导致宿主扫描失败
+
+当前仍然**没有**落地的能力包括：
+
+- 在宿主进程内热装载运行时插件逻辑。
+- 运行时升级、回滚和多节点代际切换。
 
 ## 源码插件生命周期
 
 源码插件和运行时插件的生命周期语义并不相同。源码插件当前遵循下表：
 
-| 动作 | 源码插件行为 |
-|------|------|
-| 发现 | 宿主扫描`apps/lina-plugins/*/plugin.yaml`识别插件 |
-| 同步 | 宿主同步`sys_plugin`记录，保持插件列表和实际目录一致 |
-| 安装 | 不提供。源码插件视为随宿主编译即已集成 |
+| 动作 | 源码插件行为                                             |
+| ---- | -------------------------------------------------------- |
+| 发现 | 宿主扫描`apps/lina-plugins/*/plugin.yaml`识别插件        |
+| 同步 | 宿主同步`sys_plugin`记录，保持插件列表和实际目录一致     |
+| 安装 | 不提供。源码插件视为随宿主编译即已集成                   |
 | 卸载 | 不提供。移除源码插件需要修改源码目录和注册关系后重新构建 |
-| 启用 | 已支持。启用后路由、菜单、页面和`Slot`恢复生效 |
-| 禁用 | 已支持。禁用后路由、菜单、页面和`Slot`隐藏或拒绝访问 |
+| 启用 | 已支持。启用后路由、菜单、页面和`Slot`恢复生效           |
+| 禁用 | 已支持。禁用后路由、菜单、页面和`Slot`隐藏或拒绝访问     |
 
 这意味着：
 
@@ -131,32 +421,32 @@ apps/lina-plugins/
 
 各目录职责如下：
 
-| 路径 | 作用 | 是否必需 |
-|------|------|------|
-| `apps/lina-plugins/lina-plugins.go` | 宿主源码插件后端导入注册表 | 是 |
-| `<plugin-id>/go.mod` | 插件独立 Go 模块声明 | `source`插件必需 |
-| `<plugin-id>/plugin.yaml` | 插件最小元数据清单 | 是 |
-| `<plugin-id>/README.md` | 插件自身说明文档 | 强烈建议 |
-| `<plugin-id>/backend/plugin.go` | 插件后端注册入口 | `source`插件必需 |
-| `<plugin-id>/backend/api/` | 插件 API 定义 | 按需 |
-| `<plugin-id>/backend/internal/controller/` | 插件控制器实现 | 按需 |
-| `<plugin-id>/backend/service/` | 插件服务层实现 | 按需 |
-| `<plugin-id>/frontend/pages/` | 插件页面源码目录 | 有页面时必需 |
-| `<plugin-id>/frontend/slots/` | 插件`Slot`源码目录 | 有`Slot`时必需 |
-| `<plugin-id>/manifest/sql/` | 插件安装 SQL 目录 | 有安装 SQL 时必需 |
-| `<plugin-id>/manifest/sql/uninstall/` | 插件卸载 SQL 目录 | 有卸载 SQL 时必需 |
+| 路径                                       | 作用                       | 是否必需          |
+| ------------------------------------------ | -------------------------- | ----------------- |
+| `apps/lina-plugins/lina-plugins.go`        | 宿主源码插件后端导入注册表 | 是                |
+| `<plugin-id>/go.mod`                       | 插件独立 Go 模块声明       | `source`插件必需  |
+| `<plugin-id>/plugin.yaml`                  | 插件最小元数据清单         | 是                |
+| `<plugin-id>/README.md`                    | 插件自身说明文档           | 强烈建议          |
+| `<plugin-id>/backend/plugin.go`            | 插件后端注册入口           | `source`插件必需  |
+| `<plugin-id>/backend/api/`                 | 插件 API 定义              | 按需              |
+| `<plugin-id>/backend/internal/controller/` | 插件控制器实现             | 按需              |
+| `<plugin-id>/backend/service/`             | 插件服务层实现             | 按需              |
+| `<plugin-id>/frontend/pages/`              | 插件页面源码目录           | 有页面时必需      |
+| `<plugin-id>/frontend/slots/`              | 插件`Slot`源码目录         | 有`Slot`时必需    |
+| `<plugin-id>/manifest/sql/`                | 插件安装 SQL 目录          | 有安装 SQL 时必需 |
+| `<plugin-id>/manifest/sql/uninstall/`      | 插件卸载 SQL 目录          | 有卸载 SQL 时必需 |
 
 ## 元数据底座
 
 为了让后续人工 review 不必只依赖日志，宿主当前会把插件治理元数据同步到以下表中：
 
-| 表名 | 当前用途 |
-|------|------|
-| `sys_plugin` | 插件注册表，记录插件基础状态 |
-| `sys_plugin_release` | 记录插件版本、清单基础信息和资源数量摘要快照 |
-| `sys_plugin_migration` | 记录安装/卸载迁移的执行结果与抽象执行键 |
+| 表名                      | 当前用途                                         |
+| ------------------------- | ------------------------------------------------ |
+| `sys_plugin`              | 插件注册表，记录插件基础状态                     |
+| `sys_plugin_release`      | 记录插件版本、清单基础信息和资源数量摘要快照     |
+| `sys_plugin_migration`    | 记录安装/卸载迁移的执行结果与抽象执行键          |
 | `sys_plugin_resource_ref` | 记录宿主发现到的抽象资源类型、稳定标识与摘要说明 |
-| `sys_plugin_node_state` | 记录当前节点对插件状态的观测结果 |
+| `sys_plugin_node_state`   | 记录当前节点对插件状态的观测结果                 |
 
 这些表的目标不是把二三期能力一次性做完，而是先把后续 runtime 生命周期需要的宿主元数据底座稳定下来。
 
@@ -169,13 +459,13 @@ apps/lina-plugins/
 
 当前插件管理页已经基于这些表补齐了以下治理摘要字段，便于人工 review：
 
-| 字段 | 说明 |
-|------|------|
-| `releaseVersion` | 宿主当前视角下的生效版本号 |
-| `lifecycleState` | 生命周期状态键，如 `source_enabled`、`runtime_installed` |
-| `nodeState` | 当前节点观测状态，如 `enabled`、`installed`、`uninstalled` |
-| `resourceCount` | 当前生效版本登记的资源引用数量 |
-| `migrationState` | 最近一次迁移结果，如 `none`、`succeeded`、`failed` |
+| 字段             | 说明                                                       |
+| ---------------- | ---------------------------------------------------------- |
+| `releaseVersion` | 宿主当前视角下的生效版本号                                 |
+| `lifecycleState` | 生命周期状态键，如 `source_enabled`、`runtime_installed`   |
+| `nodeState`      | 当前节点观测状态，如 `enabled`、`installed`、`uninstalled` |
+| `resourceCount`  | 当前生效版本登记的资源引用数量                             |
+| `migrationState` | 最近一次迁移结果，如 `none`、`succeeded`、`failed`         |
 
 ## `plugin.yaml`
 
@@ -209,31 +499,31 @@ license: Apache-2.0
 
 ### 字段说明
 
-| 字段 | 是否必填 | 说明 |
-|------|------|------|
-| `id` | 是 | 插件稳定标识，必须使用`kebab-case`，且在宿主范围内唯一 |
-| `name` | 是 | 插件显示名称 |
-| `version` | 是 | 插件版本号，必须使用`semver`格式；本文档示例统一使用带`v`前缀的写法 |
-| `type` | 是 | 当前仅允许`source`或`runtime` |
-| `description` | 否 | 插件简要描述，建议明确功能边界 |
-| `author` | 否 | 插件作者或团队标识 |
-| `homepage` | 否 | 插件主页或项目地址 |
-| `license` | 否 | 插件许可信息 |
+| 字段          | 是否必填 | 说明                                                                |
+| ------------- | -------- | ------------------------------------------------------------------- |
+| `id`          | 是       | 插件稳定标识，必须使用`kebab-case`，且在宿主范围内唯一              |
+| `name`        | 是       | 插件显示名称                                                        |
+| `version`     | 是       | 插件版本号，必须使用`semver`格式；本文档示例统一使用带`v`前缀的写法 |
+| `type`        | 是       | 当前仅允许`source`或`runtime`                                       |
+| `description` | 否       | 插件简要描述，建议明确功能边界                                      |
+| `author`      | 否       | 插件作者或团队标识                                                  |
+| `homepage`    | 否       | 插件主页或项目地址                                                  |
+| `license`     | 否       | 插件许可信息                                                        |
 
 ### 宿主校验规则
 
 宿主当前会对`plugin.yaml`做以下校验：
 
-| 校验项 | 规则 |
-|------|------|
-| `id` 非空 | 缺失则判定清单非法 |
-| `id` 格式 | 必须匹配`^[a-z0-9]+(?:-[a-z0-9]+)*$` |
-| `id` 唯一性 | 不允许两个插件目录使用同一个`id` |
-| `name` 非空 | 缺失则判定清单非法 |
-| `version` 非空 | 缺失则判定清单非法 |
-| `version` 格式 | 必须满足`semver`格式，例如`v0.1.0`；宿主当前同时兼容不带`v`前缀的写法 |
-| `type` 合法性 | 仅允许`source`或`runtime` |
-| `source`目录完整性 | `source`插件必须存在`go.mod`和`backend/plugin.go` |
+| 校验项             | 规则                                                                  |
+| ------------------ | --------------------------------------------------------------------- |
+| `id` 非空          | 缺失则判定清单非法                                                    |
+| `id` 格式          | 必须匹配`^[a-z0-9]+(?:-[a-z0-9]+)*$`                                  |
+| `id` 唯一性        | 不允许两个插件目录使用同一个`id`                                      |
+| `name` 非空        | 缺失则判定清单非法                                                    |
+| `version` 非空     | 缺失则判定清单非法                                                    |
+| `version` 格式     | 必须满足`semver`格式，例如`v0.1.0`；宿主当前同时兼容不带`v`前缀的写法 |
+| `type` 合法性      | 仅允许`source`或`runtime`                                             |
+| `source`目录完整性 | `source`插件必须存在`go.mod`和`backend/plugin.go`                     |
 
 ### 明确不再允许的字段
 
@@ -332,21 +622,21 @@ func registerRoutes(ctx context.Context, registrar pluginhost.RouteRegistrar) er
 
 宿主当前已经正式发布的后端扩展点如下：
 
-| Go 常量 | Canonical 值 | 类型 | 支持模式 |
-|------|------|------|------|
-| `ExtensionPointAuthLoginSucceeded` | `auth.login.succeeded` | 事件 Hook | `blocking`、`async` |
-| `ExtensionPointAuthLoginFailed` | `auth.login.failed` | 事件 Hook | `blocking`、`async` |
-| `ExtensionPointAuthLogoutSucceeded` | `auth.logout.succeeded` | 事件 Hook | `blocking`、`async` |
-| `ExtensionPointPluginInstalled` | `plugin.installed` | 事件 Hook | `blocking`、`async` |
-| `ExtensionPointPluginEnabled` | `plugin.enabled` | 事件 Hook | `blocking`、`async` |
-| `ExtensionPointPluginDisabled` | `plugin.disabled` | 事件 Hook | `blocking`、`async` |
-| `ExtensionPointPluginUninstalled` | `plugin.uninstalled` | 事件 Hook | `blocking`、`async` |
-| `ExtensionPointSystemStarted` | `system.started` | 事件 Hook | `blocking`、`async` |
-| `ExtensionPointHTTPRouteRegister` | `http.route.register` | 注册点 | `blocking` |
-| `ExtensionPointHTTPRequestAfterAuth` | `http.request.after-auth` | 注册点 | `blocking` |
-| `ExtensionPointCronRegister` | `cron.register` | 注册点 | `blocking` |
-| `ExtensionPointMenuFilter` | `menu.filter` | 注册点 | `blocking` |
-| `ExtensionPointPermissionFilter` | `permission.filter` | 注册点 | `blocking` |
+| Go 常量                              | Canonical 值              | 类型      | 支持模式            |
+| ------------------------------------ | ------------------------- | --------- | ------------------- |
+| `ExtensionPointAuthLoginSucceeded`   | `auth.login.succeeded`    | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointAuthLoginFailed`      | `auth.login.failed`       | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointAuthLogoutSucceeded`  | `auth.logout.succeeded`   | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointPluginInstalled`      | `plugin.installed`        | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointPluginEnabled`        | `plugin.enabled`          | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointPluginDisabled`       | `plugin.disabled`         | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointPluginUninstalled`    | `plugin.uninstalled`      | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointSystemStarted`        | `system.started`          | 事件 Hook | `blocking`、`async` |
+| `ExtensionPointHTTPRouteRegister`    | `http.route.register`     | 注册点    | `blocking`          |
+| `ExtensionPointHTTPRequestAfterAuth` | `http.request.after-auth` | 注册点    | `blocking`          |
+| `ExtensionPointCronRegister`         | `cron.register`           | 注册点    | `blocking`          |
+| `ExtensionPointMenuFilter`           | `menu.filter`             | 注册点    | `blocking`          |
+| `ExtensionPointPermissionFilter`     | `permission.filter`       | 注册点    | `blocking`          |
 
 开发约束：
 
@@ -358,10 +648,10 @@ func registerRoutes(ctx context.Context, registrar pluginhost.RouteRegistrar) er
 
 插件路由注册当前通过`RouteRegistrar`完成。它提供两类能力：
 
-| 能力 | 说明 |
-|------|------|
+| 能力                | 说明                               |
+| ------------------- | ---------------------------------- |
 | `Group(prefix, fn)` | 在宿主插件路由根分组下创建路由分组 |
-| `Middlewares()` | 获取宿主已发布的中间件目录 |
+| `Middlewares()`     | 获取宿主已发布的中间件目录         |
 
 当前可供插件组合的宿主中间件包括：
 
@@ -382,10 +672,10 @@ func registerRoutes(ctx context.Context, registrar pluginhost.RouteRegistrar) er
 
 如果插件需要注册定时任务，可以使用`RegisterCron`和`CronRegistrar`：
 
-| 能力 | 说明 |
-|------|------|
+| 能力                               | 说明                             |
+| ---------------------------------- | -------------------------------- |
 | `Add(ctx, pattern, name, handler)` | 注册一个受插件启停保护的定时任务 |
-| `IsPrimaryNode()` | 返回当前节点是否为主节点 |
+| `IsPrimaryNode()`                  | 返回当前节点是否为主节点         |
 
 建议：
 
@@ -420,19 +710,19 @@ frontend/pages/**/*.vue
 ```vue
 <script lang="ts">
 export const pluginPageMeta = {
-  routePath: 'plugin-demo-sidebar-entry',
-  title: '插件示例',
+  routePath: "plugin-demo-sidebar-entry",
+  title: "插件示例",
 };
 </script>
 ```
 
 当前支持的页面元数据字段如下：
 
-| 字段 | 是否必填 | 说明 |
-|------|------|------|
-| `pluginId` | 否 | 不传时默认从文件路径推导 |
-| `routePath` | 否 | 不传时宿主会根据文件路径自动推导 |
-| `title` | 否 | 不传时默认使用`routePath` |
+| 字段        | 是否必填 | 说明                             |
+| ----------- | -------- | -------------------------------- |
+| `pluginId`  | 否       | 不传时默认从文件路径推导         |
+| `routePath` | 否       | 不传时宿主会根据文件路径自动推导 |
+| `title`     | 否       | 不传时默认使用`routePath`        |
 
 ### 默认路由推导规则
 
@@ -446,10 +736,10 @@ export const pluginPageMeta = {
 
 例如：
 
-| 文件路径 | 推导结果 |
-|------|------|
+| 文件路径                           | 推导结果                    |
+| ---------------------------------- | --------------------------- |
 | `frontend/pages/sidebar-entry.vue` | `plugin-demo-sidebar-entry` |
-| `frontend/pages/user/profile.vue` | `plugin-demo-user-profile` |
+| `frontend/pages/user/profile.vue`  | `plugin-demo-user-profile`  |
 
 ### 页面开发约束
 
@@ -481,7 +771,7 @@ frontend/slots/
 
 ```vue
 <script lang="ts">
-import { pluginSlotKeys } from '#/plugins/plugin-slots';
+import { pluginSlotKeys } from "#/plugins/plugin-slots";
 
 export const pluginSlotMeta = {
   order: 0,
@@ -492,11 +782,11 @@ export const pluginSlotMeta = {
 
 当前支持字段如下：
 
-| 字段 | 是否必填 | 说明 |
-|------|------|------|
-| `pluginId` | 否 | 不传时默认从文件路径推导 |
-| `slotKey` | 否 | 不传时默认从文件所在目录推导 |
-| `order` | 否 | 同一`Slot`下的排序值，越小越靠前，默认`0` |
+| 字段       | 是否必填 | 说明                                      |
+| ---------- | -------- | ----------------------------------------- |
+| `pluginId` | 否       | 不传时默认从文件路径推导                  |
+| `slotKey`  | 否       | 不传时默认从文件所在目录推导              |
+| `order`    | 否       | 同一`Slot`下的排序值，越小越靠前，默认`0` |
 
 ### 默认 `slotKey` 推导规则
 
@@ -508,10 +798,10 @@ export const pluginSlotMeta = {
 
 例如：
 
-| 文件路径 | 推导出的`slotKey` |
-|------|------|
+| 文件路径                                                      | 推导出的`slotKey`           |
+| ------------------------------------------------------------- | --------------------------- |
 | `frontend/slots/dashboard.workspace.after/workspace-card.vue` | `dashboard.workspace.after` |
-| `frontend/slots/auth.login.after/login-tip.vue` | `auth.login.after` |
+| `frontend/slots/auth.login.after/login-tip.vue`               | `auth.login.after`          |
 
 ### 未发布插槽的处理方式
 
@@ -523,16 +813,16 @@ export const pluginSlotMeta = {
 
 ### 当前已发布的前端插槽
 
-| `slotKey` | 宿主位置 | 推荐用途 |
-|------|------|------|
-| `auth.login.after` | 登录页表单下方 | 提示信息、轻量入口 |
-| `crud.table.after` | 通用表格区域下方 | 说明卡片、辅助面板 |
-| `crud.toolbar.after` | 通用工具栏右侧 | 状态标签、快捷操作 |
-| `dashboard.workspace.before` | 工作台顶部 | 横幅、提醒、概览块 |
-| `dashboard.workspace.after` | 工作台底部 | 卡片、统计块、快捷入口 |
-| `layout.header.actions.before` | 头部动作区前置 | 全局状态、入口 |
-| `layout.header.actions.after` | 头部动作区后置 | 快捷入口、轻量提示 |
-| `layout.user-dropdown.after` | 用户菜单左侧 | 轻量入口、状态提示 |
+| `slotKey`                      | 宿主位置         | 推荐用途               |
+| ------------------------------ | ---------------- | ---------------------- |
+| `auth.login.after`             | 登录页表单下方   | 提示信息、轻量入口     |
+| `crud.table.after`             | 通用表格区域下方 | 说明卡片、辅助面板     |
+| `crud.toolbar.after`           | 通用工具栏右侧   | 状态标签、快捷操作     |
+| `dashboard.workspace.before`   | 工作台顶部       | 横幅、提醒、概览块     |
+| `dashboard.workspace.after`    | 工作台底部       | 卡片、统计块、快捷入口 |
+| `layout.header.actions.before` | 头部动作区前置   | 全局状态、入口         |
+| `layout.header.actions.after`  | 头部动作区后置   | 快捷入口、轻量提示     |
+| `layout.user-dropdown.after`   | 用户菜单左侧     | 轻量入口、状态提示     |
 
 ## SQL 约定
 
@@ -546,12 +836,12 @@ manifest/sql/*.sql
 
 规则如下：
 
-| 规则 | 说明 |
-|------|------|
-| 文件名格式 | 必须是`{序号}-{当前迭代名称}.sql` |
-| 序号格式 | 三位数字，例如`001`、`002` |
-| 目录层级 | 必须直接位于`manifest/sql/`根目录，不能再嵌套子目录 |
-| 扫描顺序 | 宿主按文件名排序后顺序执行 |
+| 规则       | 说明                                                |
+| ---------- | --------------------------------------------------- |
+| 文件名格式 | 必须是`{序号}-{当前迭代名称}.sql`                   |
+| 序号格式   | 三位数字，例如`001`、`002`                          |
+| 目录层级   | 必须直接位于`manifest/sql/`根目录，不能再嵌套子目录 |
+| 扫描顺序   | 宿主按文件名排序后顺序执行                          |
 
 ### 卸载 SQL
 
@@ -563,11 +853,11 @@ manifest/sql/uninstall/*.sql
 
 规则如下：
 
-| 规则 | 说明 |
-|------|------|
-| 文件名格式 | 与安装 SQL 相同 |
-| 目录层级 | 必须直接位于`manifest/sql/uninstall/`根目录 |
-| 发现方式 | 宿主在卸载流程中按目录约定单独发现 |
+| 规则       | 说明                                             |
+| ---------- | ------------------------------------------------ |
+| 文件名格式 | 与安装 SQL 相同                                  |
+| 目录层级   | 必须直接位于`manifest/sql/uninstall/`根目录      |
+| 发现方式   | 宿主在卸载流程中按目录约定单独发现               |
 | 初始化隔离 | 宿主初始化流程不会扫描该目录，避免误执行卸载 SQL |
 
 ### 菜单与权限治理
@@ -660,18 +950,18 @@ manifest/sql/uninstall/*.sql
 
 人工 review 一个源码插件时，建议按下面清单逐项确认：
 
-| 检查项 | 结论标准 |
-|------|------|
-| 插件目录位置是否正确 | 位于`apps/lina-plugins/<plugin-id>/` |
-| 是否存在`go.mod`和`backend/plugin.go` | `source`插件必须具备 |
-| `plugin.yaml`是否最小化 | 不应再出现`schemaVersion`、`compatibility`、`entry`、`resources`、`metadata`等字段 |
-| `id`是否唯一且符合`kebab-case` | 宿主范围内唯一 |
-| `lina-plugins.go`是否补了匿名导入 | 新插件必须显式接线 |
-| 页面和`Slot`是否位于约定目录 | 页面在`frontend/pages/`，`Slot`在`frontend/slots/` |
-| 菜单和权限是否只在 SQL 中维护 | 不在`plugin.yaml`重复建模 |
-| SQL 文件名和目录是否正确 | 安装和卸载 SQL 分别放在正确目录，且文件名合规 |
-| 禁用后是否能正确隐藏 | 菜单、页面、`Slot`和路由都应受启停状态保护 |
-| 文档是否足够清晰 | 插件自身`README.md`应说明功能范围、路由、SQL 和验证方式 |
+| 检查项                                | 结论标准                                                                           |
+| ------------------------------------- | ---------------------------------------------------------------------------------- |
+| 插件目录位置是否正确                  | 位于`apps/lina-plugins/<plugin-id>/`                                               |
+| 是否存在`go.mod`和`backend/plugin.go` | `source`插件必须具备                                                               |
+| `plugin.yaml`是否最小化               | 不应再出现`schemaVersion`、`compatibility`、`entry`、`resources`、`metadata`等字段 |
+| `id`是否唯一且符合`kebab-case`        | 宿主范围内唯一                                                                     |
+| `lina-plugins.go`是否补了匿名导入     | 新插件必须显式接线                                                                 |
+| 页面和`Slot`是否位于约定目录          | 页面在`frontend/pages/`，`Slot`在`frontend/slots/`                                 |
+| 菜单和权限是否只在 SQL 中维护         | 不在`plugin.yaml`重复建模                                                          |
+| SQL 文件名和目录是否正确              | 安装和卸载 SQL 分别放在正确目录，且文件名合规                                      |
+| 禁用后是否能正确隐藏                  | 菜单、页面、`Slot`和路由都应受启停状态保护                                         |
+| 文档是否足够清晰                      | 插件自身`README.md`应说明功能范围、路由、SQL 和验证方式                            |
 
 ## 常见错误
 
@@ -719,13 +1009,16 @@ manifest/sql/uninstall/*.sql
 
 当前仓库中最小可运行样例是`plugin-demo`：
 
-| 文件 | 作用 |
-|------|------|
-| `apps/lina-plugins/plugin-demo/plugin.yaml` | 最小清单示例 |
-| `apps/lina-plugins/plugin-demo/backend/plugin.go` | 后端注册入口示例 |
-| `apps/lina-plugins/plugin-demo/frontend/pages/sidebar-entry.vue` | 插件页面示例 |
-| `apps/lina-plugins/plugin-demo/frontend/slots/` | 插件`Slot`示例 |
-| `apps/lina-plugins/plugin-demo/manifest/sql/001-plugin-demo.sql` | 菜单与权限种子示例 |
-| `apps/lina-plugins/plugin-demo/README.md` | 插件自身接入说明 |
+| 文件                                                             | 作用               |
+| ---------------------------------------------------------------- | ------------------ |
+| `apps/lina-plugins/plugin-demo/plugin.yaml`                                      | 源码插件最小清单示例     |
+| `apps/lina-plugins/plugin-demo/backend/plugin.go`                                | 源码插件后端注册入口示例 |
+| `apps/lina-plugins/plugin-demo/frontend/pages/sidebar-entry.vue`                 | 源码插件页面示例         |
+| `apps/lina-plugins/plugin-demo/manifest/sql/001-plugin-demo.sql`                 | 源码插件菜单与权限示例   |
+| `apps/lina-plugins/plugin-demo-runtime/plugin.yaml`                              | 运行时插件最小清单示例   |
+| `apps/lina-plugins/plugin-demo-runtime/backend/plugin.go`                        | 运行时插件后端结构示例   |
+| `apps/lina-plugins/plugin-demo-runtime/frontend/pages/mount.js`                  | 运行时内嵌挂载入口示例   |
+| `apps/lina-plugins/plugin-demo-runtime/frontend/pages/standalone.html`           | 运行时独立静态页示例   |
+| `apps/lina-plugins/plugin-demo-runtime/manifest/sql/001-plugin-demo-runtime.sql` | 运行时插件菜单 SQL 示例 |
 
 如果要新增新插件，建议先复制`plugin-demo`的整体结构，再按本文档约束删减或扩展，而不是从零随意拼目录。

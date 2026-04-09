@@ -52,6 +52,8 @@ const (
 
 	pluginResourceKindManifest     pluginResourceKind = "manifest"
 	pluginResourceKindBackendEntry pluginResourceKind = "backend_entry"
+	pluginResourceKindRuntimeWasm  pluginResourceKind = "runtime_wasm"
+	pluginResourceKindRuntimeFrontend pluginResourceKind = "runtime_frontend"
 	pluginResourceKindFrontendPage pluginResourceKind = "frontend_page"
 	pluginResourceKindFrontendSlot pluginResourceKind = "frontend_slot"
 	pluginResourceKindInstallSQL   pluginResourceKind = "install_sql"
@@ -59,6 +61,8 @@ const (
 
 	pluginResourceOwnerTypeFile                pluginResourceOwnerType = "file"
 	pluginResourceOwnerTypeBackendRegistration pluginResourceOwnerType = "backend-registration"
+	pluginResourceOwnerTypeRuntimeArtifact     pluginResourceOwnerType = "runtime-artifact"
+	pluginResourceOwnerTypeRuntimeFrontend     pluginResourceOwnerType = "runtime-frontend"
 	pluginResourceOwnerTypeInstallSQL          pluginResourceOwnerType = "install-sql"
 	pluginResourceOwnerTypeUninstallSQL        pluginResourceOwnerType = "uninstall-sql"
 	pluginResourceOwnerTypeFrontendPageEntry   pluginResourceOwnerType = "frontend-page-entry"
@@ -124,21 +128,25 @@ func (value pluginResourceOrderDirection) String() string { return string(value)
 
 // pluginManifestSnapshot stores the review-friendly manifest snapshot persisted in sys_plugin_release.
 type pluginManifestSnapshot struct {
-	ID                string `yaml:"id"`
-	Name              string `yaml:"name"`
-	Version           string `yaml:"version"`
-	Type              string `yaml:"type"`
-	Description       string `yaml:"description,omitempty"`
-	Author            string `yaml:"author,omitempty"`
-	Homepage          string `yaml:"homepage,omitempty"`
-	License           string `yaml:"license,omitempty"`
-	ManifestDeclared  bool   `yaml:"manifestDeclared"`
-	InstallSQLCount   int    `yaml:"installSqlCount,omitempty"`
-	UninstallSQLCount int    `yaml:"uninstallSqlCount,omitempty"`
-	FrontendPageCount int    `yaml:"frontendPageCount,omitempty"`
-	FrontendSlotCount int    `yaml:"frontendSlotCount,omitempty"`
-	BackendHookCount  int    `yaml:"backendHookCount,omitempty"`
-	ResourceSpecCount int    `yaml:"resourceSpecCount,omitempty"`
+	ID                        string `yaml:"id"`
+	Name                      string `yaml:"name"`
+	Version                   string `yaml:"version"`
+	Type                      string `yaml:"type"`
+	Description               string `yaml:"description,omitempty"`
+	Author                    string `yaml:"author,omitempty"`
+	Homepage                  string `yaml:"homepage,omitempty"`
+	License                   string `yaml:"license,omitempty"`
+	RuntimeKind               string `yaml:"runtimeKind,omitempty"`
+	RuntimeABIVersion         string `yaml:"runtimeAbiVersion,omitempty"`
+	ManifestDeclared          bool   `yaml:"manifestDeclared"`
+	InstallSQLCount           int    `yaml:"installSqlCount,omitempty"`
+	UninstallSQLCount         int    `yaml:"uninstallSqlCount,omitempty"`
+	FrontendPageCount         int    `yaml:"frontendPageCount,omitempty"`
+	FrontendSlotCount         int    `yaml:"frontendSlotCount,omitempty"`
+	BackendHookCount          int    `yaml:"backendHookCount,omitempty"`
+	ResourceSpecCount         int    `yaml:"resourceSpecCount,omitempty"`
+	RuntimeFrontendAssetCount int    `yaml:"runtimeFrontendAssetCount,omitempty"`
+	RuntimeSQLAssetCount      int    `yaml:"runtimeSqlAssetCount,omitempty"`
 }
 
 // pluginResourceRefDescriptor represents one discovered plugin asset recorded for later review.

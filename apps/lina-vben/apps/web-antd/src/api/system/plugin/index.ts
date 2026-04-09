@@ -1,6 +1,7 @@
 import type {
   PluginListParams,
   PluginRuntimeState,
+  PluginUploadRuntimeResult,
   SystemPlugin,
 } from './model';
 
@@ -31,6 +32,26 @@ export function pluginSync() {
 /** 安装插件 */
 export function pluginInstall(pluginId: string) {
   return requestClient.post(`/plugins/${pluginId}/install`);
+}
+
+/** 上传运行时插件 */
+export function pluginRuntimeUpload(file: File, overwriteSupport?: boolean) {
+  const formData = new FormData();
+  // Keep the original filename in multipart payload. The backend validates the
+  // `.wasm` suffix from the uploaded filename before parsing the artifact.
+  formData.append('file', file, file.name);
+  if (overwriteSupport) {
+    formData.append('overwriteSupport', '1');
+  }
+  return requestClient.post<PluginUploadRuntimeResult>(
+    '/plugins/runtime/package',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+  );
 }
 
 /** 启用插件 */

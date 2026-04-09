@@ -10,6 +10,12 @@ build:
 	@mkdir -p $(EMBED_DIR)
 	@cp -r $(FRONTEND_DIR)/apps/web-antd/dist/* $(EMBED_DIR)/
 	@echo "✓ 前端构建完成"
+	@$(MAKE) wasm
 	@echo "构建后端（嵌入前端静态文件）..."
 	@cd $(BACKEND_DIR) && go build -o lina .
 	@echo "✓ 单体二进制构建完成: $(BACKEND_DIR)/lina"
+
+## wasm: 编译 apps/lina-plugins 下全部或指定 runtime wasm 插件
+.PHONY: wasm
+wasm:
+	@$(MAKE) -C apps/lina-plugins wasm p="$(p)"

@@ -53,9 +53,10 @@ func (s *Service) syncPluginReleaseMetadata(ctx context.Context, manifest *plugi
 		PluginId:         manifest.ID,
 		ReleaseVersion:   manifest.Version,
 		Type:             manifest.Type,
+		RuntimeKind:      s.buildPluginRuntimeKind(manifest),
 		Status:           releaseStatus.String(),
-		ManifestPath:     filepath.ToSlash(filepath.Base(manifest.ManifestPath)),
-		PackagePath:      filepath.ToSlash(manifest.RootDir),
+		ManifestPath:     s.buildPluginReleaseManifestPath(manifest),
+		PackagePath:      s.buildPluginPackagePath(manifest),
 		Checksum:         registry.Checksum,
 		ManifestSnapshot: snapshot,
 	}
@@ -108,13 +109,17 @@ func (s *Service) buildPluginManifestSnapshot(manifest *pluginManifest) (string,
 		License:     manifest.License,
 		// Record whether the manifest exists without embedding an environment-specific
 		// file path into the persisted YAML snapshot.
-		ManifestDeclared:  strings.TrimSpace(manifest.ManifestPath) != "",
-		InstallSQLCount:   len(s.discoverPluginSQLPaths(manifest.RootDir, false)),
-		UninstallSQLCount: len(s.discoverPluginSQLPaths(manifest.RootDir, true)),
-		FrontendPageCount: len(s.discoverPluginPagePaths(manifest.RootDir)),
-		FrontendSlotCount: len(s.discoverPluginSlotPaths(manifest.RootDir)),
-		BackendHookCount:  len(manifest.Hooks),
-		ResourceSpecCount: len(manifest.BackendResources),
+		RuntimeKind:               s.buildPluginRuntimeKind(manifest),
+		RuntimeABIVersion:         s.buildPluginRuntimeABIVersion(manifest),
+		ManifestDeclared:          s.isPluginManifestDeclared(manifest),
+		InstallSQLCount:           s.countPluginSQLAssets(manifest, pluginMigrationDirectionInstall),
+		UninstallSQLCount:         s.countPluginSQLAssets(manifest, pluginMigrationDirectionUninstall),
+		FrontendPageCount:         s.buildPluginFrontendPageCount(manifest),
+		FrontendSlotCount:         s.buildPluginFrontendSlotCount(manifest),
+		BackendHookCount:          len(manifest.Hooks),
+		ResourceSpecCount:         len(manifest.BackendResources),
+		RuntimeFrontendAssetCount: s.buildPluginRuntimeFrontendAssetCount(manifest),
+		RuntimeSQLAssetCount:      s.buildPluginRuntimeSQLAssetCount(manifest),
 	}
 
 	content, err := yaml.Marshal(snapshot)
@@ -122,4 +127,81 @@ func (s *Service) buildPluginManifestSnapshot(manifest *pluginManifest) (string,
 		return "", gerror.Wrap(err, "failed to build plugin manifest snapshot")
 	}
 	return string(content), nil
+}
+
+func (s *Service) buildPluginRuntimeKind(manifest *pluginManifest) string {
+	if manifest == nil || manifest.RuntimeArtifact == nil {
+		return ""
+	}
+	return manifest.RuntimeArtifact.RuntimeKind
+}
+
+func (s *Service) buildPluginRuntimeABIVersion(manifest *pluginManifest) string {
+	if manifest == nil || manifest.RuntimeArtifact == nil {
+		return ""
+	}
+	return manifest.RuntimeArtifact.ABIVersion
+}
+
+func (s *Service) buildPluginRuntimeFrontendAssetCount(manifest *pluginManifest) int {
+	if manifest == nil || manifest.RuntimeArtifact == nil {
+		return 0
+	}
+	return manifest.RuntimeArtifact.FrontendAssetCount
+}
+
+func (s *Service) buildPluginRuntimeSQLAssetCount(manifest *pluginManifest) int {
+	if manifest == nil || manifest.RuntimeArtifact == nil {
+		return 0
+	}
+	return manifest.RuntimeArtifact.SQLAssetCount
+}
+
+func (s *Service) countPluginSQLAssets(manifest *pluginManifest, direction pluginMigrationDirection) int {
+	assets, err := s.resolvePluginSQLAssets(manifest, direction)
+	if err != nil {
+		return 0
+	}
+	return len(assets)
+}
+
+func (s *Service) buildPluginPackagePath(manifest *pluginManifest) string {
+	if manifest == nil {
+		return ""
+	}
+	if manifest.RuntimeArtifact != nil && strings.TrimSpace(manifest.RuntimeArtifact.Path) != "" {
+		return filepath.ToSlash(filepath.Base(manifest.RuntimeArtifact.Path))
+	}
+	return filepath.ToSlash(manifest.RootDir)
+}
+
+func (s *Service) buildPluginReleaseManifestPath(manifest *pluginManifest) string {
+	if manifest == nil || normalizePluginType(manifest.Type) == pluginTypeRuntime {
+		return ""
+	}
+	return filepath.ToSlash(filepath.Base(manifest.ManifestPath))
+}
+
+func (s *Service) isPluginManifestDeclared(manifest *pluginManifest) bool {
+	if manifest == nil {
+		return false
+	}
+	if strings.TrimSpace(manifest.ManifestPath) != "" {
+		return true
+	}
+	return manifest.RuntimeArtifact != nil && manifest.RuntimeArtifact.Manifest != nil
+}
+
+func (s *Service) buildPluginFrontendPageCount(manifest *pluginManifest) int {
+	if manifest == nil || normalizePluginType(manifest.Type) != pluginTypeSource {
+		return 0
+	}
+	return len(s.discoverPluginPagePaths(manifest.RootDir))
+}
+
+func (s *Service) buildPluginFrontendSlotCount(manifest *pluginManifest) int {
+	if manifest == nil || normalizePluginType(manifest.Type) != pluginTypeSource {
+		return 0
+	}
+	return len(s.discoverPluginSlotPaths(manifest.RootDir))
 }

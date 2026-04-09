@@ -28,6 +28,10 @@ upload:
   path: "temp/upload"
   maxSize: 10  # Maximum upload file size in MB
 
+plugin:
+  runtime:
+    storagePath: "temp/runtime"
+
 # OpenAPI documentation configuration
 openapi:
   title: "Lina Admin API"

@@ -16,14 +16,9 @@ export interface SystemPlugin {
   version: string;
   type: PluginType;
   description: string;
-  releaseVersion: string;
   installed: number;
   installedAt: string;
   enabled: number;
-  lifecycleState: string;
-  nodeState: string;
-  resourceCount: number;
-  migrationState: string;
   statusKey: string;
   updatedAt: string;
 }
@@ -33,4 +28,15 @@ export interface PluginRuntimeState {
   installed: number;
   enabled: number;
   statusKey: string;
+}
+
+export interface PluginUploadRuntimeResult {
+  id: string;
+  name: string;
+  version: string;
+  type: PluginType;
+  runtimeKind: string;
+  runtimeAbi: string;
+  installed: number;
+  enabled: number;
 }

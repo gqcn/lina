@@ -57,21 +57,16 @@ type ListOutput struct {
 
 // PluginItem represents plugin metadata with status.
 type PluginItem struct {
-	Id             string // Id is the stable plugin identifier.
-	Name           string // Name is the display name shown in governance screens.
-	Version        string // Version is the version declared by plugin.yaml.
-	Type           string // Type is the normalized top-level plugin type.
-	Description    string // Description is the plugin summary declared by the manifest.
-	ReleaseVersion string // ReleaseVersion is the effective release version from host metadata.
-	Installed      int    // Installed reports whether the plugin is installed or integrated.
-	InstalledAt    string // InstalledAt is the install or source-integration timestamp.
-	Enabled        int    // Enabled reports whether the plugin is currently enabled.
-	LifecycleState string // LifecycleState is the derived lifecycle state key.
-	NodeState      string // NodeState is the current node projection state key.
-	ResourceCount  int    // ResourceCount is the number of abstract resource review records.
-	MigrationState string // MigrationState is the latest migration result state key.
-	StatusKey      string // StatusKey is the host config key used to persist plugin status.
-	UpdatedAt      string // UpdatedAt is the last registry update time.
+	Id          string // Id is the stable plugin identifier.
+	Name        string // Name is the display name shown in governance screens.
+	Version     string // Version is the version declared by plugin.yaml.
+	Type        string // Type is the normalized top-level plugin type.
+	Description string // Description is the plugin summary declared by the manifest.
+	Installed   int    // Installed reports whether the plugin is installed or integrated.
+	InstalledAt string // InstalledAt is the install or source-integration timestamp.
+	Enabled     int    // Enabled reports whether the plugin is currently enabled.
+	StatusKey   string // StatusKey is the host config key used to persist plugin status.
+	UpdatedAt   string // UpdatedAt is the last registry update time.
 }
 
 // ListInput defines input for plugin list query.
@@ -144,8 +139,14 @@ func (s *Service) UpdateStatus(ctx context.Context, pluginID string, status int)
 	if status != 0 && status != 1 {
 		return gerror.New("插件状态仅支持0或1")
 	}
-	if err := s.checkPluginExists(pluginID); err != nil {
+	manifest, err := s.getPluginManifestByID(pluginID)
+	if err != nil {
 		return err
+	}
+	if status == pluginStatusEnabled && normalizePluginType(manifest.Type) == pluginTypeRuntime {
+		if err = s.ensureRuntimePluginArtifactAvailable(manifest, "启用"); err != nil {
+			return err
+		}
 	}
 	if err := s.SyncSourcePlugins(ctx); err != nil {
 		return err
@@ -153,12 +154,30 @@ func (s *Service) UpdateStatus(ctx context.Context, pluginID string, status int)
 	if !s.IsInstalled(ctx, pluginID) {
 		return gerror.New("插件未安装")
 	}
-	return s.setPluginStatus(ctx, pluginID, status)
+	if status == pluginStatusEnabled && normalizePluginType(manifest.Type) == pluginTypeRuntime {
+		if err = s.ValidateRuntimeFrontendMenuBindings(ctx, manifest); err != nil {
+			return err
+		}
+		if _, err = s.ensureRuntimeFrontendBundle(ctx, manifest); err != nil {
+			return err
+		}
+	}
+	if err = s.setPluginStatus(ctx, pluginID, status); err != nil {
+		return err
+	}
+	if status == pluginStatusDisabled && normalizePluginType(manifest.Type) == pluginTypeRuntime {
+		s.invalidateRuntimeFrontendBundle(ctx, pluginID, "plugin_disabled")
+	}
+	return nil
 }
 
 // IsInstalled returns whether plugin is installed.
 func (s *Service) IsInstalled(ctx context.Context, pluginID string) bool {
 	plugin, err := s.getPluginRegistry(ctx, pluginID)
+	if err != nil || plugin == nil {
+		return false
+	}
+	plugin, err = s.reconcileRuntimeRegistryArtifactState(ctx, plugin)
 	if err != nil || plugin == nil {
 		return false
 	}
@@ -168,6 +187,10 @@ func (s *Service) IsInstalled(ctx context.Context, pluginID string) bool {
 // IsEnabled returns whether plugin is enabled.
 func (s *Service) IsEnabled(ctx context.Context, pluginID string) bool {
 	plugin, err := s.getPluginRegistry(ctx, pluginID)
+	if err != nil || plugin == nil {
+		return false
+	}
+	plugin, err = s.reconcileRuntimeRegistryArtifactState(ctx, plugin)
 	if err != nil || plugin == nil {
 		return false
 	}
@@ -203,51 +226,32 @@ func (s *Service) SyncAndList(ctx context.Context) (*ListOutput, error) {
 		return nil, err
 	}
 
+	manifestMap := make(map[string]*pluginManifest, len(manifests))
 	items := make([]*PluginItem, 0, len(manifests))
 	for _, manifest := range manifests {
+		manifestMap[manifest.ID] = manifest
 		registry, err := s.syncPluginManifest(ctx, manifest)
 		if err != nil {
 			return nil, err
 		}
-		installedAt := ""
-		if registry.InstalledAt != nil {
-			installedAt = registry.InstalledAt.String()
+		items = append(items, s.buildPluginItem(manifest, registry))
+	}
+
+	runtimeRegistries, err := s.listRuntimeRegistries(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, registry := range runtimeRegistries {
+		if registry == nil || manifestMap[registry.PluginId] != nil {
+			continue
 		}
-		updatedAt := ""
-		if registry.UpdatedAt != nil {
-			updatedAt = registry.UpdatedAt.String()
-		}
-		governance, err := s.buildPluginGovernanceSnapshot(
-			ctx,
-			manifest.ID,
-			manifest.Version,
-			manifest.Type,
-			registry.Installed,
-			registry.Status,
-		)
+		registry, err = s.reconcileRuntimeRegistryArtifactState(ctx, registry)
 		if err != nil {
 			return nil, err
 		}
-
-		items = append(items, &PluginItem{
-			Id:             manifest.ID,
-			Name:           manifest.Name,
-			Version:        manifest.Version,
-			Type:           manifest.Type,
-			Description:    manifest.Description,
-			ReleaseVersion: governance.ReleaseVersion,
-			Installed:      registry.Installed,
-			InstalledAt:    installedAt,
-			Enabled:        registry.Status,
-			LifecycleState: governance.LifecycleState,
-			NodeState:      governance.NodeState,
-			ResourceCount:  governance.ResourceCount,
-			MigrationState: governance.MigrationState,
-			StatusKey:      s.buildPluginStatusKey(manifest.ID),
-			UpdatedAt:      updatedAt,
-		})
+		items = append(items, s.buildPluginItem(nil, registry))
 	}
-
+	sortPluginItems(items)
 	return &ListOutput{List: items, Total: len(items)}, nil
 }
 

@@ -18,6 +18,20 @@
 - [x] 0.9 将源码插件目录约定进一步固化为可校验规则，新增前端页面/Slot 目录发现校验
 - [x] 0.10 新增插件运维指南，并将源码插件目录规范继续收敛到 `plugin-demo` 样例与现有开发指南，便于后续人工 review
 - [x] 0.11 扩展插件管理后台列表 DTO 与页面治理摘要，补齐生命周期状态、节点状态、资源引用数与最近迁移结果，便于人工 review
+- [x] 0.12 补齐运行时 `wasm` 产物契约校验底座，新增嵌入清单、自定义节、ABI 版本与治理快照摘要，避免运行时插件长期停留在“仅有空接口”的状态
+- [x] 0.13 让运行时插件安装/卸载链路优先执行 `wasm` 内嵌 SQL 资源，并将统计口径、迁移记录和 review 文档同步收敛
+- [x] 0.14 新增运行时插件包上传入口，支持将 `wasm` 产物落盘到插件工作区并立即同步治理元数据，但仍明确禁止用该入口覆盖已安装 release
+- [x] 0.15 补齐 `TC0067-runtime-wasm-lifecycle`，验证 runtime `wasm` 上传、安装、启用、禁用与卸载后的宿主状态收敛
+- [x] 0.16 补齐运行时 `wasm` 前端静态资源抽取与公开托管基线，支持宿主按插件 ID + 版本稳定暴露资源 URL，供后续 `iframe` / 新标签页 / 宿主内嵌挂载复用
+
+## 0. 当前收尾判断（2026-04-09）
+
+> 本节用于给当前迭代的人工 review 提供一个“除第三期外还剩什么”的明确口径，避免把低 ROI 工具链项和显式依赖三期能力的项继续混在同一层判断里。
+
+- [x] 0.17 复核“除第三期外”的基础范围后，确认当前真正仍需补齐的核心项收敛为 `1.2`、`4.3`、`7.3`、`7.4`
+- [x] 0.18 明确 `1.2` 中“标准目录结构”已通过开发文档落地，但“源码插件脚手架模板”尚未提供，因此该任务当前只能视为部分完成
+- [x] 0.19 明确 `6.3` 属于有意 deferred 的低 ROI 工具链项；当前不再将“模板与打包脚本”作为本迭代基础能力收尾的阻塞条件
+- [x] 0.20 明确 `7.5` 虽写在验收章节，但其语义依赖第三期热升级/代际切换能力，因此不纳入当前“除第三期外”的基础收尾阻塞项
 
 ## 第一期当前落地快照（2026-04-06）
 
@@ -32,6 +46,8 @@
 
 - [x] 1.1 定义 `plugin.yaml` 清单 schema、版本策略与宿主校验流程
 - [ ] 1.2 规划 `apps/lina-plugins/<plugin-id>/` 标准目录结构，并补齐源码插件脚手架模板
+  - [x] 已完成：标准目录结构、目录职责、最小清单和 review 检查项已写入 `apps/lina-plugins/README.md`
+  - [ ] 未完成：仓库当前仍未提供源码插件脚手架模板
 - [x] 1.3 新增插件元数据 SQL 方案，落地 `sys_plugin`、`sys_plugin_release`、`sys_plugin_migration`、`sys_plugin_resource_ref`、`sys_plugin_node_state` 等基础表
 - [x] 1.4 基于新增表生成 DAO/DO/Entity，并建立插件注册、生命周期、资源引用、迁移记录的后端服务骨架
 - [x] 1.5 定义插件管理后台 API、DTO、管理页面信息结构以及状态机枚举
@@ -53,11 +69,23 @@
 
 ## 4. 第二期：运行时 wasm 插件
 
-- [ ] 4.1 定义运行时 `wasm` 产物格式、资源嵌入约定与 ABI 版本策略
-- [ ] 4.2 实现运行时 `wasm` 插件安装器、校验器、资源提取器与迁移执行器
-- [ ] 4.3 基于 WASM Runtime 实现插件加载、Hook 调用、超时控制、错误隔离与卸载回收
-- [ ] 4.4 实现运行时插件静态资源托管与三种前端接入模式：`iframe`、新标签页、宿主内嵌挂载
-- [ ] 4.5 让 `plugin-demo` 产出 `wasm` 运行时版本，并验证与源码版本契约一致
+- [x] 4.1 定义运行时 `wasm` 产物格式、资源嵌入约定与 ABI 版本策略
+- [x] 4.2 实现运行时 `wasm` 插件安装器、校验器、资源提取器与迁移执行器
+  - [x] 已完成：上传时校验 `wasm` 文件头、自定义节、嵌入 manifest 与 ABI 版本
+  - [x] 已完成：安装/卸载时优先执行内嵌 SQL，并在缺失时回退到目录约定 SQL
+  - [x] 已完成：从 `wasm` 中提取前端静态资源，并在启用前校验菜单引用的托管资源契约
+- [x] 4.3 基于 WASM Runtime 实现插件加载、Hook 调用、超时控制、错误隔离与卸载回收
+  - [x] 已完成：runtime `wasm` 可额外嵌入后端 Hook 与资源声明契约，宿主会在扫描时校验并装载这些声明
+  - [x] 已完成：宿主为 runtime Hook 提供 `blocking/async` 执行模式、超时控制与 panic/error 隔离，避免单个运行时插件阻断主流程
+  - [x] 已完成：禁用或卸载 runtime 插件后，其 Hook 与资源查询能力会从宿主生效链路中退出；重新启用后恢复
+- [x] 4.4 实现运行时插件静态资源托管与三种前端接入模式：`iframe`、新标签页、宿主内嵌挂载
+  - [x] 已完成：从 `wasm` 自定义节提取前端静态资源，并通过 `/plugin-assets/<plugin-id>/<version>/...` 公开托管
+  - [x] 已完成：当插件菜单 `path` 指向 `/plugin-assets/...` 托管资源时，宿主会基于 `is_frame` 自动转换为 `iframe` 或新标签页路由语义
+  - [x] 已完成：当插件菜单组件为 `system/plugin/runtime-page` 且 `query_param.pluginAccessMode=embedded-mount` 时，宿主会通过 `runtime-page` 壳按最小 ESM 挂载协议加载运行时入口
+- [x] 4.5 提供独立的 `plugin-demo-runtime` 运行时插件样例，并验证其运行时契约与页面行为
+  - [x] 已完成：将旧的 `plugin-demo/runtime-demo` 样例收敛为独立的 `apps/lina-plugins/plugin-demo-runtime/` 插件目录
+  - [x] 已完成：`plugin-demo-runtime` 仅提供一个左侧菜单，主窗口展示简要页面，并由按钮打开不依赖 Vben 的独立静态页
+  - [x] 已完成：自动化测试会验证根据 `backend/`、`frontend/`、`manifest/` 明文源码生成的 `runtime/<plugin-id>.wasm` 与源码树保持一致
 
 ## 5. 第三期：多节点热更新与回滚
 
@@ -72,6 +100,7 @@
 - [x] 6.1 编写插件开发指南，覆盖 `source` 与运行时 `wasm` 两种模式的目录、清单、权限、菜单和扩展点约定
 - [x] 6.2 编写插件运维指南，覆盖安装、启停、卸载、升级、回滚、多节点注意事项与故障排查
 - [ ] 6.3 提供插件模板与打包脚本，帮助开发者快速创建源码插件和运行时产物
+  - [ ] 当前状态：有意 deferred。若引入这些脚本会增加复杂度且收益很低，则本迭代不再强行补齐
 - [x] 6.4 补充 `plugin-demo` 的设计说明、发布说明与宿主接入说明，作为后续插件开发参考样板
 
 ## 7. E2E 与验收验证
@@ -82,10 +111,23 @@
   - [x] TC-66c：启用后可验证插件路由与鉴权访问控制
   - [x] TC-66d：禁用后隐藏工作台 slot，并隐藏插件菜单
   - [x] TC-66e：禁用后源码插件仍保留已集成态，且无需重新安装
-- [ ] 7.2 创建 `hack/tests/e2e/plugin/TC0067-runtime-wasm-lifecycle.ts`，覆盖 `wasm` 插件安装、启停、卸载与资源托管
-- [ ] 7.3 创建 `hack/tests/e2e/plugin/TC0068-runtime-wasm-failure-isolation.ts`，覆盖 `wasm` 插件失败隔离与回滚
-- [ ] 7.4 创建 `hack/tests/e2e/plugin/TC0069-plugin-permission-governance.ts`，覆盖角色授权、菜单可见性、权限恢复与数据权限上下文
+- [x] 7.2 创建 `hack/tests/e2e/plugin/TC0067-runtime-wasm-lifecycle.ts`，覆盖 `wasm` 插件安装、启停、卸载与资源托管
+  - [x] TC-67a：插件管理页上传入口展示为非白底主按钮，且上传弹窗文案保持精简
+  - [x] TC-67b：上传 runtime `wasm` 后，宿主立即识别插件并展示 `WASM / ABI v1` 治理摘要
+  - [x] TC-67c：安装并启用 runtime `wasm` 后，宿主状态切换为“已安装 + 已启用”，且公开静态资源可访问
+  - [x] TC-67d：禁用并卸载 runtime `wasm` 后，宿主注册态回收到“未安装”或移除运行时条目，且公开静态资源返回不可访问
+  - [x] TC-67e：启用后，`iframe` 形态的运行时插件菜单会在宿主内容区内嵌打开托管静态资源
+  - [x] TC-67f：启用后，新标签页形态的运行时插件菜单会直接打开托管静态资源，且当前宿主页保持不变
+  - [x] TC-67g：启用后，宿主内嵌挂载形态的运行时插件菜单会通过 `runtime-page` 壳加载 ESM 挂载入口
+  - [x] TC-67h：独立的 `plugin-demo-runtime` 插件启用后，会在宿主页展示简要说明页，并由按钮打开一个不依赖 Vben 的独立静态页面
+  - [x] TC-67i：手动删除已启用 runtime 插件产物后，插件列表仍保留该条目、插件菜单立即隐藏，且重新上传同一 `wasm` 后恢复为“未安装 + 未启用”待装态
+- [x] 7.3 创建 `hack/tests/e2e/plugin/TC0068-runtime-wasm-failure-isolation.ts`，覆盖 `wasm` 插件失败隔离与回滚
+  - [x] TC-68a：runtime Hook 超时或返回错误时，宿主登录链路仍然成功，其他 runtime Hook 继续执行
+  - [x] TC-68b：禁用 runtime 插件后其 Hook 停止参与宿主链路，重新启用后恢复执行
+- [x] 7.4 创建 `hack/tests/e2e/plugin/TC0069-plugin-permission-governance.ts`，覆盖角色授权、菜单可见性、权限恢复与数据权限上下文
+  - [x] TC-69a：runtime 插件菜单和按钮权限会跟随角色授权、插件禁用隐藏与重新启用恢复，同时资源查询遵循宿主数据权限上下文
 - [ ] 7.5 创建 `hack/tests/e2e/plugin/TC0070-plugin-hot-upgrade.ts`，覆盖热升级、当前页面刷新提示、多节点代际切换与回退
+  - [ ] 当前状态：依赖第三期热升级与代际切换能力，不纳入当前“除第三期外”的基础收尾阻塞项
 - [x] 7.6 为插件管理与插件页面补充所需的 POM（安装/卸载、slot 可见性断言），保证 `TC0066` 可独立运行
 
 ## Feedback
@@ -173,3 +215,36 @@
 - [x] **FB-81**: 为插件机制核心后端源码补齐文件头说明、公开方法/字段注释和关键逻辑英文注释，便于人工 review
 - [x] **FB-82**: 调整插件元数据表与服务实现，禁止持久化具体 SQL 文件路径和前端源码文件路径，改为抽象资源标识与数量摘要
 - [x] **FB-83**: 审查插件后端实现中的枚举语义字符串硬编码，统一改为 Go 命名类型常量管理，并将该约束写入项目后端代码规范
+- [x] **FB-84**: 将 runtime 样例从 `plugin-demo` 的从属变体调整为独立的 `plugin-demo-runtime` 插件，左侧菜单页展示简要说明与按钮，并由按钮打开一个不依赖 Vben 的独立静态页面
+- [x] **FB-85**: 复核当前迭代“除第三期外”的基础收尾范围，将真正仍需补齐的核心项收敛为 `1.2`、`4.3`、`7.3`、`7.4`
+- [x] **FB-86**: 在任务清单中明确 `6.3` 为有意 deferred 的低 ROI 工具链项，不再作为当前基础收尾阻塞条件
+- [x] **FB-87**: 在任务清单中明确 `7.5` 依赖第三期热升级/代际切换能力，不纳入当前“除第三期外”的基础收尾阻塞项
+- [x] **FB-88**: 将 `plugin-demo-runtime` 的目录结构收敛为与 `plugin-demo` 一致的 `backend/`、`frontend/`、`manifest/`、`runtime/` 布局，并补齐 runtime 样例的后端代码示例
+- [x] **FB-89**: 移除 `plugin-demo-runtime/runtime/review/runtime-metadata.json` 与已提交的 review 中间态目录，改为直接以插件目录下的 clear-text backend/frontend/manifest 源码作为 runtime 样例的单一真相源
+- [x] **FB-90**: 将运行时产物命名从固定 `runtime/plugin.wasm` 调整为 `runtime/<plugin-id>.wasm`，并同步更新宿主校验、上传落盘与样例文档
+- [x] **FB-91**: 提供通用 `make wasm` / `make wasm p=<plugin-id>` 构建入口，遍历或定向编译 `apps/lina-plugins` 下的 runtime wasm 插件，并在 `.gitignore` 中忽略生成文件
+- [x] **FB-92**: 修复 runtime 插件上传后再次查询 `plugins` 列表时 `sys_plugin_resource_ref` 幂等同步冲突的问题，确保重复同步不会因唯一键冲突而失败
+- [x] **FB-93**: 修复 runtime 插件卸载后再次安装同一 release 时 install SQL 被历史 migration 成功记录错误短路的问题，确保重新安装会重新执行 install SQL 并恢复菜单等宿主数据
+- [x] **FB-94**: 精简插件管理页列表字段，移除“生命周期”和“治理摘要”两列，并补齐列表列可见性的回归验证
+- [x] **FB-95**: 删除 `plugin-demo-runtime/runtime/` 下已提交的生成产物，仅保留运行时工作目录占位，并补齐忽略规则与文档说明
+- [x] **FB-96**: 将 `plugin_test_main_test.go` 重命名为符合 Go 测试文件习惯的 `plugin_test.go`，避免冗余和不一致的测试文件命名
+- [x] **FB-97**: 将 runtime 打包开发工具改为根级 `hack/build-wasm/` 独立 Go 工具入口，并移出 `apps/lina-core/internal/cmd`，避免把开发脚本混入主服务命令目录
+- [x] **FB-98**: 将 runtime 插件静态资源分流并入宿主现有通用静态资源入口，移除 `cmd_http.go` 中冗余的独立 `/plugin-assets/...` 路由定义
+- [x] **FB-99**: 为通用静态资源入口补充关键英文注释，说明为什么必须优先判定并处理 runtime 插件静态资源请求
+- [x] **FB-100**: 源码插件在插件管理列表中显示灰态“卸载”按钮并提供 hover 提示，明确源码插件不支持页面动态卸载
+- [x] **FB-101**: 收敛插件列表接口字段，删除页面已不展示的 `runtimeKind`、`runtimeAbi`、`releaseVersion`、`lifecycleState`、`nodeState`、`resourceCount`、`migrationState` 定义，并同步更新前端类型与回归断言
+- [x] **FB-102**: 运行时插件缺少本地生成的 `runtime/<plugin-id>.wasm` 时，插件列表与后台页面不应整体报错；但安装和启用动作仍必须明确拒绝缺少产物的运行时插件
+- [x] **FB-103**: 将 `hack/build-wasm` 收敛为真正独立的开发工具，不再依赖 `apps/lina-core` 模块或其 `pkg/pluginpack` 包
+- [x] **FB-104**: 收敛插件 Hook 事件载荷中的 `map[string]interface{}` 硬编码键名，统一 published payload key 常量与 helper，并审查插件相关源码中的同类字符串键硬编码场景
+- [x] **FB-105**: 重做 `plugin-demo-runtime` 的主窗口挂载页与独立静态页视觉，移除宿主 `runtime-page` 顶部技术说明，主窗口页使用接近 Vben/Ant 风格的卡片与按钮呈现，独立页改为更专业的中文展示
+- [x] **FB-106**: 将 `plugin-demo-runtime` 主窗口页中的“打开独立页面”按钮进一步收敛为更接近 Vben/Ant 的可点击主按钮样式，并在 hover 时明确呈现 pointer 光标
+- [x] **FB-107**: 将 `plugin-demo-runtime` 主窗口页中的“ESM 挂载”术语改为更易懂的“动态加载”，并统一验证范围与特点卡片的描述长度和高度，避免展示参差
+- [x] **FB-108**: 取消 runtime 前端资源对 `runtime/frontend-assets/` 磁盘提取目录的运行时依赖，改为以 `runtime/<plugin-id>.wasm` 为真相源，在宿主内存中缓存前端资源并支持服务重启后的启动预热与请求时懒加载兜底
+- [x] **FB-109**: 为 runtime 前端内存资源 bundle 补齐关键 debug 日志，覆盖启动预热、缓存命中/重建、请求时懒加载与缓存失效路径，便于后续排障和人工 review
+- [x] **FB-110**: 将 runtime 插件发现与上传从 `apps/lina-plugins/<plugin-id>/plugin.yaml` 外层目录解耦，改为统一扫描并写入 `plugin.runtime.storagePath` 下的 `.wasm` 文件，同时支持手动拷贝后在管理页执行同步识别
+- [x] **FB-111**: 调整插件管理页上传按钮为非白底主按钮并更名为“上传插件”，同时精简上传弹窗说明文案
+- [x] **FB-112**: 修复 runtime 插件产物被手动删除后宿主注册态未自动收敛的问题，确保插件列表仍可见缺失条目、菜单与路由立即隐藏，且公共运行时状态同步返回“未安装/未启用”
+- [x] **FB-113**: 修复 runtime 插件产物缺失时重新上传仍被“已安装不可覆盖”错误拦截的问题，允许将缺失产物作为恢复性重传重新落盘，并补齐对应回归验证
+- [x] **FB-114**: 调整 `TC0067-runtime-wasm-lifecycle` 的 bundled runtime 样例准备方式，禁止再向 `apps/lina-plugins/plugin-demo-runtime/runtime/` 回写生成产物，改为仅写入宿主 `plugin.runtime.storagePath`
+- [ ] **FB-115**: 将 `apps/lina-plugins/plugin-demo-runtime/README.md` 改写为中文文档，并保持与当前运行时样例实现和仓库约定一致
+- [ ] **FB-116**: 精简运行时插件上传成功后的提示信息，仅保留“已上传成功，可继续安装/启用”的必要指引，并补齐对应前端回归断言

@@ -20,28 +20,33 @@ import (
 	"lina-core/internal/model/entity"
 )
 
+// pluginSQLAsset describes one install/uninstall SQL step after host extraction.
+type pluginSQLAsset struct {
+	Key     string
+	Content string
+}
+
 // executeManifestSQLFiles executes plugin manifest SQL files and records every attempt in sys_plugin_migration.
 func (s *Service) executeManifestSQLFiles(
 	ctx context.Context,
 	manifest *pluginManifest,
-	relativePaths []string,
 	direction pluginMigrationDirection,
 ) error {
 	if manifest == nil {
 		return gerror.New("plugin manifest cannot be nil")
 	}
 
-	for index, relativePath := range relativePaths {
-		sqlPath, err := s.resolvePluginResourcePath(manifest.RootDir, relativePath)
-		if err != nil {
-			return err
-		}
-		sqlContent := gfile.GetContents(sqlPath)
-		if sqlContent == "" {
-			return gerror.Newf("插件SQL文件为空: %s", sqlPath)
+	sqlAssets, err := s.resolvePluginSQLAssets(manifest, direction)
+	if err != nil {
+		return err
+	}
+
+	for index, asset := range sqlAssets {
+		if asset == nil {
+			return gerror.New("插件 SQL 资源不能为空")
 		}
 
-		checksum := fmt.Sprintf("%x", sha256.Sum256([]byte(sqlContent)))
+		checksum := fmt.Sprintf("%x", sha256.Sum256([]byte(asset.Content)))
 		release, err := s.getPluginRelease(ctx, manifest.ID, manifest.Version)
 		if err != nil {
 			return err
@@ -53,24 +58,66 @@ func (s *Service) executeManifestSQLFiles(
 		// concrete SQL path. The host still executes files by directory convention,
 		// but the database only stores review-oriented lifecycle metadata.
 		migrationKey := s.buildPluginMigrationKey(direction, index+1)
-		migration, err := s.getPluginMigration(ctx, manifest.ID, release.Id, direction, migrationKey)
-		if err != nil {
-			return err
-		}
-		if migration != nil && migration.Status == pluginMigrationExecutionStatusSucceeded.String() && migration.Checksum == checksum {
-			continue
-		}
-
 		executedAt := gtime.Now()
-		_, execErr := g.DB().Exec(ctx, sqlContent)
+		_, execErr := g.DB().Exec(ctx, asset.Content)
 		if recordErr := s.recordPluginMigration(ctx, manifest.ID, release.Id, direction, migrationKey, index+1, checksum, executedAt, execErr); recordErr != nil {
 			return recordErr
 		}
 		if execErr != nil {
-			return gerror.Wrapf(execErr, "执行插件SQL失败: %s", filepath.Base(sqlPath))
+			return gerror.Wrapf(execErr, "执行插件SQL失败: %s", asset.Key)
 		}
 	}
 	return nil
+}
+
+// resolvePluginSQLAssets extracts lifecycle SQL either from embedded runtime artifact sections
+// or from source-style directory conventions, while preserving execution order.
+func (s *Service) resolvePluginSQLAssets(
+	manifest *pluginManifest,
+	direction pluginMigrationDirection,
+) ([]*pluginSQLAsset, error) {
+	if manifest == nil {
+		return []*pluginSQLAsset{}, nil
+	}
+
+	if manifest.RuntimeArtifact != nil {
+		embeddedAssets := manifest.RuntimeArtifact.InstallSQLAssets
+		if direction == pluginMigrationDirectionUninstall {
+			embeddedAssets = manifest.RuntimeArtifact.UninstallSQLAssets
+		}
+		if len(embeddedAssets) > 0 {
+			items := make([]*pluginSQLAsset, 0, len(embeddedAssets))
+			for _, asset := range embeddedAssets {
+				if asset == nil {
+					continue
+				}
+				items = append(items, &pluginSQLAsset{
+					Key:     asset.Key,
+					Content: asset.Content,
+				})
+			}
+			return items, nil
+		}
+	}
+
+	relativePaths := s.discoverPluginSQLPaths(manifest.RootDir, direction == pluginMigrationDirectionUninstall)
+	items := make([]*pluginSQLAsset, 0, len(relativePaths))
+	for _, relativePath := range relativePaths {
+		sqlPath, err := s.resolvePluginResourcePath(manifest.RootDir, relativePath)
+		if err != nil {
+			return nil, err
+		}
+
+		sqlContent := strings.TrimSpace(gfile.GetContents(sqlPath))
+		if sqlContent == "" {
+			return nil, gerror.Newf("插件SQL文件为空: %s", sqlPath)
+		}
+		items = append(items, &pluginSQLAsset{
+			Key:     filepath.Base(sqlPath),
+			Content: sqlContent,
+		})
+	}
+	return items, nil
 }
 
 func (s *Service) buildPluginMigrationKey(direction pluginMigrationDirection, sequenceNo int) string {

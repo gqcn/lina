@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
@@ -24,39 +25,50 @@ var safePluginIdentifierPattern = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
 
 // pluginHookSpec defines a plugin-owned hook handler declaration.
 type pluginHookSpec struct {
-	Event  pluginhost.ExtensionPoint `yaml:"event"`
-	Action pluginhost.HookAction     `yaml:"action"`
-	Table  string                    `yaml:"table"`
-	Fields map[string]string         `yaml:"fields"`
+	Event        pluginhost.ExtensionPoint        `json:"event" yaml:"event"`
+	Action       pluginhost.HookAction            `json:"action" yaml:"action"`
+	Mode         pluginhost.CallbackExecutionMode `json:"mode,omitempty" yaml:"mode,omitempty"`
+	Table        string                           `json:"table,omitempty" yaml:"table,omitempty"`
+	Fields       map[string]string                `json:"fields,omitempty" yaml:"fields,omitempty"`
+	TimeoutMs    int                              `json:"timeoutMs,omitempty" yaml:"timeoutMs,omitempty"`
+	SleepMs      int                              `json:"sleepMs,omitempty" yaml:"sleepMs,omitempty"`
+	ErrorMessage string                           `json:"errorMessage,omitempty" yaml:"errorMessage,omitempty"`
 }
 
 // pluginResourceSpec defines a plugin-owned backend resource declaration.
 type pluginResourceSpec struct {
-	Key     string                 `yaml:"key"`
-	Type    string                 `yaml:"type"`
-	Table   string                 `yaml:"table"`
-	Fields  []*pluginResourceField `yaml:"fields"`
-	Filters []*pluginResourceQuery `yaml:"filters"`
-	OrderBy pluginOrderBySpec      `yaml:"orderBy"`
+	Key       string                       `json:"key" yaml:"key"`
+	Type      string                       `json:"type" yaml:"type"`
+	Table     string                       `json:"table" yaml:"table"`
+	Fields    []*pluginResourceField       `json:"fields" yaml:"fields"`
+	Filters   []*pluginResourceQuery       `json:"filters" yaml:"filters"`
+	OrderBy   pluginOrderBySpec            `json:"orderBy" yaml:"orderBy"`
+	DataScope *pluginResourceDataScopeSpec `json:"dataScope,omitempty" yaml:"dataScope,omitempty"`
 }
 
 // pluginResourceField defines one selected output field for a plugin resource.
 type pluginResourceField struct {
-	Name   string `yaml:"name"`
-	Column string `yaml:"column"`
+	Name   string `json:"name" yaml:"name"`
+	Column string `json:"column" yaml:"column"`
 }
 
 // pluginResourceQuery defines one query filter for a plugin resource.
 type pluginResourceQuery struct {
-	Param    string `yaml:"param"`
-	Column   string `yaml:"column"`
-	Operator string `yaml:"operator"`
+	Param    string `json:"param" yaml:"param"`
+	Column   string `json:"column" yaml:"column"`
+	Operator string `json:"operator" yaml:"operator"`
 }
 
 // pluginOrderBySpec defines the order-by configuration for a plugin resource.
 type pluginOrderBySpec struct {
-	Column    string `yaml:"column"`
-	Direction string `yaml:"direction"`
+	Column    string `json:"column" yaml:"column"`
+	Direction string `json:"direction" yaml:"direction"`
+}
+
+// pluginResourceDataScopeSpec defines how one plugin resource binds to host role data scopes.
+type pluginResourceDataScopeSpec struct {
+	UserColumn string `json:"userColumn,omitempty" yaml:"userColumn,omitempty"`
+	DeptColumn string `json:"deptColumn,omitempty" yaml:"deptColumn,omitempty"`
 }
 
 func normalizePluginResourceSpecType(value string) pluginResourceSpecType {
@@ -109,6 +121,8 @@ type ResourceListOutput struct {
 	Total int                      // Total is the total row count.
 }
 
+const pluginHookEventFieldExprPrefix = "event."
+
 // loadPluginBackendConfig loads plugin-owned hook and resource declarations from plugin directory.
 func (s *Service) loadPluginBackendConfig(manifest *pluginManifest) error {
 	manifest.Hooks = make([]*pluginHookSpec, 0)
@@ -116,6 +130,12 @@ func (s *Service) loadPluginBackendConfig(manifest *pluginManifest) error {
 
 	if sourcePlugin, ok := pluginhost.GetSourcePlugin(manifest.ID); ok {
 		manifest.BackendResources = s.convertSourcePluginResources(sourcePlugin.GetResources())
+		return nil
+	}
+
+	if manifest.RuntimeArtifact != nil {
+		manifest.Hooks = clonePluginHookSpecs(manifest.RuntimeArtifact.HookSpecs)
+		manifest.BackendResources = clonePluginResourceSpecsToMap(manifest.RuntimeArtifact.ResourceSpecs)
 		return nil
 	}
 
@@ -155,6 +175,77 @@ func (s *Service) loadPluginBackendConfig(manifest *pluginManifest) error {
 		manifest.BackendResources[spec.Key] = spec
 	}
 	return nil
+}
+
+func clonePluginHookSpecs(items []*pluginHookSpec) []*pluginHookSpec {
+	if len(items) == 0 {
+		return []*pluginHookSpec{}
+	}
+
+	cloned := make([]*pluginHookSpec, 0, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		next := *item
+		if len(item.Fields) > 0 {
+			next.Fields = make(map[string]string, len(item.Fields))
+			for key, value := range item.Fields {
+				next.Fields[key] = value
+			}
+		}
+		cloned = append(cloned, &next)
+	}
+	return cloned
+}
+
+func clonePluginResourceSpecsToMap(items []*pluginResourceSpec) map[string]*pluginResourceSpec {
+	if len(items) == 0 {
+		return map[string]*pluginResourceSpec{}
+	}
+
+	cloned := make(map[string]*pluginResourceSpec, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		next := clonePluginResourceSpec(item)
+		cloned[next.Key] = next
+	}
+	return cloned
+}
+
+func clonePluginResourceSpec(item *pluginResourceSpec) *pluginResourceSpec {
+	if item == nil {
+		return nil
+	}
+
+	next := *item
+	if len(item.Fields) > 0 {
+		next.Fields = make([]*pluginResourceField, 0, len(item.Fields))
+		for _, field := range item.Fields {
+			if field == nil {
+				continue
+			}
+			fieldCopy := *field
+			next.Fields = append(next.Fields, &fieldCopy)
+		}
+	}
+	if len(item.Filters) > 0 {
+		next.Filters = make([]*pluginResourceQuery, 0, len(item.Filters))
+		for _, filter := range item.Filters {
+			if filter == nil {
+				continue
+			}
+			filterCopy := *filter
+			next.Filters = append(next.Filters, &filterCopy)
+		}
+	}
+	if item.DataScope != nil {
+		dataScopeCopy := *item.DataScope
+		next.DataScope = &dataScopeCopy
+	}
+	return &next
 }
 
 // convertSourcePluginResources converts public source plugin resource declarations to internal runtime specs.
@@ -253,6 +344,10 @@ func (s *Service) ListResourceRecords(ctx context.Context, in ResourceListInput)
 			return nil, gerror.Newf("插件资源过滤操作符不支持: %s", filter.Operator)
 		}
 	}
+	m, err = s.applyPluginResourceDataScope(ctx, m, resource)
+	if err != nil {
+		return nil, err
+	}
 
 	total, err := m.Count()
 	if err != nil {
@@ -300,23 +395,125 @@ func (s *Service) DispatchHookEvent(
 	if err != nil {
 		return err
 	}
-	targetPluginID, _ := payload["pluginId"].(string)
+	targetPluginID := pluginhost.HookPayloadStringValue(payload, pluginhost.HookPayloadKeyPluginID)
 	for _, manifest := range manifests {
 		if !s.shouldDispatchHookToPlugin(ctx, manifest.ID, eventName, targetPluginID) {
 			continue
 		}
 		for _, hook := range manifest.Hooks {
-			if hook.Event != eventName || hook.Action != pluginhost.HookActionInsert {
+			if hook == nil || hook.Event != eventName {
 				continue
 			}
-			startedAt := gtime.Now()
-			if err = s.executePluginInsertHook(ctx, manifest.ID, hook, payload); err != nil {
-				g.Log().Warningf(ctx, "plugin hook failed plugin=%s event=%s cost=%s err=%v", manifest.ID, eventName, gtime.Now().Sub(startedAt), err)
-				continue
-			}
-			g.Log().Infof(ctx, "plugin hook succeeded plugin=%s event=%s cost=%s", manifest.ID, eventName, gtime.Now().Sub(startedAt))
+			s.executePluginDeclaredHook(ctx, manifest.ID, hook, payload)
 		}
 		s.executeSourcePluginHookHandlers(ctx, manifest.ID, eventName, payload)
+	}
+	return nil
+}
+
+func (s *Service) executePluginDeclaredHook(
+	ctx context.Context,
+	pluginID string,
+	hook *pluginHookSpec,
+	payload map[string]interface{},
+) {
+	if hook == nil {
+		return
+	}
+
+	execute := func(executeCtx context.Context, hookPayload map[string]interface{}, async bool) {
+		var (
+			timeoutCtx context.Context
+			cancel     context.CancelFunc
+		)
+		timeoutCtx, cancel = s.buildPluginHookTimeoutContext(executeCtx, hook)
+		defer cancel()
+
+		startedAt := gtime.Now()
+		err := s.runPluginDeclaredHook(timeoutCtx, pluginID, hook, hookPayload)
+		if err != nil {
+			if async {
+				g.Log().Warningf(timeoutCtx, "plugin async declared hook failed plugin=%s event=%s action=%s cost=%s err=%v", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt), err)
+				return
+			}
+			g.Log().Warningf(timeoutCtx, "plugin declared hook failed plugin=%s event=%s action=%s cost=%s err=%v", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt), err)
+			return
+		}
+		if async {
+			g.Log().Infof(timeoutCtx, "plugin async declared hook succeeded plugin=%s event=%s action=%s cost=%s", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt))
+			return
+		}
+		g.Log().Infof(timeoutCtx, "plugin declared hook succeeded plugin=%s event=%s action=%s cost=%s", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt))
+	}
+
+	values := pluginhost.CloneHookPayloadValues(payload)
+	mode := s.normalizePluginHookMode(hook)
+	if mode == pluginhost.CallbackExecutionModeAsync {
+		go execute(context.WithoutCancel(ctx), values, true)
+		return
+	}
+	execute(ctx, values, false)
+}
+
+func (s *Service) buildPluginHookTimeoutContext(
+	ctx context.Context,
+	hook *pluginHookSpec,
+) (context.Context, context.CancelFunc) {
+	timeout := 3 * time.Second
+	if hook != nil && hook.TimeoutMs > 0 {
+		timeout = time.Duration(hook.TimeoutMs) * time.Millisecond
+	}
+	return context.WithTimeout(ctx, timeout)
+}
+
+func (s *Service) normalizePluginHookMode(hook *pluginHookSpec) pluginhost.CallbackExecutionMode {
+	if hook == nil {
+		return pluginhost.CallbackExecutionModeBlocking
+	}
+	mode := hook.Mode
+	if mode == "" {
+		mode = pluginhost.DefaultCallbackExecutionMode(hook.Event)
+	}
+	if !pluginhost.IsExtensionPointExecutionModeSupported(hook.Event, mode) {
+		return pluginhost.DefaultCallbackExecutionMode(hook.Event)
+	}
+	return mode
+}
+
+func (s *Service) runPluginDeclaredHook(
+	ctx context.Context,
+	pluginID string,
+	hook *pluginHookSpec,
+	payload map[string]interface{},
+) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = gerror.Newf("plugin declared hook panicked: %v", recovered)
+		}
+	}()
+
+	if hook == nil {
+		return nil
+	}
+
+	switch hook.Action {
+	case pluginhost.HookActionInsert:
+		err = s.executePluginInsertHook(ctx, pluginID, hook, payload)
+	case pluginhost.HookActionSleep:
+		err = s.executePluginSleepHook(ctx, hook)
+	case pluginhost.HookActionError:
+		err = s.executePluginErrorHook(hook)
+	default:
+		err = gerror.Newf("插件 Hook 动作不支持: %s", hook.Action)
+	}
+	if err != nil {
+		if ctx.Err() != nil {
+			return gerror.Wrapf(ctx.Err(), "plugin hook execution exceeded timeout for %s", hook.Event)
+		}
+		return err
+	}
+	if ctx.Err() != nil {
+		return gerror.Wrapf(ctx.Err(), "plugin hook execution exceeded timeout for %s", hook.Event)
 	}
 	return nil
 }
@@ -367,7 +564,7 @@ func (s *Service) executeSourcePluginHookHandler(
 		g.Log().Infof(executeCtx, "plugin callback hook succeeded plugin=%s event=%s cost=%s", pluginID, item.Point, gtime.Now().Sub(startedAt))
 	}
 
-	values := cloneHookPayloadValues(payload)
+	values := pluginhost.CloneHookPayloadValues(payload)
 	if item.Mode == pluginhost.CallbackExecutionModeAsync {
 		// Clone payload values before spawning a goroutine so plugin callbacks never
 		// race on the mutable request-scoped map owned by the caller.
@@ -375,17 +572,6 @@ func (s *Service) executeSourcePluginHookHandler(
 		return
 	}
 	execute(ctx, values, false)
-}
-
-func cloneHookPayloadValues(values map[string]interface{}) map[string]interface{} {
-	if len(values) == 0 {
-		return map[string]interface{}{}
-	}
-	cloned := make(map[string]interface{}, len(values))
-	for key, value := range values {
-		cloned[key] = value
-	}
-	return cloned
 }
 
 // shouldDispatchHookToPlugin determines whether the hook event should be delivered to the target plugin.
@@ -414,15 +600,19 @@ func (s *Service) HandleAuthLoginSucceeded(ctx context.Context, input AuthLoginS
 	if input.Message == "" {
 		input.Message = "登录成功"
 	}
-	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointAuthLoginSucceeded, map[string]interface{}{
-		"userName":   input.UserName,
-		"status":     input.Status,
-		"ip":         input.Ip,
-		"clientType": input.ClientType,
-		"browser":    input.Browser,
-		"os":         input.Os,
-		"message":    input.Message,
-	})
+	return s.DispatchHookEvent(
+		ctx,
+		pluginhost.ExtensionPointAuthLoginSucceeded,
+		pluginhost.BuildAuthHookPayloadValues(pluginhost.AuthHookPayloadInput{
+			UserName:   input.UserName,
+			Status:     input.Status,
+			IP:         input.Ip,
+			ClientType: input.ClientType,
+			Browser:    input.Browser,
+			OS:         input.Os,
+			Message:    input.Message,
+		}),
+	)
 }
 
 // HandleAuthLoginFailed handles login failed hooks declared by source plugins.
@@ -433,15 +623,19 @@ func (s *Service) HandleAuthLoginFailed(ctx context.Context, input AuthLoginSucc
 	if input.Message == "" {
 		input.Message = "登录失败"
 	}
-	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointAuthLoginFailed, map[string]interface{}{
-		"userName":   input.UserName,
-		"status":     input.Status,
-		"ip":         input.Ip,
-		"clientType": input.ClientType,
-		"browser":    input.Browser,
-		"os":         input.Os,
-		"message":    input.Message,
-	})
+	return s.DispatchHookEvent(
+		ctx,
+		pluginhost.ExtensionPointAuthLoginFailed,
+		pluginhost.BuildAuthHookPayloadValues(pluginhost.AuthHookPayloadInput{
+			UserName:   input.UserName,
+			Status:     input.Status,
+			IP:         input.Ip,
+			ClientType: input.ClientType,
+			Browser:    input.Browser,
+			OS:         input.Os,
+			Message:    input.Message,
+		}),
+	)
 }
 
 // HandleAuthLogoutSucceeded handles logout succeeded hooks declared by source plugins.
@@ -452,15 +646,19 @@ func (s *Service) HandleAuthLogoutSucceeded(ctx context.Context, input AuthLogin
 	if input.Message == "" {
 		input.Message = "登出成功"
 	}
-	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointAuthLogoutSucceeded, map[string]interface{}{
-		"userName":   input.UserName,
-		"status":     input.Status,
-		"ip":         input.Ip,
-		"clientType": input.ClientType,
-		"browser":    input.Browser,
-		"os":         input.Os,
-		"message":    input.Message,
-	})
+	return s.DispatchHookEvent(
+		ctx,
+		pluginhost.ExtensionPointAuthLogoutSucceeded,
+		pluginhost.BuildAuthHookPayloadValues(pluginhost.AuthHookPayloadInput{
+			UserName:   input.UserName,
+			Status:     input.Status,
+			IP:         input.Ip,
+			ClientType: input.ClientType,
+			Browser:    input.Browser,
+			OS:         input.Os,
+			Message:    input.Message,
+		}),
+	)
 }
 
 // getPluginManifestByID returns one plugin manifest by plugin ID.
@@ -494,24 +692,50 @@ func (s *Service) loadPluginYAMLFile(filePath string, target interface{}) error 
 
 // validatePluginHookSpec validates one plugin-owned hook declaration.
 func (s *Service) validatePluginHookSpec(pluginID string, spec *pluginHookSpec, filePath string) error {
+	if spec == nil {
+		return gerror.Newf("插件Hook不能为空: %s", filePath)
+	}
 	if spec.Event == "" {
 		return gerror.Newf("插件Hook缺少event: %s", filePath)
 	}
 	if !pluginhost.IsHookExtensionPoint(spec.Event) {
 		return gerror.Newf("插件Hook插槽未发布: %s", filePath)
 	}
+	if spec.Action == "" {
+		spec.Action = pluginhost.HookActionInsert
+	}
 	if !pluginhost.IsSupportedHookAction(spec.Action) {
-		return gerror.Newf("插件Hook动作仅支持insert: %s", filePath)
+		return gerror.Newf("插件Hook动作不受宿主支持: %s", filePath)
 	}
-	if err := s.validatePluginIdentifier(spec.Table); err != nil {
-		return gerror.Wrapf(err, "插件%s的Hook表名非法: %s", pluginID, filePath)
+	if spec.Mode == "" {
+		spec.Mode = pluginhost.DefaultCallbackExecutionMode(spec.Event)
 	}
-	if len(spec.Fields) == 0 {
-		return gerror.Newf("插件Hook缺少fields映射: %s", filePath)
+	if !pluginhost.IsExtensionPointExecutionModeSupported(spec.Event, spec.Mode) {
+		return gerror.Newf("插件Hook执行模式不受当前插槽支持: %s", filePath)
 	}
-	for column := range spec.Fields {
-		if err := s.validatePluginIdentifier(column); err != nil {
-			return gerror.Wrapf(err, "插件%s的Hook字段非法: %s", pluginID, filePath)
+	if spec.TimeoutMs < 0 {
+		return gerror.Newf("插件Hook timeoutMs 不能小于0: %s", filePath)
+	}
+	switch spec.Action {
+	case pluginhost.HookActionInsert:
+		if err := s.validatePluginIdentifier(spec.Table); err != nil {
+			return gerror.Wrapf(err, "插件%s的Hook表名非法: %s", pluginID, filePath)
+		}
+		if len(spec.Fields) == 0 {
+			return gerror.Newf("插件Hook缺少fields映射: %s", filePath)
+		}
+		for column := range spec.Fields {
+			if err := s.validatePluginIdentifier(column); err != nil {
+				return gerror.Wrapf(err, "插件%s的Hook字段非法: %s", pluginID, filePath)
+			}
+		}
+	case pluginhost.HookActionSleep:
+		if spec.SleepMs <= 0 {
+			return gerror.Newf("插件Hook sleep 动作要求 sleepMs > 0: %s", filePath)
+		}
+	case pluginhost.HookActionError:
+		if strings.TrimSpace(spec.ErrorMessage) == "" {
+			return gerror.Newf("插件Hook error 动作要求 errorMessage 非空: %s", filePath)
 		}
 	}
 	return nil
@@ -519,6 +743,9 @@ func (s *Service) validatePluginHookSpec(pluginID string, spec *pluginHookSpec, 
 
 // validatePluginResourceSpec validates one plugin-owned backend resource declaration.
 func (s *Service) validatePluginResourceSpec(pluginID string, spec *pluginResourceSpec, filePath string) error {
+	if spec == nil {
+		return gerror.Newf("插件资源不能为空: %s", filePath)
+	}
 	if spec.Key == "" {
 		return gerror.Newf("插件资源缺少key: %s", filePath)
 	}
@@ -568,6 +795,21 @@ func (s *Service) validatePluginResourceSpec(pluginID string, spec *pluginResour
 	if normalizePluginResourceOrderDirection(spec.OrderBy.Direction) == "" {
 		return gerror.Newf("插件资源排序方向仅支持 asc/desc: %s", filePath)
 	}
+	if spec.DataScope != nil {
+		if spec.DataScope.UserColumn != "" {
+			if err := s.validatePluginIdentifier(spec.DataScope.UserColumn); err != nil {
+				return gerror.Wrapf(err, "插件%s资源数据权限 userColumn 非法: %s", pluginID, filePath)
+			}
+		}
+		if spec.DataScope.DeptColumn != "" {
+			if err := s.validatePluginIdentifier(spec.DataScope.DeptColumn); err != nil {
+				return gerror.Wrapf(err, "插件%s资源数据权限 deptColumn 非法: %s", pluginID, filePath)
+			}
+		}
+		if spec.DataScope.UserColumn == "" && spec.DataScope.DeptColumn == "" {
+			return gerror.Newf("插件资源 dataScope 至少需要声明 userColumn 或 deptColumn: %s", filePath)
+		}
+	}
 	return nil
 }
 
@@ -612,13 +854,36 @@ func (s *Service) executePluginInsertHook(ctx context.Context, pluginID string, 
 	return err
 }
 
+func (s *Service) executePluginSleepHook(ctx context.Context, hook *pluginHookSpec) error {
+	if hook == nil || hook.SleepMs <= 0 {
+		return nil
+	}
+
+	timer := time.NewTimer(time.Duration(hook.SleepMs) * time.Millisecond)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+func (s *Service) executePluginErrorHook(hook *pluginHookSpec) error {
+	if hook == nil {
+		return nil
+	}
+	return gerror.New(strings.TrimSpace(hook.ErrorMessage))
+}
+
 // resolvePluginHookValue resolves one hook field expression.
 func (s *Service) resolvePluginHookValue(expr string, payload map[string]interface{}) (interface{}, error) {
 	if expr == "now" {
 		return gtime.Now(), nil
 	}
-	if strings.HasPrefix(expr, "event.") {
-		fieldName := strings.TrimPrefix(expr, "event.")
+	if strings.HasPrefix(expr, pluginHookEventFieldExprPrefix) {
+		fieldName := strings.TrimPrefix(expr, pluginHookEventFieldExprPrefix)
 		if value, ok := payload[fieldName]; ok {
 			return value, nil
 		}

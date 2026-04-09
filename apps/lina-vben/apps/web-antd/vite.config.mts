@@ -87,9 +87,7 @@ function buildPluginPageModuleCode(pluginRoot: string) {
 
   pageFiles.toSorted().forEach((filePath, index) => {
     const relativePath = normalizeFsPath(relative(pluginRoot, filePath));
-    const match = relativePath.match(
-      /^([^/]+)\/frontend\/pages\/(.+)\.vue$/,
-    );
+    const match = relativePath.match(/^([^/]+)\/frontend\/pages\/(.+)\.vue$/);
     if (!match?.[1] || !match[2]) {
       return;
     }
@@ -117,9 +115,7 @@ function buildPluginSlotModuleCode(pluginRoot: string) {
 
   slotFiles.toSorted().forEach((filePath, index) => {
     const relativePath = normalizeFsPath(relative(pluginRoot, filePath));
-    const match = relativePath.match(
-      /^([^/]+)\/frontend\/slots\/(.+)\.vue$/,
-    );
+    const match = relativePath.match(/^([^/]+)\/frontend\/slots\/(.+)\.vue$/);
     if (!match?.[1] || !match[2]) {
       return;
     }
@@ -203,6 +199,12 @@ export default defineConfig(async () => {
             // Forward /api/* to backend at localhost:8080/api/*
             target: 'http://localhost:8080',
             ws: true,
+          },
+          '/plugin-assets': {
+            changeOrigin: true,
+            // Runtime plugin static assets are hosted by the backend even in
+            // dev mode, so the frontend dev server must proxy these requests.
+            target: 'http://localhost:8080',
           },
           '/stoplight/apidocs.html': {
             target: 'http://localhost:8080',

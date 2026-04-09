@@ -230,4 +230,46 @@ describe('generateMenus', () => {
     const menus = generateMenus(emptyRoutes, router);
     expect(menus).toEqual([]);
   });
+
+  it('keeps router path for link-based menu items so window navigation can resolve route meta', async () => {
+    const linkRoutes = [
+      {
+        meta: {
+          link: '/plugin-assets/plugin-runtime-demo/v0.1.0/index.html',
+          openInNewWindow: true,
+          title: 'Runtime New Window Entry',
+        },
+        name: 'runtimeNewWindowEntry',
+        path: '/link-102-plugin-assets-plugin-runtime-demo-v0-1-0-index-html',
+      },
+    ] as RouteRecordRaw[];
+
+    const linkRouter = {
+      getRoutes: vi.fn(() => [
+        {
+          name: 'runtimeNewWindowEntry',
+          path: '/link-102-plugin-assets-plugin-runtime-demo-v0-1-0-index-html',
+        },
+      ]),
+    };
+
+    const menus = generateMenus(linkRoutes, linkRouter as any);
+
+    expect(menus).toEqual([
+      {
+        activeIcon: undefined,
+        badge: undefined,
+        badgeType: undefined,
+        badgeVariants: undefined,
+        children: [],
+        icon: undefined,
+        name: 'Runtime New Window Entry',
+        order: undefined,
+        parent: undefined,
+        parents: undefined,
+        path: '/link-102-plugin-assets-plugin-runtime-demo-v0-1-0-index-html',
+        show: true,
+      },
+    ]);
+  });
 });

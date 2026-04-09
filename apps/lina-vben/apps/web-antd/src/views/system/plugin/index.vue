@@ -2,6 +2,7 @@
 import type { SystemPlugin } from '#/api/system/plugin/model';
 
 import { Page } from '@vben/common-ui';
+import { useVbenModal } from '@vben/common-ui';
 
 import { message, Popconfirm, Space, Switch, Tag } from 'ant-design-vue';
 
@@ -15,50 +16,15 @@ import {
   pluginUninstall,
 } from '#/api/system/plugin';
 import { notifyPluginRegistryChanged } from '#/plugins/slot-registry';
+import PluginRuntimeUploadModal from './plugin-runtime-upload-modal.vue';
+
+const [RuntimeUploadModal, runtimeUploadModalApi] = useVbenModal({
+  connectedComponent: PluginRuntimeUploadModal,
+});
 
 const typeColorMap: Record<string, string> = {
   runtime: 'green',
   source: 'blue',
-};
-
-const lifecycleStateLabelMap: Record<string, string> = {
-  runtime_enabled: '运行时已启用',
-  runtime_installed: '运行时已安装',
-  runtime_uninstalled: '运行时未安装',
-  source_disabled: '源码已禁用',
-  source_enabled: '源码已启用',
-};
-
-const lifecycleStateColorMap: Record<string, string> = {
-  runtime_enabled: 'success',
-  runtime_installed: 'warning',
-  runtime_uninstalled: 'default',
-  source_disabled: 'warning',
-  source_enabled: 'processing',
-};
-
-const nodeStateLabelMap: Record<string, string> = {
-  enabled: '节点已启用',
-  installed: '节点已接入',
-  uninstalled: '节点未接入',
-};
-
-const nodeStateColorMap: Record<string, string> = {
-  enabled: 'success',
-  installed: 'processing',
-  uninstalled: 'default',
-};
-
-const migrationStateLabelMap: Record<string, string> = {
-  failed: '迁移失败',
-  none: '无迁移',
-  succeeded: '迁移成功',
-};
-
-const migrationStateColorMap: Record<string, string> = {
-  failed: 'error',
-  none: 'default',
-  succeeded: 'success',
 };
 
 const [Grid, gridApi] = useVbenVxeGrid({
@@ -142,18 +108,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
         width: 130,
       },
       {
-        field: 'lifecycleState',
-        slots: { default: 'lifecycleState' },
-        title: '生命周期',
-        width: 150,
-      },
-      {
-        field: 'governance',
-        minWidth: 280,
-        slots: { default: 'governance' },
-        title: '治理摘要',
-      },
-      {
         field: 'action',
         fixed: 'right',
         slots: { default: 'action' },
@@ -196,30 +150,6 @@ function getPluginTypeColor(type: string) {
   return typeColorMap[type === 'source' ? 'source' : 'runtime'] || 'default';
 }
 
-function getLifecycleStateLabel(state: string) {
-  return lifecycleStateLabelMap[state] || state || '-';
-}
-
-function getLifecycleStateColor(state: string) {
-  return lifecycleStateColorMap[state] || 'default';
-}
-
-function getNodeStateLabel(state: string) {
-  return nodeStateLabelMap[state] || state || '-';
-}
-
-function getNodeStateColor(state: string) {
-  return nodeStateColorMap[state] || 'default';
-}
-
-function getMigrationStateLabel(state: string) {
-  return migrationStateLabelMap[state] || state || '-';
-}
-
-function getMigrationStateColor(state: string) {
-  return migrationStateColorMap[state] || 'default';
-}
-
 function isSourcePlugin(row: SystemPlugin) {
   return row.type === 'source';
 }
@@ -260,6 +190,15 @@ async function handleSync() {
   message.success(`已同步 ${total} 个源码插件`);
   await gridApi.query();
 }
+
+function handleOpenRuntimeUpload() {
+  runtimeUploadModalApi.open();
+}
+
+async function handleRuntimeUploadReload() {
+  await notifyPluginRegistryChanged();
+  await gridApi.query();
+}
 </script>
 
 <template>
@@ -267,6 +206,13 @@ async function handleSync() {
     <Grid table-title="插件列表">
       <template #toolbar-tools>
         <Space>
+          <a-button
+            data-testid="plugin-runtime-upload-trigger"
+            type="primary"
+            @click="handleOpenRuntimeUpload"
+          >
+            上传插件
+          </a-button>
           <a-button type="primary" @click="handleSync">同步插件</a-button>
         </Space>
       </template>
@@ -299,27 +245,19 @@ async function handleSync() {
         />
       </template>
 
-      <template #lifecycleState="{ row }">
-        <Tag :color="getLifecycleStateColor(row.lifecycleState)">
-          {{ getLifecycleStateLabel(row.lifecycleState) }}
-        </Tag>
-      </template>
-
-      <template #governance="{ row }">
-        <Space wrap size="small">
-          <Tag :color="getNodeStateColor(row.nodeState)">
-            {{ getNodeStateLabel(row.nodeState) }}
-          </Tag>
-          <Tag :color="getMigrationStateColor(row.migrationState)">
-            {{ getMigrationStateLabel(row.migrationState) }}
-          </Tag>
-          <Tag color="default">生效版本 {{ row.releaseVersion || '-' }}</Tag>
-          <Tag color="default">资源 {{ row.resourceCount ?? 0 }}</Tag>
-        </Space>
-      </template>
-
       <template #action="{ row }">
-        <Space v-if="!isSourcePlugin(row)">
+        <Space v-if="isSourcePlugin(row)">
+          <ghost-button
+            :data-testid="`plugin-source-uninstall-disabled-${row.id}`"
+            danger
+            disabled
+            title="源码插件不支持页面动态卸载，如需移除请在源码中取消注册后重新构建宿主。"
+            @click.stop=""
+          >
+            卸载
+          </ghost-button>
+        </Space>
+        <Space v-else>
           <Popconfirm
             v-if="row.installed !== 1"
             title="确认安装该插件？"
@@ -337,5 +275,6 @@ async function handleSync() {
         </Space>
       </template>
     </Grid>
+    <RuntimeUploadModal @reload="handleRuntimeUploadReload" />
   </Page>
 </template>

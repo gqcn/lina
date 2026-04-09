@@ -109,6 +109,39 @@ func TestCronRegistrarReportsPrimaryNode(t *testing.T) {
 	}
 }
 
+func TestHookPayloadHelpersBuildPublishedKeys(t *testing.T) {
+	status := 1
+
+	lifecycleValues := BuildPluginLifecycleHookPayloadValues(PluginLifecycleHookPayloadInput{
+		PluginID: "plugin-demo",
+		Name:     "Plugin Demo",
+		Version:  "v0.1.0",
+		Status:   &status,
+	})
+	if HookPayloadStringValue(lifecycleValues, HookPayloadKeyPluginID) != "plugin-demo" {
+		t.Fatalf("expected lifecycle payload plugin id to be published")
+	}
+	if actualStatus, ok := HookPayloadIntValue(lifecycleValues, HookPayloadKeyStatus); !ok || actualStatus != status {
+		t.Fatalf("expected lifecycle payload status=%d, got %d ok=%v", status, actualStatus, ok)
+	}
+
+	authValues := BuildAuthHookPayloadValues(AuthHookPayloadInput{
+		UserName:   "admin",
+		Status:     1,
+		IP:         "127.0.0.1",
+		ClientType: "web",
+		Browser:    "Chrome",
+		OS:         "macOS",
+		Message:    "login ok",
+	})
+	if HookPayloadStringValue(authValues, HookPayloadKeyUserName) != "admin" {
+		t.Fatalf("expected auth payload username to be published")
+	}
+	if HookPayloadStringValue(authValues, HookPayloadKeyClientType) != "web" {
+		t.Fatalf("expected auth payload clientType to be published")
+	}
+}
+
 func assertInterfaceType(t *testing.T, value interface{}, name string) {
 	t.Helper()
 

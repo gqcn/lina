@@ -26,6 +26,9 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 	if normalizePluginType(manifest.Type) == pluginTypeSource {
 		return gerror.New("源码插件随宿主编译集成，不支持安装")
 	}
+	if err = s.ensureRuntimePluginArtifactAvailable(manifest, "安装"); err != nil {
+		return err
+	}
 
 	registry, err := s.syncPluginManifest(ctx, manifest)
 	if err != nil {
@@ -35,11 +38,12 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 		return nil
 	}
 
-	// Runtime installation still executes SQL assets by directory convention, but the
-	// persisted metadata only stores abstract migration identifiers and summary data.
-	if err = s.executeManifestSQLFiles(ctx, manifest, s.discoverPluginSQLPaths(manifest.RootDir, false), pluginMigrationDirectionInstall); err != nil {
+	// Runtime installation prefers SQL assets embedded in the wasm artifact and
+	// falls back to directory-convention SQL only when no embedded bundle exists.
+	if err = s.executeManifestSQLFiles(ctx, manifest, pluginMigrationDirectionInstall); err != nil {
 		return err
 	}
+	s.invalidateRuntimeFrontendBundle(ctx, pluginID, "plugin_installed")
 
 	if err = s.setPluginInstalled(ctx, pluginID, pluginInstalledYes); err != nil {
 		return err
@@ -51,11 +55,15 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 	if err = s.syncPluginMetadata(ctx, manifest, registry, "Runtime plugin install lifecycle completed on current node."); err != nil {
 		return err
 	}
-	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointPluginInstalled, map[string]interface{}{
-		"pluginId": pluginID,
-		"name":     manifest.Name,
-		"version":  manifest.Version,
-	})
+	return s.DispatchHookEvent(
+		ctx,
+		pluginhost.ExtensionPointPluginInstalled,
+		pluginhost.BuildPluginLifecycleHookPayloadValues(pluginhost.PluginLifecycleHookPayloadInput{
+			PluginID: pluginID,
+			Name:     manifest.Name,
+			Version:  manifest.Version,
+		}),
+	)
 }
 
 // Uninstall executes uninstall lifecycle for an installed runtime plugin.
@@ -83,13 +91,15 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 			return err
 		}
 	}
-	if err = s.executeManifestSQLFiles(ctx, manifest, s.discoverPluginSQLPaths(manifest.RootDir, true), pluginMigrationDirectionUninstall); err != nil {
+	if err = s.executeManifestSQLFiles(ctx, manifest, pluginMigrationDirectionUninstall); err != nil {
 		return err
 	}
 	if err = s.setPluginInstalled(ctx, pluginID, pluginInstalledNo); err != nil {
 		return err
 	}
+	s.invalidateRuntimeFrontendBundle(ctx, pluginID, "plugin_uninstalled")
 	if _, err = dao.SysPluginResourceRef.Ctx(ctx).
+		Unscoped().
 		Where(do.SysPluginResourceRef{PluginId: pluginID}).
 		Delete(); err != nil {
 		return err
@@ -104,11 +114,15 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 	); err != nil {
 		return err
 	}
-	return s.DispatchHookEvent(ctx, pluginhost.ExtensionPointPluginUninstalled, map[string]interface{}{
-		"pluginId": pluginID,
-		"name":     manifest.Name,
-		"version":  manifest.Version,
-	})
+	return s.DispatchHookEvent(
+		ctx,
+		pluginhost.ExtensionPointPluginUninstalled,
+		pluginhost.BuildPluginLifecycleHookPayloadValues(pluginhost.PluginLifecycleHookPayloadInput{
+			PluginID: pluginID,
+			Name:     manifest.Name,
+			Version:  manifest.Version,
+		}),
+	)
 }
 
 // resolvePluginResourcePath resolves a plugin relative resource path to an absolute path inside plugin root.

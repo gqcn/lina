@@ -46,17 +46,31 @@ func (s *Service) syncPluginResourceReferences(ctx context.Context, manifest *pl
 
 		if existing, ok := existingMap[identity]; ok {
 			// Only update abstract ownership and review remarks. Concrete file paths are
-			// deliberately excluded so the schema stays framework-agnostic.
+			// deliberately excluded so the schema stays framework-agnostic. Runtime
+			// uninstall currently soft-deletes old rows, so repeated sync must also be
+			// able to revive matching identities instead of colliding with the table
+			// unique key on a fresh insert.
+			data := do.SysPluginResourceRef{
+				OwnerType: descriptor.OwnerType.String(),
+				OwnerKey:  descriptor.OwnerKey,
+				Remark:    descriptor.Remark,
+			}
 			_, err = dao.SysPluginResourceRef.Ctx(ctx).
+				Unscoped().
 				Where(do.SysPluginResourceRef{Id: existing.Id}).
-				Data(do.SysPluginResourceRef{
-					OwnerType: descriptor.OwnerType.String(),
-					OwnerKey:  descriptor.OwnerKey,
-					Remark:    descriptor.Remark,
-				}).
+				Data(data).
 				Update()
 			if err != nil {
 				return err
+			}
+			if existing.DeletedAt != nil {
+				if _, err = dao.SysPluginResourceRef.Ctx(ctx).
+					Unscoped().
+					Where(do.SysPluginResourceRef{Id: existing.Id}).
+					Data("deleted_at", nil).
+					Update(); err != nil {
+					return err
+				}
 			}
 			continue
 		}
@@ -87,6 +101,7 @@ func (s *Service) syncPluginResourceReferences(ctx context.Context, manifest *pl
 			continue
 		}
 		if _, err = dao.SysPluginResourceRef.Ctx(ctx).
+			Unscoped().
 			Where(do.SysPluginResourceRef{Id: item.Id}).
 			Delete(); err != nil {
 			return err
@@ -99,6 +114,7 @@ func (s *Service) syncPluginResourceReferences(ctx context.Context, manifest *pl
 func (s *Service) listPluginResourceRefs(ctx context.Context, pluginID string, releaseID int) ([]*entity.SysPluginResourceRef, error) {
 	items := make([]*entity.SysPluginResourceRef, 0)
 	err := dao.SysPluginResourceRef.Ctx(ctx).
+		Unscoped().
 		Where(do.SysPluginResourceRef{
 			PluginId:  pluginID,
 			ReleaseId: releaseID,
@@ -116,8 +132,8 @@ func (s *Service) buildPluginResourceRefDescriptors(manifest *pluginManifest) []
 	// The discovery layer still inspects concrete directories so the host can validate
 	// the plugin bundle, but the persisted descriptors below intentionally collapse
 	// those findings into abstract review records.
-	installSQLPaths := s.discoverPluginSQLPaths(manifest.RootDir, false)
-	uninstallSQLPaths := s.discoverPluginSQLPaths(manifest.RootDir, true)
+	installSQLAssetCount := s.countPluginSQLAssets(manifest, pluginMigrationDirectionInstall)
+	uninstallSQLAssetCount := s.countPluginSQLAssets(manifest, pluginMigrationDirectionUninstall)
 	frontendPagePaths := s.discoverPluginPagePaths(manifest.RootDir)
 	frontendSlotPaths := s.discoverPluginSlotPaths(manifest.RootDir)
 
@@ -139,24 +155,41 @@ func (s *Service) buildPluginResourceRefDescriptors(manifest *pluginManifest) []
 			OwnerKey:  "source-plugin-backend-entry",
 			Remark:    "One source-plugin backend registration entry is compiled into the host binary.",
 		})
+	} else if manifest.RuntimeArtifact != nil {
+		descriptors = append(descriptors, &pluginResourceRefDescriptor{
+			Kind:      pluginResourceKindRuntimeWasm,
+			Key:       "runtime-wasm-artifact",
+			OwnerType: pluginResourceOwnerTypeRuntimeArtifact,
+			OwnerKey:  "runtime-wasm-artifact",
+			Remark:    s.buildRuntimeArtifactRemark(manifest),
+		})
+		if manifest.RuntimeArtifact.FrontendAssetCount > 0 {
+			descriptors = append(descriptors, &pluginResourceRefDescriptor{
+				Kind:      pluginResourceKindRuntimeFrontend,
+				Key:       "runtime-frontend-assets",
+				OwnerType: pluginResourceOwnerTypeRuntimeFrontend,
+				OwnerKey:  "runtime-frontend-assets",
+				Remark:    s.buildPluginResourceSummaryRemark("runtime frontend assets", manifest.RuntimeArtifact.FrontendAssetCount),
+			})
+		}
 	}
 
-	if len(installSQLPaths) > 0 {
+	if installSQLAssetCount > 0 {
 		descriptors = append(descriptors, &pluginResourceRefDescriptor{
 			Kind:      pluginResourceKindInstallSQL,
 			Key:       "install-sql-bundle",
 			OwnerType: pluginResourceOwnerTypeInstallSQL,
 			OwnerKey:  "install-sql-summary",
-			Remark:    s.buildPluginResourceSummaryRemark("install SQL assets", len(installSQLPaths)),
+			Remark:    s.buildPluginResourceSummaryRemark("install SQL assets", installSQLAssetCount),
 		})
 	}
-	if len(uninstallSQLPaths) > 0 {
+	if uninstallSQLAssetCount > 0 {
 		descriptors = append(descriptors, &pluginResourceRefDescriptor{
 			Kind:      pluginResourceKindUninstallSQL,
 			Key:       "uninstall-sql-bundle",
 			OwnerType: pluginResourceOwnerTypeUninstallSQL,
 			OwnerKey:  "uninstall-sql-summary",
-			Remark:    s.buildPluginResourceSummaryRemark("uninstall SQL assets", len(uninstallSQLPaths)),
+			Remark:    s.buildPluginResourceSummaryRemark("uninstall SQL assets", uninstallSQLAssetCount),
 		})
 	}
 	if len(frontendPagePaths) > 0 {

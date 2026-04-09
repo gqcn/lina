@@ -35,6 +35,7 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 			Installed:    installedState,
 			Status:       pluginStatusDisabled,
 			ManifestPath: manifest.ManifestPath,
+			Checksum:     s.buildPluginRegistryChecksum(manifest),
 			Remark:       manifest.Description,
 		}
 		if normalizePluginType(manifest.Type) == pluginTypeSource {
@@ -64,6 +65,7 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 		Version:      manifest.Version,
 		Type:         manifest.Type,
 		ManifestPath: manifest.ManifestPath,
+		Checksum:     s.buildPluginRegistryChecksum(manifest),
 		Remark:       manifest.Description,
 	}
 	if normalizePluginType(manifest.Type) == pluginTypeSource {
@@ -128,10 +130,14 @@ func (s *Service) setPluginStatus(ctx context.Context, pluginID string, enabled 
 	if enabled == pluginStatusEnabled {
 		eventName = pluginhost.ExtensionPointPluginEnabled
 	}
-	if err = s.DispatchHookEvent(ctx, eventName, map[string]interface{}{
-		"pluginId": pluginID,
-		"status":   enabled,
-	}); err != nil {
+	if err = s.DispatchHookEvent(
+		ctx,
+		eventName,
+		pluginhost.BuildPluginLifecycleHookPayloadValues(pluginhost.PluginLifecycleHookPayloadInput{
+			PluginID: pluginID,
+			Status:   &enabled,
+		}),
+	); err != nil {
 		return err
 	}
 

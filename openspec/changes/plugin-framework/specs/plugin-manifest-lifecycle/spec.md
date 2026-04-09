@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: 插件目录与清单契约统一
-系统 SHALL 为所有插件提供统一的目录结构与清单契约。源码插件 MUST 放置在 `apps/lina-plugins/<plugin-id>/` 目录下；当前运行时 `wasm` 插件 MUST 能解析出与源码插件等价的 manifest 信息。
+系统 SHALL 为所有插件提供统一的目录结构与清单契约。源码插件 MUST 放置在 `apps/lina-plugins/<plugin-id>/` 目录下；当前运行时 `wasm` 插件 MUST 能从 `plugin.runtime.storagePath` 中被发现，并解析出与源码插件等价的 manifest 信息。
 
 #### Scenario: 发现源码插件目录
 - **WHEN** 宿主扫描 `apps/lina-plugins/` 下的插件目录
@@ -25,6 +25,13 @@
 - **WHEN** 管理员上传一个 `wasm` 文件安装运行时插件
 - **THEN** 宿主能够解析出与源码模式一致的插件标识、名称、版本与一级插件类型
 - **AND** 对缺少这些基础字段的运行时插件拒绝安装
+- **AND** 宿主将上传产物写入 `plugin.runtime.storagePath/<plugin-id>.wasm`
+
+#### Scenario: 运行时产物使用独立存储目录
+- **WHEN** 宿主发现、上传或同步一个运行时 `wasm` 插件产物
+- **THEN** 运行时产物 MUST 使用 `plugin.runtime.storagePath/<plugin-id>.wasm` 作为宿主侧规范落盘路径
+- **AND** 宿主不得再依赖 `apps/lina-plugins/<plugin-id>/plugin.yaml` 作为 runtime 发现入口
+- **AND** 运行时样例插件的可读源码目录 SHOULD 与源码插件一样继续收敛在 `backend/`、`frontend/` 与 `manifest/` 下维护
 
 ### Requirement: 插件生命周期状态机可治理
 系统 SHALL 为插件提供可审计的生命周期状态机，并按源码插件与运行时插件区分生命周期语义。

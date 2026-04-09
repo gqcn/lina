@@ -203,7 +203,10 @@ test.describe("TC-66 源码插件生命周期", () => {
       "runtime" in ((pluginAfterSync ?? {}) as Record<string, unknown>),
       "插件列表接口不应再返回重复的 runtime 字段",
     ).toBeFalsy();
-    expect(pluginAfterSync?.installedAt, "源码插件同步后应记录接入时间").toBeTruthy();
+    expect(
+      pluginAfterSync?.installedAt,
+      "源码插件同步后应记录接入时间",
+    ).toBeTruthy();
     expect(
       pluginAfterSync?.enabled ?? pluginAfterSync?.status,
       "源码插件首次同步后应默认启用",
@@ -225,10 +228,12 @@ test.describe("TC-66 源码插件生命周期", () => {
     await pluginPage.expectTableColumnHidden("交付方式");
     await pluginPage.expectTableColumnHidden("接入态");
     await pluginPage.expectTableColumnHidden("入口");
+    await pluginPage.expectTableColumnHidden("生命周期");
+    await pluginPage.expectTableColumnHidden("治理摘要");
     await pluginPage.expectTableColumnBetween("描述", "版本", "状态");
     await pluginPage.expectDescriptionUsesNativeTooltip(pluginID);
     await expect(pluginPage.pluginInstallButton(pluginID)).toHaveCount(0);
-    await expect(pluginPage.pluginUninstallButton(pluginID)).toHaveCount(0);
+    await pluginPage.expectSourcePluginDisabledUninstall(pluginID);
     await pluginPage.expectCrudSlotsVisible();
   });
 
@@ -248,13 +253,13 @@ test.describe("TC-66 源码插件生命周期", () => {
     await pluginPage.openSidebarExampleFromMenu();
   });
 
-  test("TC-66c: 启用后可验证插件路由与鉴权访问控制", async ({
-    page,
-  }) => {
+  test("TC-66c: 启用后可验证插件路由与鉴权访问控制", async ({ page }) => {
     await syncPlugins(adminApi!);
     await updatePluginStatus(adminApi!, pluginID, true);
 
-    const anonymousApi = await playwrightRequest.newContext({ baseURL: apiBaseURL });
+    const anonymousApi = await playwrightRequest.newContext({
+      baseURL: apiBaseURL,
+    });
     const pingResponse = await fetchPluginPing(anonymousApi);
     assertOk(pingResponse, "查询插件公开 ping 路由失败");
     const pingPayload = unwrapApiData(await pingResponse.json());
@@ -328,7 +333,7 @@ test.describe("TC-66 源码插件生命周期", () => {
       "false",
     );
     await expect(pluginPage.pluginInstallButton(pluginID)).toHaveCount(0);
-    await expect(pluginPage.pluginUninstallButton(pluginID)).toHaveCount(0);
+    await pluginPage.expectSourcePluginDisabledUninstall(pluginID);
   });
 
   test("TC-66f: 登录态在线启用后立即刷新左侧菜单与工作台卡片", async ({
