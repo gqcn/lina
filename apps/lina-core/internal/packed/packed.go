@@ -2,5 +2,7 @@ package packed
 
 import "embed"
 
-//go:embed all:public
+// Files stores embedded frontend static assets and prepared manifest assets.
+//
+//go:embed all:public all:manifest
 var Files embed.FS

@@ -6,6 +6,12 @@ DOCKER_NAME = "template-single"
 include ./hack/hack-cli.mk
 include ./hack/hack.mk
 
+.PHONY: prepare-packed-assets
+prepare-packed-assets:
+	@../../hack/scripts/prepare-packed-assets.sh
+
+build: prepare-packed-assets
+
 ## init: 初始化数据库（仅执行 DDL 建表和 Seed 数据）
 .PHONY: init
 init:

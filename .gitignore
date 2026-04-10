@@ -15,6 +15,8 @@ temp/
 
 # Backend
 apps/lina-core/temp/
+apps/lina-core/internal/packed/manifest/**
+!apps/lina-core/internal/packed/manifest/.gitkeep
 
 # Frontend
 **/node_modules/

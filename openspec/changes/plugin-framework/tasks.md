@@ -258,7 +258,10 @@
 - [x] **FB-124**: 调整 `make build` 输出体验，默认隐藏前端与构建工具详细日志，仅在显式传入 `verbose=1` 时输出完整编译信息
 - [x] **FB-125**: 为构建详细日志开关增加 `v=1` 短参数别名，并保持与 `verbose=1` 行为一致
 - [x] **FB-126**: 调整 `make build` 默认输出，在静默模式下保留动态插件编译阶段的简短提示信息，同时继续隐藏详细子日志
+- [x] **FB-131**: 宿主二进制的 embed 资源需额外包含 `manifest/sql` 与 `manifest/config` 交付资源，但必须排除本地 `manifest/config/config.yaml`
 - [x] **FB-127**: 修复登录后插件治理链路中的重复查库与重复插件扫描，消除菜单/权限/Hook 热路径里的 `sys_plugin` N+1 查询
 - [x] **FB-128**: 继续收敛插件治理热路径中的 `sys_plugin` 重复查库，改为宿主内存快照缓存并在插件生命周期变更时精确失效
 - [x] **FB-129**: 将在线会话活跃时间刷新从 `COUNT + UPDATE` 收敛为单条 `UPDATE`，减少每次鉴权请求的固定 SQL 数量
 - [x] **FB-130**: 收敛 `/api/v1/user/info` 角色、权限与菜单装载链路中的重复查询，避免同一次请求重复读取 `sys_user_role`
+- [x] **FB-132**: 将宿主 `manifest` 交付资源的 embed 方案收敛为“编译前同步到 `internal/packed` 再统一嵌入”，并将生成文件加入版本忽略
+- [x] **FB-133**: 为 `prepare-packed-assets.sh` 与 `hack/makefiles/build.mk` 中新增的 manifest 嵌入准备逻辑补齐关键注释，便于人工 review

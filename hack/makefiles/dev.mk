@@ -41,6 +41,7 @@ dev: stop
 	> /tmp/lina-vben.log; \
 	echo "正在重启服务..."; \
 	$(MAKE) wasm; \
+	./hack/scripts/prepare-packed-assets.sh; \
 	(cd "$$root_dir/$(BACKEND_DIR)" && go build -o temp/bin/lina .) || { echo "后端编译失败"; exit 1; }; \
 	nohup sh -c 'cd "'"$$root_dir"'/$(BACKEND_DIR)" && exec ./temp/bin/lina' >> /tmp/lina-core.log 2>&1 < /dev/null & echo $$! > $(BACKEND_PID); \
 	nohup sh -c 'cd "'"$$root_dir"'/$(FRONTEND_DIR)" && exec npx turbo run dev --filter=@lina/web-antd' >> /tmp/lina-vben.log 2>&1 < /dev/null & echo $$! > $(FRONTEND_PID); \
