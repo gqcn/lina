@@ -4,7 +4,7 @@
 
 与[`plugin-demo-source`](../plugin-demo-source/README.md)不同，这个插件不会以源码形式编译进宿主，而是用于演示当前动态插件契约下的一条最小闭环：
 
-- 通过插件自带`SQL`向宿主注入 1 个左侧菜单入口；
+- 通过`plugin.yaml`中的`menus`元数据向宿主声明 1 个左侧菜单入口；
 - 菜单在宿主主内容区打开一页简要说明；
 - 页面提供 1 个“打开独立页面”按钮；
 - 按钮会打开一个不依赖`Vben`前端框架的独立静态页面。
@@ -27,9 +27,7 @@ plugin-demo-dynamic/
       standalone.html
   manifest/
     sql/
-      001-plugin-demo-dynamic.sql
-      uninstall/
-        001-plugin-demo-dynamic.sql
+      # 当前样例未提供业务 SQL；若后续新增业务表迁移，可继续按目录约定补充
   temp/
     # 按需生成且被 Git 忽略：
     # plugin-demo-dynamic.wasm
@@ -54,7 +52,8 @@ plugin-demo-dynamic/
 
 - `backend/`保存 1 份仅供 review 的后端示例代码；
 - `frontend/pages/`保存宿主内嵌挂载入口和独立静态页；
-- `manifest/sql/`保存安装与卸载所需的`SQL`；
+- `plugin.yaml`保存插件基础信息和菜单元数据；
+- `manifest/sql/`仅在需要业务迁移时保存安装与卸载`SQL`；
 - `temp/`仅保存本地构建产物，不进入版本库。
 
 动态元数据不再通过额外的`JSON`边车文件维护。执行`make wasm`时，构建器会基于当前源码树自动生成：
@@ -107,7 +106,7 @@ make wasm p=plugin-demo-dynamic
 - `plugin.yaml`是否清晰标识该插件属于独立动态插件；
 - `frontend/pages/mount.js`是否只依赖文档已发布的宿主`ESM`契约；
 - `frontend/pages/standalone.html`是否保持框架无关；
-- `manifest/sql/001-plugin-demo-dynamic.sql`是否只为该插件注入 1 个左侧菜单；
+- `plugin.yaml`里的`menus`是否只声明 1 个属于该插件的左侧菜单；
 - 执行`make wasm p=plugin-demo-dynamic`后，是否会生成`temp/plugin-demo-dynamic.wasm`；
 - 动态契约测试是否仍能证明生成出的`wasm`与明文源码树保持一致；
 - 未来新增的`backend/hooks/*.yaml`或`backend/resources/*.yaml`是否仍严格遵守已发布的声明式动态`ABI`，而不是假设宿主会执行任意`Go`代码。

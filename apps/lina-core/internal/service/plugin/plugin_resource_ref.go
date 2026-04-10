@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
@@ -210,6 +211,18 @@ func (s *Service) buildPluginResourceRefDescriptors(manifest *pluginManifest) []
 			Remark:    s.buildPluginResourceSummaryRemark("frontend slot assets", len(frontendSlotPaths)),
 		})
 	}
+	for _, menu := range manifest.Menus {
+		if menu == nil || strings.TrimSpace(menu.Key) == "" {
+			continue
+		}
+		descriptors = append(descriptors, &pluginResourceRefDescriptor{
+			Kind:      pluginResourceKindMenu,
+			Key:       strings.TrimSpace(menu.Key),
+			OwnerType: pluginResourceOwnerTypeMenuEntry,
+			OwnerKey:  "manifest-menu",
+			Remark:    s.buildPluginMenuResourceRemark(menu),
+		})
+	}
 
 	return descriptors
 }
@@ -220,4 +233,15 @@ func (s *Service) buildPluginResourceSummaryRemark(resourceLabel string, count i
 
 func (s *Service) buildPluginResourceIdentity(kind string, key string) string {
 	return kind + ":" + key
+}
+
+func (s *Service) buildPluginMenuResourceRemark(menu *pluginMenuSpec) string {
+	if menu == nil {
+		return "The host discovered one manifest-declared plugin menu."
+	}
+	return fmt.Sprintf(
+		"The host discovered one manifest-declared plugin menu named %q with type %s.",
+		strings.TrimSpace(menu.Name),
+		normalizePluginMenuType(menu.Type).String(),
+	)
 }

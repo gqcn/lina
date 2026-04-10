@@ -9,11 +9,12 @@
 - **AND** 每个插件的 `plugin-id` 在宿主范围内唯一
 - **AND** 清单仅需包含插件基础信息与一级插件类型
 
-#### Scenario: `plugin.yaml` 保持最小化基础元数据
+#### Scenario: `plugin.yaml` 保持精简且可声明插件菜单
 - **WHEN** 宿主解析 `plugin.yaml`
-- **THEN** 清单只要求 `id`、`name`、`version`、`type` 等基础字段
+- **THEN** 清单只强制要求 `id`、`name`、`version`、`type` 等基础字段
 - **AND** 宿主不再要求 `schemaVersion`、`compatibility`、`entry` 等扩展元数据
-- **AND** 菜单、权限、前端页面、`Slot` 和 SQL 文件位置优先按照目录与代码约定推导，而不是在清单中重复配置
+- **AND** 插件若需要向宿主注册菜单或按钮权限，必须在清单 `menus` 元数据中声明
+- **AND** 前端页面、`Slot` 与 SQL 文件位置仍优先按照目录与代码约定推导，而不是在清单中重复配置
 
 #### Scenario: 清单一级类型只保留源码与动态两类
 - **WHEN** 宿主解析 `plugin.yaml` 中的 `type`
@@ -65,6 +66,26 @@
 - **AND** 宿主默认不删除插件自己的业务数据表或业务数据
 - **AND** 宿主保留卸载审计信息
 
+### Requirement: 插件菜单通过清单元数据治理
+系统 SHALL 使用 `plugin.yaml` 或动态产物嵌入 manifest 中的 `menus` 元数据管理插件菜单和按钮权限，而不是要求插件通过 SQL 直接操作 `sys_menu` 与 `sys_role_menu`。
+
+#### Scenario: 源码插件同步菜单
+- **WHEN** 宿主同步一个源码插件清单
+- **THEN** 宿主依据该插件 `menus` 元数据幂等写入或更新对应的 `sys_menu`
+- **AND** 宿主依据 `parent_key` 解析真实 `parent_id`
+- **AND** 宿主为这些菜单补齐默认管理员角色授权，而不要求插件 SQL 再手工写入 `sys_role_menu`
+
+#### Scenario: 安装动态插件注册菜单
+- **WHEN** 管理员安装一个动态插件
+- **THEN** 宿主在执行插件安装 SQL 后，继续依据 manifest `menus` 元数据幂等写入或更新对应的 `sys_menu`
+- **AND** 插件安装 SQL 可以继续负责业务表与业务种子数据，但不再承担插件菜单注册职责
+
+#### Scenario: 卸载动态插件删除菜单
+- **WHEN** 管理员卸载一个动态插件
+- **THEN** 宿主在插件卸载 SQL 成功执行后，依据 manifest `menus` 元数据删除对应的 `sys_role_menu` 关联与 `sys_menu`
+- **AND** 删除范围仅限该插件 manifest 中声明的菜单键，不依赖插件 SQL 手工维护删除语句
+- **AND** 若插件未声明任何菜单，宿主跳过菜单删除步骤
+
 #### Scenario: 升级插件
 - **WHEN** 管理员为已安装插件安装更高版本的 release
 - **THEN** 宿主为插件创建新的 release 记录与代际信息
@@ -96,10 +117,10 @@
 - **AND** 插件卸载 SQL MUST 独立放在 `manifest/sql/uninstall/` 目录下
 - **AND** 宿主初始化顺序执行流程 MUST 只扫描 `manifest/sql/` 根目录，不得误执行 `manifest/sql/uninstall/` 下的卸载 SQL
 
-#### Scenario: 插件菜单安装不依赖整型菜单 ID
-- **WHEN** 插件通过安装 SQL 写入宿主菜单与按钮权限
+#### Scenario: 插件菜单治理不依赖整型菜单 ID
+- **WHEN** 宿主根据插件 manifest `menus` 元数据同步宿主菜单与按钮权限
 - **THEN** 菜单记录 MUST 使用 `menu_key` 作为菜单稳定标识
-- **AND** 父子关系 MUST 通过 `menu_key` 解析真实 `parent_id`，而不是写死固定整型 `parent_id`
+- **AND** 父子关系 MUST 通过 `parent_key` 解析真实 `parent_id`，而不是写死固定整型 `parent_id`
 - **AND** 插件安装、升级与卸载流程 MUST 不依赖固定整型 `id`
 
 #### Scenario: 安装过程部分失败

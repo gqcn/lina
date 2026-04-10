@@ -45,19 +45,21 @@ type RuntimeBuildOutput struct {
 }
 
 type pluginManifest struct {
-	ID          string `yaml:"id"`
-	Name        string `yaml:"name"`
-	Version     string `yaml:"version"`
-	Type        string `yaml:"type"`
-	Description string `yaml:"description"`
+	ID          string      `yaml:"id"`
+	Name        string      `yaml:"name"`
+	Version     string      `yaml:"version"`
+	Type        string      `yaml:"type"`
+	Description string      `yaml:"description"`
+	Menus       []*menuSpec `yaml:"menus"`
 }
 
 type dynamicArtifactManifest struct {
-	ID          string `json:"id" yaml:"id"`
-	Name        string `json:"name" yaml:"name"`
-	Version     string `json:"version" yaml:"version"`
-	Type        string `json:"type" yaml:"type"`
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	ID          string      `json:"id" yaml:"id"`
+	Name        string      `json:"name" yaml:"name"`
+	Version     string      `json:"version" yaml:"version"`
+	Type        string      `json:"type" yaml:"type"`
+	Description string      `json:"description,omitempty" yaml:"description,omitempty"`
+	Menus       []*menuSpec `json:"menus,omitempty" yaml:"menus,omitempty"`
 }
 
 type dynamicArtifactMetadata struct {
@@ -76,6 +78,25 @@ type frontendAsset struct {
 type sqlAsset struct {
 	Key     string `json:"key" yaml:"key"`
 	Content string `json:"content" yaml:"content"`
+}
+
+type menuSpec struct {
+	Key        string                 `json:"key" yaml:"key"`
+	ParentKey  string                 `json:"parent_key,omitempty" yaml:"parent_key,omitempty"`
+	Name       string                 `json:"name" yaml:"name"`
+	Path       string                 `json:"path,omitempty" yaml:"path,omitempty"`
+	Component  string                 `json:"component,omitempty" yaml:"component,omitempty"`
+	Perms      string                 `json:"perms,omitempty" yaml:"perms,omitempty"`
+	Icon       string                 `json:"icon,omitempty" yaml:"icon,omitempty"`
+	Type       string                 `json:"type,omitempty" yaml:"type,omitempty"`
+	Sort       int                    `json:"sort,omitempty" yaml:"sort,omitempty"`
+	Visible    *int                   `json:"visible,omitempty" yaml:"visible,omitempty"`
+	Status     *int                   `json:"status,omitempty" yaml:"status,omitempty"`
+	IsFrame    *int                   `json:"is_frame,omitempty" yaml:"is_frame,omitempty"`
+	IsCache    *int                   `json:"is_cache,omitempty" yaml:"is_cache,omitempty"`
+	Query      map[string]interface{} `json:"query,omitempty" yaml:"query,omitempty"`
+	QueryParam string                 `json:"query_param,omitempty" yaml:"query_param,omitempty"`
+	Remark     string                 `json:"remark,omitempty" yaml:"remark,omitempty"`
 }
 
 type hookExtensionPoint string
@@ -684,6 +705,7 @@ func buildRuntimeArtifactContent(
 		Version:     manifest.Version,
 		Type:        pluginTypeDynamic,
 		Description: manifest.Description,
+		Menus:       manifest.Menus,
 	})
 	if err != nil {
 		return nil, err

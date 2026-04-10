@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import type { APIRequestContext, APIResponse, Page } from "@playwright/test";
@@ -37,14 +37,6 @@ const bundledRuntimeLegacyArtifactPath = path.join(
   "lina-plugins",
   bundledRuntimePluginID,
   "runtime",
-  `${bundledRuntimePluginID}.wasm`,
-);
-const bundledRuntimeTempArtifactPath = path.join(
-  repoRoot(),
-  "apps",
-  "lina-plugins",
-  bundledRuntimePluginID,
-  "temp",
   `${bundledRuntimePluginID}.wasm`,
 );
 const bundledRuntimeMenuName = "动态插件示例";
@@ -155,21 +147,20 @@ function tempDir() {
   return path.join(repoRoot(), "temp");
 }
 
+function runtimeStorageDir() {
+  return path.join(tempDir(), "output");
+}
+
 function tempWasmPath() {
   return path.join(tempDir(), `${pluginID}.wasm`);
 }
 
 function runtimeStorageArtifactPath() {
-  return path.join(repoRoot(), "temp", "runtime", `${pluginID}.wasm`);
+  return path.join(runtimeStorageDir(), `${pluginID}.wasm`);
 }
 
 function bundledRuntimeStorageArtifactPath() {
-  return path.join(
-    repoRoot(),
-    "temp",
-    "runtime",
-    `${bundledRuntimePluginID}.wasm`,
-  );
+  return path.join(runtimeStorageDir(), `${bundledRuntimePluginID}.wasm`);
 }
 
 function pluginHostedAssetPath(relativePath = "index.html") {
@@ -227,31 +218,53 @@ function writeULEB128(buffer: number[], value: number) {
 }
 
 function buildRuntimeInstallSQL() {
-  const embeddedMenuQueryParam = JSON.stringify({
-    pluginAccessMode: "embedded-mount",
-  }).replaceAll("'", "''");
-
-  // The runtime fixture seeds plugin-owned menus through embedded SQL so the
-  // E2E flow exercises the same governance path as a real runtime install.
   return [
     "CREATE TABLE IF NOT EXISTS plugin_runtime_e2e_log (id INT PRIMARY KEY AUTO_INCREMENT, created_at DATETIME NULL);",
-    `DELETE FROM sys_role_menu WHERE menu_id IN (SELECT menu_ids.id FROM (SELECT id FROM sys_menu WHERE menu_key IN ('${iframeMenuKey}', '${embeddedMenuKey}', '${newWindowMenuKey}')) AS menu_ids);`,
-    `DELETE FROM sys_menu WHERE menu_key IN ('${iframeMenuKey}', '${embeddedMenuKey}', '${newWindowMenuKey}');`,
-    "INSERT IGNORE INTO sys_menu (parent_id, menu_key, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, query_param, remark, created_at, updated_at)",
-    `VALUES (0, '${iframeMenuKey}', '${iframeMenuName}', '${hostedAssetPath}', '', 'plugin-dynamic-e2e:iframe:view', 'ant-design:appstore-outlined', 'M', -3, 1, 1, 0, 0, '', 'Runtime-hosted iframe entry used by Playwright verification.', NOW(), NOW()),`,
-    `(0, '${embeddedMenuKey}', '${embeddedMenuName}', '${embeddedAssetPath}', 'system/plugin/dynamic-page', 'plugin-dynamic-e2e:embedded:view', 'ant-design:deployment-unit-outlined', 'M', -2, 1, 1, 0, 0, '${embeddedMenuQueryParam}', 'Runtime-hosted embedded mount entry used by Playwright verification.', NOW(), NOW()),`,
-    `(0, '${newWindowMenuKey}', '${newWindowMenuName}', '${hostedAssetPath}', '', 'plugin-dynamic-e2e:new-window:view', 'ant-design:link-outlined', 'M', -1, 1, 1, 1, 0, '', 'Runtime-hosted new-window entry used by Playwright verification.', NOW(), NOW());`,
-    "INSERT IGNORE INTO sys_role_menu (role_id, menu_id)",
-    `SELECT 1, id FROM sys_menu WHERE menu_key IN ('${iframeMenuKey}', '${embeddedMenuKey}', '${newWindowMenuKey}');`,
   ].join("\n");
 }
 
 function buildRuntimeUninstallSQL() {
+  return ["DROP TABLE IF EXISTS plugin_runtime_e2e_log;"].join("\n");
+}
+
+function buildRuntimeManifestMenus() {
   return [
-    `DELETE FROM sys_role_menu WHERE menu_id IN (SELECT menu_ids.id FROM (SELECT id FROM sys_menu WHERE menu_key IN ('${iframeMenuKey}', '${embeddedMenuKey}', '${newWindowMenuKey}')) AS menu_ids);`,
-    `DELETE FROM sys_menu WHERE menu_key IN ('${iframeMenuKey}', '${embeddedMenuKey}', '${newWindowMenuKey}');`,
-    "DROP TABLE IF EXISTS plugin_runtime_e2e_log;",
-  ].join("\n");
+    {
+      key: iframeMenuKey,
+      name: iframeMenuName,
+      path: hostedAssetPath,
+      perms: "plugin-dynamic-e2e:iframe:view",
+      icon: "ant-design:appstore-outlined",
+      type: "M",
+      sort: -3,
+      remark: "Runtime-hosted iframe entry used by Playwright verification.",
+    },
+    {
+      key: embeddedMenuKey,
+      name: embeddedMenuName,
+      path: embeddedAssetPath,
+      component: "system/plugin/dynamic-page",
+      perms: "plugin-dynamic-e2e:embedded:view",
+      icon: "ant-design:deployment-unit-outlined",
+      type: "M",
+      sort: -2,
+      query: {
+        pluginAccessMode: "embedded-mount",
+      },
+      remark: "Runtime-hosted embedded mount entry used by Playwright verification.",
+    },
+    {
+      key: newWindowMenuKey,
+      name: newWindowMenuName,
+      path: hostedAssetPath,
+      perms: "plugin-dynamic-e2e:new-window:view",
+      icon: "ant-design:link-outlined",
+      type: "M",
+      sort: -1,
+      is_frame: 1,
+      remark: "Runtime-hosted new-window entry used by Playwright verification.",
+    },
+  ];
 }
 
 function appendCustomSection(buffer: number[], name: string, payload: Buffer) {
@@ -309,6 +322,7 @@ function buildRuntimeWasmFixture() {
       version: pluginVersion,
       type: "dynamic",
       description: "Runtime plugin used by Playwright lifecycle verification.",
+      menus: buildRuntimeManifestMenus(),
     }),
   );
   const runtimePayload = Buffer.from(
@@ -400,14 +414,7 @@ function ensureBundledRuntimePluginArtifact() {
     cwd: repoRoot(),
     stdio: "inherit",
   });
-  mkdirSync(path.dirname(bundledRuntimeStorageArtifactPath()), {
-    recursive: true,
-  });
   rmSync(bundledRuntimeLegacyArtifactPath, { force: true });
-  copyFileSync(
-    bundledRuntimeTempArtifactPath,
-    bundledRuntimeStorageArtifactPath(),
-  );
   return bundledRuntimeStorageArtifactPath();
 }
 

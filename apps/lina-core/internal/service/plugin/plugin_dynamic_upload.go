@@ -95,6 +95,7 @@ func (s *Service) storeUploadedRuntimePackage(
 		Version:         strings.TrimSpace(artifact.Manifest.Version),
 		Type:            normalizePluginType(artifact.Manifest.Type).String(),
 		Description:     strings.TrimSpace(artifact.Manifest.Description),
+		Menus:           artifact.Manifest.Menus,
 		RuntimeArtifact: artifact,
 	}
 	if err = s.validateUploadedRuntimeManifest(manifest); err != nil {
@@ -215,5 +216,5 @@ func (s *Service) validateUploadedRuntimeManifest(manifest *pluginManifest) erro
 	if err := validatePluginManifestSemanticVersion(manifest.Version); err != nil {
 		return err
 	}
-	return nil
+	return s.validatePluginManifestMenus(manifest)
 }

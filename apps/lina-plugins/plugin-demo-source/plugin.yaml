@@ -38,3 +38,39 @@ homepage: https://example.com/lina/plugins/plugin-demo-source
 # 插件许可证标识。
 # 可选。
 license: Apache-2.0
+
+# 插件菜单元数据。
+# 宿主会在源码插件同步和动态插件安装时依据这些声明写入或更新 sys_menu，
+# 卸载动态插件时也会据此删除菜单和角色关联。
+# 每个菜单对象支持的常用字段说明：
+# - `key`：必填，菜单唯一键；必须使用 `plugin:<plugin-id>:<menu-key>` 前缀格式。
+# - `parent_key`：可选，父级菜单 key；只能引用宿主已有菜单或当前插件内已声明的父菜单。
+# - `name`：必填，菜单/按钮显示名称。
+# - `path`：可选，路由路径；源码插件通常填写宿主内的业务路由片段。
+# - `component`：可选，宿主路由组件；插件内嵌页面通常使用 `system/plugin/dynamic-page`。
+# - `perms`：可选，权限标识；按钮权限和菜单权限都走宿主统一鉴权。
+# - `icon`：可选，Iconify 图标名称。
+# - `type`：可选，菜单类型；`D=目录`、`M=菜单`、`B=按钮`。
+# - `sort`：可选，排序值；越小越靠前。
+# - `visible/status/is_frame/is_cache`：可选，均使用 `0/1` 语义，与宿主菜单字段保持一致。
+# - `query` / `query_param`：可选，附加路由参数；优先推荐使用结构化的 `query` 写法。
+# - `remark`：可选，写入宿主菜单备注，便于后台治理和人工 review。
+menus:
+  # 该示例声明一个左侧菜单入口，打开宿主提供的插件动态页面壳。
+  - key: plugin:plugin-demo-source:sidebar-entry
+    # 左侧菜单显示名称。
+    name: 源码插件示例
+    # 宿主内的路由路径片段；最终会挂到插件治理后的动态路由树中。
+    path: plugin-demo-source-sidebar-entry
+    # 宿主用于承载插件页面的统一组件。
+    component: system/plugin/dynamic-page
+    # 当前菜单对应的查看权限标识。
+    perms: plugin-demo-source:example:view
+    # 菜单图标，使用 Iconify 命名格式。
+    icon: ant-design:appstore-outlined
+    # `M` 表示普通菜单页面。
+    type: M
+    # 排到较靠前位置，便于在示例环境中快速看到。
+    sort: -1
+    # 宿主后台菜单表中的备注说明。
+    remark: 源码插件示例左侧菜单

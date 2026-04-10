@@ -27,14 +27,15 @@ var pluginVueFileExts = map[string]struct{}{
 
 // pluginManifest defines plugin metadata loaded from plugin.yaml.
 type pluginManifest struct {
-	ID               string `yaml:"id"`
-	Name             string `yaml:"name"`
-	Version          string `yaml:"version"`
-	Type             string `yaml:"type"`
-	Description      string `yaml:"description"`
-	Author           string `yaml:"author"`
-	Homepage         string `yaml:"homepage"`
-	License          string `yaml:"license"`
+	ID               string            `yaml:"id"`
+	Name             string            `yaml:"name"`
+	Version          string            `yaml:"version"`
+	Type             string            `yaml:"type"`
+	Description      string            `yaml:"description"`
+	Author           string            `yaml:"author"`
+	Homepage         string            `yaml:"homepage"`
+	License          string            `yaml:"license"`
+	Menus            []*pluginMenuSpec `yaml:"menus"`
 	ManifestPath     string
 	RootDir          string
 	Hooks            []*pluginHookSpec
@@ -206,6 +207,7 @@ func (s *Service) loadRuntimePluginManifestFromArtifact(artifactPath string) (*p
 		Version:         strings.TrimSpace(artifact.Manifest.Version),
 		Type:            normalizePluginType(artifact.Manifest.Type).String(),
 		Description:     strings.TrimSpace(artifact.Manifest.Description),
+		Menus:           artifact.Manifest.Menus,
 		ManifestPath:    "",
 		RootDir:         filepath.Dir(artifactPath),
 		RuntimeArtifact: artifact,
@@ -303,6 +305,9 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 	}
 	if err := validatePluginManifestSemanticVersion(manifest.Version); err != nil {
 		return gerror.Wrapf(err, "插件版本不合法: %s", fileLabel)
+	}
+	if err := s.validatePluginManifestMenus(manifest); err != nil {
+		return gerror.Wrapf(err, "插件菜单元数据不合法: %s", fileLabel)
 	}
 	if normalizePluginType(manifest.Type) == pluginTypeSource {
 		if manifest.SourcePlugin != nil && strings.TrimSpace(manifest.SourcePlugin.ID) != "" && manifest.ID != manifest.SourcePlugin.ID {

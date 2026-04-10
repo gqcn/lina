@@ -342,11 +342,18 @@ func TestBuildPluginManifestSnapshotIncludesDirectoryDiscoveredAssets(t *testing
 	writeTestFile(t, filepath.Join(slotDir, "workspace-card.vue"), "<template><div /></template>\n")
 
 	snapshot, err := service.buildPluginManifestSnapshot(&pluginManifest{
-		ID:           "plugin-snapshot",
-		Name:         "Snapshot Plugin",
-		Version:      "0.1.0",
-		Type:         pluginTypeSource.String(),
-		Description:  "Snapshot test plugin",
+		ID:          "plugin-snapshot",
+		Name:        "Snapshot Plugin",
+		Version:     "0.1.0",
+		Type:        pluginTypeSource.String(),
+		Description: "Snapshot test plugin",
+		Menus: []*pluginMenuSpec{
+			{
+				Key:  "plugin:plugin-snapshot:sidebar-entry",
+				Name: "Snapshot Plugin",
+				Type: pluginMenuTypePage.String(),
+			},
+		},
 		ManifestPath: filepath.Join(pluginDir, "plugin.yaml"),
 		RootDir:      pluginDir,
 	})
@@ -358,6 +365,7 @@ func TestBuildPluginManifestSnapshotIncludesDirectoryDiscoveredAssets(t *testing
 		"frontendPageCount: 1",
 		"frontendSlotCount: 1",
 		"installSqlCount: 1",
+		"menuCount: 1",
 	} {
 		if !strings.Contains(snapshot, expected) {
 			t.Fatalf("expected snapshot to contain %s, got: %s", expected, snapshot)
@@ -419,10 +427,17 @@ func TestBuildPluginResourceRefDescriptorsDoNotPersistConcreteFilePaths(t *testi
 	writeTestFile(t, filepath.Join(slotDir, "workspace-card.vue"), "<template><div /></template>\n")
 
 	descriptors := service.buildPluginResourceRefDescriptors(&pluginManifest{
-		ID:           "plugin-resource-summary",
-		Name:         "Resource Summary Plugin",
-		Version:      "0.1.0",
-		Type:         pluginTypeSource.String(),
+		ID:      "plugin-resource-summary",
+		Name:    "Resource Summary Plugin",
+		Version: "0.1.0",
+		Type:    pluginTypeSource.String(),
+		Menus: []*pluginMenuSpec{
+			{
+				Key:  "plugin:plugin-resource-summary:sidebar-entry",
+				Name: "Resource Summary Plugin",
+				Type: pluginMenuTypePage.String(),
+			},
+		},
 		ManifestPath: filepath.Join(pluginDir, "plugin.yaml"),
 		RootDir:      pluginDir,
 	})
@@ -430,9 +445,13 @@ func TestBuildPluginResourceRefDescriptorsDoNotPersistConcreteFilePaths(t *testi
 		t.Fatalf("expected resource descriptors to be generated")
 	}
 
+	foundMenuDescriptor := false
 	for _, descriptor := range descriptors {
 		if descriptor == nil {
 			continue
+		}
+		if descriptor.Kind == pluginResourceKindMenu {
+			foundMenuDescriptor = true
 		}
 		if strings.Contains(descriptor.Key, "/") || strings.Contains(descriptor.OwnerKey, "/") {
 			t.Fatalf("expected abstract resource identifiers without concrete file paths, got %#v", descriptor)
@@ -440,6 +459,9 @@ func TestBuildPluginResourceRefDescriptorsDoNotPersistConcreteFilePaths(t *testi
 		if strings.Contains(descriptor.Remark, ".vue") || strings.Contains(descriptor.Remark, ".sql") {
 			t.Fatalf("expected remark to summarize resources without concrete file paths, got %#v", descriptor)
 		}
+	}
+	if !foundMenuDescriptor {
+		t.Fatalf("expected manifest menu descriptor to be generated")
 	}
 }
 

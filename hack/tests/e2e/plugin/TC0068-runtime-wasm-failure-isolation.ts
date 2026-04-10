@@ -44,6 +44,25 @@ type RuntimeSQLAsset = {
   content: string;
 };
 
+type RuntimeMenuSpec = {
+  key: string;
+  parent_key?: string;
+  name: string;
+  path?: string;
+  component?: string;
+  perms?: string;
+  icon?: string;
+  type?: string;
+  sort?: number;
+  visible?: number;
+  status?: number;
+  is_frame?: number;
+  is_cache?: number;
+  query?: Record<string, unknown>;
+  query_param?: string;
+  remark?: string;
+};
+
 type RuntimeHookSpec = {
   event: string;
   action: string;
@@ -126,12 +145,14 @@ function buildRuntimeWasmArtifact(options: {
   name: string;
   version: string;
   description: string;
+  menus?: RuntimeMenuSpec[];
   frontendAssets?: RuntimeFrontendAsset[];
   installSQLAssets?: RuntimeSQLAsset[];
   uninstallSQLAssets?: RuntimeSQLAsset[];
   hookSpecs?: RuntimeHookSpec[];
   resourceSpecs?: RuntimeResourceSpec[];
 }) {
+  const menus = options.menus ?? [];
   const frontendAssets = options.frontendAssets ?? [];
   const installSQLAssets = options.installSQLAssets ?? [];
   const uninstallSQLAssets = options.uninstallSQLAssets ?? [];
@@ -145,6 +166,7 @@ function buildRuntimeWasmArtifact(options: {
       version: options.version,
       type: "dynamic",
       description: options.description,
+      menus,
     }),
   );
   const runtimePayload = Buffer.from(

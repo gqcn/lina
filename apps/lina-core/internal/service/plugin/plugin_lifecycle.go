@@ -43,6 +43,9 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 	if err = s.executeManifestSQLFiles(ctx, manifest, pluginMigrationDirectionInstall); err != nil {
 		return err
 	}
+	if err = s.syncPluginMenus(ctx, manifest); err != nil {
+		return err
+	}
 	s.invalidateRuntimeFrontendBundle(ctx, pluginID, "plugin_installed")
 
 	if err = s.setPluginInstalled(ctx, pluginID, pluginInstalledYes); err != nil {
@@ -92,6 +95,9 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 		}
 	}
 	if err = s.executeManifestSQLFiles(ctx, manifest, pluginMigrationDirectionUninstall); err != nil {
+		return err
+	}
+	if err = s.deletePluginMenusByManifest(ctx, manifest); err != nil {
 		return err
 	}
 	if err = s.setPluginInstalled(ctx, pluginID, pluginInstalledNo); err != nil {

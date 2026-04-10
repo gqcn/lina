@@ -93,11 +93,12 @@ type pluginDynamicArtifact struct {
 
 // pluginDynamicArtifactManifest stores the plugin identity embedded into wasm.
 type pluginDynamicArtifactManifest struct {
-	ID          string `json:"id" yaml:"id"`
-	Name        string `json:"name" yaml:"name"`
-	Version     string `json:"version" yaml:"version"`
-	Type        string `json:"type" yaml:"type"`
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	ID          string            `json:"id" yaml:"id"`
+	Name        string            `json:"name" yaml:"name"`
+	Version     string            `json:"version" yaml:"version"`
+	Type        string            `json:"type" yaml:"type"`
+	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
+	Menus       []*pluginMenuSpec `json:"menus,omitempty" yaml:"menus,omitempty"`
 }
 
 // pluginDynamicArtifactMetadata stores the host-owned runtime metadata section.

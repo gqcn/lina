@@ -117,6 +117,7 @@ func (s *Service) buildPluginManifestSnapshot(manifest *pluginManifest) (string,
 		UninstallSQLCount:         s.countPluginSQLAssets(manifest, pluginMigrationDirectionUninstall),
 		FrontendPageCount:         s.buildPluginFrontendPageCount(manifest),
 		FrontendSlotCount:         s.buildPluginFrontendSlotCount(manifest),
+		MenuCount:                 s.buildPluginMenuCount(manifest),
 		BackendHookCount:          len(manifest.Hooks),
 		ResourceSpecCount:         len(manifest.BackendResources),
 		RuntimeFrontendAssetCount: s.buildPluginDynamicFrontendAssetCount(manifest),
@@ -211,4 +212,11 @@ func (s *Service) buildPluginFrontendSlotCount(manifest *pluginManifest) int {
 		return 0
 	}
 	return len(s.listPluginFrontendSlotPaths(manifest))
+}
+
+func (s *Service) buildPluginMenuCount(manifest *pluginManifest) int {
+	if manifest == nil {
+		return 0
+	}
+	return len(manifest.Menus)
 }

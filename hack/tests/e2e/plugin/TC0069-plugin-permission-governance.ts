@@ -41,6 +41,25 @@ type RuntimeSQLAsset = {
   content: string;
 };
 
+type RuntimeMenuSpec = {
+  key: string;
+  parent_key?: string;
+  name: string;
+  path?: string;
+  component?: string;
+  perms?: string;
+  icon?: string;
+  type?: string;
+  sort?: number;
+  visible?: number;
+  status?: number;
+  is_frame?: number;
+  is_cache?: number;
+  query?: Record<string, unknown>;
+  query_param?: string;
+  remark?: string;
+};
+
 type RuntimeResourceSpec = {
   key: string;
   type: string;
@@ -101,8 +120,16 @@ function tempDir() {
   return path.join(repoRoot(), "temp");
 }
 
+function runtimeStorageDir() {
+  return path.join(tempDir(), "output");
+}
+
 function tempArtifactPath() {
   return path.join(tempDir(), `${pluginID}.wasm`);
+}
+
+function runtimeStorageArtifactPath() {
+  return path.join(runtimeStorageDir(), `${pluginID}.wasm`);
 }
 
 function runtimePluginDir() {
@@ -173,11 +200,13 @@ function buildRuntimeWasmArtifact(options: {
   name: string;
   version: string;
   description: string;
+  menus?: RuntimeMenuSpec[];
   frontendAssets?: RuntimeFrontendAsset[];
   installSQLAssets?: RuntimeSQLAsset[];
   uninstallSQLAssets?: RuntimeSQLAsset[];
   resourceSpecs?: RuntimeResourceSpec[];
 }) {
+  const menus = options.menus ?? [];
   const frontendAssets = options.frontendAssets ?? [];
   const installSQLAssets = options.installSQLAssets ?? [];
   const uninstallSQLAssets = options.uninstallSQLAssets ?? [];
@@ -190,6 +219,7 @@ function buildRuntimeWasmArtifact(options: {
       version: options.version,
       type: "dynamic",
       description: options.description,
+      menus,
     }),
   );
   const runtimePayload = Buffer.from(
@@ -253,6 +283,7 @@ function writeRuntimeArtifact(content: Buffer) {
 function cleanupRuntimeWorkspace() {
   rmSync(runtimePluginDir(), { force: true, recursive: true });
   rmSync(tempArtifactPath(), { force: true });
+  rmSync(runtimeStorageArtifactPath(), { force: true });
 }
 
 function cleanupGovernanceRows() {
@@ -424,6 +455,28 @@ function buildRuntimeGovernanceArtifact() {
     name: pluginName,
     version: pluginVersion,
     description: "Runtime plugin used to verify role-menu governance and data scope filtering.",
+    menus: [
+      {
+        key: pluginMenuKey,
+        name: pluginMenuName,
+        path: frontendAssetPath,
+        perms: "",
+        icon: "ant-design:safety-outlined",
+        type: "M",
+        sort: -1,
+        remark: "Runtime governance menu.",
+      },
+      {
+        key: pluginButtonMenuKey,
+        parent_key: pluginMenuKey,
+        name: "运行时治理按钮",
+        perms: pluginPermission,
+        icon: "ant-design:api-outlined",
+        type: "B",
+        sort: 0,
+        remark: "Runtime governance button permission.",
+      },
+    ],
     frontendAssets: [
       {
         path: "index.html",
@@ -441,11 +494,6 @@ function buildRuntimeGovernanceArtifact() {
           "  owner_user_id INT NOT NULL,",
           "  owner_dept_id INT NOT NULL",
           ");",
-          `DELETE FROM sys_role_menu WHERE menu_id IN (SELECT menu_ids.id FROM (SELECT id FROM sys_menu WHERE menu_key IN ('${pluginMenuKey}', '${pluginButtonMenuKey}')) AS menu_ids);`,
-          `DELETE FROM sys_menu WHERE menu_key IN ('${pluginMenuKey}', '${pluginButtonMenuKey}');`,
-          "INSERT IGNORE INTO sys_menu (parent_id, menu_key, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, query_param, remark, created_at, updated_at)",
-          `VALUES (0, '${pluginMenuKey}', '${pluginMenuName}', '${frontendAssetPath}', '', '', 'ant-design:safety-outlined', 'M', -1, 1, 1, 0, 0, '', 'Runtime governance menu.', NOW(), NOW()),`,
-          `(0, '${pluginButtonMenuKey}', '运行时治理按钮', '', '', '${pluginPermission}', 'ant-design:api-outlined', 'B', 0, 1, 1, 0, 0, '', 'Runtime governance button permission.', NOW(), NOW());`,
         ].join("\n"),
       },
     ],
@@ -453,8 +501,6 @@ function buildRuntimeGovernanceArtifact() {
       {
         key: "001-plugin-dynamic-governance.sql",
         content: [
-          `DELETE FROM sys_role_menu WHERE menu_id IN (SELECT menu_ids.id FROM (SELECT id FROM sys_menu WHERE menu_key IN ('${pluginMenuKey}', '${pluginButtonMenuKey}')) AS menu_ids);`,
-          `DELETE FROM sys_menu WHERE menu_key IN ('${pluginMenuKey}', '${pluginButtonMenuKey}');`,
           `DROP TABLE IF EXISTS ${pluginRecordTable};`,
         ].join("\n"),
       },

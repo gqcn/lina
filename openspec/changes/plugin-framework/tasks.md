@@ -267,3 +267,5 @@
 - [x] **FB-133**: 为 `prepare-packed-assets.sh` 与 `hack/makefiles/build.mk` 中新增的 manifest 嵌入准备逻辑补齐关键注释，便于人工 review
 - [x] **FB-134**: 将源码样例插件从 `plugin-demo` 统一更名为 `plugin-demo-source`，插件显示名与左侧菜单统一收敛为“源码插件示例”，并移除所有非左侧菜单的前端 Slot 示例
 - [x] **FB-135**: 去掉 `internal/service/plugin` 中 `sys_plugin` 查询缓存与相关失效逻辑，改回直接查库以降低当前实现复杂度
+- [x] **FB-136**: 将插件菜单注册从 SQL 迁移为 manifest 元数据驱动，源码插件同步与动态插件安装按菜单元数据幂等写入 `sys_menu`，动态插件卸载按同一菜单元数据删除菜单与角色关联
+- [x] **FB-137**: 为 `plugin.yaml` 中新增的 `menus` 元数据及其关键字段补齐注释说明，便于开发者理解菜单注册约束与常见写法

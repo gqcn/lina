@@ -50,14 +50,15 @@ const (
 	pluginMigrationExecutionStatusSucceeded pluginMigrationExecutionStatus = "succeeded"
 	pluginMigrationExecutionStatusFailed    pluginMigrationExecutionStatus = "failed"
 
-	pluginResourceKindManifest     pluginResourceKind = "manifest"
-	pluginResourceKindBackendEntry pluginResourceKind = "backend_entry"
-	pluginResourceKindRuntimeWasm  pluginResourceKind = "runtime_wasm"
+	pluginResourceKindManifest        pluginResourceKind = "manifest"
+	pluginResourceKindBackendEntry    pluginResourceKind = "backend_entry"
+	pluginResourceKindRuntimeWasm     pluginResourceKind = "runtime_wasm"
 	pluginResourceKindRuntimeFrontend pluginResourceKind = "runtime_frontend"
-	pluginResourceKindFrontendPage pluginResourceKind = "frontend_page"
-	pluginResourceKindFrontendSlot pluginResourceKind = "frontend_slot"
-	pluginResourceKindInstallSQL   pluginResourceKind = "install_sql"
-	pluginResourceKindUninstallSQL pluginResourceKind = "uninstall_sql"
+	pluginResourceKindFrontendPage    pluginResourceKind = "frontend_page"
+	pluginResourceKindFrontendSlot    pluginResourceKind = "frontend_slot"
+	pluginResourceKindMenu            pluginResourceKind = "menu"
+	pluginResourceKindInstallSQL      pluginResourceKind = "install_sql"
+	pluginResourceKindUninstallSQL    pluginResourceKind = "uninstall_sql"
 
 	pluginResourceOwnerTypeFile                pluginResourceOwnerType = "file"
 	pluginResourceOwnerTypeBackendRegistration pluginResourceOwnerType = "backend-registration"
@@ -67,6 +68,7 @@ const (
 	pluginResourceOwnerTypeUninstallSQL        pluginResourceOwnerType = "uninstall-sql"
 	pluginResourceOwnerTypeFrontendPageEntry   pluginResourceOwnerType = "frontend-page-entry"
 	pluginResourceOwnerTypeFrontendSlotEntry   pluginResourceOwnerType = "frontend-slot-entry"
+	pluginResourceOwnerTypeMenuEntry           pluginResourceOwnerType = "menu-entry"
 
 	pluginNodeStateEnabled     pluginNodeStateValue = "enabled"
 	pluginNodeStateInstalled   pluginNodeStateValue = "installed"
@@ -143,6 +145,7 @@ type pluginManifestSnapshot struct {
 	UninstallSQLCount         int    `yaml:"uninstallSqlCount,omitempty"`
 	FrontendPageCount         int    `yaml:"frontendPageCount,omitempty"`
 	FrontendSlotCount         int    `yaml:"frontendSlotCount,omitempty"`
+	MenuCount                 int    `yaml:"menuCount,omitempty"`
 	BackendHookCount          int    `yaml:"backendHookCount,omitempty"`
 	ResourceSpecCount         int    `yaml:"resourceSpecCount,omitempty"`
 	RuntimeFrontendAssetCount int    `yaml:"runtimeFrontendAssetCount,omitempty"`

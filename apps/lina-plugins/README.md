@@ -57,11 +57,11 @@
 ### 约定优于配置
 
 - 前端页面位置、前端`Slot`位置、安装 SQL 和卸载 SQL 都通过固定目录约定发现。
-- `plugin.yaml` 不再重复声明这些信息，避免同一份事实在多个位置维护。
+- `plugin.yaml` 只额外承担插件菜单元数据声明；其余可推导信息不再重复配置。
 
 ### 单一真相源
 
-- 菜单、权限和父子关系以 SQL 为单一真相源。
+- 菜单、按钮权限和父子关系以 `plugin.yaml` 的 `menus` 元数据为单一真相源。
 - 后端扩展能力以插件代码注册为单一真相源。
 - 前端页面和`Slot`以真实源码文件为单一真相源。
 
@@ -147,7 +147,7 @@
 [
   {
     "key": "001-plugin-demo-dynamic.sql",
-    "content": "INSERT INTO sys_menu (...);"
+    "content": "CREATE TABLE plugin_demo_record (...);"
   }
 ]
 ```
@@ -269,7 +269,7 @@
 - 请求中的 `<version>` 必须与宿主当前识别到的插件版本一致。
 - 插件必须处于“已安装 + 已启用”状态，否则宿主会返回不可访问。
 - 当请求路径为空时，宿主默认回退到 `index.html`。
-- 当插件菜单 SQL 将 `path` 写成 `/plugin-assets/<plugin-id>/<version>/...` 这类托管地址时，宿主当前已经支持两种菜单驱动接入模式：
+- 当插件在 manifest `menus` 元数据中将 `path` 写成 `/plugin-assets/<plugin-id>/<version>/...` 这类托管地址时，宿主当前已经支持两种菜单驱动接入模式：
   - `is_frame = 0`：自动转换为 `iframe` 路由，托管页面在宿主主内容区内嵌打开。
   - `is_frame = 1`：自动转换为新标签页路由，点击菜单后直接打开托管地址。
 - 当插件菜单同时满足以下条件时，宿主会走第三种“宿主内嵌挂载”模式：
@@ -476,13 +476,13 @@ apps/lina-plugins/
 
 - 声明“这个目录是一个插件”。
 - 提供插件在治理侧展示和校验所需的基础身份信息。
+- 在需要宿主接入菜单时，提供精简的`menus`声明。
 
 它**不再负责**：
 
 - 声明页面入口。
 - 声明前端`Slot`。
 - 声明 SQL 文件列表。
-- 声明菜单前缀、权限前缀或菜单结构。
 - 声明宿主兼容矩阵、脚本入口、打包入口。
 
 ### 推荐示例
@@ -493,6 +493,16 @@ name: 源码插件示例
 version: v0.1.0
 type: source
 description: 提供左侧菜单页面与公开/受保护路由示例的源码插件
+menus:
+  - key: plugin:plugin-demo-source:sidebar-entry
+    name: 源码插件示例
+    path: plugin-demo-source-sidebar-entry
+    component: system/plugin/dynamic-page
+    perms: plugin-demo-source:example:view
+    icon: ant-design:appstore-outlined
+    type: M
+    sort: -1
+    remark: 源码插件示例左侧菜单
 author: lina-team
 homepage: https://example.com/lina/plugins/plugin-demo-source
 license: Apache-2.0
@@ -507,6 +517,7 @@ license: Apache-2.0
 | `version`     | 是       | 插件版本号，必须使用`semver`格式；本文档示例统一使用带`v`前缀的写法 |
 | `type`        | 是       | 当前仅允许`source`或`dynamic`                                       |
 | `description` | 否       | 插件简要描述，建议明确功能边界                                      |
+| `menus`       | 否       | 插件菜单元数据；源码插件同步和动态插件安装/卸载时由宿主据此治理菜单 |
 | `author`      | 否       | 插件作者或团队标识                                                  |
 | `homepage`    | 否       | 插件主页或项目地址                                                  |
 | `license`     | 否       | 插件许可信息                                                        |
@@ -524,6 +535,7 @@ license: Apache-2.0
 | `version` 非空     | 缺失则判定清单非法                                                    |
 | `version` 格式     | 必须满足`semver`格式，例如`v0.1.0`；宿主当前同时兼容不带`v`前缀的写法 |
 | `type` 合法性      | 仅允许`source`或`dynamic`                                             |
+| `menus` 合法性     | 若声明菜单，则 `key` 必须使用当前插件前缀，且 `parent_key` 不得引用其他插件 |
 | `source`目录完整性 | `source`插件必须存在`go.mod`和`backend/plugin.go`                     |
 
 ### 明确不再允许的字段
@@ -541,7 +553,6 @@ license: Apache-2.0
 
 - SQL 文件路径，本来就可以从固定目录推导。
 - 前端页面和`Slot`文件，本来就可以从真实源码目录推导。
-- 菜单和权限信息，本来就应该以 SQL 为真相源。
 - 路由和扩展点接入，本来就应该以插件代码注册为真相源。
 
 ## 后端接入
@@ -865,15 +876,16 @@ manifest/sql/uninstall/*.sql
 
 菜单和权限相关信息必须遵循以下规则：
 
-- 菜单、按钮权限、授权种子统一写在 SQL 中。
+- 菜单、按钮权限和父子关系统一写在`plugin.yaml`的`menus`元数据中。
 - 菜单稳定标识统一使用`sys_menu.menu_key`。
-- 菜单父子关系应通过父级`menu_key`解析真实`parent_id`。
-- 不要在 SQL 中写死整型`id`或`parent_id`。
-- 不要在`plugin.yaml`中再声明菜单结构、权限前缀或菜单前缀。
+- 菜单父子关系通过`parent_key`解析真实`parent_id`。
+- 不要在元数据或 SQL 中写死整型`id`或`parent_id`。
+- 动态插件安装后由宿主按元数据幂等写入`sys_menu`，卸载时也由宿主按同一组菜单键删除菜单与角色关联。
+- 插件 SQL 只保留业务表、业务种子或其他非菜单迁移，不再直接操作`sys_menu`和`sys_role_menu`。
 
 换句话说：
 
-- 菜单是否存在，以 SQL 为准。
+- 菜单是否存在，以 manifest 菜单元数据为准。
 - 插件是否启用，以插件治理状态为准。
 - 页面文件是否可挂载，以前端源码文件和宿主运行时为准。
 
@@ -916,7 +928,7 @@ manifest/sql/uninstall/*.sql
 
 1. 安装 SQL 放到`manifest/sql/`。
 2. 卸载 SQL 放到`manifest/sql/uninstall/`。
-3. 菜单和权限写进 SQL，不要再写入`plugin.yaml`。
+3. 只把业务表和业务数据迁移写进 SQL；插件菜单改在`plugin.yaml`的`menus`里声明。
 
 ### 验证
 
@@ -959,7 +971,7 @@ manifest/sql/uninstall/*.sql
 | `id`是否唯一且符合`kebab-case`        | 宿主范围内唯一                                                                     |
 | `lina-plugins.go`是否补了匿名导入     | 新插件必须显式接线                                                                 |
 | 页面和`Slot`是否位于约定目录          | 页面在`frontend/pages/`，`Slot`在`frontend/slots/`                                 |
-| 菜单和权限是否只在 SQL 中维护         | 不在`plugin.yaml`重复建模                                                          |
+| 菜单和权限是否只在 manifest `menus` 中维护 | 不再通过插件 SQL 直接维护 `sys_menu/sys_role_menu`                             |
 | SQL 文件名和目录是否正确              | 安装和卸载 SQL 分别放在正确目录，且文件名合规                                      |
 | 禁用后是否能正确隐藏                  | 菜单、页面、`Slot`和路由都应受启停状态保护                                         |
 | 文档是否足够清晰                      | 插件自身`README.md`应说明功能范围、路由、SQL 和验证方式                            |
@@ -1015,11 +1027,9 @@ manifest/sql/uninstall/*.sql
 | `apps/lina-plugins/plugin-demo-source/plugin.yaml`                               | 源码插件最小清单示例     |
 | `apps/lina-plugins/plugin-demo-source/backend/plugin.go`                         | 源码插件后端注册入口示例 |
 | `apps/lina-plugins/plugin-demo-source/frontend/pages/sidebar-entry.vue`          | 源码插件页面示例         |
-| `apps/lina-plugins/plugin-demo-source/manifest/sql/001-plugin-demo-source.sql`   | 源码插件菜单与权限示例   |
 | `apps/lina-plugins/plugin-demo-dynamic/plugin.yaml`                              | 动态插件最小清单示例     |
 | `apps/lina-plugins/plugin-demo-dynamic/backend/plugin.go`                        | 动态插件后端结构示例     |
 | `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/mount.js`                  | 动态内嵌挂载入口示例     |
 | `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/standalone.html`           | 动态独立静态页示例       |
-| `apps/lina-plugins/plugin-demo-dynamic/manifest/sql/001-plugin-demo-dynamic.sql` | 动态插件菜单 SQL 示例    |
 
 如果要新增新插件，建议先复制`plugin-demo-source`的整体结构，再按本文档约束删减或扩展，而不是从零随意拼目录。

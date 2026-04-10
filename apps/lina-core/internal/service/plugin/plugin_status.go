@@ -56,6 +56,11 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 		if err != nil {
 			return nil, err
 		}
+		if normalizePluginType(manifest.Type) == pluginTypeSource {
+			if err = s.syncPluginMenus(ctx, manifest); err != nil {
+				return nil, err
+			}
+		}
 		if err = s.syncPluginMetadata(ctx, manifest, registry, "Source plugin manifest synchronized into host registry."); err != nil {
 			return nil, err
 		}
@@ -92,6 +97,11 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 	registry, err := s.getPluginRegistry(ctx, manifest.ID)
 	if err != nil {
 		return nil, err
+	}
+	if normalizePluginType(manifest.Type) == pluginTypeSource {
+		if err = s.syncPluginMenus(ctx, manifest); err != nil {
+			return nil, err
+		}
 	}
 	if err = s.syncPluginMetadata(ctx, manifest, registry, "Source plugin manifest synchronized into host registry."); err != nil {
 		return nil, err

@@ -142,6 +142,9 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	if err = pluginSvc.RegisterHTTPRoutes(ctx, pluginGroup, middlewareSvc.PublishedRouteMiddlewares()); err != nil {
 		logger.Panicf(ctx, "register plugin routes failed: %v", err)
 	}
+	if err = pluginSvc.SyncSourcePlugins(ctx); err != nil {
+		logger.Panicf(ctx, "sync plugin manifests failed: %v", err)
+	}
 	if err = pluginSvc.PrewarmRuntimeFrontendBundles(ctx); err != nil {
 		logger.Warningf(ctx, "prewarm runtime frontend bundles failed: %v", err)
 	}
