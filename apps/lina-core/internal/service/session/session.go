@@ -209,19 +209,7 @@ func (s *DBStore) Count(ctx context.Context) (int, error) {
 
 // TouchOrValidate validates a session and refreshes its last active time.
 func (s *DBStore) TouchOrValidate(ctx context.Context, tokenId string) (bool, error) {
-	// First check existence with a lightweight count query
-	count, err := dao.SysOnlineSession.Ctx(ctx).
-		Where(do.SysOnlineSession{TokenId: tokenId}).
-		Count()
-	if err != nil {
-		return false, err
-	}
-	if count == 0 {
-		return false, nil
-	}
-
-	// Session exists, update last_active_time
-	_, err = dao.SysOnlineSession.Ctx(ctx).
+	result, err := dao.SysOnlineSession.Ctx(ctx).
 		Where(do.SysOnlineSession{TokenId: tokenId}).
 		Data(do.SysOnlineSession{LastActiveTime: gtime.Now()}).
 		Update()
@@ -229,7 +217,21 @@ func (s *DBStore) TouchOrValidate(ctx context.Context, tokenId string) (bool, er
 		return false, err
 	}
 
-	return true, nil
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	if affected > 0 {
+		return true, nil
+	}
+
+	count, err := dao.SysOnlineSession.Ctx(ctx).
+		Where(do.SysOnlineSession{TokenId: tokenId}).
+		Count()
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 // CleanupInactive removes sessions inactive longer than the configured threshold.

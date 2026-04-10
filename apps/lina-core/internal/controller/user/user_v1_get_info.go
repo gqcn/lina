@@ -19,26 +19,21 @@ func (c *ControllerV1) GetInfo(ctx context.Context, req *v1.GetInfoReq) (res *v1
 		realName = user.Username
 	}
 
-	// Get user roles
-	roleNames, err := c.roleSvc.GetUserRoleNames(ctx, user.Id)
+	accessContext, err := c.roleSvc.GetUserAccessContext(ctx, user.Id)
 	if err != nil {
 		return nil, err
+	}
+
+	roleNames := accessContext.RoleNames
+	permissions := accessContext.Permissions
+	if permissions == nil {
+		permissions = []string{}
 	}
 	if len(roleNames) == 0 {
 		roleNames = []string{}
 	}
 
-	// Get user permissions
-	permissions, err := c.roleSvc.GetUserPermissions(ctx, user.Id)
-	if err != nil {
-		return nil, err
-	}
-	if permissions == nil {
-		permissions = []string{}
-	}
-
-	// Check if super admin
-	isSuperAdmin := c.roleSvc.IsSuperAdmin(ctx, user.Id)
+	isSuperAdmin := accessContext.IsSuperAdmin
 
 	// Get user menus
 	var menuTree []*menu.MenuItem
@@ -56,10 +51,7 @@ func (c *ControllerV1) GetInfo(ctx context.Context, req *v1.GetInfoReq) (res *v1
 		permissions = append(permissions, "*:*:*")
 	} else {
 		// Regular user gets menus based on roles
-		menuIds, err := c.roleSvc.GetUserMenuIds(ctx, user.Id)
-		if err != nil {
-			return nil, err
-		}
+		menuIds := accessContext.MenuIds
 		if len(menuIds) > 0 {
 			allMenus, err := c.menuSvc.List(ctx, menu.ListInput{
 				Status: intPtr(1),

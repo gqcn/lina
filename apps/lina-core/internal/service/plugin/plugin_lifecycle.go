@@ -153,9 +153,12 @@ func (s *Service) setPluginInstalled(ctx context.Context, pluginID string, insta
 		data.DisabledAt = gtime.Now()
 	}
 
-	_, err := dao.SysPlugin.Ctx(ctx).
+	_, err := withPluginRegistryQueryCache(dao.SysPlugin.Ctx(ctx), pluginID, -1).
 		Where(do.SysPlugin{PluginId: pluginID}).
 		Data(data).
 		Update()
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }

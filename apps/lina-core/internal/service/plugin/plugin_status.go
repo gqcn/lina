@@ -46,7 +46,9 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 			data.EnabledAt = gtime.Now()
 		}
 
-		_, err = dao.SysPlugin.Ctx(ctx).Data(data).Insert()
+		_, err = withPluginRegistryQueryCache(dao.SysPlugin.Ctx(ctx), manifest.ID, -1).
+			Data(data).
+			Insert()
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +81,7 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 		}
 	}
 
-	_, err = dao.SysPlugin.Ctx(ctx).
+	_, err = withPluginRegistryQueryCache(dao.SysPlugin.Ctx(ctx), manifest.ID, -1).
 		Where(do.SysPlugin{PluginId: manifest.ID}).
 		Data(data).
 		Update()
@@ -118,7 +120,7 @@ func (s *Service) setPluginStatus(ctx context.Context, pluginID string, enabled 
 		data.DisabledAt = gtime.Now()
 	}
 
-	_, err := dao.SysPlugin.Ctx(ctx).
+	_, err := withPluginRegistryQueryCache(dao.SysPlugin.Ctx(ctx), pluginID, -1).
 		Where(do.SysPlugin{PluginId: pluginID}).
 		Data(data).
 		Update()
@@ -156,15 +158,6 @@ func (s *Service) setPluginStatus(ctx context.Context, pluginID string, enabled 
 		registry.Status,
 		"Plugin status updated from management API.",
 	)
-}
-
-// getPluginRegistry queries plugin registry by plugin ID.
-func (s *Service) getPluginRegistry(ctx context.Context, pluginID string) (*entity.SysPlugin, error) {
-	var plugin *entity.SysPlugin
-	err := dao.SysPlugin.Ctx(ctx).
-		Where(do.SysPlugin{PluginId: pluginID}).
-		Scan(&plugin)
-	return plugin, err
 }
 
 // buildPluginStatusKey builds display key for plugin status.

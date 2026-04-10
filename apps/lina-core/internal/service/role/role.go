@@ -634,28 +634,11 @@ func (s *Service) GetUserRoleIds(ctx context.Context, userId int) ([]int, error)
 
 // GetUserRoles returns role entities for a user.
 func (s *Service) GetUserRoles(ctx context.Context, userId int) ([]*entity.SysRole, error) {
-	// Get role IDs
 	roleIds, err := s.GetUserRoleIds(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
-
-	if len(roleIds) == 0 {
-		return []*entity.SysRole{}, nil
-	}
-
-	// Get role entities
-	var roles []*entity.SysRole
-	cols := dao.SysRole.Columns()
-	err = dao.SysRole.Ctx(ctx).
-		WhereIn(cols.Id, roleIds).
-		Where(cols.Status, 1).
-		Scan(&roles)
-	if err != nil {
-		return nil, err
-	}
-
-	return roles, nil
+	return s.getUserRolesByRoleIds(ctx, roleIds)
 }
 
 // GetUserRoleNames returns role names for a user.
@@ -675,71 +658,20 @@ func (s *Service) GetUserRoleNames(ctx context.Context, userId int) ([]string, e
 
 // GetUserMenuIds returns menu IDs accessible by a user through their roles.
 func (s *Service) GetUserMenuIds(ctx context.Context, userId int) ([]int, error) {
-	// Get role IDs
 	roleIds, err := s.GetUserRoleIds(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
-
-	if len(roleIds) == 0 {
-		return []int{}, nil
-	}
-
-	// Get menu IDs from role-menu associations
-	rmCols := dao.SysRoleMenu.Columns()
-	var roleMenus []*entity.SysRoleMenu
-	err = dao.SysRoleMenu.Ctx(ctx).
-		WhereIn(rmCols.RoleId, roleIds).
-		Scan(&roleMenus)
-	if err != nil {
-		return nil, err
-	}
-
-	menuIds := make([]int, 0, len(roleMenus))
-	menuIdSet := make(map[int]bool)
-	for _, rm := range roleMenus {
-		if !menuIdSet[rm.MenuId] {
-			menuIds = append(menuIds, rm.MenuId)
-			menuIdSet[rm.MenuId] = true
-		}
-	}
-
-	return menuIds, nil
+	return s.getUserMenuIdsByRoleIds(ctx, roleIds)
 }
 
 // GetUserPermissions returns permission strings for a user.
 func (s *Service) GetUserPermissions(ctx context.Context, userId int) ([]string, error) {
-	// Get menu IDs accessible by user
 	menuIds, err := s.GetUserMenuIds(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
-
-	if len(menuIds) == 0 {
-		return []string{}, nil
-	}
-
-	// Get menu entities with permissions (button type)
-	menuCols := dao.SysMenu.Columns()
-	var menus []*entity.SysMenu
-	err = dao.SysMenu.Ctx(ctx).
-		WhereIn(menuCols.Id, menuIds).
-		Where(menuCols.Type, "B").
-		Where(menuCols.Status, 1).
-		Scan(&menus)
-	if err != nil {
-		return nil, err
-	}
-	menus = s.pluginSvc.FilterPermissionMenus(ctx, menus)
-
-	perms := make([]string, 0, len(menus))
-	for _, m := range menus {
-		if m.Perms != "" {
-			perms = append(perms, m.Perms)
-		}
-	}
-
-	return perms, nil
+	return s.getUserPermissionsByMenuIds(ctx, menuIds)
 }
 
 // IsSuperAdmin checks if user is a super admin (has admin role).
