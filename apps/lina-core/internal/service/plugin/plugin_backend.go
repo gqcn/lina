@@ -396,9 +396,15 @@ func (s *Service) DispatchHookEvent(
 	if err != nil {
 		return err
 	}
+
+	runtime, runtimeErr := s.buildFilterRuntimeFromManifests(ctx, manifests)
+	if runtimeErr != nil {
+		logger.Warningf(ctx, "load plugin enablement runtime for hook dispatch failed: %v", runtimeErr)
+	}
+
 	targetPluginID := pluginhost.HookPayloadStringValue(payload, pluginhost.HookPayloadKeyPluginID)
 	for _, manifest := range manifests {
-		if !s.shouldDispatchHookToPlugin(ctx, manifest.ID, eventName, targetPluginID) {
+		if !s.shouldDispatchHookToPlugin(ctx, runtime, manifest.ID, eventName, targetPluginID) {
 			continue
 		}
 		for _, hook := range manifest.Hooks {
@@ -578,6 +584,7 @@ func (s *Service) executeSourcePluginHookHandler(
 // shouldDispatchHookToPlugin determines whether the hook event should be delivered to the target plugin.
 func (s *Service) shouldDispatchHookToPlugin(
 	ctx context.Context,
+	runtime *pluginFilterRuntime,
 	pluginID string,
 	eventName pluginhost.ExtensionPoint,
 	targetPluginID string,
@@ -589,6 +596,9 @@ func (s *Service) shouldDispatchHookToPlugin(
 		pluginhost.ExtensionPointPluginUninstalled:
 		return pluginID == targetPluginID
 	default:
+		if runtime != nil {
+			return runtime.isEnabled(pluginID)
+		}
 		return s.IsEnabled(ctx, pluginID)
 	}
 }

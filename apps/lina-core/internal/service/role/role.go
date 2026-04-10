@@ -730,11 +730,11 @@ func (s *Service) GetUserPermissions(ctx context.Context, userId int) ([]string,
 	if err != nil {
 		return nil, err
 	}
-	menus = s.pluginSvc.FilterMenus(ctx, menus)
+	menus = s.pluginSvc.FilterPermissionMenus(ctx, menus)
 
 	perms := make([]string, 0, len(menus))
 	for _, m := range menus {
-		if m.Perms != "" && s.pluginSvc.ShouldKeepPermission(ctx, m) {
+		if m.Perms != "" {
 			perms = append(perms, m.Perms)
 		}
 	}

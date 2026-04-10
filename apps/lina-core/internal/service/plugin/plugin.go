@@ -203,6 +203,35 @@ func (s *Service) FilterMenus(ctx context.Context, menus []*entity.SysMenu) []*e
 		return menus
 	}
 
+	runtime, err := s.buildFilterRuntime(ctx)
+	if err != nil {
+		return s.filterMenusSlow(ctx, menus)
+	}
+	return s.filterMenusWithRuntime(ctx, menus, runtime)
+}
+
+func (s *Service) filterMenusWithRuntime(
+	ctx context.Context,
+	menus []*entity.SysMenu,
+	runtime *pluginFilterRuntime,
+) []*entity.SysMenu {
+	filtered := make([]*entity.SysMenu, 0, len(menus))
+	for _, menu := range menus {
+		if menu == nil {
+			continue
+		}
+		pluginID := s.parsePluginIDFromMenu(menu)
+		if pluginID != "" && !runtime.isEnabled(pluginID) {
+			continue
+		}
+		if s.shouldKeepMenuWithRuntime(ctx, menu, runtime) {
+			filtered = append(filtered, menu)
+		}
+	}
+	return filtered
+}
+
+func (s *Service) filterMenusSlow(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
 	filtered := make([]*entity.SysMenu, 0, len(menus))
 	for _, menu := range menus {
 		if menu == nil {
@@ -212,7 +241,7 @@ func (s *Service) FilterMenus(ctx context.Context, menus []*entity.SysMenu) []*e
 		if pluginID != "" && !s.IsEnabled(ctx, pluginID) {
 			continue
 		}
-		if s.shouldKeepMenu(ctx, menu) {
+		if s.shouldKeepMenuSlow(ctx, menu) {
 			filtered = append(filtered, menu)
 		}
 	}

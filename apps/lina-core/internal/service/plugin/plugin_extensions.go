@@ -94,9 +94,17 @@ func (s *Service) DispatchAfterAuthRequest(
 		logger.Warningf(ctx, "scan plugin manifests for after-auth dispatch failed: %v", err)
 		return
 	}
+	runtime, runtimeErr := s.buildFilterRuntimeFromManifests(ctx, manifests)
+	if runtimeErr != nil {
+		logger.Warningf(ctx, "load plugin enablement runtime for after-auth dispatch failed: %v", runtimeErr)
+	}
 
 	for _, manifest := range manifests {
-		if !s.IsEnabled(ctx, manifest.ID) {
+		if runtime != nil {
+			if !runtime.isEnabled(manifest.ID) {
+				continue
+			}
+		} else if !s.IsEnabled(ctx, manifest.ID) {
 			continue
 		}
 		sourcePlugin, ok := pluginhost.GetSourcePlugin(manifest.ID)
@@ -114,7 +122,11 @@ func (s *Service) DispatchAfterAuthRequest(
 	}
 }
 
-func (s *Service) shouldKeepMenu(ctx context.Context, menu *entity.SysMenu) bool {
+func (s *Service) shouldKeepMenuWithRuntime(
+	ctx context.Context,
+	menu *entity.SysMenu,
+	runtime *pluginFilterRuntime,
+) bool {
 	if menu == nil {
 		return false
 	}
@@ -134,11 +146,62 @@ func (s *Service) shouldKeepMenu(ctx context.Context, menu *entity.SysMenu) bool
 		menu.Status,
 	)
 
+	for _, manifest := range runtime.manifests {
+		if !runtime.isEnabled(manifest.ID) {
+			continue
+		}
+		sourcePlugin, ok := pluginhost.GetSourcePlugin(manifest.ID)
+		if !ok {
+			continue
+		}
+		for _, handler := range sourcePlugin.GetMenuFilters() {
+			if handler == nil || handler.Handler == nil {
+				continue
+			}
+			visible, filterErr := handler.Handler(ctx, descriptor)
+			if filterErr != nil {
+				logger.Warningf(ctx, "plugin menu filter failed plugin=%s err=%v", manifest.ID, filterErr)
+				continue
+			}
+			if !visible {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func (s *Service) shouldKeepMenuSlow(ctx context.Context, menu *entity.SysMenu) bool {
 	manifests, err := s.scanPluginManifests()
 	if err != nil {
 		logger.Warningf(ctx, "scan plugin manifests for menu filter failed: %v", err)
 		return true
 	}
+
+	runtime, runtimeErr := s.buildFilterRuntimeFromManifests(ctx, manifests)
+	if runtimeErr != nil {
+		logger.Warningf(ctx, "load plugin enablement runtime for menu filter failed: %v", runtimeErr)
+	}
+	if runtime != nil {
+		return s.shouldKeepMenuWithRuntime(ctx, menu, runtime)
+	}
+
+	if menu == nil {
+		return false
+	}
+
+	descriptor := pluginhost.NewMenuDescriptor(
+		menu.Id,
+		menu.ParentId,
+		menu.Name,
+		menu.Path,
+		menu.Component,
+		menu.Perms,
+		menu.MenuKey,
+		menu.Type,
+		menu.Visible,
+		menu.Status,
+	)
 	for _, manifest := range manifests {
 		if !s.IsEnabled(ctx, manifest.ID) {
 			continue
@@ -164,8 +227,58 @@ func (s *Service) shouldKeepMenu(ctx context.Context, menu *entity.SysMenu) bool
 	return true
 }
 
+// FilterPermissionMenus filters disabled plugin permissions and applies plugin-defined menu/permission visibility checks.
+func (s *Service) FilterPermissionMenus(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
+	if len(menus) == 0 {
+		return menus
+	}
+
+	runtime, err := s.buildFilterRuntime(ctx)
+	if err != nil {
+		return s.filterPermissionMenusSlow(ctx, menus)
+	}
+
+	filteredMenus := s.filterMenusWithRuntime(ctx, menus, runtime)
+	filtered := make([]*entity.SysMenu, 0, len(filteredMenus))
+	for _, menu := range filteredMenus {
+		if menu == nil {
+			continue
+		}
+		if s.shouldKeepPermissionWithRuntime(ctx, menu, runtime) {
+			filtered = append(filtered, menu)
+		}
+	}
+	return filtered
+}
+
+func (s *Service) filterPermissionMenusSlow(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
+	filteredMenus := s.filterMenusSlow(ctx, menus)
+	filtered := make([]*entity.SysMenu, 0, len(filteredMenus))
+	for _, menu := range filteredMenus {
+		if menu == nil {
+			continue
+		}
+		if s.shouldKeepPermissionSlow(ctx, menu) {
+			filtered = append(filtered, menu)
+		}
+	}
+	return filtered
+}
+
 // ShouldKeepPermission reports whether a permission should stay effective after plugin filtering.
 func (s *Service) ShouldKeepPermission(ctx context.Context, menu *entity.SysMenu) bool {
+	runtime, err := s.buildFilterRuntime(ctx)
+	if err != nil {
+		return s.shouldKeepPermissionSlow(ctx, menu)
+	}
+	return s.shouldKeepPermissionWithRuntime(ctx, menu, runtime)
+}
+
+func (s *Service) shouldKeepPermissionWithRuntime(
+	ctx context.Context,
+	menu *entity.SysMenu,
+	runtime *pluginFilterRuntime,
+) bool {
 	if menu == nil {
 		return false
 	}
@@ -176,11 +289,55 @@ func (s *Service) ShouldKeepPermission(ctx context.Context, menu *entity.SysMenu
 		menu.Perms,
 	)
 
+	for _, manifest := range runtime.manifests {
+		if !runtime.isEnabled(manifest.ID) {
+			continue
+		}
+		sourcePlugin, ok := pluginhost.GetSourcePlugin(manifest.ID)
+		if !ok {
+			continue
+		}
+		for _, handler := range sourcePlugin.GetPermissionFilters() {
+			if handler == nil || handler.Handler == nil {
+				continue
+			}
+			allowed, filterErr := handler.Handler(ctx, descriptor)
+			if filterErr != nil {
+				logger.Warningf(ctx, "plugin permission filter failed plugin=%s err=%v", manifest.ID, filterErr)
+				continue
+			}
+			if !allowed {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func (s *Service) shouldKeepPermissionSlow(ctx context.Context, menu *entity.SysMenu) bool {
 	manifests, err := s.scanPluginManifests()
 	if err != nil {
 		logger.Warningf(ctx, "scan plugin manifests for permission filter failed: %v", err)
 		return true
 	}
+
+	runtime, runtimeErr := s.buildFilterRuntimeFromManifests(ctx, manifests)
+	if runtimeErr != nil {
+		logger.Warningf(ctx, "load plugin enablement runtime for permission filter failed: %v", runtimeErr)
+	}
+	if runtime != nil {
+		return s.shouldKeepPermissionWithRuntime(ctx, menu, runtime)
+	}
+
+	if menu == nil {
+		return false
+	}
+
+	descriptor := pluginhost.NewPermissionDescriptor(
+		menu.MenuKey,
+		menu.Name,
+		menu.Perms,
+	)
 	for _, manifest := range manifests {
 		if !s.IsEnabled(ctx, manifest.ID) {
 			continue
