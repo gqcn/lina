@@ -135,7 +135,7 @@ func (s *Service) reconcileRuntimeRegistryArtifactState(ctx context.Context, reg
 		Status:     pluginStatusDisabled,
 		DisabledAt: gtime.Now(),
 	}
-	if _, err = withPluginRegistryQueryCache(dao.SysPlugin.Ctx(ctx), registry.PluginId, -1).
+	if _, err = dao.SysPlugin.Ctx(ctx).
 		Where(do.SysPlugin{PluginId: registry.PluginId}).
 		Data(data).
 		Update(); err != nil {

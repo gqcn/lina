@@ -266,3 +266,4 @@
 - [x] **FB-132**: 将宿主 `manifest` 交付资源的 embed 方案收敛为“编译前同步到 `internal/packed` 再统一嵌入”，并将生成文件加入版本忽略
 - [x] **FB-133**: 为 `prepare-packed-assets.sh` 与 `hack/makefiles/build.mk` 中新增的 manifest 嵌入准备逻辑补齐关键注释，便于人工 review
 - [x] **FB-134**: 将源码样例插件从 `plugin-demo` 统一更名为 `plugin-demo-source`，插件显示名与左侧菜单统一收敛为“源码插件示例”，并移除所有非左侧菜单的前端 Slot 示例
+- [x] **FB-135**: 去掉 `internal/service/plugin` 中 `sys_plugin` 查询缓存与相关失效逻辑，改回直接查库以降低当前实现复杂度

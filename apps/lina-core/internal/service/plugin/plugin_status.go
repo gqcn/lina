@@ -46,7 +46,7 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 			data.EnabledAt = gtime.Now()
 		}
 
-		_, err = withPluginRegistryQueryCache(dao.SysPlugin.Ctx(ctx), manifest.ID, -1).
+		_, err = dao.SysPlugin.Ctx(ctx).
 			Data(data).
 			Insert()
 		if err != nil {
@@ -81,7 +81,7 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 		}
 	}
 
-	_, err = withPluginRegistryQueryCache(dao.SysPlugin.Ctx(ctx), manifest.ID, -1).
+	_, err = dao.SysPlugin.Ctx(ctx).
 		Where(do.SysPlugin{PluginId: manifest.ID}).
 		Data(data).
 		Update()
@@ -120,7 +120,7 @@ func (s *Service) setPluginStatus(ctx context.Context, pluginID string, enabled 
 		data.DisabledAt = gtime.Now()
 	}
 
-	_, err := withPluginRegistryQueryCache(dao.SysPlugin.Ctx(ctx), pluginID, -1).
+	_, err := dao.SysPlugin.Ctx(ctx).
 		Where(do.SysPlugin{PluginId: pluginID}).
 		Data(data).
 		Update()
