@@ -5,8 +5,8 @@ package pluginhost
 
 import (
 	"context"
+	"lina-core/pkg/logger"
 
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gcron"
 )
 
@@ -61,7 +61,7 @@ func (r *cronRegistrar) Add(
 		// Guard every cron callback at runtime so disabling a plugin immediately stops
 		// future executions without requiring host restart or plugin re-registration.
 		if runErr := handler(jobCtx); runErr != nil {
-			g.Log().Warningf(jobCtx, "plugin cron failed plugin=%s name=%s err=%v", r.pluginID, name, runErr)
+			logger.Warningf(jobCtx, "plugin cron failed plugin=%s name=%s err=%v", r.pluginID, name, runErr)
 		}
 	}, name)
 	return err

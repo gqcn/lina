@@ -7,10 +7,10 @@ package plugin
 
 import (
 	"context"
+	"lina-core/pkg/logger"
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 )
 
 // RuntimeFrontendAssetOutput contains one resolved frontend asset ready to be served.
@@ -28,7 +28,7 @@ func (s *Service) PrewarmRuntimeFrontendBundles(ctx context.Context) error {
 		return err
 	}
 
-	g.Log().Debugf(ctx, "runtime frontend bundle prewarm started manifests=%d", len(manifests))
+	logger.Debugf(ctx, "runtime frontend bundle prewarm started manifests=%d", len(manifests))
 	failures := make([]string, 0)
 	for _, manifest := range manifests {
 		if manifest == nil || normalizePluginType(manifest.Type) != pluginTypeRuntime {
@@ -57,16 +57,16 @@ func (s *Service) PrewarmRuntimeFrontendBundles(ctx context.Context) error {
 				failures,
 				gerror.Wrapf(err, "预热运行时插件前端资源失败: %s", manifest.ID).Error(),
 			)
-			g.Log().Debugf(ctx, "runtime frontend bundle prewarm failed plugin=%s err=%v", manifest.ID, err)
+			logger.Debugf(ctx, "runtime frontend bundle prewarm failed plugin=%s err=%v", manifest.ID, err)
 			continue
 		}
-		g.Log().Debugf(ctx, "runtime frontend bundle prewarm succeeded plugin=%s version=%s", manifest.ID, manifest.Version)
+		logger.Debugf(ctx, "runtime frontend bundle prewarm succeeded plugin=%s version=%s", manifest.ID, manifest.Version)
 	}
 
 	if len(failures) > 0 {
 		return gerror.New(strings.Join(failures, "; "))
 	}
-	g.Log().Debugf(ctx, "runtime frontend bundle prewarm finished")
+	logger.Debugf(ctx, "runtime frontend bundle prewarm finished")
 	return nil
 }
 
@@ -108,7 +108,7 @@ func (s *Service) ResolveRuntimeFrontendAsset(
 	if err != nil {
 		return nil, err
 	}
-	g.Log().Debugf(
+	logger.Debugf(
 		ctx,
 		"runtime frontend asset resolved plugin=%s version=%s path=%s contentType=%s",
 		pluginID,

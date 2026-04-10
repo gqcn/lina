@@ -34,6 +34,7 @@ import (
 	"lina-core/internal/service/locker"
 	"lina-core/internal/service/middleware"
 	pluginsvc "lina-core/internal/service/plugin"
+	"lina-core/pkg/logger"
 	"lina-core/pkg/pluginhost"
 )
 
@@ -139,10 +140,10 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		pluginGroup = group
 	})
 	if err = pluginSvc.RegisterHTTPRoutes(ctx, pluginGroup, middlewareSvc.PublishedRouteMiddlewares()); err != nil {
-		g.Log().Panicf(ctx, "register plugin routes failed: %v", err)
+		logger.Panicf(ctx, "register plugin routes failed: %v", err)
 	}
 	if err = pluginSvc.PrewarmRuntimeFrontendBundles(ctx); err != nil {
-		g.Log().Warningf(ctx, "prewarm runtime frontend bundles failed: %v", err)
+		logger.Warningf(ctx, "prewarm runtime frontend bundles failed: %v", err)
 	}
 
 	// =============================================================================================
@@ -196,7 +197,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	if err = pluginSvc.DispatchHookEvent(
 		ctx, pluginhost.ExtensionPointSystemStarted, map[string]any{},
 	); err != nil {
-		g.Log().Warningf(
+		logger.Warningf(
 			ctx,
 			"dispatch plugin backend extension point failed point=%s err=%v",
 			pluginhost.ExtensionPointSystemStarted,

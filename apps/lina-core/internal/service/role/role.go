@@ -5,12 +5,12 @@ import (
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	pluginsvc "lina-core/internal/service/plugin"
+	"lina-core/pkg/logger"
 )
 
 // Service provides role management operations.
@@ -326,7 +326,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 			Where(rmCols.RoleId, id).
 			Delete()
 		if err != nil {
-			g.Log().Warningf(ctx, "failed to delete role-menu associations: %v", err)
+			logger.Warningf(ctx, "failed to delete role-menu associations: %v", err)
 		}
 
 		// Delete user-role associations
@@ -335,7 +335,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 			Where(urCols.RoleId, id).
 			Delete()
 		if err != nil {
-			g.Log().Warningf(ctx, "failed to delete user-role associations: %v", err)
+			logger.Warningf(ctx, "failed to delete user-role associations: %v", err)
 		}
 
 		// Delete role
@@ -540,7 +540,7 @@ func (s *Service) AssignUsers(ctx context.Context, roleId int, userIds []int) er
 			RoleId: roleId,
 		}).Insert()
 		if err != nil {
-			g.Log().Warningf(ctx, "failed to assign user %d to role %d: %v", userId, roleId, err)
+			logger.Warningf(ctx, "failed to assign user %d to role %d: %v", userId, roleId, err)
 		}
 	}
 

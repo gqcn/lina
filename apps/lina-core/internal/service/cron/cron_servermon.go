@@ -3,8 +3,8 @@ package cron
 import (
 	"context"
 	"fmt"
+	"lina-core/pkg/logger"
 
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gcron"
 )
 
@@ -19,6 +19,6 @@ func (s *Service) startServerMonitor(ctx context.Context) {
 		s.serverMonSvc.CollectAndStore(ctx)
 	}, CronServerMonitorCollector)
 	if err != nil {
-		g.Log().Panicf(ctx, "failed to start server monitor cron: %v", err)
+		logger.Panicf(ctx, "failed to start server monitor cron: %v", err)
 	}
 }

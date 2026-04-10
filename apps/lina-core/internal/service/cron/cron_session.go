@@ -3,8 +3,8 @@ package cron
 import (
 	"context"
 	"fmt"
+	"lina-core/pkg/logger"
 
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gcron"
 )
 
@@ -15,17 +15,17 @@ func (s *Service) startSessionCleanup(ctx context.Context) {
 	_, err := gcron.Add(ctx, cronPattern, func(ctx context.Context) {
 		// Check if current node is the leader before executing
 		if !s.IsLeader() {
-			g.Log().Debug(ctx, "skipping session cleanup on non-leader node")
+			logger.Debug(ctx, "skipping session cleanup on non-leader node")
 			return
 		}
 		cleaned, cleanErr := s.sessionStore.CleanupInactive(ctx, s.sessionCfg.TimeoutHour)
 		if cleanErr != nil {
-			g.Log().Warningf(ctx, "session cleanup error: %v", cleanErr)
+			logger.Warningf(ctx, "session cleanup error: %v", cleanErr)
 		} else if cleaned > 0 {
-			g.Log().Infof(ctx, "session cleanup: removed %d inactive sessions", cleaned)
+			logger.Infof(ctx, "session cleanup: removed %d inactive sessions", cleaned)
 		}
 	}, CronSessionCleanup)
 	if err != nil {
-		g.Log().Panicf(ctx, "failed to start session cleanup cron: %v", err)
+		logger.Panicf(ctx, "failed to start session cleanup cron: %v", err)
 	}
 }

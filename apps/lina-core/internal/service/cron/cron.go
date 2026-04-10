@@ -3,13 +3,12 @@ package cron
 import (
 	"context"
 
-	"github.com/gogf/gf/v2/frame/g"
-
 	"lina-core/internal/service/config"
 	"lina-core/internal/service/election"
 	pluginsvc "lina-core/internal/service/plugin"
 	"lina-core/internal/service/servermon"
 	"lina-core/internal/service/session"
+	"lina-core/pkg/logger"
 )
 
 // Cron job name constants.
@@ -59,7 +58,7 @@ func (s *Service) Start(ctx context.Context) {
 	s.startSessionCleanup(ctx)
 	s.startServerMonitorCleanup(ctx)
 	if err := s.pluginSvc.RegisterCrons(ctx); err != nil {
-		g.Log().Warningf(ctx, "register plugin cron jobs failed: %v", err)
+		logger.Warningf(ctx, "register plugin cron jobs failed: %v", err)
 	}
 }
 

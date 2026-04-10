@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"io/fs"
+	"lina-core/pkg/logger"
 	"mime"
 	"net/http"
 	"path/filepath"
@@ -17,7 +18,6 @@ import (
 	"time"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 )
 
 // runtimeFrontendBundle stores one runtime plugin frontend asset set in memory.
@@ -265,7 +265,7 @@ func (s *Service) ensureRuntimeFrontendBundle(ctx context.Context, manifest *plu
 	cachedBundle := runtimeFrontendBundleCache.items[cacheKey]
 	runtimeFrontendBundleCache.mu.RUnlock()
 	if cachedBundle != nil && cachedBundle.matchesManifest(manifest) {
-		g.Log().Debugf(
+		logger.Debugf(
 			ctx,
 			"runtime frontend bundle cache hit plugin=%s version=%s checksum=%s",
 			manifest.ID,
@@ -275,7 +275,7 @@ func (s *Service) ensureRuntimeFrontendBundle(ctx context.Context, manifest *plu
 		return cachedBundle, nil
 	}
 	if cachedBundle != nil {
-		g.Log().Debugf(
+		logger.Debugf(
 			ctx,
 			"runtime frontend bundle cache stale plugin=%s cachedVersion=%s requestedVersion=%s cachedChecksum=%s requestedChecksum=%s",
 			manifest.ID,
@@ -285,7 +285,7 @@ func (s *Service) ensureRuntimeFrontendBundle(ctx context.Context, manifest *plu
 			manifest.RuntimeArtifact.Checksum,
 		)
 	} else {
-		g.Log().Debugf(
+		logger.Debugf(
 			ctx,
 			"runtime frontend bundle cache miss plugin=%s version=%s checksum=%s",
 			manifest.ID,
@@ -304,7 +304,7 @@ func (s *Service) ensureRuntimeFrontendBundle(ctx context.Context, manifest *plu
 
 	currentBundle := runtimeFrontendBundleCache.items[cacheKey]
 	if currentBundle != nil && currentBundle.matchesManifest(manifest) {
-		g.Log().Debugf(
+		logger.Debugf(
 			ctx,
 			"runtime frontend bundle cache filled concurrently plugin=%s version=%s checksum=%s",
 			manifest.ID,
@@ -314,7 +314,7 @@ func (s *Service) ensureRuntimeFrontendBundle(ctx context.Context, manifest *plu
 		return currentBundle, nil
 	}
 	runtimeFrontendBundleCache.items[cacheKey] = bundle
-	g.Log().Debugf(
+	logger.Debugf(
 		ctx,
 		"runtime frontend bundle cached plugin=%s version=%s checksum=%s assets=%d",
 		manifest.ID,
@@ -335,9 +335,9 @@ func (s *Service) invalidateRuntimeFrontendBundle(ctx context.Context, pluginID 
 	defer runtimeFrontendBundleCache.mu.Unlock()
 
 	if _, ok := runtimeFrontendBundleCache.items[cacheKey]; ok {
-		g.Log().Debugf(ctx, "runtime frontend bundle invalidated plugin=%s reason=%s", cacheKey, strings.TrimSpace(reason))
+		logger.Debugf(ctx, "runtime frontend bundle invalidated plugin=%s reason=%s", cacheKey, strings.TrimSpace(reason))
 	} else {
-		g.Log().Debugf(ctx, "runtime frontend bundle invalidate skipped plugin=%s reason=%s cache=empty", cacheKey, strings.TrimSpace(reason))
+		logger.Debugf(ctx, "runtime frontend bundle invalidate skipped plugin=%s reason=%s cache=empty", cacheKey, strings.TrimSpace(reason))
 	}
 	delete(runtimeFrontendBundleCache.items, cacheKey)
 }

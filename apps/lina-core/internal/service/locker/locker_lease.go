@@ -2,17 +2,16 @@ package locker
 
 import (
 	"context"
+	"lina-core/pkg/logger"
 	"time"
-
-	"github.com/gogf/gf/v2/frame/g"
 )
 
 // LeaseManager manages automatic lease renewal for a lock.
 type LeaseManager struct {
-	instance     *Instance
-	renewIntvl   time.Duration
-	stopChan     chan struct{}
-	stoppedChan  chan struct{}
+	instance    *Instance
+	renewIntvl  time.Duration
+	stopChan    chan struct{}
+	stoppedChan chan struct{}
 }
 
 // NewLeaseManager creates a new lease manager.
@@ -37,14 +36,14 @@ func (lm *LeaseManager) Start(ctx context.Context) {
 		for {
 			select {
 			case <-lm.stopChan:
-				g.Log().Infof(ctx, "[locker] lease renewal stopped")
+				logger.Infof(ctx, "[locker] lease renewal stopped")
 				return
 			case <-ticker.C:
 				if err := lm.instance.Renew(ctx); err != nil {
-					g.Log().Warningf(ctx, "[locker] lease renewal failed: %v", err)
+					logger.Warningf(ctx, "[locker] lease renewal failed: %v", err)
 					return
 				}
-				g.Log().Debugf(ctx, "[locker] lease renewed successfully")
+				logger.Debugf(ctx, "[locker] lease renewed successfully")
 			}
 		}
 	}()

@@ -21,16 +21,17 @@ import (
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	"lina-core/pkg/logger"
 )
 
 // MonitorData represents all collected server metrics.
 type MonitorData struct {
-	Server   *ServerInfo     `json:"server"`   // Server information
-	CPU      *CPUInfo        `json:"cpu"`       // CPU information
-	Memory   *MemoryInfo     `json:"memory"`    // Memory information
-	Disks    []*DiskInfo     `json:"disks"`     // Disk list
-	Network  *NetworkInfo    `json:"network"`   // Network information
-	GoInfo   *GoRuntimeInfo  `json:"goInfo"`    // Go runtime information
+	Server  *ServerInfo    `json:"server"`  // Server information
+	CPU     *CPUInfo       `json:"cpu"`     // CPU information
+	Memory  *MemoryInfo    `json:"memory"`  // Memory information
+	Disks   []*DiskInfo    `json:"disks"`   // Disk list
+	Network *NetworkInfo   `json:"network"` // Network information
+	GoInfo  *GoRuntimeInfo `json:"goInfo"`  // Go runtime information
 }
 
 // ServerInfo represents server basic information.
@@ -98,9 +99,9 @@ type DBInfo struct {
 
 // Service provides server monitoring operations.
 type Service struct {
-	startTime     time.Time              // Service start time
+	startTime     time.Time               // Service start time
 	lastNetBytes  *netutil.IOCountersStat // Last network statistics
-	lastCollectAt time.Time              // Last collection time
+	lastCollectAt time.Time               // Last collection time
 }
 
 // New creates a new Service.
@@ -118,7 +119,7 @@ func (s *Service) CollectAndStore(ctx context.Context) {
 	data := s.Collect(ctx)
 	jsonData, err := gjson.Encode(data)
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to encode monitor data: %v", err)
+		logger.Errorf(ctx, "Failed to encode monitor data: %v", err)
 		return
 	}
 
@@ -135,7 +136,7 @@ func (s *Service) CollectAndStore(ctx context.Context) {
 		Data:     string(jsonData),
 	}).Save()
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to store monitor data: %v", err)
+		logger.Errorf(ctx, "Failed to store monitor data: %v", err)
 	}
 }
 
@@ -199,19 +200,19 @@ func (s *Service) collectMemory() *MemoryInfo {
 
 // virtualFsTypes lists filesystem types to exclude (common in containers).
 var virtualFsTypes = map[string]bool{
-	"overlay":   true,
-	"tmpfs":     true,
-	"devtmpfs":  true,
-	"devfs":     true,
-	"proc":      true,
-	"sysfs":     true,
-	"cgroup":    true,
-	"cgroup2":   true,
-	"squashfs":  true,
-	"aufs":      true,
-	"shm":       true,
-	"nsfs":      true,
-	"fuse":      true,
+	"overlay":  true,
+	"tmpfs":    true,
+	"devtmpfs": true,
+	"devfs":    true,
+	"proc":     true,
+	"sysfs":    true,
+	"cgroup":   true,
+	"cgroup2":  true,
+	"squashfs": true,
+	"aufs":     true,
+	"shm":      true,
+	"nsfs":     true,
+	"fuse":     true,
 }
 
 func (s *Service) collectDisks() []*DiskInfo {

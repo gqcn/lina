@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/os/grpool"
 
 	"lina-core/internal/service/operlog"
+	"lina-core/pkg/logger"
 )
 
 const maxParamLen = 2000 // Max length for parameters and results
@@ -109,7 +109,7 @@ func (s *Service) OperLog(r *ghttp.Request) {
 			CostTime:      costTime,
 		})
 	}, func(ctx context.Context, err error) {
-		g.Log().Errorf(ctx, "operlog middleware panic: %v", err)
+		logger.Errorf(ctx, "operlog middleware panic: %v", err)
 	})
 }
 

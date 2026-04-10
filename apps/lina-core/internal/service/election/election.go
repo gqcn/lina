@@ -11,8 +11,8 @@ import (
 
 	"lina-core/internal/service/config"
 	"lina-core/internal/service/locker"
+	"lina-core/pkg/logger"
 
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/gipv4"
 )
 
@@ -91,10 +91,10 @@ func (s *Service) run(ctx context.Context) {
 		select {
 		case <-s.stopChan:
 			s.stepDown(ctx)
-			g.Log().Infof(ctx, "[election] leader election stopped")
+			logger.Infof(ctx, "[election] leader election stopped")
 			return
 		case <-s.leaseStoppedChan():
-			g.Log().Warningf(ctx, "[election] lease renewal stopped, attempting to re-acquire")
+			logger.Warningf(ctx, "[election] lease renewal stopped, attempting to re-acquire")
 			s.instance = nil
 			s.leaseMgr = nil
 			s.isLeader.Store(false)
@@ -112,7 +112,7 @@ func (s *Service) run(ctx context.Context) {
 func (s *Service) tryAcquire(ctx context.Context) {
 	instance, ok, err := s.locker.Lock(ctx, lockName, s.holder, "leader election", s.cfg.Lease)
 	if err != nil {
-		g.Log().Warningf(ctx, "[election] failed to acquire lock: %v", err)
+		logger.Warningf(ctx, "[election] failed to acquire lock: %v", err)
 		s.isLeader.Store(false)
 		return
 	}
@@ -120,13 +120,13 @@ func (s *Service) tryAcquire(ctx context.Context) {
 	if ok {
 		s.instance = instance
 		s.isLeader.Store(true)
-		g.Log().Infof(ctx, "[election] became leader (holder: %s)", s.holder)
+		logger.Infof(ctx, "[election] became leader (holder: %s)", s.holder)
 
 		s.leaseMgr = locker.NewLeaseManager(instance, s.cfg.RenewInterval)
 		s.leaseMgr.Start(ctx)
 	} else {
 		s.isLeader.Store(false)
-		g.Log().Debugf(ctx, "[election] not leader, waiting for lease expiry")
+		logger.Debugf(ctx, "[election] not leader, waiting for lease expiry")
 	}
 }
 
@@ -138,12 +138,12 @@ func (s *Service) stepDown(ctx context.Context) {
 	}
 	if s.instance != nil {
 		if err := s.instance.Unlock(ctx); err != nil {
-			g.Log().Warningf(ctx, "[election] failed to release lock: %v", err)
+			logger.Warningf(ctx, "[election] failed to release lock: %v", err)
 		}
 		s.instance = nil
 	}
 	s.isLeader.Store(false)
-	g.Log().Infof(ctx, "[election] stepped down from leadership")
+	logger.Infof(ctx, "[election] stepped down from leadership")
 }
 
 // leaseStoppedChan returns the channel that closes when lease renewal stops.

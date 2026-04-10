@@ -5,7 +5,6 @@ import (
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 
 	"lina-core/internal/consts"
 	"lina-core/internal/dao"
@@ -15,6 +14,7 @@ import (
 	"lina-core/internal/service/bizctx"
 	"lina-core/internal/service/dept"
 	"lina-core/internal/service/role"
+	"lina-core/pkg/logger"
 )
 
 // Service provides user management operations.
@@ -528,7 +528,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		if in.DeptId != nil {
 			_, err = dao.SysUserDept.Ctx(ctx).Where(dao.SysUserDept.Columns().UserId, in.Id).Delete()
 			if err != nil {
-				g.Log().Warningf(ctx, "failed to delete user dept association: %v", err)
+				logger.Warningf(ctx, "failed to delete user dept association: %v", err)
 			}
 			if *in.DeptId > 0 {
 				_, err = dao.SysUserDept.Ctx(ctx).Data(do.SysUserDept{
@@ -545,7 +545,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		if in.PostIds != nil {
 			_, err = dao.SysUserPost.Ctx(ctx).Where(dao.SysUserPost.Columns().UserId, in.Id).Delete()
 			if err != nil {
-				g.Log().Warningf(ctx, "failed to delete user post association: %v", err)
+				logger.Warningf(ctx, "failed to delete user post association: %v", err)
 			}
 			for _, postId := range in.PostIds {
 				_, err = dao.SysUserPost.Ctx(ctx).Data(do.SysUserPost{
@@ -562,7 +562,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		if in.RoleIds != nil {
 			_, err = dao.SysUserRole.Ctx(ctx).Where(dao.SysUserRole.Columns().UserId, in.Id).Delete()
 			if err != nil {
-				g.Log().Warningf(ctx, "failed to delete user role association: %v", err)
+				logger.Warningf(ctx, "failed to delete user role association: %v", err)
 			}
 			for _, roleId := range in.RoleIds {
 				_, err = dao.SysUserRole.Ctx(ctx).Data(do.SysUserRole{
@@ -602,13 +602,13 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 
 	// Clean up dept, post and role associations (log errors but don't fail)
 	if _, err := dao.SysUserDept.Ctx(ctx).Where(dao.SysUserDept.Columns().UserId, id).Delete(); err != nil {
-		g.Log().Warningf(ctx, "failed to delete user dept association for user %d: %v", id, err)
+		logger.Warningf(ctx, "failed to delete user dept association for user %d: %v", id, err)
 	}
 	if _, err := dao.SysUserPost.Ctx(ctx).Where(dao.SysUserPost.Columns().UserId, id).Delete(); err != nil {
-		g.Log().Warningf(ctx, "failed to delete user post association for user %d: %v", id, err)
+		logger.Warningf(ctx, "failed to delete user post association for user %d: %v", id, err)
 	}
 	if _, err := dao.SysUserRole.Ctx(ctx).Where(dao.SysUserRole.Columns().UserId, id).Delete(); err != nil {
-		g.Log().Warningf(ctx, "failed to delete user role association for user %d: %v", id, err)
+		logger.Warningf(ctx, "failed to delete user role association for user %d: %v", id, err)
 	}
 
 	return nil

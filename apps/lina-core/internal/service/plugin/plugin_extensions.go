@@ -6,10 +6,10 @@ package plugin
 import (
 	"context"
 
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 
 	"lina-core/internal/model/entity"
+	"lina-core/pkg/logger"
 	"lina-core/pkg/pluginhost"
 )
 
@@ -91,7 +91,7 @@ func (s *Service) DispatchAfterAuthRequest(
 
 	manifests, err := s.scanPluginManifests()
 	if err != nil {
-		g.Log().Warningf(ctx, "scan plugin manifests for after-auth dispatch failed: %v", err)
+		logger.Warningf(ctx, "scan plugin manifests for after-auth dispatch failed: %v", err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (s *Service) DispatchAfterAuthRequest(
 				continue
 			}
 			if err = handler.Handler(ctx, input); err != nil {
-				g.Log().Warningf(ctx, "plugin after-auth handler failed plugin=%s err=%v", manifest.ID, err)
+				logger.Warningf(ctx, "plugin after-auth handler failed plugin=%s err=%v", manifest.ID, err)
 			}
 		}
 	}
@@ -136,7 +136,7 @@ func (s *Service) shouldKeepMenu(ctx context.Context, menu *entity.SysMenu) bool
 
 	manifests, err := s.scanPluginManifests()
 	if err != nil {
-		g.Log().Warningf(ctx, "scan plugin manifests for menu filter failed: %v", err)
+		logger.Warningf(ctx, "scan plugin manifests for menu filter failed: %v", err)
 		return true
 	}
 	for _, manifest := range manifests {
@@ -153,7 +153,7 @@ func (s *Service) shouldKeepMenu(ctx context.Context, menu *entity.SysMenu) bool
 			}
 			visible, filterErr := handler.Handler(ctx, descriptor)
 			if filterErr != nil {
-				g.Log().Warningf(ctx, "plugin menu filter failed plugin=%s err=%v", manifest.ID, filterErr)
+				logger.Warningf(ctx, "plugin menu filter failed plugin=%s err=%v", manifest.ID, filterErr)
 				continue
 			}
 			if !visible {
@@ -178,7 +178,7 @@ func (s *Service) ShouldKeepPermission(ctx context.Context, menu *entity.SysMenu
 
 	manifests, err := s.scanPluginManifests()
 	if err != nil {
-		g.Log().Warningf(ctx, "scan plugin manifests for permission filter failed: %v", err)
+		logger.Warningf(ctx, "scan plugin manifests for permission filter failed: %v", err)
 		return true
 	}
 	for _, manifest := range manifests {
@@ -195,7 +195,7 @@ func (s *Service) ShouldKeepPermission(ctx context.Context, menu *entity.SysMenu
 			}
 			allowed, filterErr := handler.Handler(ctx, descriptor)
 			if filterErr != nil {
-				g.Log().Warningf(ctx, "plugin permission filter failed plugin=%s err=%v", manifest.ID, filterErr)
+				logger.Warningf(ctx, "plugin permission filter failed plugin=%s err=%v", manifest.ID, filterErr)
 				continue
 			}
 			if !allowed {

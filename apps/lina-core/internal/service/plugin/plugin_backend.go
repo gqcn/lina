@@ -18,6 +18,7 @@ import (
 	"github.com/gogf/gf/v2/os/gtime"
 	"gopkg.in/yaml.v3"
 
+	"lina-core/pkg/logger"
 	"lina-core/pkg/pluginhost"
 )
 
@@ -433,17 +434,17 @@ func (s *Service) executePluginDeclaredHook(
 		err := s.runPluginDeclaredHook(timeoutCtx, pluginID, hook, hookPayload)
 		if err != nil {
 			if async {
-				g.Log().Warningf(timeoutCtx, "plugin async declared hook failed plugin=%s event=%s action=%s cost=%s err=%v", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt), err)
+				logger.Warningf(timeoutCtx, "plugin async declared hook failed plugin=%s event=%s action=%s cost=%s err=%v", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt), err)
 				return
 			}
-			g.Log().Warningf(timeoutCtx, "plugin declared hook failed plugin=%s event=%s action=%s cost=%s err=%v", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt), err)
+			logger.Warningf(timeoutCtx, "plugin declared hook failed plugin=%s event=%s action=%s cost=%s err=%v", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt), err)
 			return
 		}
 		if async {
-			g.Log().Infof(timeoutCtx, "plugin async declared hook succeeded plugin=%s event=%s action=%s cost=%s", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt))
+			logger.Infof(timeoutCtx, "plugin async declared hook succeeded plugin=%s event=%s action=%s cost=%s", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt))
 			return
 		}
-		g.Log().Infof(timeoutCtx, "plugin declared hook succeeded plugin=%s event=%s action=%s cost=%s", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt))
+		logger.Infof(timeoutCtx, "plugin declared hook succeeded plugin=%s event=%s action=%s cost=%s", pluginID, hook.Event, hook.Action, gtime.Now().Sub(startedAt))
 	}
 
 	values := pluginhost.CloneHookPayloadValues(payload)
@@ -551,17 +552,17 @@ func (s *Service) executeSourcePluginHookHandler(
 		startedAt := gtime.Now()
 		if err := item.Handler(executeCtx, pluginhost.NewHookPayload(item.Point, values)); err != nil {
 			if async {
-				g.Log().Warningf(executeCtx, "plugin async callback hook failed plugin=%s event=%s cost=%s err=%v", pluginID, item.Point, gtime.Now().Sub(startedAt), err)
+				logger.Warningf(executeCtx, "plugin async callback hook failed plugin=%s event=%s cost=%s err=%v", pluginID, item.Point, gtime.Now().Sub(startedAt), err)
 				return
 			}
-			g.Log().Warningf(executeCtx, "plugin callback hook failed plugin=%s event=%s cost=%s err=%v", pluginID, item.Point, gtime.Now().Sub(startedAt), err)
+			logger.Warningf(executeCtx, "plugin callback hook failed plugin=%s event=%s cost=%s err=%v", pluginID, item.Point, gtime.Now().Sub(startedAt), err)
 			return
 		}
 		if async {
-			g.Log().Infof(executeCtx, "plugin async callback hook succeeded plugin=%s event=%s cost=%s", pluginID, item.Point, gtime.Now().Sub(startedAt))
+			logger.Infof(executeCtx, "plugin async callback hook succeeded plugin=%s event=%s cost=%s", pluginID, item.Point, gtime.Now().Sub(startedAt))
 			return
 		}
-		g.Log().Infof(executeCtx, "plugin callback hook succeeded plugin=%s event=%s cost=%s", pluginID, item.Point, gtime.Now().Sub(startedAt))
+		logger.Infof(executeCtx, "plugin callback hook succeeded plugin=%s event=%s cost=%s", pluginID, item.Point, gtime.Now().Sub(startedAt))
 	}
 
 	values := pluginhost.CloneHookPayloadValues(payload)

@@ -3,6 +3,7 @@ package sysinfo
 import (
 	"context"
 	"fmt"
+	"lina-core/pkg/logger"
 	"runtime"
 	"time"
 
@@ -69,7 +70,7 @@ func (s *Service) GetInfo(ctx context.Context) (*SystemInfo, error) {
 	// Get database version
 	dbVersion, err := s.getDbVersion(ctx)
 	if err != nil {
-		g.Log().Warningf(ctx, "Failed to get database version: %v", err)
+		logger.Warningf(ctx, "Failed to get database version: %v", err)
 		info.DbVersion = "unknown"
 	} else {
 		info.DbVersion = dbVersion
@@ -92,7 +93,7 @@ func (s *Service) loadComponents(ctx context.Context, configKey string, dbVersio
 
 	var components []ComponentInfo
 	if err = val.Scan(&components); err != nil {
-		g.Log().Warningf(ctx, "Failed to scan components config '%s': %v", configKey, err)
+		logger.Warningf(ctx, "Failed to scan components config '%s': %v", configKey, err)
 		return nil
 	}
 

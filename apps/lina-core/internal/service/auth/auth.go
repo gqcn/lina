@@ -20,6 +20,7 @@ import (
 	"lina-core/internal/service/loginlog"
 	pluginsvc "lina-core/internal/service/plugin"
 	"lina-core/internal/service/session"
+	"lina-core/pkg/logger"
 )
 
 // Service provides authentication operations.
@@ -98,7 +99,7 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 			Os:         osName,
 			Message:    msg,
 		}); hookErr != nil {
-			g.Log().Warningf(ctx, "plugin login failed hook failed: %v", hookErr)
+			logger.Warningf(ctx, "plugin login failed hook failed: %v", hookErr)
 		}
 	}
 
@@ -165,7 +166,7 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 		Os:         osName,
 		Message:    "登录成功",
 	}); err != nil {
-		g.Log().Warningf(ctx, "plugin login succeeded hook failed: %v", err)
+		logger.Warningf(ctx, "plugin login succeeded hook failed: %v", err)
 	}
 	return &LoginOutput{AccessToken: token}, nil
 }
@@ -225,7 +226,7 @@ func (s *Service) Logout(ctx context.Context, username string, tokenId string) {
 		Os:         osName,
 		Message:    "登出成功",
 	}); err != nil {
-		g.Log().Warningf(ctx, "plugin logout succeeded hook failed: %v", err)
+		logger.Warningf(ctx, "plugin logout succeeded hook failed: %v", err)
 	}
 }
 

@@ -7,8 +7,8 @@ import (
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	"lina-core/pkg/logger"
 
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
 )
 
@@ -52,7 +52,7 @@ func (s *Service) Lock(ctx context.Context, name, holder, reason string, lease t
 		if insertId <= 0 {
 			return nil, false, nil
 		}
-		g.Log().Infof(ctx, "[locker] acquired lock '%s' (holder: %s)", name, holder)
+		logger.Infof(ctx, "[locker] acquired lock '%s' (holder: %s)", name, holder)
 		return &Instance{id: insertId, holder: holder, lease: lease}, true, nil
 	}
 
@@ -71,7 +71,7 @@ func (s *Service) Lock(ctx context.Context, name, holder, reason string, lease t
 		if affected <= 0 {
 			return nil, false, nil
 		}
-		g.Log().Infof(ctx, "[locker] acquired expired lock '%s' (holder: %s)", name, holder)
+		logger.Infof(ctx, "[locker] acquired expired lock '%s' (holder: %s)", name, holder)
 		return &Instance{id: int64(locker.Id), holder: holder, lease: lease}, true, nil
 	}
 
@@ -104,7 +104,7 @@ func (s *Service) LockFunc(ctx context.Context, name, holder, reason string, lea
 	}
 	defer func() {
 		if err := instance.Unlock(ctx); err != nil {
-			g.Log().Warningf(ctx, "[locker] failed to unlock '%s': %v", name, err)
+			logger.Warningf(ctx, "[locker] failed to unlock '%s': %v", name, err)
 		}
 	}()
 	if err = f(); err != nil {

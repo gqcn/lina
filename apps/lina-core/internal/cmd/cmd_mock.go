@@ -8,6 +8,7 @@ import (
 	"github.com/gogf/gf/v2/os/gfile"
 
 	"lina-core/internal/service/config"
+	"lina-core/pkg/logger"
 )
 
 type MockInput struct {
@@ -19,17 +20,17 @@ func (m *Main) Mock(ctx context.Context, in MockInput) (out *MockOutput, err err
 	sqlDir := config.New().GetInit(ctx).SqlDir
 	files, err := scanMockSqlFiles(ctx, sqlDir)
 	if err != nil {
-		g.Log().Warningf(ctx, "failed to scan mock SQL files: %v", err)
+		logger.Warningf(ctx, "failed to scan mock SQL files: %v", err)
 		return nil, nil
 	}
 	if len(files) == 0 {
-		g.Log().Warning(ctx, "no mock SQL files found")
+		logger.Warning(ctx, "no mock SQL files found")
 		return
 	}
 	sort.Strings(files)
 	execSqlFiles(ctx, files)
 
-	g.Log().Info(ctx, "Mock data loaded.")
+	logger.Info(ctx, "Mock data loaded.")
 	return
 }
 
@@ -47,7 +48,7 @@ func scanMockSqlFiles(ctx context.Context, sqlDir string) ([]string, error) {
 		}
 		files = append(files, coreFiles...)
 	} else {
-		g.Log().Warningf(ctx, "mock-data directory does not exist: %s", mockDir)
+		logger.Warningf(ctx, "mock-data directory does not exist: %s", mockDir)
 	}
 
 	if pluginRoot == "" || !gfile.Exists(pluginRoot) {

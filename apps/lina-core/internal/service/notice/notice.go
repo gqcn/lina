@@ -5,12 +5,12 @@ import (
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/bizctx"
+	"lina-core/pkg/logger"
 )
 
 // Dict types used in notice
@@ -54,8 +54,8 @@ type ListInput struct {
 
 // ListItem defines a single list item.
 type ListItem struct {
-	*entity.SysNotice              // Notice entity
-	CreatedByName    string `json:"createdByName"` // Creator username
+	*entity.SysNotice        // Notice entity
+	CreatedByName     string `json:"createdByName"` // Creator username
 }
 
 // ListOutput defines output for List function.
@@ -210,7 +210,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int64, error) {
 	// If published, fan-out messages to all active users
 	if in.Status == NoticeStatusPublished {
 		if err := s.fanOutMessages(ctx, id, in.Title, in.Type, createdBy); err != nil {
-			g.Log().Errorf(ctx, "fanOutMessages failed for notice %d: %v", id, err)
+			logger.Errorf(ctx, "fanOutMessages failed for notice %d: %v", id, err)
 		}
 	}
 
@@ -286,7 +286,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 			noticeType = *in.Type
 		}
 		if err := s.fanOutMessages(ctx, in.Id, title, noticeType, int64(oldNotice.CreatedBy)); err != nil {
-			g.Log().Errorf(ctx, "fanOutMessages failed for notice %d: %v", in.Id, err)
+			logger.Errorf(ctx, "fanOutMessages failed for notice %d: %v", in.Id, err)
 		}
 	}
 
@@ -315,7 +315,7 @@ func (s *Service) Delete(ctx context.Context, ids string) error {
 		WhereIn(msgCols.SourceId, idList).
 		Delete()
 	if err != nil {
-		g.Log().Errorf(ctx, "cascade delete user messages failed for notice ids %s: %v", ids, err)
+		logger.Errorf(ctx, "cascade delete user messages failed for notice ids %s: %v", ids, err)
 	}
 	return nil
 }
@@ -341,9 +341,9 @@ func (s *Service) fanOutMessages(ctx context.Context, noticeId int64, title stri
 			IsRead:     0,
 		}).Insert()
 		if err != nil {
-			g.Log().Errorf(ctx, "fanOutMessages insert failed for user %d notice %d: %v", user.Id, noticeId, err)
+			logger.Errorf(ctx, "fanOutMessages insert failed for user %d notice %d: %v", user.Id, noticeId, err)
 		}
 	}
-	g.Log().Infof(ctx, "fanOutMessages: notice %d fanned out to %d users", noticeId, len(users))
+	logger.Infof(ctx, "fanOutMessages: notice %d fanned out to %d users", noticeId, len(users))
 	return nil
 }

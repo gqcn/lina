@@ -2,9 +2,9 @@ package cron
 
 import (
 	"context"
+	"lina-core/pkg/logger"
 	"time"
 
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gcron"
 )
 
@@ -19,16 +19,16 @@ func (s *Service) startServerMonitorCleanup(ctx context.Context) {
 	_, err := gcron.Add(ctx, "# * * * * *", func(ctx context.Context) {
 		// Check if current node is the leader before executing
 		if !s.IsLeader() {
-			g.Log().Debug(ctx, "skipping server monitor cleanup on non-leader node")
+			logger.Debug(ctx, "skipping server monitor cleanup on non-leader node")
 			return
 		}
 		cleaned, cleanErr := s.serverMonSvc.CleanupStale(ctx, staleThreshold)
 		if cleanErr != nil {
-			g.Log().Errorf(ctx, "failed to cleanup stale monitor records: %v", cleanErr)
+			logger.Errorf(ctx, "failed to cleanup stale monitor records: %v", cleanErr)
 			return
 		}
 		if cleaned > 0 {
-			g.Log().Infof(
+			logger.Infof(
 				ctx,
 				"cleaned up %d stale monitor records (older than %v)",
 				cleaned, time.Now().Add(-staleThreshold).Format("2006-01-02 15:04:05"),
@@ -36,6 +36,6 @@ func (s *Service) startServerMonitorCleanup(ctx context.Context) {
 		}
 	}, CronServerMonitorCleanup)
 	if err != nil {
-		g.Log().Panicf(ctx, "failed to start server monitor cleanup cron: %v", err)
+		logger.Panicf(ctx, "failed to start server monitor cleanup cron: %v", err)
 	}
 }

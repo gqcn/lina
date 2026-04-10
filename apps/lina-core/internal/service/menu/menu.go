@@ -5,12 +5,12 @@ import (
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	pluginsvc "lina-core/internal/service/plugin"
+	"lina-core/pkg/logger"
 )
 
 // Service provides menu management operations.
@@ -364,7 +364,7 @@ func (s *Service) Delete(ctx context.Context, in DeleteInput) error {
 			WhereIn(rmCols.MenuId, menuIds).
 			Delete()
 		if err != nil {
-			g.Log().Warningf(ctx, "failed to delete role-menu associations: %v", err)
+			logger.Warningf(ctx, "failed to delete role-menu associations: %v", err)
 		}
 
 		return nil
