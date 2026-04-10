@@ -36,7 +36,9 @@ build:
 	@mkdir -p $(EMBED_DIR)
 	@cp -r $(FRONTEND_DIR)/apps/web-antd/dist/* $(EMBED_DIR)/
 	@echo "✓ 宿主前端嵌入资源已生成"
+	@echo "构建动态插件产物..."
 	$(call run_build_command,$(MAKE) wasm verbose=$(verbose))
+	@echo "✓ 动态插件产物已生成"
 	@echo "构建后端（嵌入前端静态文件）..."
 	$(call run_build_command,cd $(BACKEND_DIR) && go build -o ../../$(HOST_BINARY_PATH) .)
 	@echo "✓ 构建完成: $(HOST_BINARY_PATH)"
