@@ -183,6 +183,7 @@ function pluginAssetURL(relativePath = "index.html") {
 function cleanupRuntimePluginWorkspace() {
   rmSync(runtimePluginDir(), { force: true, recursive: true });
   rmSync(tempWasmPath(), { force: true });
+  rmSync(runtimeStorageArtifactPath(), { force: true });
 }
 
 function cleanupRuntimePluginRows() {

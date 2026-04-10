@@ -25,6 +25,7 @@ const successMessage = ref('');
 
 async function handleSubmit() {
   if (successMessage.value) {
+    emit('reload');
     handleCancel();
     return;
   }
@@ -47,14 +48,7 @@ async function handleSubmit() {
             type: rawFile.type || 'application/wasm',
           });
     await pluginRuntimeUpload(file, overwriteSupport.value);
-    emit('reload');
-    fileList.value = [];
-    overwriteSupport.value = false;
     successMessage.value = '上传成功，请在插件列表中继续安装并启用。';
-    modalApi.setState({
-      confirmText: '知道了',
-      showCancelButton: false,
-    });
   } catch (error) {
     console.warn(error);
   } finally {
@@ -67,17 +61,17 @@ function handleCancel() {
   fileList.value = [];
   overwriteSupport.value = false;
   successMessage.value = '';
-  modalApi.setState({
-    confirmText: undefined,
-    showCancelButton: true,
-  });
 }
 </script>
 
 <template>
   <BasicModal
     :close-on-click-modal="false"
+    :close-on-press-escape="!successMessage"
+    :closable="!successMessage"
     :fullscreen-button="false"
+    :confirm-text="successMessage ? '知道了' : '确认'"
+    :show-cancel-button="!successMessage"
     title="上传插件"
   >
     <template v-if="!successMessage">

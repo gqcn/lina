@@ -88,6 +88,18 @@ export class PluginPage {
       .last();
   }
 
+  runtimeUploadCancelButton(): Locator {
+    return this.runtimeUploadDialog()
+      .getByRole("button", { name: /取\s*消|cancel/i })
+      .last();
+  }
+
+  runtimeUploadCloseButton(): Locator {
+    return this.runtimeUploadDialog()
+      .locator(".ant-modal-close")
+      .last();
+  }
+
   uploadSuccessDialog(): Locator {
     return this.runtimeUploadDialog()
       .getByTestId("plugin-runtime-upload-success")
@@ -250,6 +262,9 @@ export class PluginPage {
     await expect(this.uploadSuccessDialog()).toContainText(
       expectedSuccessText ?? "上传成功，请在插件列表中继续安装并启用。",
     );
+    await expect(this.runtimeUploadConfirmButton()).toContainText("知道了");
+    await expect(this.runtimeUploadCancelButton()).toHaveCount(0);
+    await expect(this.runtimeUploadCloseButton()).toHaveCount(0);
     await this.runtimeUploadConfirmButton().click();
     await expect(this.runtimeUploadDialog()).not.toBeVisible();
 
