@@ -38,7 +38,7 @@ type pluginManifest struct {
 	RootDir          string
 	Hooks            []*pluginHookSpec
 	BackendResources map[string]*pluginResourceSpec
-	RuntimeArtifact  *pluginRuntimeArtifact
+	RuntimeArtifact  *pluginDynamicArtifact
 }
 
 // scanPluginManifests merges source-plugin discovery and runtime-wasm discovery
@@ -106,7 +106,7 @@ func (s *Service) scanSourcePluginManifests() ([]*pluginManifest, error) {
 		if err = yaml.Unmarshal(content, manifest); err != nil {
 			return nil, gerror.Wrapf(err, "解析插件清单失败: %s", manifestFile)
 		}
-		if normalizePluginType(manifest.Type) == pluginTypeRuntime {
+		if normalizePluginType(manifest.Type) == pluginTypeDynamic {
 			continue
 		}
 		if err = s.validatePluginManifest(manifest, manifestFile); err != nil {
@@ -148,11 +148,11 @@ func (s *Service) scanRuntimePluginManifests(ctx context.Context) ([]*pluginMani
 	for _, artifactPath := range artifactFiles {
 		manifest, loadErr := s.loadRuntimePluginManifestFromArtifact(artifactPath)
 		if loadErr != nil {
-			return nil, gerror.Wrapf(loadErr, "解析运行时插件产物失败: %s", artifactPath)
+			return nil, gerror.Wrapf(loadErr, "解析动态插件产物失败: %s", artifactPath)
 		}
 		if previousPath, ok := seenIDs[manifest.ID]; ok {
 			return nil, gerror.Newf(
-				"运行时插件ID重复: %s 同时出现在 %s 和 %s",
+				"动态插件ID重复: %s 同时出现在 %s 和 %s",
 				manifest.ID,
 				previousPath,
 				artifactPath,
@@ -186,7 +186,7 @@ func (s *Service) loadRuntimePluginManifestFromArtifact(artifactPath string) (*p
 		return nil, err
 	}
 	if artifact.Manifest == nil {
-		return nil, gerror.Newf("运行时插件缺少嵌入清单: %s", artifactPath)
+		return nil, gerror.Newf("动态插件缺少嵌入清单: %s", artifactPath)
 	}
 
 	manifest := &pluginManifest{
@@ -200,7 +200,7 @@ func (s *Service) loadRuntimePluginManifestFromArtifact(artifactPath string) (*p
 		RuntimeArtifact: artifact,
 	}
 	if err = s.validateUploadedRuntimeManifest(manifest); err != nil {
-		return nil, gerror.Wrapf(err, "运行时插件嵌入清单不合法: %s", artifactPath)
+		return nil, gerror.Wrapf(err, "动态插件嵌入清单不合法: %s", artifactPath)
 	}
 	artifact.Manifest.Type = manifest.Type
 	return manifest, nil
@@ -241,7 +241,7 @@ func (s *Service) resolvePluginRootDir() (string, error) {
 // directory. Relative paths are anchored at the repository root when available
 // so uploads, manual copies, and automated scans all agree on one shared path.
 func (s *Service) resolveRuntimePluginStorageDir(ctx context.Context) (string, error) {
-	storagePath := configsvc.New().GetPluginRuntimeStoragePath(ctx)
+	storagePath := configsvc.New().GetPluginDynamicStoragePath(ctx)
 	if filepath.IsAbs(storagePath) {
 		return filepath.Clean(storagePath), nil
 	}
@@ -278,7 +278,7 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 		manifest.Type = normalizePluginType(manifest.Type).String()
 	}
 	if !isSupportedPluginType(manifest.Type) {
-		return gerror.Newf("插件类型仅支持 source/runtime: %s", filePath)
+		return gerror.Newf("插件类型仅支持 source/dynamic: %s", filePath)
 	}
 	if !pluginManifestIDPattern.MatchString(manifest.ID) {
 		return gerror.Newf("插件ID需使用kebab-case风格: %s", manifest.ID)
@@ -300,7 +300,7 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 		// This tolerance now only protects local validation flows that stage a
 		// manifest beside a not-yet-generated wasm artifact during tests/review.
 		if !isMissingRuntimePluginArtifactError(err) {
-			return gerror.Wrapf(err, "运行时插件产物校验失败: %s", filePath)
+			return gerror.Wrapf(err, "动态插件产物校验失败: %s", filePath)
 		}
 	}
 	if err := validatePluginSQLPaths(rootDir, s.discoverPluginSQLPaths(rootDir, false), false); err != nil {

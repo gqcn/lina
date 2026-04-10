@@ -1,9 +1,9 @@
-import type { PluginRuntimeState } from '#/api/system/plugin/model';
+import type { PluginDynamicState } from '#/api/system/plugin/model';
 import type { PluginSlotKey } from '#/plugins/plugin-slots';
 import type { Component } from 'vue';
 import type { VirtualPluginSlotModuleEntry } from 'virtual:lina-plugin-slots';
 
-import { pluginRuntimeList } from '#/api/system/plugin';
+import { pluginDynamicList } from '#/api/system/plugin';
 import { isPluginSlotKey } from '#/plugins/plugin-slots';
 import { pluginSlotModules } from 'virtual:lina-plugin-slots';
 
@@ -13,7 +13,7 @@ type PluginRegistryGlobal = typeof globalThis & {
   __linaPluginRegistryCheckPromise?: null | Promise<boolean>;
   __linaPluginRegistryListeners?: Set<PluginRegistryListener>;
   __linaPluginStateSignature?: null | string;
-  __linaPluginStatePromise?: null | Promise<Map<string, PluginRuntimeState>>;
+  __linaPluginStatePromise?: null | Promise<Map<string, PluginDynamicState>>;
 };
 
 export interface PluginSlotMeta {
@@ -72,7 +72,7 @@ const registeredPluginSlotModules = pluginSlotModules
     return a.key.localeCompare(b.key);
   });
 
-function normalizePluginKeys(item: PluginRuntimeState): string[] {
+function normalizePluginKeys(item: PluginDynamicState): string[] {
   const keys = [item.id];
   if (item.statusKey?.startsWith('sys_plugin.status:')) {
     keys.push(item.statusKey.substring('sys_plugin.status:'.length));
@@ -99,7 +99,7 @@ function getPluginStateSignature() {
 }
 
 function setPluginStatePromise(
-  promise: null | Promise<Map<string, PluginRuntimeState>>,
+  promise: null | Promise<Map<string, PluginDynamicState>>,
 ) {
   getPluginRegistryGlobal().__linaPluginStatePromise = promise;
 }
@@ -108,8 +108,8 @@ function setPluginStateSignature(signature: null | string) {
   getPluginRegistryGlobal().__linaPluginStateSignature = signature;
 }
 
-function buildPluginStateMap(items: PluginRuntimeState[]) {
-  const map = new Map<string, PluginRuntimeState>();
+function buildPluginStateMap(items: PluginDynamicState[]) {
+  const map = new Map<string, PluginDynamicState>();
   for (const item of items) {
     for (const key of normalizePluginKeys(item)) {
       map.set(key, item);
@@ -118,14 +118,14 @@ function buildPluginStateMap(items: PluginRuntimeState[]) {
   return map;
 }
 
-function buildPluginStateSignature(items: PluginRuntimeState[]) {
+function buildPluginStateSignature(items: PluginDynamicState[]) {
   return items
     .map((item) => `${item.id}:${item.installed}:${item.enabled}:${item.statusKey}`)
     .sort()
     .join('|');
 }
 
-function setPluginStateSnapshot(items: PluginRuntimeState[]) {
+function setPluginStateSnapshot(items: PluginDynamicState[]) {
   const pluginStateMap = buildPluginStateMap(items);
   setPluginStateSignature(buildPluginStateSignature(items));
   setPluginStatePromise(Promise.resolve(pluginStateMap));
@@ -135,13 +135,13 @@ function setPluginStateSnapshot(items: PluginRuntimeState[]) {
 async function loadPluginStateMap(force = false) {
   let pluginStatePromise = getPluginStatePromise();
   if (!pluginStatePromise || force) {
-    pluginStatePromise = pluginRuntimeList()
+    pluginStatePromise = pluginDynamicList()
       .then((items) => {
         return setPluginStateSnapshot(items);
       })
       .catch((error) => {
         console.error('[plugin-slot] failed to load plugin state map', error);
-        return new Map<string, PluginRuntimeState>();
+        return new Map<string, PluginDynamicState>();
       });
     setPluginStatePromise(pluginStatePromise);
   }
@@ -158,7 +158,7 @@ export function getPluginSlots(
 }
 
 /**
- * Queries current plugin runtime states from host backend.
+ * Queries current plugin dynamic states from host backend.
  */
 export async function getPluginStateMap(force = false) {
   return await loadPluginStateMap(force);
@@ -178,7 +178,7 @@ export async function notifyPluginRegistryChanged() {
 }
 
 /**
- * Queries latest plugin runtime state and only notifies listeners when it actually changed.
+ * Queries latest plugin dynamic state and only notifies listeners when it actually changed.
  */
 export async function notifyPluginRegistryChangedIfNeeded() {
   const registryGlobal = getPluginRegistryGlobal();
@@ -188,7 +188,7 @@ export async function notifyPluginRegistryChangedIfNeeded() {
 
   registryGlobal.__linaPluginRegistryCheckPromise = (async () => {
     try {
-      const items = await pluginRuntimeList();
+      const items = await pluginDynamicList();
       const nextSignature = buildPluginStateSignature(items);
 
       if (nextSignature === getPluginStateSignature()) {

@@ -13,7 +13,7 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	mustWriteFile(
 		t,
 		filepath.Join(pluginDir, "plugin.yaml"),
-		"id: plugin-runtime-builder\nname: Runtime Builder\nversion: v0.1.0\ntype: runtime\ndescription: standalone builder test\n",
+		"id: plugin-dynamic-builder\nname: Dynamic Builder\nversion: v0.1.0\ntype: dynamic\ndescription: standalone builder test\n",
 	)
 	mustWriteFile(
 		t,
@@ -22,12 +22,12 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	)
 	mustWriteFile(
 		t,
-		filepath.Join(pluginDir, "manifest", "sql", "001-plugin-runtime-builder.sql"),
+		filepath.Join(pluginDir, "manifest", "sql", "001-plugin-dynamic-builder.sql"),
 		"SELECT 1;",
 	)
 	mustWriteFile(
 		t,
-		filepath.Join(pluginDir, "manifest", "sql", "uninstall", "001-plugin-runtime-builder.sql"),
+		filepath.Join(pluginDir, "manifest", "sql", "uninstall", "001-plugin-dynamic-builder.sql"),
 		"SELECT 2;",
 	)
 	mustWriteFile(
@@ -43,9 +43,9 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 
 	out, err := BuildRuntimeWasmArtifactFromSource(pluginDir)
 	if err != nil {
-		t.Fatalf("expected runtime build to succeed, got error: %v", err)
+		t.Fatalf("expected dynamic build to succeed, got error: %v", err)
 	}
-	if expected := filepath.Join(pluginDir, "temp", "plugin-runtime-builder.wasm"); out.ArtifactPath != expected {
+	if expected := filepath.Join(pluginDir, "temp", "plugin-dynamic-builder.wasm"); out.ArtifactPath != expected {
 		t.Fatalf("expected artifact path %s, got %s", expected, out.ArtifactPath)
 	}
 
@@ -54,24 +54,24 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 		t.Fatalf("expected wasm custom sections to parse, got error: %v", err)
 	}
 
-	manifest := &runtimeArtifactManifest{}
-	if err = json.Unmarshal(sections[pluginRuntimeWasmSectionManifest], manifest); err != nil {
+	manifest := &dynamicArtifactManifest{}
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionManifest], manifest); err != nil {
 		t.Fatalf("expected manifest section json to unmarshal, got error: %v", err)
 	}
-	if manifest.ID != "plugin-runtime-builder" {
-		t.Fatalf("expected embedded manifest id plugin-runtime-builder, got %s", manifest.ID)
+	if manifest.ID != "plugin-dynamic-builder" {
+		t.Fatalf("expected embedded manifest id plugin-dynamic-builder, got %s", manifest.ID)
 	}
 
-	metadata := &runtimeArtifactMetadata{}
-	if err = json.Unmarshal(sections[pluginRuntimeWasmSectionRuntime], metadata); err != nil {
-		t.Fatalf("expected runtime section json to unmarshal, got error: %v", err)
+	metadata := &dynamicArtifactMetadata{}
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionDynamic], metadata); err != nil {
+		t.Fatalf("expected dynamic section json to unmarshal, got error: %v", err)
 	}
 	if metadata.FrontendAssetCount != 1 || metadata.SQLAssetCount != 2 {
-		t.Fatalf("expected runtime metadata counts 1/2, got %#v", metadata)
+		t.Fatalf("expected dynamic metadata counts 1/2, got %#v", metadata)
 	}
 
 	var frontend []*frontendAsset
-	if err = json.Unmarshal(sections[pluginRuntimeWasmSectionFrontend], &frontend); err != nil {
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionFrontend], &frontend); err != nil {
 		t.Fatalf("expected frontend section json to unmarshal, got error: %v", err)
 	}
 	if len(frontend) != 1 || frontend[0].Path != "standalone.html" {
@@ -79,7 +79,7 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	}
 
 	var hooks []*hookSpec
-	if err = json.Unmarshal(sections[pluginRuntimeWasmSectionBackendHooks], &hooks); err != nil {
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionBackendHooks], &hooks); err != nil {
 		t.Fatalf("expected hook section json to unmarshal, got error: %v", err)
 	}
 	if len(hooks) != 1 || hooks[0].Action != hookActionSleep {
@@ -87,7 +87,7 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	}
 
 	var resources []*resourceSpec
-	if err = json.Unmarshal(sections[pluginRuntimeWasmSectionBackendRes], &resources); err != nil {
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionBackendRes], &resources); err != nil {
 		t.Fatalf("expected resource section json to unmarshal, got error: %v", err)
 	}
 	if len(resources) != 1 || resources[0].DataScope == nil || resources[0].DataScope.UserColumn != "owner_user_id" {
@@ -100,23 +100,23 @@ func TestWriteRuntimeWasmArtifactFromSourceWritesGeneratedFile(t *testing.T) {
 	mustWriteFile(
 		t,
 		filepath.Join(pluginDir, "plugin.yaml"),
-		"id: plugin-runtime-write\nname: Runtime Write\nversion: v0.1.0\ntype: runtime\n",
+		"id: plugin-dynamic-write\nname: Dynamic Write\nversion: v0.1.0\ntype: dynamic\n",
 	)
 
 	out, err := WriteRuntimeWasmArtifactFromSource(pluginDir)
 	if err != nil {
-		t.Fatalf("expected runtime artifact write to succeed, got error: %v", err)
+		t.Fatalf("expected dynamic artifact write to succeed, got error: %v", err)
 	}
 	if filepath.Base(filepath.Dir(out.ArtifactPath)) != "temp" {
-		t.Fatalf("expected generated runtime artifact to be written under temp/, got %s", out.ArtifactPath)
+		t.Fatalf("expected generated dynamic artifact to be written under temp/, got %s", out.ArtifactPath)
 	}
 
 	content, err := os.ReadFile(out.ArtifactPath)
 	if err != nil {
-		t.Fatalf("expected generated runtime artifact to exist, got error: %v", err)
+		t.Fatalf("expected generated dynamic artifact to exist, got error: %v", err)
 	}
 	if len(content) == 0 {
-		t.Fatalf("expected generated runtime artifact to contain bytes")
+		t.Fatalf("expected generated dynamic artifact to contain bytes")
 	}
 }
 

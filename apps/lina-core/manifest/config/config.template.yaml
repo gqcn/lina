@@ -29,7 +29,7 @@ upload:
   maxSize: 10  # Maximum upload file size in MB
 
 plugin:
-  runtime:
+  dynamic:
     storagePath: "temp/runtime"
 
 # OpenAPI documentation configuration

@@ -1,7 +1,7 @@
 import type {
   PluginListParams,
-  PluginRuntimeState,
-  PluginUploadRuntimeResult,
+  PluginDynamicState,
+  PluginUploadDynamicResult,
   SystemPlugin,
 } from './model';
 
@@ -17,9 +17,9 @@ export async function pluginList(params?: PluginListParams) {
 }
 
 /** 公共插件运行时状态 */
-export async function pluginRuntimeList() {
-  const res = await requestClient.get<{ list: PluginRuntimeState[] }>(
-    '/plugins/runtime',
+export async function pluginDynamicList() {
+  const res = await requestClient.get<{ list: PluginDynamicState[] }>(
+    '/plugins/dynamic',
   );
   return res.list;
 }
@@ -34,8 +34,8 @@ export function pluginInstall(pluginId: string) {
   return requestClient.post(`/plugins/${pluginId}/install`);
 }
 
-/** 上传运行时插件 */
-export function pluginRuntimeUpload(file: File, overwriteSupport?: boolean) {
+/** 上传动态插件 */
+export function pluginDynamicUpload(file: File, overwriteSupport?: boolean) {
   const formData = new FormData();
   // Keep the original filename in multipart payload. The backend validates the
   // `.wasm` suffix from the uploaded filename before parsing the artifact.
@@ -43,8 +43,8 @@ export function pluginRuntimeUpload(file: File, overwriteSupport?: boolean) {
   if (overwriteSupport) {
     formData.append('overwriteSupport', '1');
   }
-  return requestClient.post<PluginUploadRuntimeResult>(
-    '/plugins/runtime/package',
+  return requestClient.post<PluginUploadDynamicResult>(
+    '/plugins/dynamic/package',
     formData,
     {
       headers: {

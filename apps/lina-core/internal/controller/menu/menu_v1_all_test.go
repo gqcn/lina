@@ -70,7 +70,7 @@ func TestConvertToRouteItemsBuildsEmbeddedMountRouteForHostedPluginAssets(t *tes
 			Id:         103,
 			Name:       "Runtime Embedded Entry",
 			Path:       "/plugin-assets/plugin-runtime-demo/v0.1.0/mount.js",
-			Component:  "system/plugin/runtime-page",
+			Component:  "system/plugin/dynamic-page",
 			Type:       "M",
 			IsFrame:    0,
 			Visible:    1,
@@ -84,7 +84,7 @@ func TestConvertToRouteItemsBuildsEmbeddedMountRouteForHostedPluginAssets(t *tes
 	}
 
 	route := routes[0]
-	if route.Component != "#/views/system/plugin/runtime-page" {
+	if route.Component != "#/views/system/plugin/dynamic-page" {
 		t.Fatalf("expected embedded route to keep runtime host component, got %s", route.Component)
 	}
 	if route.Meta == nil || route.Meta.Query == nil {
@@ -107,7 +107,7 @@ func TestConvertToRouteItemsKeepsRegularViewRouteUnchanged(t *testing.T) {
 			Id:        104,
 			Name:      "Plugin Demo",
 			Path:      "plugin-demo-sidebar-entry",
-			Component: "system/plugin/runtime-page",
+			Component: "system/plugin/dynamic-page",
 			Type:      "M",
 			IsFrame:   0,
 			Visible:   1,
@@ -120,7 +120,7 @@ func TestConvertToRouteItemsKeepsRegularViewRouteUnchanged(t *testing.T) {
 	}
 
 	route := routes[0]
-	if route.Component != "#/views/system/plugin/runtime-page" {
+	if route.Component != "#/views/system/plugin/dynamic-page" {
 		t.Fatalf("expected host view component, got %s", route.Component)
 	}
 	if route.Meta == nil || route.Meta.IframeSrc != "" || route.Meta.Link != "" {

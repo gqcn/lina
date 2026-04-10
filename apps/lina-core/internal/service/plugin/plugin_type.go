@@ -9,9 +9,10 @@ import "strings"
 type pluginTypeValue string
 
 const (
-	pluginTypeSource      pluginTypeValue = "source"
-	pluginTypeRuntime     pluginTypeValue = "runtime"
-	pluginRuntimeKindWasm pluginTypeValue = "wasm"
+	pluginTypeSource        pluginTypeValue = "source"
+	pluginTypeDynamic       pluginTypeValue = "dynamic"
+	pluginTypeLegacyRuntime pluginTypeValue = "runtime"
+	pluginDynamicKindWasm   pluginTypeValue = "wasm"
 )
 
 // String returns the canonical plugin type value.
@@ -22,8 +23,8 @@ func (value pluginTypeValue) String() string {
 func normalizePluginType(value string) pluginTypeValue {
 	normalizedValue := strings.TrimSpace(strings.ToLower(value))
 	switch normalizedValue {
-	case pluginRuntimeKindWasm.String(), pluginTypeRuntime.String():
-		return pluginTypeRuntime
+	case pluginDynamicKindWasm.String(), pluginTypeDynamic.String(), pluginTypeLegacyRuntime.String():
+		return pluginTypeDynamic
 	case pluginTypeSource.String():
 		return pluginTypeSource
 	default:
@@ -33,7 +34,7 @@ func normalizePluginType(value string) pluginTypeValue {
 
 func isSupportedPluginType(value string) bool {
 	switch normalizePluginType(value) {
-	case pluginTypeSource, pluginTypeRuntime:
+	case pluginTypeSource, pluginTypeDynamic:
 		return true
 	default:
 		return false

@@ -24,7 +24,7 @@ type SysPluginReleaseColumns struct {
 	Id               string // 主键ID
 	PluginId         string // 插件唯一标识（kebab-case）
 	ReleaseVersion   string // 插件版本号
-	Type             string // 插件一级类型（source/runtime）
+	Type             string // 插件一级类型（source/dynamic）
 	RuntimeKind      string // 运行时产物类型（当前仅 wasm）
 	SchemaVersion    string // plugin.yaml 清单 schema 版本
 	MinHostVersion   string // 宿主最小兼容版本

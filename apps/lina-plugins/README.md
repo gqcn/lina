@@ -21,7 +21,7 @@
 
 为了让后续人工 review 不再把“当前必须交付的基础项”和“明确后延的工具链/热升级能力”混在一起，这里补充当前收尾口径：
 
-- 当前除第三期外，真正仍需补齐的核心项是：真实 runtime 执行链路、runtime 失败隔离/回滚验收、插件权限治理验收，以及 `1.2` 中尚未提供的脚手架模板部分。
+- 当前除第三期外，真正仍需补齐的核心项是：真实动态执行链路、动态失败隔离/回滚验收、插件权限治理验收，以及 `1.2` 中尚未提供的脚手架模板部分。
 - `apps/lina-plugins/<plugin-id>/` 的标准目录结构、目录职责和 review 要点已经在本文档中落地，因此“目录结构规划”本身不再是缺失项。
 - 仓库当前仍然不提供插件脚手架或打包脚本；这是有意保留的约束，而不是遗漏实现。
 - 如果后续评估认为这些脚本会明显增加复杂度、且收益不足，则继续保持“手工维护显式注册关系 + 文档约束”的模式即可。
@@ -33,7 +33,7 @@
 | 能力                | 当前状态 | 说明                                                                                                                                                                                                                                               |
 | ------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `source`源码插件    | 已实现   | 插件目录位于`apps/lina-plugins/<plugin-id>/`，随宿主一起编译、打包和交付                                                                                                                                                                           |
-| `runtime`运行时插件 | 部分实现 | 当前已落地 `wasm` 产物自定义节校验、ABI 版本校验、checksum 与治理元数据同步，并支持上传、安装/卸载 SQL 执行、前端静态资源内存 bundle 托管，以及基于托管资源的 `iframe` / 新标签页 / 宿主内嵌挂载三种页面接入；热装载、真正的运行时执行与回滚仍未交付 |
+| `dynamic`动态插件 | 部分实现 | 当前已落地 `wasm` 产物自定义节校验、ABI 版本校验、checksum 与治理元数据同步，并支持上传、安装/卸载 SQL 执行、前端静态资源内存 bundle 托管，以及基于托管资源的 `iframe` / 新标签页 / 宿主内嵌挂载三种页面接入；热装载、真正的运行时执行与回滚仍未交付 |
 | 插件管理页          | 已实现   | 支持源码插件同步、启用、禁用与治理联动                                                                                                                                                                                                             |
 | 后端扩展点          | 已实现   | 通过`pluginhost`发布的回调式扩展点接入                                                                                                                                                                                                             |
 | 前端页面接入        | 已实现   | 扫描`frontend/pages/**/*.vue`并挂到宿主运行时页                                                                                                                                                                                                    |
@@ -47,7 +47,7 @@
 - 运维与 review 说明已整理到 [OPERATIONS.md](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/OPERATIONS.md)。
 - 当前仓库提供两个 review 样例：
   - `plugin-demo`：源码插件样例
-  - `plugin-demo-runtime`：运行时插件样例
+  - `plugin-demo-dynamic`：动态插件样例
 
 ## 设计原则
 
@@ -83,31 +83,31 @@
 | 类型      | 含义                                             | 当前状态 |
 | --------- | ------------------------------------------------ | -------- |
 | `source`  | 源码插件，目录在`apps/lina-plugins/<plugin-id>/` | 已实现   |
-| `runtime` | 运行时插件，面向后续热安装与热升级               | 部分实现 |
+| `dynamic` | 动态插件，面向后续热安装与热升级                 | 部分实现 |
 
 重要说明：
 
-- 当前运行时插件已经补齐了上传、安装/卸载 SQL、静态资源托管以及**宿主可控的 declarative backend execution** 基线，但它仍然不是“任意插件 Go 代码直接热执行”的能力模型。
-- 历史上把`wasm`当一级类型的设计已经收敛掉了。当前治理视角只区分`source`和`runtime`。
+- 当前动态插件已经补齐了上传、安装/卸载 SQL、静态资源托管以及**宿主可控的 declarative backend execution** 基线，但它仍然不是“任意插件 Go 代码直接热执行”的能力模型。
+- 历史上把`wasm`当一级类型的设计已经收敛掉了。当前治理视角只区分`source`和`dynamic`。
 - 如果当前要开发新插件，默认应按照`source`源码插件方式开发。
 
 ## 当前 `runtime wasm` 产物约定
 
 当前仓库已经交付“上传 `wasm` -> 安装/启用 -> 前端托管 -> declarative backend Hook / 资源执行”的二期运行时链路，并把**产物契约与宿主校验规则**真正落到了代码里，便于人工 review。
 
-为了让 reviewer 能看到一个“不是抽象 JSON，而是实际资源文件”的 runtime 样例，仓库提供了独立的 [plugin-demo-runtime](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-runtime/README.md) 插件目录。该目录现在直接以 `backend/`、`frontend/`、`manifest/` 下的明文源码作为单一真相源，`temp/<plugin-id>.wasm` 只作为本地构建产物按需生成，自动化测试会验证生成产物与明文源码保持一致。
+为了让 reviewer 能看到一个“不是抽象 JSON，而是实际资源文件”的动态样例，仓库提供了独立的 [plugin-demo-dynamic](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-dynamic/README.md) 插件目录。该目录现在直接以 `backend/`、`frontend/`、`manifest/` 下的明文源码作为单一真相源，`temp/<plugin-id>.wasm` 只作为本地构建产物按需生成，自动化测试会验证生成产物与明文源码保持一致。
 
 当前约定如下：
 
-- `apps/lina-plugins/<plugin-id>/` 仅作为 runtime 样例插件的明文源码与构建输入目录，不再作为宿主运行时发现入口。
-- 宿主当前通过配置项 `plugin.runtime.storagePath` 发现和管理 runtime `wasm` 插件，默认值为 `temp/runtime`。
+- `apps/lina-plugins/<plugin-id>/` 仅作为动态样例插件的明文源码与构建输入目录，不再作为宿主运行时发现入口。
+- 宿主当前通过配置项 `plugin.dynamic.storagePath` 发现和管理 runtime `wasm` 插件，默认值为 `temp/runtime`。
 - 当 `storagePath` 使用相对路径时，宿主会以仓库根目录作为解析基准，保证上传、手工拷贝和后台同步识别走同一目录。
 - 宿主只扫描 `storagePath` 根目录下的 `*.wasm` 文件，不对外层目录层级做额外约定。
-- 运行时插件上传后，宿主会以 `<storagePath>/<plugin-id>.wasm` 的规范文件名落盘；若运维手工拷贝 `.wasm` 到该目录，则可通过管理页“同步插件”识别。
-- `apps/lina-plugins/<plugin-id>/temp/<plugin-id>.wasm` 只是样例插件的本地构建输出；若要被宿主识别，仍需上传或复制到 `plugin.runtime.storagePath`。
+- 动态插件上传后，宿主会以 `<storagePath>/<plugin-id>.wasm` 的规范文件名落盘；若运维手工拷贝 `.wasm` 到该目录，则可通过管理页“同步插件”识别。
+- `apps/lina-plugins/<plugin-id>/temp/<plugin-id>.wasm` 只是样例插件的本地构建输出；若要被宿主识别，仍需上传或复制到 `plugin.dynamic.storagePath`。
 - 宿主当前会读取 `storagePath/*.wasm` 中两个必选自定义节：
   - `lina.plugin.manifest`
-  - `lina.plugin.runtime`
+  - `lina.plugin.dynamic`
 - 宿主当前还支持一个可选前端资源自定义节：
   - `lina.plugin.frontend.assets`
 - 宿主当前还支持两个可选 SQL 自定义节：
@@ -122,14 +122,14 @@
 
 ```json
 {
-  "id": "plugin-demo-runtime",
-  "name": "运行时示例插件",
+  "id": "plugin-demo-dynamic",
+  "name": "动态插件示例",
   "version": "v0.1.0",
-  "type": "runtime"
+  "type": "dynamic"
 }
 ```
 
-`lina.plugin.runtime` 当前要求至少包含：
+`lina.plugin.dynamic` 当前要求至少包含：
 
 ```json
 {
@@ -140,12 +140,12 @@
 }
 ```
 
-如果运行时插件需要携带迁移 SQL，可以额外嵌入如下 JSON 数组：
+如果动态插件需要携带迁移 SQL，可以额外嵌入如下 JSON 数组：
 
 ```json
 [
   {
-    "key": "001-plugin-demo-runtime.sql",
+    "key": "001-plugin-demo-dynamic.sql",
     "content": "INSERT INTO sys_menu (...);"
   }
 ]
@@ -158,7 +158,7 @@
 - `content` 不能为空
 - 宿主当前会保持数组顺序，并按顺序执行 install / uninstall SQL 步骤
 
-如果运行时插件需要声明宿主可执行的后端 Hook，可以额外嵌入如下 JSON 数组：
+如果动态插件需要声明宿主可执行的后端 Hook，可以额外嵌入如下 JSON 数组：
 
 ```json
 [
@@ -189,7 +189,7 @@
 - `sleep` 动作要求 `sleepMs > 0`。
 - `error` 动作要求 `errorMessage` 非空。
 
-如果运行时插件需要声明宿主可查询的后端资源，可以额外嵌入如下 JSON 数组：
+如果动态插件需要声明宿主可查询的后端资源，可以额外嵌入如下 JSON 数组：
 
 ```json
 [
@@ -224,11 +224,11 @@
 
 宿主当前会执行以下校验：
 
-- 宿主识别到的 `.wasm` 文件必须存在于 `plugin.runtime.storagePath`。
+- 宿主识别到的 `.wasm` 文件必须存在于 `plugin.dynamic.storagePath`。
 - `wasm` 文件头和版本必须合法。
-- 必须包含 `lina.plugin.manifest` 和 `lina.plugin.runtime` 两个自定义节。
+- 必须包含 `lina.plugin.manifest` 和 `lina.plugin.dynamic` 两个自定义节。
 - 若声明了 `lina.plugin.frontend.assets`，宿主会校验每个前端资源的 `path`、`contentBase64`，并拒绝路径越界。
-- 嵌入清单中的 `id/name/version/type` 必须完整且合法，且 `type` 当前只能为 `runtime`。
+- 嵌入清单中的 `id/name/version/type` 必须完整且合法，且 `type` 当前只能为 `dynamic`。
 - `runtimeKind` 当前只能是 `wasm`。
 - `abiVersion` 当前只能是 `v1`。
 - 若存在 `lina.plugin.install.sql` / `lina.plugin.uninstall.sql`，宿主会校验每个 SQL 资源键和值是否合法。
@@ -242,13 +242,13 @@
 - `manifest_snapshot` 会记录 `runtimeKind`、`runtimeAbiVersion`、`runtimeFrontendAssetCount`、`runtimeSqlAssetCount`。
 - `sys_plugin_resource_ref` 会新增一条抽象的 `runtime_wasm` 资源摘要，方便 reviewer 确认宿主确实识别到了运行时产物。
 - 若运行时产物声明了前端静态资源，`sys_plugin_resource_ref` 还会新增 `runtime_frontend` 摘要，便于 reviewer 确认宿主识别到了多少个可托管资源。
-- `sys_plugin_migration` 在运行时插件安装/卸载时，会优先针对嵌入在 `wasm` 中的 SQL 资源记录执行结果；只有当未声明嵌入 SQL 时，才会回退到目录约定 SQL。
-- runtime Hook 在宿主执行时，会统一经过 timeout、error 与 panic isolation 包装，不允许单个 runtime 插件阻断宿主主流程。
+- `sys_plugin_migration` 在动态插件安装/卸载时，会优先针对嵌入在 `wasm` 中的 SQL 资源记录执行结果；只有当未声明嵌入 SQL 时，才会回退到目录约定 SQL。
+- 动态插件 Hook 在宿主执行时，会统一经过 timeout、error 与 panic isolation 包装，不允许单个动态插件阻断宿主主流程。
 - runtime 资源查询会复用宿主当前登录用户的角色数据权限上下文，而不是绕开 Lina 现有治理模型。
 
 ### 当前已提供的前端静态资源托管基线
 
-如果运行时插件在 `lina.plugin.frontend.assets` 中嵌入了前端静态资源，宿主当前会直接以 `plugin.runtime.storagePath` 中的 `.wasm` 作为单一真相源，在内存中构建只读资源视图并对外提供稳定访问地址。服务重启后，宿主会在启动时预热已安装且已启用的 runtime 插件资源；若某个 bundle 未预热成功，请求链路仍会按需重新从 `.wasm` 懒加载。
+如果动态插件在 `lina.plugin.frontend.assets` 中嵌入了前端静态资源，宿主当前会直接以 `plugin.dynamic.storagePath` 中的 `.wasm` 作为单一真相源，在内存中构建只读资源视图并对外提供稳定访问地址。服务重启后，宿主会在启动时预热已安装且已启用的动态插件资源；若某个 bundle 未预热成功，请求链路仍会按需重新从 `.wasm` 懒加载。
 
 资源对外公开路径固定为：
 
@@ -259,12 +259,12 @@
 例如：
 
 ```text
-/plugin-assets/plugin-demo-runtime/v0.1.0/standalone.html
+/plugin-assets/plugin-demo-dynamic/v0.1.0/standalone.html
 ```
 
 当前托管边界如下：
 
-- 只有 `runtime` 插件才允许走这条公开资源路径。
+- 只有 `dynamic` 插件才允许走这条公开资源路径。
 - 请求中的 `<version>` 必须与宿主当前识别到的插件版本一致。
 - 插件必须处于“已安装 + 已启用”状态，否则宿主会返回不可访问。
 - 当请求路径为空时，宿主默认回退到 `index.html`。
@@ -272,18 +272,18 @@
   - `is_frame = 0`：自动转换为 `iframe` 路由，托管页面在宿主主内容区内嵌打开。
   - `is_frame = 1`：自动转换为新标签页路由，点击菜单后直接打开托管地址。
 - 当插件菜单同时满足以下条件时，宿主会走第三种“宿主内嵌挂载”模式：
-  - `component = system/plugin/runtime-page`
+  - `component = system/plugin/dynamic-page`
   - `path = /plugin-assets/<plugin-id>/<version>/<entry-file>`
   - `query_param` 包含 `{"pluginAccessMode":"embedded-mount"}`
 - 进入该模式后，宿主不会把菜单当成 `iframe` 或新标签页，而是：
   - 为菜单生成一个宿主内部动态路由路径
   - 将原始托管资源地址透传为 `embeddedSrc` 查询参数
-  - 由 `system/plugin/runtime-page` 壳在宿主内容容器内动态导入该 ESM 入口
-- runtime 插件在启用前还会额外校验这些菜单引用的托管资源是否真实存在；若菜单引用了缺失资源，或宿主内嵌挂载入口不是 `.js/.mjs` ESM 文件，则启用会被拒绝。
+  - 由 `system/plugin/dynamic-page` 壳在宿主内容容器内动态导入该 ESM 入口
+- 动态插件在启用前还会额外校验这些菜单引用的托管资源是否真实存在；若菜单引用了缺失资源，或宿主内嵌挂载入口不是 `.js/.mjs` ESM 文件，则启用会被拒绝。
 
 ### 当前已提供的宿主内嵌挂载契约
 
-当前运行时插件的宿主内嵌挂载不是“任意 HTML 页面直接塞进 DOM”，而是一个**最小 ESM 契约**。宿主当前要求被内嵌的托管入口至少导出：
+当前动态插件的宿主内嵌挂载不是“任意 HTML 页面直接塞进 DOM”，而是一个**最小 ESM 契约**。宿主当前要求被内嵌的托管入口至少导出：
 
 ```ts
 export function mount(context) {
@@ -327,51 +327,51 @@ export function mount(context) {
 
 ### 当前已提供的上传入口
 
-宿主当前已经提供运行时插件包上传 API：
+宿主当前已经提供动态插件包上传 API：
 
 ```text
-POST /api/v1/plugins/runtime/package
+POST /api/v1/plugins/dynamic/package
 Content-Type: multipart/form-data
 ```
 
 表单字段如下：
 
 - `file`: 必填，`.wasm` 文件
-- `overwriteSupport`: 可选，`1` 表示允许覆盖**尚未安装**的同 ID runtime 插件文件
+- `overwriteSupport`: 可选，`1` 表示允许覆盖**尚未安装**的同 ID 动态插件文件
 
 当前上传接口的行为边界如下：
 
 - 宿主会先解析上传包中的嵌入清单和运行时元数据。
-- 宿主会将产物直接写入 `plugin.runtime.storagePath/<plugin-id>.wasm`，不再在 `apps/lina-plugins/` 下额外生成 `plugin.yaml` 或运行时工作目录。
+- 宿主会将产物直接写入 `plugin.dynamic.storagePath/<plugin-id>.wasm`，不再在 `apps/lina-plugins/` 下额外生成 `plugin.yaml` 或运行时工作目录。
 - 若 `wasm` 中声明了 `lina.plugin.frontend.assets`，宿主会在运行时直接从 `.wasm` 解析这些资源，并按需刷新内存缓存。
 - 宿主会立即同步 `sys_plugin` / `sys_plugin_release` / `sys_plugin_resource_ref` 等治理元数据。
 - 上传完成后，插件默认仍是“未安装、未启用”状态。
-- 当前**不允许**通过上传直接覆盖一个已经安装的 runtime 插件；升级/回滚的正式 release 切换能力还没有交付。
-- 除上传外，运维也可以手工把 `.wasm` 文件复制到 `plugin.runtime.storagePath`，然后在管理页执行同步识别。
+- 当前**不允许**通过上传直接覆盖一个已经安装的动态插件；升级/回滚的正式 release 切换能力还没有交付。
+- 除上传外，运维也可以手工把 `.wasm` 文件复制到 `plugin.dynamic.storagePath`，然后在管理页执行同步识别。
 
-当前仓库同时提供通用构建入口，供样例 runtime 插件生成宿主可扫描的 wasm 产物：
+当前仓库同时提供通用构建入口，供样例动态插件生成宿主可扫描的 wasm 产物：
 
 ```bash
 make wasm
-make wasm p=plugin-demo-runtime
+make wasm p=plugin-demo-dynamic
 ```
 
 其中：
 
-- `make wasm` 会遍历 `apps/lina-plugins/` 下所有 `type: runtime` 的插件目录并生成 `temp/<plugin-id>.wasm`
-- `make wasm p=<plugin-id>` 只构建指定 runtime 插件
+- `make wasm` 会遍历 `apps/lina-plugins/` 下所有 `type: dynamic` 的插件目录并生成 `temp/<plugin-id>.wasm`
+- `make wasm p=<plugin-id>` 只构建指定动态插件
 - `make wasm` 当前直接通过根级 `hack/build-wasm/` 独立 Go 工具生成产物；该工具有自己的 `go.mod`，不依赖 `apps/lina-core`
 - 生成产物不会提交到 Git，`.gitignore` 已忽略 `apps/lina-plugins/*/temp/`
 - 根级 `make dev` / `make build` 会自动复用同一个通用构建入口，避免因为仓库中不提交 wasm 而导致宿主扫描失败
 
 当前仍然**没有**落地的能力包括：
 
-- 在宿主进程内热装载运行时插件逻辑。
+- 在宿主进程内热装载动态插件逻辑。
 - 运行时升级、回滚和多节点代际切换。
 
 ## 源码插件生命周期
 
-源码插件和运行时插件的生命周期语义并不相同。源码插件当前遵循下表：
+源码插件和动态插件的生命周期语义并不相同。源码插件当前遵循下表：
 
 | 动作 | 源码插件行为                                             |
 | ---- | -------------------------------------------------------- |
@@ -504,7 +504,7 @@ license: Apache-2.0
 | `id`          | 是       | 插件稳定标识，必须使用`kebab-case`，且在宿主范围内唯一              |
 | `name`        | 是       | 插件显示名称                                                        |
 | `version`     | 是       | 插件版本号，必须使用`semver`格式；本文档示例统一使用带`v`前缀的写法 |
-| `type`        | 是       | 当前仅允许`source`或`runtime`                                       |
+| `type`        | 是       | 当前仅允许`source`或`dynamic`                                       |
 | `description` | 否       | 插件简要描述，建议明确功能边界                                      |
 | `author`      | 否       | 插件作者或团队标识                                                  |
 | `homepage`    | 否       | 插件主页或项目地址                                                  |
@@ -522,7 +522,7 @@ license: Apache-2.0
 | `name` 非空        | 缺失则判定清单非法                                                    |
 | `version` 非空     | 缺失则判定清单非法                                                    |
 | `version` 格式     | 必须满足`semver`格式，例如`v0.1.0`；宿主当前同时兼容不带`v`前缀的写法 |
-| `type` 合法性      | 仅允许`source`或`runtime`                                             |
+| `type` 合法性      | 仅允许`source`或`dynamic`                                             |
 | `source`目录完整性 | `source`插件必须存在`go.mod`和`backend/plugin.go`                     |
 
 ### 明确不再允许的字段
@@ -1015,10 +1015,10 @@ manifest/sql/uninstall/*.sql
 | `apps/lina-plugins/plugin-demo/backend/plugin.go`                                | 源码插件后端注册入口示例 |
 | `apps/lina-plugins/plugin-demo/frontend/pages/sidebar-entry.vue`                 | 源码插件页面示例         |
 | `apps/lina-plugins/plugin-demo/manifest/sql/001-plugin-demo.sql`                 | 源码插件菜单与权限示例   |
-| `apps/lina-plugins/plugin-demo-runtime/plugin.yaml`                              | 运行时插件最小清单示例   |
-| `apps/lina-plugins/plugin-demo-runtime/backend/plugin.go`                        | 运行时插件后端结构示例   |
-| `apps/lina-plugins/plugin-demo-runtime/frontend/pages/mount.js`                  | 运行时内嵌挂载入口示例   |
-| `apps/lina-plugins/plugin-demo-runtime/frontend/pages/standalone.html`           | 运行时独立静态页示例   |
-| `apps/lina-plugins/plugin-demo-runtime/manifest/sql/001-plugin-demo-runtime.sql` | 运行时插件菜单 SQL 示例 |
+| `apps/lina-plugins/plugin-demo-dynamic/plugin.yaml`                              | 动态插件最小清单示例     |
+| `apps/lina-plugins/plugin-demo-dynamic/backend/plugin.go`                        | 动态插件后端结构示例     |
+| `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/mount.js`                  | 动态内嵌挂载入口示例     |
+| `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/standalone.html`           | 动态独立静态页示例       |
+| `apps/lina-plugins/plugin-demo-dynamic/manifest/sql/001-plugin-demo-dynamic.sql` | 动态插件菜单 SQL 示例    |
 
 如果要新增新插件，建议先复制`plugin-demo`的整体结构，再按本文档约束删减或扩展，而不是从零随意拼目录。

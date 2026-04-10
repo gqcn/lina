@@ -1,7 +1,7 @@
-import type { PluginRuntimeState } from '#/api/system/plugin/model';
+import type { PluginDynamicState } from '#/api/system/plugin/model';
 import type { RouteRecordStringComponent } from '@vben/types';
 
-import { pluginRuntimeList } from '#/api/system/plugin';
+import { pluginDynamicList } from '#/api/system/plugin';
 import { getPluginPages } from '#/plugins/page-registry';
 
 type RouteLike = Pick<
@@ -13,7 +13,7 @@ function normalizePath(path?: string) {
   return typeof path === 'string' ? path.replace(/^\//, '') : '';
 }
 
-function buildDisabledPluginSet(items: PluginRuntimeState[]) {
+function buildDisabledPluginSet(items: PluginDynamicState[]) {
   const disabledPluginIds = new Set<string>();
   for (const item of items) {
     if (item.installed !== 1 || item.enabled !== 1) {
@@ -130,7 +130,7 @@ export async function filterDisabledPluginRoutes<T extends RouteLike>(
   }
 
   try {
-    const runtimeStates = await pluginRuntimeList();
+    const runtimeStates = await pluginDynamicList();
     if (runtimeStates.length === 0) {
       return routes;
     }

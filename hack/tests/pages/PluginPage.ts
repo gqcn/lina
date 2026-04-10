@@ -11,16 +11,16 @@ export class PluginPage {
     return this.page.getByText("插件列表").first();
   }
 
-  get runtimeUploadTrigger(): Locator {
-    return this.page.getByTestId("plugin-runtime-upload-trigger").first();
+  get dynamicUploadTrigger(): Locator {
+    return this.page.getByTestId("plugin-dynamic-upload-trigger").first();
   }
 
-  get runtimeUploadDragger(): Locator {
-    return this.page.getByTestId("plugin-runtime-upload-dragger").first();
+  get dynamicUploadDragger(): Locator {
+    return this.page.getByTestId("plugin-dynamic-upload-dragger").first();
   }
 
-  get runtimeOverwriteSwitch(): Locator {
-    return this.page.getByTestId("plugin-runtime-overwrite-switch").first();
+  get dynamicOverwriteSwitch(): Locator {
+    return this.page.getByTestId("plugin-dynamic-overwrite-switch").first();
   }
 
   get sidebarMenu(): Locator {
@@ -40,69 +40,69 @@ export class PluginPage {
     return this.page.frameLocator("iframe");
   }
 
-  pluginRuntimeEmbeddedHost(): Locator {
-    return this.page.getByTestId("plugin-runtime-embedded-host").first();
+  pluginDynamicEmbeddedHost(): Locator {
+    return this.page.getByTestId("plugin-dynamic-embedded-host").first();
   }
 
-  pluginDemoRuntimeTitle(): Locator {
+  pluginDemoDynamicTitle(): Locator {
     return this.page
-      .getByRole("heading", { name: "运行时插件示例已生效" })
+      .getByRole("heading", { name: "动态插件示例已生效" })
       .first();
   }
 
-  pluginDemoRuntimeDescription(): Locator {
+  pluginDemoDynamicDescription(): Locator {
     return this.page.getByText(
-      "该页面来自 plugin-demo-runtime 的运行时挂载入口，用于验证宿主主内容区展示与独立静态页面跳转。",
+      "该页面来自 plugin-demo-dynamic 的动态挂载入口，用于验证宿主主内容区展示与独立静态页面跳转。",
     );
   }
 
-  pluginDemoRuntimeOpenStandaloneButton(): Locator {
-    return this.page.getByTestId("plugin-demo-runtime-open-standalone").first();
+  pluginDemoDynamicOpenStandaloneButton(): Locator {
+    return this.page.getByTestId("plugin-demo-dynamic-open-standalone").first();
   }
 
-  runtimeUploadDialog(): Locator {
+  dynamicUploadDialog(): Locator {
     return this.page.getByRole("dialog", { name: "上传插件" }).last();
   }
 
-  runtimeUploadTriggerLabel(): Locator {
-    return this.runtimeUploadTrigger.getByText("上传插件", { exact: true });
+  dynamicUploadTriggerLabel(): Locator {
+    return this.dynamicUploadTrigger.getByText("上传插件", { exact: true });
   }
 
-  runtimeUploadHint(): Locator {
-    return this.runtimeUploadDialog().getByText(
+  dynamicUploadHint(): Locator {
+    return this.dynamicUploadDialog().getByText(
       "仅支持单个 .wasm 文件，上传后可在列表中继续安装并启用。",
       { exact: true },
     );
   }
 
-  runtimeOverwriteHint(): Locator {
-    return this.runtimeUploadDialog().getByText(
+  dynamicOverwriteHint(): Locator {
+    return this.dynamicUploadDialog().getByText(
       "允许覆盖同 ID 且未安装的插件工作区文件",
       { exact: true },
     );
   }
 
-  runtimeUploadConfirmButton(): Locator {
-    return this.runtimeUploadDialog()
+  dynamicUploadConfirmButton(): Locator {
+    return this.dynamicUploadDialog()
       .getByRole("button", { name: /确\s*认|知\s*道了|知\s*道|ok/i })
       .last();
   }
 
-  runtimeUploadCancelButton(): Locator {
-    return this.runtimeUploadDialog()
+  dynamicUploadCancelButton(): Locator {
+    return this.dynamicUploadDialog()
       .getByRole("button", { name: /取\s*消|cancel/i })
       .last();
   }
 
-  runtimeUploadCloseButton(): Locator {
-    return this.runtimeUploadDialog()
+  dynamicUploadCloseButton(): Locator {
+    return this.dynamicUploadDialog()
       .locator(".ant-modal-close")
       .last();
   }
 
   uploadSuccessDialog(): Locator {
-    return this.runtimeUploadDialog()
-      .getByTestId("plugin-runtime-upload-success")
+    return this.dynamicUploadDialog()
+      .getByTestId("plugin-dynamic-upload-success")
       .first();
   }
 
@@ -216,25 +216,25 @@ export class PluginPage {
     await this.page.waitForLoadState("networkidle");
   }
 
-  async uploadRuntimePlugin(
+  async uploadDynamicPlugin(
     filePath: string,
     overwrite = false,
     expectedSuccessText?: string,
   ) {
-    await this.runtimeUploadTrigger.click();
-    await expect(this.runtimeUploadDialog()).toBeVisible();
-    await expect(this.runtimeUploadDragger).toBeVisible();
+    await this.dynamicUploadTrigger.click();
+    await expect(this.dynamicUploadDialog()).toBeVisible();
+    await expect(this.dynamicUploadDragger).toBeVisible();
     if (overwrite) {
       const isChecked =
-        (await this.runtimeOverwriteSwitch.getAttribute("aria-checked")) ===
+        (await this.dynamicOverwriteSwitch.getAttribute("aria-checked")) ===
         "true";
       if (!isChecked) {
-        await this.runtimeOverwriteSwitch.click();
+        await this.dynamicOverwriteSwitch.click();
       }
     }
     const [fileChooser] = await Promise.all([
       this.page.waitForEvent("filechooser"),
-      this.runtimeUploadDragger.click(),
+      this.dynamicUploadDragger.click(),
     ]);
     await fileChooser.setFiles(filePath);
 
@@ -242,18 +242,18 @@ export class PluginPage {
     // chooser closes. Waiting for the rendered upload item avoids clicking the
     // confirm button before the file is committed into the reactive file list.
     await expect(
-      this.runtimeUploadDialog().locator(".ant-upload-list-item"),
+      this.dynamicUploadDialog().locator(".ant-upload-list-item"),
     ).toBeVisible();
     await this.page.waitForTimeout(1500);
 
     const uploadResponsePromise = this.page.waitForResponse(
       (response) =>
-        response.url().includes("/plugins/runtime/package") &&
+        response.url().includes("/plugins/dynamic/package") &&
         response.request().method() === "POST",
       { timeout: 30000 },
     );
 
-    await this.runtimeUploadConfirmButton().click();
+    await this.dynamicUploadConfirmButton().click();
 
     const uploadResponse = await uploadResponsePromise;
     expect(uploadResponse.status()).toBe(200);
@@ -262,16 +262,16 @@ export class PluginPage {
     await expect(this.uploadSuccessDialog()).toContainText(
       expectedSuccessText ?? "上传成功，请在插件列表中继续安装并启用。",
     );
-    await expect(this.runtimeUploadConfirmButton()).toContainText("知道了");
-    await expect(this.runtimeUploadCancelButton()).toHaveCount(0);
-    await expect(this.runtimeUploadCloseButton()).toHaveCount(0);
-    await this.runtimeUploadConfirmButton().click();
-    await expect(this.runtimeUploadDialog()).not.toBeVisible();
+    await expect(this.dynamicUploadConfirmButton()).toContainText("知道了");
+    await expect(this.dynamicUploadCancelButton()).toHaveCount(0);
+    await expect(this.dynamicUploadCloseButton()).toHaveCount(0);
+    await this.dynamicUploadConfirmButton().click();
+    await expect(this.dynamicUploadDialog()).not.toBeVisible();
 
     // The Vite dev server keeps HMR-related requests alive, so waiting for
     // `networkidle` here can hang even after the upload flow already finished.
     // Use stable UI signals instead of transport-level idleness.
-    await expect(this.runtimeUploadTrigger).toBeVisible();
+    await expect(this.dynamicUploadTrigger).toBeVisible();
     await expect(this.tableTitle).toBeVisible();
   }
 

@@ -25,7 +25,7 @@ type SysPluginColumns struct {
 	PluginId     string // 插件唯一标识（kebab-case）
 	Name         string // 插件名称
 	Version      string // 插件版本号
-	Type         string // 插件一级类型（source/runtime）
+	Type         string // 插件一级类型（source/dynamic）
 	Installed    string // 安装状态（1=已安装 0=未安装）
 	Status       string // 启用状态（1=启用 0=禁用）
 	ManifestPath string // 插件清单文件路径

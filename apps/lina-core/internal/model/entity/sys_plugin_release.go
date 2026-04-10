@@ -13,7 +13,7 @@ type SysPluginRelease struct {
 	Id               int         `json:"id"               orm:"id"                description:"主键ID"`
 	PluginId         string      `json:"pluginId"         orm:"plugin_id"         description:"插件唯一标识（kebab-case）"`
 	ReleaseVersion   string      `json:"releaseVersion"   orm:"release_version"   description:"插件版本号"`
-	Type             string      `json:"type"             orm:"type"              description:"插件一级类型（source/runtime）"`
+	Type             string      `json:"type"             orm:"type"              description:"插件一级类型（source/dynamic）"`
 	RuntimeKind      string      `json:"runtimeKind"      orm:"runtime_kind"      description:"运行时产物类型（当前仅 wasm）"`
 	SchemaVersion    string      `json:"schemaVersion"    orm:"schema_version"    description:"plugin.yaml 清单 schema 版本"`
 	MinHostVersion   string      `json:"minHostVersion"   orm:"min_host_version"  description:"宿主最小兼容版本"`

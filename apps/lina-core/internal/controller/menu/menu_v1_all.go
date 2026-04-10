@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	menuRuntimePageComponentPath      = "system/plugin/runtime-page"
+	menuRuntimePageComponentPath      = "system/plugin/dynamic-page"
 	menuQueryKeyEmbeddedSource        = "embeddedSrc"
 	menuQueryKeyPluginAccessMode      = "pluginAccessMode"
 	menuPluginAccessModeEmbeddedMount = "embedded-mount"

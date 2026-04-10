@@ -53,7 +53,7 @@ func (s *Service) syncPluginReleaseMetadata(ctx context.Context, manifest *plugi
 		PluginId:         manifest.ID,
 		ReleaseVersion:   manifest.Version,
 		Type:             manifest.Type,
-		RuntimeKind:      s.buildPluginRuntimeKind(manifest),
+		RuntimeKind:      s.buildPluginDynamicKind(manifest),
 		Status:           releaseStatus.String(),
 		ManifestPath:     s.buildPluginReleaseManifestPath(manifest),
 		PackagePath:      s.buildPluginPackagePath(manifest),
@@ -109,8 +109,8 @@ func (s *Service) buildPluginManifestSnapshot(manifest *pluginManifest) (string,
 		License:     manifest.License,
 		// Record whether the manifest exists without embedding an environment-specific
 		// file path into the persisted YAML snapshot.
-		RuntimeKind:               s.buildPluginRuntimeKind(manifest),
-		RuntimeABIVersion:         s.buildPluginRuntimeABIVersion(manifest),
+		RuntimeKind:               s.buildPluginDynamicKind(manifest),
+		RuntimeABIVersion:         s.buildPluginDynamicABIVersion(manifest),
 		ManifestDeclared:          s.isPluginManifestDeclared(manifest),
 		InstallSQLCount:           s.countPluginSQLAssets(manifest, pluginMigrationDirectionInstall),
 		UninstallSQLCount:         s.countPluginSQLAssets(manifest, pluginMigrationDirectionUninstall),
@@ -118,8 +118,8 @@ func (s *Service) buildPluginManifestSnapshot(manifest *pluginManifest) (string,
 		FrontendSlotCount:         s.buildPluginFrontendSlotCount(manifest),
 		BackendHookCount:          len(manifest.Hooks),
 		ResourceSpecCount:         len(manifest.BackendResources),
-		RuntimeFrontendAssetCount: s.buildPluginRuntimeFrontendAssetCount(manifest),
-		RuntimeSQLAssetCount:      s.buildPluginRuntimeSQLAssetCount(manifest),
+		RuntimeFrontendAssetCount: s.buildPluginDynamicFrontendAssetCount(manifest),
+		RuntimeSQLAssetCount:      s.buildPluginDynamicSQLAssetCount(manifest),
 	}
 
 	content, err := yaml.Marshal(snapshot)
@@ -129,28 +129,28 @@ func (s *Service) buildPluginManifestSnapshot(manifest *pluginManifest) (string,
 	return string(content), nil
 }
 
-func (s *Service) buildPluginRuntimeKind(manifest *pluginManifest) string {
+func (s *Service) buildPluginDynamicKind(manifest *pluginManifest) string {
 	if manifest == nil || manifest.RuntimeArtifact == nil {
 		return ""
 	}
 	return manifest.RuntimeArtifact.RuntimeKind
 }
 
-func (s *Service) buildPluginRuntimeABIVersion(manifest *pluginManifest) string {
+func (s *Service) buildPluginDynamicABIVersion(manifest *pluginManifest) string {
 	if manifest == nil || manifest.RuntimeArtifact == nil {
 		return ""
 	}
 	return manifest.RuntimeArtifact.ABIVersion
 }
 
-func (s *Service) buildPluginRuntimeFrontendAssetCount(manifest *pluginManifest) int {
+func (s *Service) buildPluginDynamicFrontendAssetCount(manifest *pluginManifest) int {
 	if manifest == nil || manifest.RuntimeArtifact == nil {
 		return 0
 	}
 	return manifest.RuntimeArtifact.FrontendAssetCount
 }
 
-func (s *Service) buildPluginRuntimeSQLAssetCount(manifest *pluginManifest) int {
+func (s *Service) buildPluginDynamicSQLAssetCount(manifest *pluginManifest) int {
 	if manifest == nil || manifest.RuntimeArtifact == nil {
 		return 0
 	}
@@ -176,7 +176,7 @@ func (s *Service) buildPluginPackagePath(manifest *pluginManifest) string {
 }
 
 func (s *Service) buildPluginReleaseManifestPath(manifest *pluginManifest) string {
-	if manifest == nil || normalizePluginType(manifest.Type) == pluginTypeRuntime {
+	if manifest == nil || normalizePluginType(manifest.Type) == pluginTypeDynamic {
 		return ""
 	}
 	return filepath.ToSlash(filepath.Base(manifest.ManifestPath))

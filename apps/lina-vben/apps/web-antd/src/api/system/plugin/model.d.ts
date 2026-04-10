@@ -1,4 +1,4 @@
-export type PluginType = 'runtime' | 'source' | string;
+export type PluginType = 'dynamic' | 'source' | string;
 
 export interface PluginListParams {
   pageNum?: number;
@@ -23,14 +23,14 @@ export interface SystemPlugin {
   updatedAt: string;
 }
 
-export interface PluginRuntimeState {
+export interface PluginDynamicState {
   id: string;
   installed: number;
   enabled: number;
   statusKey: string;
 }
 
-export interface PluginUploadRuntimeResult {
+export interface PluginUploadDynamicResult {
   id: string;
   name: string;
   version: string;

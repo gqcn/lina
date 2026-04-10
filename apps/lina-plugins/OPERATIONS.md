@@ -7,9 +7,9 @@
 当前仓库仍然以**第一期源码插件底座**为主，但 `apps/lina-plugins/` 下已经同时提供：
 
 - `plugin-demo`：源码插件样例
-- `plugin-demo-runtime`：运行时插件样例
+- `plugin-demo-dynamic`：动态插件样例
 
-运行时插件完整能力尚未交付，但宿主已经先补齐了后续阶段会复用的元数据表：
+动态插件完整能力尚未交付，但宿主已经先补齐了后续阶段会复用的元数据表：
 
 - `sys_plugin`
 - `sys_plugin_release`
@@ -17,7 +17,7 @@
 - `sys_plugin_resource_ref`
 - `sys_plugin_node_state`
 
-这意味着，即使二三期 `runtime wasm`、多节点热更新等能力还没有完成，reviewer 也已经可以通过数据库直接看到：
+这意味着，即使二三期 `dynamic wasm`、多节点热更新等能力还没有完成，reviewer 也已经可以通过数据库直接看到：
 
 - 宿主当前识别到的插件注册状态
 - 宿主认为当前生效的是哪个插件版本
@@ -44,26 +44,26 @@
 
 - 源码插件视为“随宿主编译即已集成”，不走安装/卸载流程。
 - 源码插件禁用后，只会隐藏路由、菜单、页面和 `Slot`，不会删除历史业务数据。
-- 当前仓库至少保留 `plugin-demo` 与 `plugin-demo-runtime` 两个样例目录，分别用于 source / runtime 两种接入模式的 review。
+- 当前仓库至少保留 `plugin-demo` 与 `plugin-demo-dynamic` 两个样例目录，分别用于 source / dynamic 两种接入模式的 review。
 
-## 运行时插件
+## 动态插件
 
-运行时插件的完整执行模型仍在后续阶段，但宿主服务层已经先补齐了一部分基础记录能力。
+动态插件的完整执行模型仍在后续阶段，但宿主服务层已经先补齐了一部分基础记录能力。
 
 当前已经落地的行为：
 
-- 宿主已提供 `POST /api/v1/plugins/runtime/package` 上传入口，用于把 runtime wasm 产物写入 `plugin.runtime.storagePath`。
-- 运维也可以手工将 `.wasm` 文件复制到 `plugin.runtime.storagePath`，再通过插件管理页执行同步识别。
-- 宿主会扫描 `plugin.runtime.storagePath/*.wasm`，并验证 `wasm` 文件头、自定义节和 ABI 版本。
+- 宿主已提供 `POST /api/v1/plugins/dynamic/package` 上传入口，用于把 dynamic wasm 产物写入 `plugin.dynamic.storagePath`。
+- 运维也可以手工将 `.wasm` 文件复制到 `plugin.dynamic.storagePath`，再通过插件管理页执行同步识别。
+- 宿主会扫描 `plugin.dynamic.storagePath/*.wasm`，并验证 `wasm` 文件头、自定义节和 ABI 版本。
 - 若 `wasm` 内嵌了 `lina.plugin.frontend.assets`，宿主会直接从 `.wasm` 构建内存中的只读前端资源 bundle，而不是先提取到工作区目录。
-- 当运行时插件处于“已安装 + 已启用”状态时，宿主会通过 `/plugin-assets/<plugin-id>/<version>/...` 对外公开这些静态资源。
+- 当动态插件处于“已安装 + 已启用”状态时，宿主会通过 `/plugin-assets/<plugin-id>/<version>/...` 对外公开这些静态资源。
 - 当插件菜单的 `path` 指向 `/plugin-assets/<plugin-id>/<version>/...` 时，宿主会继续复用现有菜单体系并按 `sys_menu.is_frame` 解释前端接入模式：
   - `is_frame = 0`：在宿主主内容区以内嵌 `iframe` 方式打开托管页面。
   - `is_frame = 1`：点击菜单后直接在新标签页打开托管页面。
-- 当插件菜单额外声明 `component = system/plugin/runtime-page` 且 `query_param.pluginAccessMode = embedded-mount` 时，宿主会改走“宿主内嵌挂载”模式，并在 `runtime-page` 壳内部动态导入对应的托管 ESM 入口。
+- 当插件菜单额外声明 `component = system/plugin/dynamic-page` 且 `query_param.pluginAccessMode = embedded-mount` 时，宿主会改走“宿主内嵌挂载”模式，并在 `dynamic-page` 壳内部动态导入对应的托管 ESM 入口。
 - 若 `wasm` 内嵌了 `lina.plugin.install.sql` / `lina.plugin.uninstall.sql`，宿主会优先执行这些嵌入 SQL，并把执行结果记录到 `sys_plugin_migration`。
 - 当运行时 `wasm` 未声明嵌入 SQL 时，安装/卸载生命周期仍会回退到目录约定 SQL。
-- 当 runtime 插件准备启用时，宿主会再次校验插件菜单引用的托管资源是否已经能从 `.wasm` 中解析出来；若菜单指向不存在的 `/plugin-assets/...` 资源，或者宿主内嵌挂载入口未满足最小 ESM 契约，则启用会被拒绝。
+- 当动态插件准备启用时，宿主会再次校验插件菜单引用的托管资源是否已经能从 `.wasm` 中解析出来；若菜单指向不存在的 `/plugin-assets/...` 资源，或者宿主内嵌挂载入口未满足最小 ESM 契约，则启用会被拒绝。
 - 安装完成后会同步当前版本快照、资源引用和节点状态。
 - 卸载完成后会清理当前版本的资源引用、对应的内存前端资源缓存，并刷新节点状态。
 
@@ -71,14 +71,14 @@
 
 - 真正的运行时装载、热升级、回滚和多节点代际切换
 
-## 上传运行时插件包
+## 上传动态插件包
 
-当前可以通过以下方式上传 runtime wasm 插件包：
+当前可以通过以下方式上传 dynamic wasm 插件包：
 
 ```bash
-curl -X POST "http://127.0.0.1:8080/api/v1/plugins/runtime/package" \
+curl -X POST "http://127.0.0.1:8080/api/v1/plugins/dynamic/package" \
   -H "Authorization: Bearer <token>" \
-  -F "file=@./plugin-demo-runtime.wasm" \
+  -F "file=@./plugin-demo-dynamic.wasm" \
   -F "overwriteSupport=0"
 ```
 
@@ -86,28 +86,28 @@ curl -X POST "http://127.0.0.1:8080/api/v1/plugins/runtime/package" \
 
 - 只能上传 `.wasm` 文件。
 - 宿主会从上传包中解析插件 ID，因此不接受额外手工指定插件 ID。
-- 宿主会把上传产物规范化写入 `plugin.runtime.storagePath/<plugin-id>.wasm`。
-- 若同 ID runtime 插件文件已存在，只有在 `overwriteSupport=1` 且该插件尚未安装时才允许覆盖。
+- 宿主会把上传产物规范化写入 `plugin.dynamic.storagePath/<plugin-id>.wasm`。
+- 若同 ID 动态插件文件已存在，只有在 `overwriteSupport=1` 且该插件尚未安装时才允许覆盖。
 - 若目标插件已经处于已安装状态，当前上传接口会拒绝覆盖，因为正式 upgrade/release 切换能力仍未实现。
 - 若 `storagePath` 下存在多个嵌入相同 plugin ID 的 `.wasm` 文件，宿主会在同步阶段直接报冲突错误，要求先人工清理。
 
-当前仓库中的 runtime 样例插件不再提交编译后的 `.wasm` 文件，而是统一通过通用命令生成：
+当前仓库中的动态样例插件不再提交编译后的 `.wasm` 文件，而是统一通过通用命令生成：
 
 ```bash
 make wasm
-make wasm p=plugin-demo-runtime
+make wasm p=plugin-demo-dynamic
 ```
 
 运维与 review 时需要注意：
 
 - 运行 `make dev` 或 `make build` 前后，宿主都会复用同一个通用构建入口
-- 如需单独验证某个 runtime 样例目录，优先使用 `make wasm p=<plugin-id>`
+- 如需单独验证某个动态样例目录，优先使用 `make wasm p=<plugin-id>`
 - 通用构建入口当前由根级 `hack/build-wasm/` 独立 Go 工具负责，该工具自身维护 `go.mod`，不依赖主服务模块
 - `apps/lina-plugins/*/temp/` 是源码样例的本地构建目录，不应提交到 Git
 
 ## 运行时前端资源访问
 
-如果运行时插件声明了 `lina.plugin.frontend.assets`，宿主会在启动预热或首次访问时直接从 `plugin.runtime.storagePath` 中的 `.wasm` 解析这些资源到内存 bundle，并通过下面的稳定地址对外提供：
+如果动态插件声明了 `lina.plugin.frontend.assets`，宿主会在启动预热或首次访问时直接从 `plugin.dynamic.storagePath` 中的 `.wasm` 解析这些资源到内存 bundle，并通过下面的稳定地址对外提供：
 
 ```text
 http://127.0.0.1:8080/plugin-assets/<plugin-id>/<version>/<relative-path>
@@ -121,12 +121,12 @@ http://127.0.0.1:8080/plugin-assets/<plugin-id>/<version>/<relative-path>
 - 若要走菜单驱动访问，插件菜单 SQL 需要把 `path` 直接写成 `/plugin-assets/<plugin-id>/<version>/...`。
 - `is_frame = 0` 与 `is_frame = 1` 当前分别对应 `iframe` 与新标签页两种访问模式，review 时应同时核对菜单记录和最终页面行为。
 - 若要走宿主内嵌挂载，菜单还必须声明：
-  - `component = system/plugin/runtime-page`
+  - `component = system/plugin/dynamic-page`
   - `query_param` 至少包含 `{"pluginAccessMode":"embedded-mount"}`
-- 宿主会把原始托管资源地址透传为 `embeddedSrc` 查询参数，并在 `runtime-page` 壳中按最小 ESM 契约导入该入口。
+- 宿主会把原始托管资源地址透传为 `embeddedSrc` 查询参数，并在 `dynamic-page` 壳中按最小 ESM 契约导入该入口。
 - 当前 ESM 契约至少要求入口导出 `mount(context)`；`unmount(context)`、`update(context)` 为可选能力。
 - 若菜单选择宿主内嵌挂载模式，则入口文件扩展名当前必须为 `.js` 或 `.mjs`。
-- 前端资源缓存只是宿主运行态优化，真正的治理依据仍应以 `plugin.runtime.storagePath` 下的 `.wasm`、`sys_plugin_release`、`sys_plugin_resource_ref` 和当前插件状态为准。
+- 前端资源缓存只是宿主运行态优化，真正的治理依据仍应以 `plugin.dynamic.storagePath` 下的 `.wasm`、`sys_plugin_release`、`sys_plugin_resource_ref` 和当前插件状态为准。
 
 ## Review 检查清单
 
@@ -136,10 +136,10 @@ http://127.0.0.1:8080/plugin-assets/<plugin-id>/<version>/<relative-path>
 
 核对 `sys_plugin`：
 
-- `plugin_id`、`name`、`version`、`type` 是否与源码插件清单或 runtime wasm 嵌入清单一致
+- `plugin_id`、`name`、`version`、`type` 是否与源码插件清单或 dynamic wasm 嵌入清单一致
 - `installed`、`status` 是否与本次操作预期一致
 - 对源码插件，`manifest_path` 应指向正确的 `plugin.yaml`
-- 对 runtime 插件，`manifest_path` 当前允许为空，因为宿主以 `.wasm` 嵌入清单为真相源
+- 对动态插件，`manifest_path` 当前允许为空，因为宿主以 `.wasm` 嵌入清单为真相源
 
 建议查询：
 
@@ -154,12 +154,12 @@ ORDER BY plugin_id;
 核对 `sys_plugin_release`：
 
 - `release_version` 是否与当前生效版本一致
-- `runtime_kind` 对运行时插件应为 `wasm`
+- `runtime_kind` 对动态插件应为 `wasm`
 - `status` 是否符合当前生命周期动作（如 `active`、`installed`、`uninstalled`）
 - `manifest_snapshot` 中应包含基础清单字段和资源数量摘要，而不是具体文件路径
-- 若为运行时插件，`manifest_snapshot` 中应额外包含 `runtimeKind`、`runtimeAbiVersion`、`runtimeFrontendAssetCount`、`runtimeSqlAssetCount`
+- 若为动态插件，`manifest_snapshot` 中应额外包含 `runtimeKind`、`runtimeAbiVersion`、`runtimeFrontendAssetCount`、`runtimeSqlAssetCount`
 - `manifest_snapshot` 中的 `installSqlCount`、`uninstallSqlCount`、`frontendPageCount`、`frontendSlotCount` 是否与目录实际情况一致
-- 若运行时插件声明了嵌入 SQL，则 `installSqlCount` / `uninstallSqlCount` 当前表示**宿主最终会执行的 SQL 资源数量**，不再局限于目录扫描结果
+- 若动态插件声明了嵌入 SQL，则 `installSqlCount` / `uninstallSqlCount` 当前表示**宿主最终会执行的 SQL 资源数量**，不再局限于目录扫描结果
 
 建议查询：
 
@@ -171,7 +171,7 @@ ORDER BY plugin_id, release_version;
 
 ## 3. 迁移执行记录
 
-在运行时插件安装/卸载链路中，核对 `sys_plugin_migration`：
+在动态插件安装/卸载链路中，核对 `sys_plugin_migration`：
 
 - `phase` 只能是 `install` 或 `uninstall`
 - `migration_key` 应为抽象执行键，例如 `install-step-001`
@@ -200,7 +200,7 @@ ORDER BY plugin_id, release_id, phase, execution_order;
   - `uninstall_sql`
   - `frontend_page`
   - `frontend_slot`
-- 当前运行时插件快照至少还应覆盖：
+- 当前动态插件快照至少还应覆盖：
   - `runtime_wasm`
   - `runtime_frontend`（当运行时产物声明了前端静态资源时）
 
@@ -253,7 +253,7 @@ ORDER BY plugin_id, node_key;
 
 - 宿主当前还没有把“源码插件目录被删除”自动回收进注册表同步逻辑中。
 - 宿主当前还没有把插件菜单 SQL 进一步解析成 `menu_key` 级别的宿主资源引用记录。
-- 运行时插件的真实产物上传、装载隔离和热升级仍未实现。
+- 动态插件的真实产物上传、装载隔离和热升级仍未实现。
 - 仓库当前不提供插件打包脚本；这是有意保留的约束，避免出现与真实实现脱节的辅助脚本。
 
 ## 当前 review 结论口径

@@ -16,14 +16,14 @@ import {
   pluginUninstall,
 } from '#/api/system/plugin';
 import { notifyPluginRegistryChanged } from '#/plugins/slot-registry';
-import PluginRuntimeUploadModal from './plugin-runtime-upload-modal.vue';
+import PluginDynamicUploadModal from './plugin-dynamic-upload-modal.vue';
 
-const [RuntimeUploadModal, runtimeUploadModalApi] = useVbenModal({
-  connectedComponent: PluginRuntimeUploadModal,
+const [DynamicUploadModal, dynamicUploadModalApi] = useVbenModal({
+  connectedComponent: PluginDynamicUploadModal,
 });
 
 const typeColorMap: Record<string, string> = {
-  runtime: 'green',
+  dynamic: 'green',
   source: 'blue',
 };
 
@@ -47,7 +47,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
         componentProps: {
           options: [
             { label: '源码插件', value: 'source' },
-            { label: '运行时插件', value: 'runtime' },
+            { label: '动态插件', value: 'dynamic' },
           ],
         },
       },
@@ -143,11 +143,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
 });
 
 function getPluginTypeLabel(type: string) {
-  return type === 'source' ? '源码插件' : '运行时插件';
+  return type === 'source' ? '源码插件' : '动态插件';
 }
 
 function getPluginTypeColor(type: string) {
-  return typeColorMap[type === 'source' ? 'source' : 'runtime'] || 'default';
+  return typeColorMap[type === 'source' ? 'source' : 'dynamic'] || 'default';
 }
 
 function isSourcePlugin(row: SystemPlugin) {
@@ -170,7 +170,7 @@ async function handleInstall(row: SystemPlugin) {
   row.installed = 1;
   row.enabled = 0;
   await notifyPluginRegistryChanged();
-  message.success('运行时插件已安装');
+  message.success('动态插件已安装');
   await gridApi.query();
 }
 
@@ -179,7 +179,7 @@ async function handleUninstall(row: SystemPlugin) {
   row.installed = 0;
   row.enabled = 0;
   await notifyPluginRegistryChanged();
-  message.success('运行时插件已卸载');
+  message.success('动态插件已卸载');
   await gridApi.query();
 }
 
@@ -191,11 +191,11 @@ async function handleSync() {
   await gridApi.query();
 }
 
-function handleOpenRuntimeUpload() {
-  runtimeUploadModalApi.open();
+function handleOpenDynamicUpload() {
+  dynamicUploadModalApi.open();
 }
 
-async function handleRuntimeUploadReload() {
+async function handleDynamicUploadReload() {
   await notifyPluginRegistryChanged();
   await gridApi.query();
 }
@@ -207,9 +207,9 @@ async function handleRuntimeUploadReload() {
       <template #toolbar-tools>
         <Space>
           <a-button
-            data-testid="plugin-runtime-upload-trigger"
+            data-testid="plugin-dynamic-upload-trigger"
             type="primary"
-            @click="handleOpenRuntimeUpload"
+            @click="handleOpenDynamicUpload"
           >
             上传插件
           </a-button>
@@ -275,6 +275,6 @@ async function handleRuntimeUploadReload() {
         </Space>
       </template>
     </Grid>
-    <RuntimeUploadModal @reload="handleRuntimeUploadReload" />
+    <DynamicUploadModal @reload="handleDynamicUploadReload" />
   </Page>
 </template>

@@ -16,8 +16,8 @@ const mysqlUser = process.env.E2E_DB_USER ?? "root";
 const mysqlPassword = process.env.E2E_DB_PASSWORD ?? "12345678";
 const mysqlDatabase = process.env.E2E_DB_NAME ?? "lina";
 
-const goodPluginID = "plugin-runtime-hook-good";
-const badPluginID = "plugin-runtime-hook-bad";
+const goodPluginID = "plugin-dynamic-hook-good";
+const badPluginID = "plugin-dynamic-hook-bad";
 const goodPluginVersion = "v0.2.0";
 const badPluginVersion = "v0.2.0";
 const goodPluginLogTable = "plugin_runtime_hook_good_log";
@@ -143,7 +143,7 @@ function buildRuntimeWasmArtifact(options: {
       id: options.id,
       name: options.name,
       version: options.version,
-      type: "runtime",
+      type: "dynamic",
       description: options.description,
     }),
   );
@@ -158,7 +158,7 @@ function buildRuntimeWasmArtifact(options: {
 
   const bytes: number[] = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
   appendCustomSection(bytes, "lina.plugin.manifest", manifestPayload);
-  appendCustomSection(bytes, "lina.plugin.runtime", runtimePayload);
+  appendCustomSection(bytes, "lina.plugin.dynamic", runtimePayload);
 
   if (frontendAssets.length > 0) {
     appendCustomSection(
@@ -303,12 +303,12 @@ async function findPlugin(adminApi: APIRequestContext, pluginID: string) {
   return list.find((item) => item.id === pluginID) ?? null;
 }
 
-async function uploadRuntimePlugin(
+async function uploadDynamicPlugin(
   adminApi: APIRequestContext,
   artifactPath: string,
   overwrite = false,
 ) {
-  const response = await adminApi.post("plugins/runtime/package", {
+  const response = await adminApi.post("plugins/dynamic/package", {
     multipart: {
       overwriteSupport: overwrite ? "1" : "0",
       file: {
@@ -323,7 +323,7 @@ async function uploadRuntimePlugin(
 
 async function installPlugin(adminApi: APIRequestContext, pluginID: string) {
   const response = await adminApi.post(`plugins/${pluginID}/install`);
-  assertOk(response, `安装 runtime 插件失败: ${pluginID}`);
+  assertOk(response, `安装动态插件失败: ${pluginID}`);
 }
 
 async function setPluginEnabled(
@@ -357,7 +357,7 @@ function buildGoodRuntimeArtifact() {
     description: "Runtime plugin that records successful login hooks.",
     installSQLAssets: [
       {
-        key: "001-plugin-runtime-hook-good.sql",
+        key: "001-plugin-dynamic-hook-good.sql",
         content: [
           `CREATE TABLE IF NOT EXISTS ${goodPluginLogTable} (`,
           "  id INT PRIMARY KEY AUTO_INCREMENT,",
@@ -370,7 +370,7 @@ function buildGoodRuntimeArtifact() {
     ],
     uninstallSQLAssets: [
       {
-        key: "001-plugin-runtime-hook-good.sql",
+        key: "001-plugin-dynamic-hook-good.sql",
         content: `DROP TABLE IF EXISTS ${goodPluginLogTable};`,
       },
     ],
@@ -433,8 +433,8 @@ async function prepareEnabledRuntimePlugins(adminApi: APIRequestContext) {
   const goodArtifactPath = writeRuntimeArtifact(goodPluginID, buildGoodRuntimeArtifact());
   const badArtifactPath = writeRuntimeArtifact(badPluginID, buildBadRuntimeArtifact());
 
-  await uploadRuntimePlugin(adminApi, goodArtifactPath);
-  await uploadRuntimePlugin(adminApi, badArtifactPath);
+  await uploadDynamicPlugin(adminApi, goodArtifactPath);
+  await uploadDynamicPlugin(adminApi, badArtifactPath);
 
   await installPlugin(adminApi, goodPluginID);
   await installPlugin(adminApi, badPluginID);
@@ -489,7 +489,7 @@ test.describe("TC-68 运行时 wasm 失败隔离与回收", () => {
     expect(badPlugin?.enabled).toBe(1);
   });
 
-  test("TC-68b: 禁用 runtime 插件后会停止其 Hook 执行，重新启用后会恢复", async () => {
+  test("TC-68b: 禁用动态插件后会停止其 Hook 执行，重新启用后会恢复", async () => {
     await prepareEnabledRuntimePlugins(adminApi!);
 
     await loginByPassword(config.adminUser, config.adminPass);

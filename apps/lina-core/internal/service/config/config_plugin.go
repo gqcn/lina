@@ -10,30 +10,35 @@ import (
 
 // PluginConfig holds plugin-related host configuration.
 type PluginConfig struct {
-	Runtime PluginRuntimeConfig `json:"runtime"` // Runtime contains runtime wasm plugin storage settings.
+	Dynamic PluginDynamicConfig `json:"dynamic"` // Dynamic contains dynamic plugin storage settings.
+	Runtime PluginDynamicConfig `json:"runtime"` // Runtime keeps legacy config compatibility for older runtime keys.
 }
 
-// PluginRuntimeConfig holds runtime wasm plugin storage configuration.
-type PluginRuntimeConfig struct {
-	StoragePath string `json:"storagePath"` // StoragePath is the directory used to discover and store runtime wasm packages.
+// PluginDynamicConfig holds dynamic plugin storage configuration.
+type PluginDynamicConfig struct {
+	StoragePath string `json:"storagePath"` // StoragePath is the directory used to discover and store dynamic wasm packages.
 }
 
 // GetPlugin reads plugin config from configuration file.
 func (s *Service) GetPlugin(ctx context.Context) *PluginConfig {
 	cfg := &PluginConfig{
-		Runtime: PluginRuntimeConfig{
+		Dynamic: PluginDynamicConfig{
 			StoragePath: "temp/runtime",
 		},
 	}
 	_ = g.Cfg().MustGet(ctx, "plugin").Scan(cfg)
-	cfg.Runtime.StoragePath = strings.TrimSpace(cfg.Runtime.StoragePath)
-	if cfg.Runtime.StoragePath == "" {
-		cfg.Runtime.StoragePath = "temp/runtime"
+
+	cfg.Dynamic.StoragePath = strings.TrimSpace(cfg.Dynamic.StoragePath)
+	if cfg.Dynamic.StoragePath == "" {
+		cfg.Dynamic.StoragePath = strings.TrimSpace(cfg.Runtime.StoragePath)
+	}
+	if cfg.Dynamic.StoragePath == "" {
+		cfg.Dynamic.StoragePath = "temp/runtime"
 	}
 	return cfg
 }
 
-// GetPluginRuntimeStoragePath returns the normalized runtime wasm storage directory.
-func (s *Service) GetPluginRuntimeStoragePath(ctx context.Context) string {
-	return filepath.Clean(s.GetPlugin(ctx).Runtime.StoragePath)
+// GetPluginDynamicStoragePath returns the normalized dynamic wasm storage directory.
+func (s *Service) GetPluginDynamicStoragePath(ctx context.Context) string {
+	return filepath.Clean(s.GetPlugin(ctx).Dynamic.StoragePath)
 }

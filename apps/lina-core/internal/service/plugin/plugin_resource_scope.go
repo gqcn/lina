@@ -1,5 +1,5 @@
 // This file applies host role data-scope rules to plugin-owned generic
-// resource queries so runtime plugins can reuse Lina governance semantics.
+// resource queries so dynamic plugins can reuse Lina governance semantics.
 
 package plugin
 

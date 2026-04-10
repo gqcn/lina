@@ -10,10 +10,10 @@ import (
 )
 
 // TestMain keeps package-level tests self-contained by generating the bundled
-// runtime sample artifact before any test scans the shared plugin workspace.
+// dynamic sample artifact before any test scans the shared plugin workspace.
 func TestMain(m *testing.M) {
 	if err := ensureBundledRuntimeSampleArtifactForTests(); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "failed to prepare bundled runtime sample: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "failed to prepare bundled dynamic sample: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -26,7 +26,7 @@ func ensureBundledRuntimeSampleArtifactForTests() error {
 		return err
 	}
 
-	pluginDir := filepath.Join(repoRoot, "apps", "lina-plugins", "plugin-demo-runtime")
+	pluginDir := filepath.Join(repoRoot, "apps", "lina-plugins", "plugin-demo-dynamic")
 	if _, statErr := os.Stat(filepath.Join(pluginDir, "plugin.yaml")); statErr != nil {
 		if os.IsNotExist(statErr) {
 			return nil

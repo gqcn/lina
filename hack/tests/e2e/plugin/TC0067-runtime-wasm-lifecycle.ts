@@ -19,18 +19,18 @@ const mysqlBin = process.env.E2E_MYSQL_BIN ?? "mysql";
 const mysqlUser = process.env.E2E_DB_USER ?? "root";
 const mysqlPassword = process.env.E2E_DB_PASSWORD ?? "12345678";
 const mysqlDatabase = process.env.E2E_DB_NAME ?? "lina";
-const pluginID = "plugin-runtime-e2e";
+const pluginID = "plugin-dynamic-e2e";
 const pluginName = "Runtime E2E Plugin";
 const pluginVersion = "v0.1.0";
 const hostedAssetPath = `/plugin-assets/${pluginID}/${pluginVersion}/index.html`;
 const embeddedAssetPath = `/plugin-assets/${pluginID}/${pluginVersion}/mount.js`;
-const iframeMenuKey = "plugin:plugin-runtime-e2e:iframe-entry";
-const embeddedMenuKey = "plugin:plugin-runtime-e2e:embedded-entry";
-const newWindowMenuKey = "plugin:plugin-runtime-e2e:new-window-entry";
+const iframeMenuKey = "plugin:plugin-dynamic-e2e:iframe-entry";
+const embeddedMenuKey = "plugin:plugin-dynamic-e2e:embedded-entry";
+const newWindowMenuKey = "plugin:plugin-dynamic-e2e:new-window-entry";
 const iframeMenuName = "运行时 iframe 示例";
 const embeddedMenuName = "运行时内嵌示例";
 const newWindowMenuName = "运行时新标签页示例";
-const bundledRuntimePluginID = "plugin-demo-runtime";
+const bundledRuntimePluginID = "plugin-demo-dynamic";
 const bundledRuntimeLegacyArtifactPath = path.join(
   repoRoot(),
   "apps",
@@ -47,9 +47,9 @@ const bundledRuntimeTempArtifactPath = path.join(
   "temp",
   `${bundledRuntimePluginID}.wasm`,
 );
-const bundledRuntimeMenuName = "运行时插件示例";
+const bundledRuntimeMenuName = "动态插件示例";
 const bundledRuntimeStandalonePath =
-  "/plugin-assets/plugin-demo-runtime/v0.1.0/standalone.html";
+  "/plugin-assets/plugin-demo-dynamic/v0.1.0/standalone.html";
 
 type PluginListItem = {
   id: string;
@@ -238,9 +238,9 @@ function buildRuntimeInstallSQL() {
     `DELETE FROM sys_role_menu WHERE menu_id IN (SELECT menu_ids.id FROM (SELECT id FROM sys_menu WHERE menu_key IN ('${iframeMenuKey}', '${embeddedMenuKey}', '${newWindowMenuKey}')) AS menu_ids);`,
     `DELETE FROM sys_menu WHERE menu_key IN ('${iframeMenuKey}', '${embeddedMenuKey}', '${newWindowMenuKey}');`,
     "INSERT IGNORE INTO sys_menu (parent_id, menu_key, name, path, component, perms, icon, type, sort, visible, status, is_frame, is_cache, query_param, remark, created_at, updated_at)",
-    `VALUES (0, '${iframeMenuKey}', '${iframeMenuName}', '${hostedAssetPath}', '', 'plugin-runtime-e2e:iframe:view', 'ant-design:appstore-outlined', 'M', -3, 1, 1, 0, 0, '', 'Runtime-hosted iframe entry used by Playwright verification.', NOW(), NOW()),`,
-    `(0, '${embeddedMenuKey}', '${embeddedMenuName}', '${embeddedAssetPath}', 'system/plugin/runtime-page', 'plugin-runtime-e2e:embedded:view', 'ant-design:deployment-unit-outlined', 'M', -2, 1, 1, 0, 0, '${embeddedMenuQueryParam}', 'Runtime-hosted embedded mount entry used by Playwright verification.', NOW(), NOW()),`,
-    `(0, '${newWindowMenuKey}', '${newWindowMenuName}', '${hostedAssetPath}', '', 'plugin-runtime-e2e:new-window:view', 'ant-design:link-outlined', 'M', -1, 1, 1, 1, 0, '', 'Runtime-hosted new-window entry used by Playwright verification.', NOW(), NOW());`,
+    `VALUES (0, '${iframeMenuKey}', '${iframeMenuName}', '${hostedAssetPath}', '', 'plugin-dynamic-e2e:iframe:view', 'ant-design:appstore-outlined', 'M', -3, 1, 1, 0, 0, '', 'Runtime-hosted iframe entry used by Playwright verification.', NOW(), NOW()),`,
+    `(0, '${embeddedMenuKey}', '${embeddedMenuName}', '${embeddedAssetPath}', 'system/plugin/dynamic-page', 'plugin-dynamic-e2e:embedded:view', 'ant-design:deployment-unit-outlined', 'M', -2, 1, 1, 0, 0, '${embeddedMenuQueryParam}', 'Runtime-hosted embedded mount entry used by Playwright verification.', NOW(), NOW()),`,
+    `(0, '${newWindowMenuKey}', '${newWindowMenuName}', '${hostedAssetPath}', '', 'plugin-dynamic-e2e:new-window:view', 'ant-design:link-outlined', 'M', -1, 1, 1, 1, 0, '', 'Runtime-hosted new-window entry used by Playwright verification.', NOW(), NOW());`,
     "INSERT IGNORE INTO sys_role_menu (role_id, menu_id)",
     `SELECT 1, id FROM sys_menu WHERE menu_key IN ('${iframeMenuKey}', '${embeddedMenuKey}', '${newWindowMenuKey}');`,
   ].join("\n");
@@ -307,7 +307,7 @@ function buildRuntimeWasmFixture() {
       id: pluginID,
       name: pluginName,
       version: pluginVersion,
-      type: "runtime",
+      type: "dynamic",
       description: "Runtime plugin used by Playwright lifecycle verification.",
     }),
   );
@@ -322,7 +322,7 @@ function buildRuntimeWasmFixture() {
   const installSQLPayload = Buffer.from(
     JSON.stringify([
       {
-        key: "001-plugin-runtime-e2e.sql",
+        key: "001-plugin-dynamic-e2e.sql",
         content: buildRuntimeInstallSQL(),
       },
     ]),
@@ -330,7 +330,7 @@ function buildRuntimeWasmFixture() {
   const uninstallSQLPayload = Buffer.from(
     JSON.stringify([
       {
-        key: "001-plugin-runtime-e2e.sql",
+        key: "001-plugin-dynamic-e2e.sql",
         content: buildRuntimeUninstallSQL(),
       },
     ]),
@@ -338,7 +338,7 @@ function buildRuntimeWasmFixture() {
 
   const bytes: number[] = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
   appendCustomSection(bytes, "lina.plugin.manifest", manifestPayload);
-  appendCustomSection(bytes, "lina.plugin.runtime", runtimePayload);
+  appendCustomSection(bytes, "lina.plugin.dynamic", runtimePayload);
   appendCustomSection(
     bytes,
     "lina.plugin.frontend.assets",
@@ -374,12 +374,12 @@ async function setPluginEnabled(
 
 async function installPlugin(adminApi: APIRequestContext, id = pluginID) {
   const response = await adminApi.post(`plugins/${id}/install`);
-  assertOk(response, "安装运行时插件失败");
+  assertOk(response, "安装动态插件失败");
 }
 
 async function uninstallPlugin(adminApi: APIRequestContext, id = pluginID) {
   const response = await adminApi.delete(`plugins/${id}`);
-  assertOk(response, "卸载运行时插件失败");
+  assertOk(response, "卸载动态插件失败");
 }
 
 async function resetBundledRuntimePlugin(adminApi: APIRequestContext) {
@@ -455,15 +455,15 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
 
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
-    await expect(pluginPage.runtimeUploadTriggerLabel()).toBeVisible();
-    await expect(pluginPage.runtimeUploadTrigger).toHaveClass(
+    await expect(pluginPage.dynamicUploadTriggerLabel()).toBeVisible();
+    await expect(pluginPage.dynamicUploadTrigger).toHaveClass(
       /ant-btn-primary/,
     );
 
-    await pluginPage.runtimeUploadTrigger.click();
-    await expect(pluginPage.runtimeUploadDialog()).toBeVisible();
-    await expect(pluginPage.runtimeUploadHint()).toBeVisible();
-    await expect(pluginPage.runtimeOverwriteHint()).toBeVisible();
+    await pluginPage.dynamicUploadTrigger.click();
+    await expect(pluginPage.dynamicUploadDialog()).toBeVisible();
+    await expect(pluginPage.dynamicUploadHint()).toBeVisible();
+    await expect(pluginPage.dynamicOverwriteHint()).toBeVisible();
   });
 
   test("TC-67b: 上传 runtime wasm 后宿主立即识别插件并进入可安装状态", async ({
@@ -474,14 +474,14 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
 
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
-    await pluginPage.uploadRuntimePlugin(
+    await pluginPage.uploadDynamicPlugin(
       wasmPath,
       false,
       "上传成功，请在插件列表中继续安装并启用。",
     );
 
     const pluginAfterUpload = await findPlugin(adminApi!);
-    expect(pluginAfterUpload, "上传后应发现 runtime 插件").toBeTruthy();
+    expect(pluginAfterUpload, "上传后应发现动态插件").toBeTruthy();
     expect(pluginAfterUpload?.installed, "上传后默认仍未安装").toBe(0);
     expect(pluginAfterUpload?.enabled ?? 0, "上传后默认仍未启用").toBe(0);
     await expect(
@@ -497,7 +497,7 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
 
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
-    await pluginPage.uploadRuntimePlugin(wasmPath);
+    await pluginPage.uploadDynamicPlugin(wasmPath);
     // The action column is rendered by a detached fixed-table layer, so the
     // install/uninstall state transitions are driven through API setup while
     // the UI still validates the resulting registry and switch status.
@@ -526,7 +526,7 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
 
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
-    await pluginPage.uploadRuntimePlugin(wasmPath);
+    await pluginPage.uploadDynamicPlugin(wasmPath);
     await installPlugin(adminApi!, pluginID);
     await page.reload();
     await pluginPage.setPluginEnabled(pluginID, true);
@@ -553,7 +553,7 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
 
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
-    await pluginPage.uploadRuntimePlugin(wasmPath);
+    await pluginPage.uploadDynamicPlugin(wasmPath);
     await installPlugin(adminApi!, pluginID);
     await page.reload();
     await pluginPage.setPluginEnabled(pluginID, true);
@@ -587,7 +587,7 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
 
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
-    await pluginPage.uploadRuntimePlugin(wasmPath);
+    await pluginPage.uploadDynamicPlugin(wasmPath);
     await installPlugin(adminApi!, pluginID);
     await page.reload();
     await pluginPage.setPluginEnabled(pluginID, true);
@@ -627,7 +627,7 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
 
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
-    await pluginPage.uploadRuntimePlugin(wasmPath);
+    await pluginPage.uploadDynamicPlugin(wasmPath);
     await installPlugin(adminApi!, pluginID);
     await page.reload();
     await pluginPage.setPluginEnabled(pluginID, true);
@@ -636,12 +636,12 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
     const routes = await fetchCurrentUserRoutes(adminApi!);
     const embeddedRoute = findRouteByTitle(routes, embeddedMenuName);
     expect(embeddedRoute, "启用后应生成宿主内嵌动态路由").toBeTruthy();
-    expect(embeddedRoute?.component).toBe("#/views/system/plugin/runtime-page");
+    expect(embeddedRoute?.component).toBe("#/views/system/plugin/dynamic-page");
     expect(embeddedRoute?.meta?.query?.pluginAccessMode).toBe("embedded-mount");
     expect(embeddedRoute?.meta?.query?.embeddedSrc).toBe(embeddedAssetPath);
 
     await pluginPage.clickSidebarMenuItem(embeddedMenuName);
-    await expect(pluginPage.pluginRuntimeEmbeddedHost()).toBeVisible();
+    await expect(pluginPage.pluginDynamicEmbeddedHost()).toBeVisible();
     await expect(page.getByRole("heading", { name: pluginName })).toBeVisible();
     await expect(
       page.getByText("runtime embedded mount", { exact: true }),
@@ -653,7 +653,7 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
     ).not.toContain("/plugin-assets/");
   });
 
-  test("TC-67h: 独立的 plugin-demo-runtime 菜单页会展示按钮并打开纯静态独立页面", async ({
+  test("TC-67h: 独立的 plugin-demo-dynamic 菜单页会展示按钮并打开纯静态独立页面", async ({
     page,
   }) => {
     await loginAsAdmin(page);
@@ -668,40 +668,40 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
     await page.reload();
 
     await pluginPage.clickSidebarMenuItem(bundledRuntimeMenuName);
-    await expect(pluginPage.pluginRuntimeEmbeddedHost()).toBeVisible();
-    await expect(pluginPage.pluginDemoRuntimeTitle()).toBeVisible();
-    await expect(pluginPage.pluginDemoRuntimeDescription()).toBeVisible();
+    await expect(pluginPage.pluginDynamicEmbeddedHost()).toBeVisible();
+    await expect(pluginPage.pluginDemoDynamicTitle()).toBeVisible();
+    await expect(pluginPage.pluginDemoDynamicDescription()).toBeVisible();
     await expect(page.getByText("动态加载").first()).toBeVisible();
     await expect(
-      pluginPage.pluginDemoRuntimeOpenStandaloneButton(),
+      pluginPage.pluginDemoDynamicOpenStandaloneButton(),
     ).toBeVisible();
-    await pluginPage.pluginDemoRuntimeOpenStandaloneButton().hover();
+    await pluginPage.pluginDemoDynamicOpenStandaloneButton().hover();
     await expect
       .poll(async () => {
         return pluginPage
-          .pluginDemoRuntimeOpenStandaloneButton()
+          .pluginDemoDynamicOpenStandaloneButton()
           .evaluate((node) => window.getComputedStyle(node).cursor);
       })
       .toBe("pointer");
 
     const popupPromise = page.waitForEvent("popup");
-    await pluginPage.pluginDemoRuntimeOpenStandaloneButton().click();
+    await pluginPage.pluginDemoDynamicOpenStandaloneButton().click();
     const popup = await popupPromise;
     await popup.waitForLoadState("domcontentloaded");
 
     expect(
       new URL(popup.url()).pathname,
-      "独立页面应落到 runtime 插件托管的静态资源地址",
+      "独立页面应落到动态插件托管的静态资源地址",
     ).toBe(bundledRuntimeStandalonePath);
     await expect(
-      popup.getByTestId("plugin-demo-runtime-standalone"),
+      popup.getByTestId("plugin-demo-dynamic-standalone"),
     ).toBeVisible();
     await expect(
       popup.getByRole("heading", { name: "独立页面已成功打开" }),
     ).toBeVisible();
     await expect(
       popup.getByText(
-        "当前页面由 plugin-demo-runtime 直接以托管静态资源形式提供，不依赖 Vben 前端框架。",
+        "当前页面由 plugin-demo-dynamic 直接以托管静态资源形式提供，不依赖 Vben 前端框架。",
       ),
     ).toBeVisible();
     await popup.close();
@@ -715,7 +715,7 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
 
     const pluginPage = new PluginPage(page);
     await pluginPage.gotoManage();
-    await pluginPage.uploadRuntimePlugin(wasmPath);
+    await pluginPage.uploadDynamicPlugin(wasmPath);
     await installPlugin(adminApi!, pluginID);
     await page.reload();
     await pluginPage.setPluginEnabled(pluginID, true);
@@ -737,12 +737,12 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
     expect(pluginAfterArtifactRemoval?.installed).toBe(0);
     expect(pluginAfterArtifactRemoval?.enabled).toBe(0);
 
-    await pluginPage.uploadRuntimePlugin(wasmPath);
+    await pluginPage.uploadDynamicPlugin(wasmPath);
 
     const pluginAfterReupload = await findPlugin(adminApi!);
     expect(
       pluginAfterReupload,
-      "重新上传后应重新识别 runtime 插件",
+      "重新上传后应重新识别动态插件",
     ).toBeTruthy();
     expect(pluginAfterReupload?.installed).toBe(0);
     expect(pluginAfterReupload?.enabled).toBe(0);

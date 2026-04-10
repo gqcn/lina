@@ -15,14 +15,14 @@ func TestSyncPluginResourceReferencesRevivesSoftDeletedRows(t *testing.T) {
 	service := New()
 	ctx := context.Background()
 
-	pluginID := "plugin-runtime-ref-revive"
+	pluginID := "plugin-dynamic-ref-revive"
 	pluginDir := createTestRuntimePluginDir(
 		t,
 		pluginID,
 		"Runtime Ref Revive Plugin",
 		"v0.9.0",
-		[]*pluginRuntimeArtifactSQLAsset{
-			{Key: "001-plugin-runtime-ref-revive.sql", Content: "SELECT 1;"},
+		[]*pluginDynamicArtifactSQLAsset{
+			{Key: "001-plugin-dynamic-ref-revive.sql", Content: "SELECT 1;"},
 		},
 		nil,
 	)
@@ -31,12 +31,12 @@ func TestSyncPluginResourceReferencesRevivesSoftDeletedRows(t *testing.T) {
 		ID:           pluginID,
 		Name:         "Runtime Ref Revive Plugin",
 		Version:      "v0.9.0",
-		Type:         pluginTypeRuntime.String(),
+		Type:         pluginTypeDynamic.String(),
 		ManifestPath: filepath.Join(pluginDir, "plugin.yaml"),
 		RootDir:      pluginDir,
 	}
 	if err := service.validatePluginManifest(manifest, manifest.ManifestPath); err != nil {
-		t.Fatalf("expected runtime manifest to be valid, got error: %v", err)
+		t.Fatalf("expected dynamic manifest to be valid, got error: %v", err)
 	}
 
 	cleanupPluginGovernanceRowsHard(t, ctx, pluginID)

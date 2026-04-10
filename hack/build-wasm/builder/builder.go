@@ -1,4 +1,4 @@
-// Package builder implements a standalone runtime wasm packer for plugin
+// Package builder implements a standalone dynamic wasm packer for plugin
 // source trees. It intentionally lives outside lina-core so development-time
 // packaging does not depend on the host service module.
 package builder
@@ -19,17 +19,17 @@ import (
 )
 
 const (
-	pluginTypeRuntime                = "runtime"
-	pluginRuntimeKindWasm            = "wasm"
-	pluginRuntimeSupportedABIVersion = "v1"
+	pluginTypeDynamic                = "dynamic"
+	pluginDynamicKindWasm            = "wasm"
+	pluginDynamicSupportedABIVersion = "v1"
 
-	pluginRuntimeWasmSectionManifest     = "lina.plugin.manifest"
-	pluginRuntimeWasmSectionRuntime      = "lina.plugin.runtime"
-	pluginRuntimeWasmSectionFrontend     = "lina.plugin.frontend.assets"
-	pluginRuntimeWasmSectionInstallSQL   = "lina.plugin.install.sql"
-	pluginRuntimeWasmSectionUninstallSQL = "lina.plugin.uninstall.sql"
-	pluginRuntimeWasmSectionBackendHooks = "lina.plugin.backend.hooks"
-	pluginRuntimeWasmSectionBackendRes   = "lina.plugin.backend.resources"
+	pluginDynamicWasmSectionManifest     = "lina.plugin.manifest"
+	pluginDynamicWasmSectionDynamic      = "lina.plugin.dynamic"
+	pluginDynamicWasmSectionFrontend     = "lina.plugin.frontend.assets"
+	pluginDynamicWasmSectionInstallSQL   = "lina.plugin.install.sql"
+	pluginDynamicWasmSectionUninstallSQL = "lina.plugin.uninstall.sql"
+	pluginDynamicWasmSectionBackendHooks = "lina.plugin.backend.hooks"
+	pluginDynamicWasmSectionBackendRes   = "lina.plugin.backend.resources"
 )
 
 var (
@@ -38,7 +38,7 @@ var (
 	safeIdentifierPattern       = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
 )
 
-// RuntimeBuildOutput contains the generated runtime artifact bytes and output path.
+// RuntimeBuildOutput contains the generated dynamic artifact bytes and output path.
 type RuntimeBuildOutput struct {
 	ArtifactPath string
 	Content      []byte
@@ -52,7 +52,7 @@ type pluginManifest struct {
 	Description string `yaml:"description"`
 }
 
-type runtimeArtifactManifest struct {
+type dynamicArtifactManifest struct {
 	ID          string `json:"id" yaml:"id"`
 	Name        string `json:"name" yaml:"name"`
 	Version     string `json:"version" yaml:"version"`
@@ -60,7 +60,7 @@ type runtimeArtifactManifest struct {
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
-type runtimeArtifactMetadata struct {
+type dynamicArtifactMetadata struct {
 	RuntimeKind        string `json:"runtimeKind" yaml:"runtimeKind"`
 	ABIVersion         string `json:"abiVersion" yaml:"abiVersion"`
 	FrontendAssetCount int    `json:"frontendAssetCount,omitempty" yaml:"frontendAssetCount,omitempty"`
@@ -177,13 +177,13 @@ var supportedHookModes = map[hookExtensionPoint]map[callbackExecutionMode]struct
 	extensionPointSystemStarted:       {callbackExecutionModeBlocking: {}, callbackExecutionModeAsync: {}},
 }
 
-// BuildRuntimeWasmArtifactFromSource builds one runtime wasm artifact from a clear-text plugin directory.
+// BuildRuntimeWasmArtifactFromSource builds one dynamic wasm artifact from a clear-text plugin directory.
 func BuildRuntimeWasmArtifactFromSource(pluginDir string) (*RuntimeBuildOutput, error) {
 	manifestPath := filepath.Join(pluginDir, "plugin.yaml")
 
 	manifest := &pluginManifest{}
 	if err := loadYAMLFile(manifestPath, manifest); err != nil {
-		return nil, fmt.Errorf("failed to load runtime plugin manifest: %w", err)
+		return nil, fmt.Errorf("failed to load dynamic plugin manifest: %w", err)
 	}
 	if err := validateRuntimeBuildManifest(manifest, manifestPath); err != nil {
 		return nil, err
@@ -228,17 +228,17 @@ func BuildRuntimeWasmArtifactFromSource(pluginDir string) (*RuntimeBuildOutput, 
 	}, nil
 }
 
-// WriteRuntimeWasmArtifactFromSource builds and writes one runtime artifact into temp/<plugin-id>.wasm.
+// WriteRuntimeWasmArtifactFromSource builds and writes one dynamic artifact into temp/<plugin-id>.wasm.
 func WriteRuntimeWasmArtifactFromSource(pluginDir string) (*RuntimeBuildOutput, error) {
 	out, err := BuildRuntimeWasmArtifactFromSource(pluginDir)
 	if err != nil {
 		return nil, err
 	}
 	if err = os.MkdirAll(filepath.Dir(out.ArtifactPath), 0o755); err != nil {
-		return nil, fmt.Errorf("failed to create runtime artifact directory: %w", err)
+		return nil, fmt.Errorf("failed to create dynamic artifact directory: %w", err)
 	}
 	if err = os.WriteFile(out.ArtifactPath, out.Content, 0o644); err != nil {
-		return nil, fmt.Errorf("failed to write runtime artifact: %w", err)
+		return nil, fmt.Errorf("failed to write dynamic artifact: %w", err)
 	}
 	return out, nil
 }
@@ -261,26 +261,26 @@ func buildRuntimeBuildOutputRelativePath(pluginID string) string {
 
 func validateRuntimeBuildManifest(manifest *pluginManifest, manifestPath string) error {
 	if manifest == nil {
-		return fmt.Errorf("runtime plugin manifest cannot be nil")
+		return fmt.Errorf("dynamic plugin manifest cannot be nil")
 	}
 	if strings.TrimSpace(manifest.ID) == "" {
-		return fmt.Errorf("runtime plugin manifest missing id: %s", manifestPath)
+		return fmt.Errorf("dynamic plugin manifest missing id: %s", manifestPath)
 	}
 	if strings.TrimSpace(manifest.Name) == "" {
-		return fmt.Errorf("runtime plugin manifest missing name: %s", manifestPath)
+		return fmt.Errorf("dynamic plugin manifest missing name: %s", manifestPath)
 	}
 	if strings.TrimSpace(manifest.Version) == "" {
-		return fmt.Errorf("runtime plugin manifest missing version: %s", manifestPath)
+		return fmt.Errorf("dynamic plugin manifest missing version: %s", manifestPath)
 	}
 	manifest.Type = strings.ToLower(strings.TrimSpace(manifest.Type))
-	if manifest.Type != pluginTypeRuntime {
-		return fmt.Errorf("runtime sample manifest type must be runtime: %s", manifestPath)
+	if manifest.Type != pluginTypeDynamic {
+		return fmt.Errorf("dynamic sample manifest type must be dynamic: %s", manifestPath)
 	}
 	if !pluginManifestIDPattern.MatchString(manifest.ID) {
-		return fmt.Errorf("runtime plugin id must use kebab-case: %s", manifest.ID)
+		return fmt.Errorf("dynamic plugin id must use kebab-case: %s", manifest.ID)
 	}
 	if err := validateSemanticVersion(manifest.Version); err != nil {
-		return fmt.Errorf("runtime plugin version is invalid: %w", err)
+		return fmt.Errorf("dynamic plugin version is invalid: %w", err)
 	}
 	return nil
 }
@@ -673,19 +673,19 @@ func buildRuntimeArtifactContent(
 	hookSpecs []*hookSpec,
 	resourceSpecs []*resourceSpec,
 ) ([]byte, error) {
-	manifestPayload, err := json.Marshal(&runtimeArtifactManifest{
+	manifestPayload, err := json.Marshal(&dynamicArtifactManifest{
 		ID:          manifest.ID,
 		Name:        manifest.Name,
 		Version:     manifest.Version,
-		Type:        pluginTypeRuntime,
+		Type:        pluginTypeDynamic,
 		Description: manifest.Description,
 	})
 	if err != nil {
 		return nil, err
 	}
-	runtimePayload, err := json.Marshal(&runtimeArtifactMetadata{
-		RuntimeKind:        pluginRuntimeKindWasm,
-		ABIVersion:         pluginRuntimeSupportedABIVersion,
+	runtimePayload, err := json.Marshal(&dynamicArtifactMetadata{
+		RuntimeKind:        pluginDynamicKindWasm,
+		ABIVersion:         pluginDynamicSupportedABIVersion,
 		FrontendAssetCount: len(frontendAssets),
 		SQLAssetCount:      len(installSQLAssets) + len(uninstallSQLAssets),
 	})
@@ -694,43 +694,43 @@ func buildRuntimeArtifactContent(
 	}
 
 	content := []byte{0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00}
-	content = appendWasmCustomSection(content, pluginRuntimeWasmSectionManifest, manifestPayload)
-	content = appendWasmCustomSection(content, pluginRuntimeWasmSectionRuntime, runtimePayload)
+	content = appendWasmCustomSection(content, pluginDynamicWasmSectionManifest, manifestPayload)
+	content = appendWasmCustomSection(content, pluginDynamicWasmSectionDynamic, runtimePayload)
 
 	if len(frontendAssets) > 0 {
 		payload, err := json.Marshal(frontendAssets)
 		if err != nil {
 			return nil, err
 		}
-		content = appendWasmCustomSection(content, pluginRuntimeWasmSectionFrontend, payload)
+		content = appendWasmCustomSection(content, pluginDynamicWasmSectionFrontend, payload)
 	}
 	if len(installSQLAssets) > 0 {
 		payload, err := json.Marshal(installSQLAssets)
 		if err != nil {
 			return nil, err
 		}
-		content = appendWasmCustomSection(content, pluginRuntimeWasmSectionInstallSQL, payload)
+		content = appendWasmCustomSection(content, pluginDynamicWasmSectionInstallSQL, payload)
 	}
 	if len(uninstallSQLAssets) > 0 {
 		payload, err := json.Marshal(uninstallSQLAssets)
 		if err != nil {
 			return nil, err
 		}
-		content = appendWasmCustomSection(content, pluginRuntimeWasmSectionUninstallSQL, payload)
+		content = appendWasmCustomSection(content, pluginDynamicWasmSectionUninstallSQL, payload)
 	}
 	if len(hookSpecs) > 0 {
 		payload, err := json.Marshal(hookSpecs)
 		if err != nil {
 			return nil, err
 		}
-		content = appendWasmCustomSection(content, pluginRuntimeWasmSectionBackendHooks, payload)
+		content = appendWasmCustomSection(content, pluginDynamicWasmSectionBackendHooks, payload)
 	}
 	if len(resourceSpecs) > 0 {
 		payload, err := json.Marshal(resourceSpecs)
 		if err != nil {
 			return nil, err
 		}
-		content = appendWasmCustomSection(content, pluginRuntimeWasmSectionBackendRes, payload)
+		content = appendWasmCustomSection(content, pluginDynamicWasmSectionBackendRes, payload)
 	}
 	return content, nil
 }

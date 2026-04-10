@@ -6,8 +6,8 @@ import (
 	"lina-core/api/plugin/v1"
 )
 
-// IPluginPublicV1 defines public plugin runtime APIs.
+// IPluginPublicV1 defines public dynamic-plugin APIs.
 type IPluginPublicV1 interface {
-	// RuntimeList returns public plugin runtime states for slot rendering.
-	RuntimeList(ctx context.Context, req *v1.RuntimeListReq) (res *v1.RuntimeListRes, err error)
+	// DynamicList returns public dynamic-plugin states for slot rendering.
+	DynamicList(ctx context.Context, req *v1.DynamicListReq) (res *v1.DynamicListRes, err error)
 }

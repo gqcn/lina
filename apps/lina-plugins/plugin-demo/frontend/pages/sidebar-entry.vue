@@ -15,7 +15,7 @@ import {
 } from 'ant-design-vue';
 
 import { requestClient } from '#/api/request';
-import { Page } from '#/plugins/runtime';
+import { Page } from '#/plugins/dynamic';
 
 interface PluginSummary {
   message: string;

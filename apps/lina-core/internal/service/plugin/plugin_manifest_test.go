@@ -60,37 +60,37 @@ func TestValidatePluginManifestAcceptsRuntimePluginWithEmbeddedWasmMetadata(t *t
 	service := New()
 	pluginDir := createTestRuntimePluginDir(
 		t,
-		"plugin-runtime-valid",
+		"plugin-dynamic-valid",
 		"Runtime Validation Plugin",
 		"v0.2.0",
-		[]*pluginRuntimeArtifactSQLAsset{
-			{Key: "001-plugin-runtime-valid.sql", Content: "SELECT 1;"},
+		[]*pluginDynamicArtifactSQLAsset{
+			{Key: "001-plugin-dynamic-valid.sql", Content: "SELECT 1;"},
 		},
-		[]*pluginRuntimeArtifactSQLAsset{
-			{Key: "001-plugin-runtime-valid.sql", Content: "SELECT 2;"},
+		[]*pluginDynamicArtifactSQLAsset{
+			{Key: "001-plugin-dynamic-valid.sql", Content: "SELECT 2;"},
 		},
 	)
 
 	manifestFile := filepath.Join(pluginDir, "plugin.yaml")
 	manifest := &pluginManifest{
-		ID:          "plugin-runtime-valid",
+		ID:          "plugin-dynamic-valid",
 		Name:        "Runtime Validation Plugin",
 		Version:     "v0.2.0",
-		Type:        pluginTypeRuntime.String(),
-		Description: "A valid runtime plugin manifest used by unit tests.",
+		Type:        pluginTypeDynamic.String(),
+		Description: "A valid dynamic plugin manifest used by unit tests.",
 	}
 
 	if err := service.validatePluginManifest(manifest, manifestFile); err != nil {
-		t.Fatalf("expected runtime manifest to be valid, got error: %v", err)
+		t.Fatalf("expected dynamic manifest to be valid, got error: %v", err)
 	}
 	if manifest.RuntimeArtifact == nil {
-		t.Fatalf("expected runtime artifact metadata to be loaded")
+		t.Fatalf("expected dynamic artifact metadata to be loaded")
 	}
-	if manifest.RuntimeArtifact.RuntimeKind != pluginRuntimeKindWasm.String() {
+	if manifest.RuntimeArtifact.RuntimeKind != pluginDynamicKindWasm.String() {
 		t.Fatalf("expected runtime kind wasm, got %s", manifest.RuntimeArtifact.RuntimeKind)
 	}
-	if manifest.RuntimeArtifact.ABIVersion != pluginRuntimeSupportedABIVersion {
-		t.Fatalf("expected ABI version %s, got %s", pluginRuntimeSupportedABIVersion, manifest.RuntimeArtifact.ABIVersion)
+	if manifest.RuntimeArtifact.ABIVersion != pluginDynamicSupportedABIVersion {
+		t.Fatalf("expected ABI version %s, got %s", pluginDynamicSupportedABIVersion, manifest.RuntimeArtifact.ABIVersion)
 	}
 }
 
@@ -98,18 +98,18 @@ func TestValidatePluginManifestAcceptsRuntimePluginWithEmbeddedFrontendAssets(t 
 	service := New()
 	pluginDir := createTestRuntimePluginDirWithFrontendAssets(
 		t,
-		"plugin-runtime-frontend",
+		"plugin-dynamic-frontend",
 		"Runtime Frontend Plugin",
 		"v0.2.1",
-		[]*pluginRuntimeArtifactFrontendAsset{
+		[]*pluginDynamicArtifactFrontendAsset{
 			{
 				Path:          "index.html",
-				ContentBase64: base64.StdEncoding.EncodeToString([]byte("<html><body>runtime frontend</body></html>")),
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("<html><body>dynamic frontend</body></html>")),
 				ContentType:   "text/html; charset=utf-8",
 			},
 			{
 				Path:          "assets/app.js",
-				ContentBase64: base64.StdEncoding.EncodeToString([]byte("console.log('runtime frontend')")),
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("console.log('dynamic frontend')")),
 				ContentType:   "application/javascript",
 			},
 		},
@@ -119,17 +119,17 @@ func TestValidatePluginManifestAcceptsRuntimePluginWithEmbeddedFrontendAssets(t 
 
 	manifestFile := filepath.Join(pluginDir, "plugin.yaml")
 	manifest := &pluginManifest{
-		ID:      "plugin-runtime-frontend",
+		ID:      "plugin-dynamic-frontend",
 		Name:    "Runtime Frontend Plugin",
 		Version: "v0.2.1",
-		Type:    pluginTypeRuntime.String(),
+		Type:    pluginTypeDynamic.String(),
 	}
 
 	if err := service.validatePluginManifest(manifest, manifestFile); err != nil {
-		t.Fatalf("expected runtime frontend manifest to be valid, got error: %v", err)
+		t.Fatalf("expected dynamic frontend manifest to be valid, got error: %v", err)
 	}
 	if manifest.RuntimeArtifact == nil {
-		t.Fatalf("expected runtime artifact metadata to be loaded")
+		t.Fatalf("expected dynamic artifact metadata to be loaded")
 	}
 	if len(manifest.RuntimeArtifact.FrontendAssets) != 2 {
 		t.Fatalf("expected 2 frontend assets, got %d", len(manifest.RuntimeArtifact.FrontendAssets))
@@ -143,42 +143,42 @@ func TestValidatePluginManifestRejectsMismatchedRuntimeWasmManifest(t *testing.T
 	service := New()
 	pluginDir := createTestRuntimePluginDir(
 		t,
-		"plugin-runtime-mismatch",
+		"plugin-dynamic-mismatch",
 		"Runtime Mismatch Plugin",
 		"v0.3.0",
-		[]*pluginRuntimeArtifactSQLAsset{
-			{Key: "001-plugin-runtime-mismatch.sql", Content: "SELECT 1;"},
+		[]*pluginDynamicArtifactSQLAsset{
+			{Key: "001-plugin-dynamic-mismatch.sql", Content: "SELECT 1;"},
 		},
 		nil,
 	)
 
 	writeRuntimeWasmArtifact(
 		t,
-		filepath.Join(pluginDir, buildPluginRuntimeArtifactRelativePath("plugin-runtime-mismatch")),
-		&pluginRuntimeArtifactManifest{
-			ID:      "plugin-runtime-other",
+		filepath.Join(pluginDir, buildPluginDynamicArtifactRelativePath("plugin-dynamic-mismatch")),
+		&pluginDynamicArtifactManifest{
+			ID:      "plugin-dynamic-other",
 			Name:    "Runtime Mismatch Plugin",
 			Version: "v0.3.0",
-			Type:    pluginTypeRuntime.String(),
+			Type:    pluginTypeDynamic.String(),
 		},
-		&pluginRuntimeArtifactMetadata{
-			RuntimeKind:   pluginRuntimeKindWasm.String(),
-			ABIVersion:    pluginRuntimeSupportedABIVersion,
+		&pluginDynamicArtifactMetadata{
+			RuntimeKind:   pluginDynamicKindWasm.String(),
+			ABIVersion:    pluginDynamicSupportedABIVersion,
 			SQLAssetCount: 1,
 		},
 		nil,
-		[]*pluginRuntimeArtifactSQLAsset{
-			{Key: "001-plugin-runtime-mismatch.sql", Content: "SELECT 1;"},
+		[]*pluginDynamicArtifactSQLAsset{
+			{Key: "001-plugin-dynamic-mismatch.sql", Content: "SELECT 1;"},
 		},
 		nil,
 	)
 
 	manifestFile := filepath.Join(pluginDir, "plugin.yaml")
 	manifest := &pluginManifest{
-		ID:      "plugin-runtime-mismatch",
+		ID:      "plugin-dynamic-mismatch",
 		Name:    "Runtime Mismatch Plugin",
 		Version: "v0.3.0",
-		Type:    pluginTypeRuntime.String(),
+		Type:    pluginTypeDynamic.String(),
 	}
 
 	err := service.validatePluginManifest(manifest, manifestFile)
@@ -217,8 +217,8 @@ func TestScanPluginManifestsRejectsDuplicateRuntimeArtifactPluginIDs(t *testing.
 
 	createTestRuntimeStorageArtifactWithFilename(
 		t,
-		"plugin-runtime-duplicate-a.wasm",
-		"plugin-runtime-duplicate",
+		"plugin-dynamic-duplicate-a.wasm",
+		"plugin-dynamic-duplicate",
 		"Runtime Duplicate Plugin",
 		"v0.1.0",
 		nil,
@@ -226,8 +226,8 @@ func TestScanPluginManifestsRejectsDuplicateRuntimeArtifactPluginIDs(t *testing.
 	)
 	createTestRuntimeStorageArtifactWithFilename(
 		t,
-		"plugin-runtime-duplicate-b.wasm",
-		"plugin-runtime-duplicate",
+		"plugin-dynamic-duplicate-b.wasm",
+		"plugin-dynamic-duplicate",
 		"Runtime Duplicate Plugin",
 		"v0.1.0",
 		nil,
@@ -235,8 +235,8 @@ func TestScanPluginManifestsRejectsDuplicateRuntimeArtifactPluginIDs(t *testing.
 	)
 
 	_, err := service.scanPluginManifests()
-	if err == nil || !strings.Contains(err.Error(), "运行时插件ID重复") {
-		t.Fatalf("expected duplicate runtime plugin id error, got: %v", err)
+	if err == nil || !strings.Contains(err.Error(), "动态插件ID重复") {
+		t.Fatalf("expected duplicate dynamic plugin id error, got: %v", err)
 	}
 }
 
@@ -244,18 +244,18 @@ func TestStoreUploadedRuntimePackageWritesCanonicalWasmIntoRuntimeStorage(t *tes
 	service := New()
 	ctx := context.Background()
 
-	pluginID := "plugin-runtime-upload-storage"
+	pluginID := "plugin-dynamic-upload-storage"
 	content := buildTestRuntimeWasmArtifactContent(
 		t,
-		&pluginRuntimeArtifactManifest{
+		&pluginDynamicArtifactManifest{
 			ID:      pluginID,
 			Name:    "Runtime Upload Storage Plugin",
 			Version: "v0.5.0",
-			Type:    pluginTypeRuntime.String(),
+			Type:    pluginTypeDynamic.String(),
 		},
-		&pluginRuntimeArtifactMetadata{
-			RuntimeKind:        pluginRuntimeKindWasm.String(),
-			ABIVersion:         pluginRuntimeSupportedABIVersion,
+		&pluginDynamicArtifactMetadata{
+			RuntimeKind:        pluginDynamicKindWasm.String(),
+			ABIVersion:         pluginDynamicSupportedABIVersion,
 			FrontendAssetCount: len(defaultTestRuntimeFrontendAssets()),
 		},
 		defaultTestRuntimeFrontendAssets(),
@@ -267,7 +267,7 @@ func TestStoreUploadedRuntimePackageWritesCanonicalWasmIntoRuntimeStorage(t *tes
 	if err != nil {
 		t.Fatalf("failed to resolve repo root: %v", err)
 	}
-	storageArtifactPath := filepath.Join(repoRoot, "temp", "runtime", buildPluginRuntimeArtifactFileName(pluginID))
+	storageArtifactPath := filepath.Join(repoRoot, "temp", "runtime", buildPluginDynamicArtifactFileName(pluginID))
 	_ = os.Remove(storageArtifactPath)
 	t.Cleanup(func() {
 		_ = os.Remove(storageArtifactPath)
@@ -285,7 +285,7 @@ func TestStoreUploadedRuntimePackageWritesCanonicalWasmIntoRuntimeStorage(t *tes
 		t.Fatalf("expected uploaded plugin id %s, got %s", pluginID, out.Id)
 	}
 	if !gfile.Exists(storageArtifactPath) {
-		t.Fatalf("expected runtime artifact to be written into storage path: %s", storageArtifactPath)
+		t.Fatalf("expected dynamic artifact to be written into storage path: %s", storageArtifactPath)
 	}
 	if sourceManifestPath := filepath.Join(repoRoot, "apps", "lina-plugins", pluginID, "plugin.yaml"); gfile.Exists(sourceManifestPath) {
 		t.Fatalf("expected upload to stop creating source-tree plugin manifests, found: %s", sourceManifestPath)
@@ -366,26 +366,26 @@ func TestBuildPluginManifestSnapshotIncludesRuntimeArtifactMetadata(t *testing.T
 	service := New()
 	pluginDir := createTestRuntimePluginDir(
 		t,
-		"plugin-runtime-snapshot",
+		"plugin-dynamic-snapshot",
 		"Runtime Snapshot Plugin",
 		"v0.4.0",
-		[]*pluginRuntimeArtifactSQLAsset{
-			{Key: "001-plugin-runtime-snapshot.sql", Content: "SELECT 1;"},
+		[]*pluginDynamicArtifactSQLAsset{
+			{Key: "001-plugin-dynamic-snapshot.sql", Content: "SELECT 1;"},
 		},
 		nil,
 	)
 
 	manifest := &pluginManifest{
-		ID:           "plugin-runtime-snapshot",
+		ID:           "plugin-dynamic-snapshot",
 		Name:         "Runtime Snapshot Plugin",
 		Version:      "v0.4.0",
-		Type:         pluginTypeRuntime.String(),
+		Type:         pluginTypeDynamic.String(),
 		Description:  "Runtime snapshot test plugin",
 		ManifestPath: filepath.Join(pluginDir, "plugin.yaml"),
 		RootDir:      pluginDir,
 	}
 	if err := service.validateRuntimePluginArtifact(manifest, pluginDir); err != nil {
-		t.Fatalf("expected runtime artifact to be valid, got error: %v", err)
+		t.Fatalf("expected dynamic artifact to be valid, got error: %v", err)
 	}
 
 	snapshot, err := service.buildPluginManifestSnapshot(manifest)
@@ -444,27 +444,27 @@ func TestBuildPluginResourceRefDescriptorsSummarizeRuntimeArtifact(t *testing.T)
 	service := New()
 	pluginDir := createTestRuntimePluginDir(
 		t,
-		"plugin-runtime-resource-summary",
+		"plugin-dynamic-resource-summary",
 		"Runtime Resource Summary Plugin",
 		"v0.5.0",
-		[]*pluginRuntimeArtifactSQLAsset{
-			{Key: "001-plugin-runtime-resource-summary.sql", Content: "SELECT 1;"},
+		[]*pluginDynamicArtifactSQLAsset{
+			{Key: "001-plugin-dynamic-resource-summary.sql", Content: "SELECT 1;"},
 		},
-		[]*pluginRuntimeArtifactSQLAsset{
-			{Key: "001-plugin-runtime-resource-summary.sql", Content: "SELECT 2;"},
+		[]*pluginDynamicArtifactSQLAsset{
+			{Key: "001-plugin-dynamic-resource-summary.sql", Content: "SELECT 2;"},
 		},
 	)
 
 	manifest := &pluginManifest{
-		ID:           "plugin-runtime-resource-summary",
+		ID:           "plugin-dynamic-resource-summary",
 		Name:         "Runtime Resource Summary Plugin",
 		Version:      "v0.5.0",
-		Type:         pluginTypeRuntime.String(),
+		Type:         pluginTypeDynamic.String(),
 		ManifestPath: filepath.Join(pluginDir, "plugin.yaml"),
 		RootDir:      pluginDir,
 	}
 	if err := service.validateRuntimePluginArtifact(manifest, pluginDir); err != nil {
-		t.Fatalf("expected runtime artifact to be valid, got error: %v", err)
+		t.Fatalf("expected dynamic artifact to be valid, got error: %v", err)
 	}
 
 	descriptors := service.buildPluginResourceRefDescriptors(manifest)
@@ -476,7 +476,7 @@ func TestBuildPluginResourceRefDescriptorsSummarizeRuntimeArtifact(t *testing.T)
 		if descriptor.Kind == pluginResourceKindRuntimeWasm {
 			foundRuntimeArtifact = true
 			if !strings.Contains(descriptor.Remark, "ABI v1") {
-				t.Fatalf("expected runtime artifact remark to mention ABI version, got %#v", descriptor)
+				t.Fatalf("expected dynamic artifact remark to mention ABI version, got %#v", descriptor)
 			}
 		}
 	}
@@ -489,35 +489,35 @@ func TestResolvePluginSQLAssetsPrefersEmbeddedRuntimeSQL(t *testing.T) {
 	service := New()
 	pluginDir := createTestRuntimePluginDir(
 		t,
-		"plugin-runtime-sql-assets",
+		"plugin-dynamic-sql-assets",
 		"Runtime SQL Assets Plugin",
 		"v0.6.0",
-		[]*pluginRuntimeArtifactSQLAsset{
-			{Key: "001-plugin-runtime-sql-assets.sql", Content: "SELECT 1;"},
-			{Key: "002-plugin-runtime-sql-assets.sql", Content: "SELECT 2;"},
+		[]*pluginDynamicArtifactSQLAsset{
+			{Key: "001-plugin-dynamic-sql-assets.sql", Content: "SELECT 1;"},
+			{Key: "002-plugin-dynamic-sql-assets.sql", Content: "SELECT 2;"},
 		},
-		[]*pluginRuntimeArtifactSQLAsset{
-			{Key: "001-plugin-runtime-sql-assets.sql", Content: "SELECT 3;"},
+		[]*pluginDynamicArtifactSQLAsset{
+			{Key: "001-plugin-dynamic-sql-assets.sql", Content: "SELECT 3;"},
 		},
 	)
 
 	manifest := &pluginManifest{
-		ID:           "plugin-runtime-sql-assets",
+		ID:           "plugin-dynamic-sql-assets",
 		Name:         "Runtime SQL Assets Plugin",
 		Version:      "v0.6.0",
-		Type:         pluginTypeRuntime.String(),
+		Type:         pluginTypeDynamic.String(),
 		ManifestPath: filepath.Join(pluginDir, "plugin.yaml"),
 		RootDir:      pluginDir,
 	}
 	if err := service.validateRuntimePluginArtifact(manifest, pluginDir); err != nil {
-		t.Fatalf("expected runtime artifact to be valid, got error: %v", err)
+		t.Fatalf("expected dynamic artifact to be valid, got error: %v", err)
 	}
 
 	installAssets, err := service.resolvePluginSQLAssets(manifest, pluginMigrationDirectionInstall)
 	if err != nil {
 		t.Fatalf("expected install sql assets, got error: %v", err)
 	}
-	if len(installAssets) != 2 || installAssets[0].Key != "001-plugin-runtime-sql-assets.sql" {
+	if len(installAssets) != 2 || installAssets[0].Key != "001-plugin-dynamic-sql-assets.sql" {
 		t.Fatalf("unexpected install assets: %#v", installAssets)
 	}
 
@@ -576,21 +576,21 @@ func TestDerivePluginLifecycleState(t *testing.T) {
 		},
 		{
 			name:       "runtime uninstalled",
-			pluginType: pluginTypeRuntime.String(),
+			pluginType: pluginTypeDynamic.String(),
 			installed:  pluginInstalledNo,
 			enabled:    pluginStatusDisabled,
 			expected:   pluginLifecycleStateRuntimeUninstalled.String(),
 		},
 		{
 			name:       "runtime installed disabled",
-			pluginType: pluginTypeRuntime.String(),
+			pluginType: pluginTypeDynamic.String(),
 			installed:  pluginInstalledYes,
 			enabled:    pluginStatusDisabled,
 			expected:   pluginLifecycleStateRuntimeInstalled.String(),
 		},
 		{
 			name:       "runtime enabled",
-			pluginType: pluginTypeRuntime.String(),
+			pluginType: pluginTypeDynamic.String(),
 			installed:  pluginInstalledYes,
 			enabled:    pluginStatusEnabled,
 			expected:   pluginLifecycleStateRuntimeEnabled.String(),
@@ -682,8 +682,8 @@ func createTestRuntimePluginDir(
 	pluginID string,
 	pluginName string,
 	version string,
-	installSQLAssets []*pluginRuntimeArtifactSQLAsset,
-	uninstallSQLAssets []*pluginRuntimeArtifactSQLAsset,
+	installSQLAssets []*pluginDynamicArtifactSQLAsset,
+	uninstallSQLAssets []*pluginDynamicArtifactSQLAsset,
 ) string {
 	return createTestRuntimePluginDirWithFrontendAssets(
 		t,
@@ -701,12 +701,12 @@ func createTestRuntimeStorageArtifact(
 	pluginID string,
 	pluginName string,
 	version string,
-	installSQLAssets []*pluginRuntimeArtifactSQLAsset,
-	uninstallSQLAssets []*pluginRuntimeArtifactSQLAsset,
+	installSQLAssets []*pluginDynamicArtifactSQLAsset,
+	uninstallSQLAssets []*pluginDynamicArtifactSQLAsset,
 ) string {
 	return createTestRuntimeStorageArtifactWithFilename(
 		t,
-		buildPluginRuntimeArtifactFileName(pluginID),
+		buildPluginDynamicArtifactFileName(pluginID),
 		pluginID,
 		pluginName,
 		version,
@@ -721,8 +721,8 @@ func createTestRuntimeStorageArtifactWithFilename(
 	pluginID string,
 	pluginName string,
 	version string,
-	installSQLAssets []*pluginRuntimeArtifactSQLAsset,
-	uninstallSQLAssets []*pluginRuntimeArtifactSQLAsset,
+	installSQLAssets []*pluginDynamicArtifactSQLAsset,
+	uninstallSQLAssets []*pluginDynamicArtifactSQLAsset,
 ) string {
 	t.Helper()
 
@@ -733,7 +733,7 @@ func createTestRuntimeStorageArtifactWithFilename(
 
 	storageDir := filepath.Join(repoRoot, "temp", "runtime")
 	if err = os.MkdirAll(storageDir, 0o755); err != nil {
-		t.Fatalf("failed to create runtime storage dir: %v", err)
+		t.Fatalf("failed to create dynamic storage dir: %v", err)
 	}
 
 	artifactPath := filepath.Join(storageDir, fileName)
@@ -744,15 +744,15 @@ func createTestRuntimeStorageArtifactWithFilename(
 	writeRuntimeWasmArtifact(
 		t,
 		artifactPath,
-		&pluginRuntimeArtifactManifest{
+		&pluginDynamicArtifactManifest{
 			ID:      pluginID,
 			Name:    pluginName,
 			Version: version,
-			Type:    pluginTypeRuntime.String(),
+			Type:    pluginTypeDynamic.String(),
 		},
-		&pluginRuntimeArtifactMetadata{
-			RuntimeKind:        pluginRuntimeKindWasm.String(),
-			ABIVersion:         pluginRuntimeSupportedABIVersion,
+		&pluginDynamicArtifactMetadata{
+			RuntimeKind:        pluginDynamicKindWasm.String(),
+			ABIVersion:         pluginDynamicSupportedABIVersion,
 			FrontendAssetCount: len(defaultTestRuntimeFrontendAssets()),
 			SQLAssetCount:      len(installSQLAssets) + len(uninstallSQLAssets),
 		},
@@ -768,9 +768,9 @@ func createTestRuntimePluginDirWithFrontendAssets(
 	pluginID string,
 	pluginName string,
 	version string,
-	frontendAssets []*pluginRuntimeArtifactFrontendAsset,
-	installSQLAssets []*pluginRuntimeArtifactSQLAsset,
-	uninstallSQLAssets []*pluginRuntimeArtifactSQLAsset,
+	frontendAssets []*pluginDynamicArtifactFrontendAsset,
+	installSQLAssets []*pluginDynamicArtifactSQLAsset,
+	uninstallSQLAssets []*pluginDynamicArtifactSQLAsset,
 ) string {
 	t.Helper()
 
@@ -791,20 +791,20 @@ func createTestRuntimePluginDirWithFrontendAssets(
 	writeTestFile(
 		t,
 		filepath.Join(pluginDir, "plugin.yaml"),
-		"id: "+pluginID+"\nname: "+pluginName+"\nversion: "+version+"\ntype: runtime\n",
+		"id: "+pluginID+"\nname: "+pluginName+"\nversion: "+version+"\ntype: dynamic\n",
 	)
 	writeRuntimeWasmArtifact(
 		t,
-		filepath.Join(pluginDir, buildPluginRuntimeArtifactRelativePath(pluginID)),
-		&pluginRuntimeArtifactManifest{
+		filepath.Join(pluginDir, buildPluginDynamicArtifactRelativePath(pluginID)),
+		&pluginDynamicArtifactManifest{
 			ID:      pluginID,
 			Name:    pluginName,
 			Version: version,
-			Type:    pluginTypeRuntime.String(),
+			Type:    pluginTypeDynamic.String(),
 		},
-		&pluginRuntimeArtifactMetadata{
-			RuntimeKind:        pluginRuntimeKindWasm.String(),
-			ABIVersion:         pluginRuntimeSupportedABIVersion,
+		&pluginDynamicArtifactMetadata{
+			RuntimeKind:        pluginDynamicKindWasm.String(),
+			ABIVersion:         pluginDynamicSupportedABIVersion,
 			FrontendAssetCount: len(frontendAssets),
 			SQLAssetCount:      len(installSQLAssets) + len(uninstallSQLAssets),
 		},
@@ -816,16 +816,16 @@ func createTestRuntimePluginDirWithFrontendAssets(
 	return pluginDir
 }
 
-func defaultTestRuntimeFrontendAssets() []*pluginRuntimeArtifactFrontendAsset {
-	return []*pluginRuntimeArtifactFrontendAsset{
+func defaultTestRuntimeFrontendAssets() []*pluginDynamicArtifactFrontendAsset {
+	return []*pluginDynamicArtifactFrontendAsset{
 		{
 			Path:          "index.html",
-			ContentBase64: base64.StdEncoding.EncodeToString([]byte("<html><body>runtime frontend</body></html>")),
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("<html><body>dynamic frontend</body></html>")),
 			ContentType:   "text/html; charset=utf-8",
 		},
 		{
 			Path:          "assets/app.js",
-			ContentBase64: base64.StdEncoding.EncodeToString([]byte("console.log('runtime frontend');")),
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("console.log('dynamic frontend');")),
 			ContentType:   "application/javascript",
 		},
 	}
@@ -842,11 +842,11 @@ func writeTestFile(t *testing.T, filePath string, content string) {
 func writeRuntimeWasmArtifact(
 	t *testing.T,
 	filePath string,
-	manifest *pluginRuntimeArtifactManifest,
-	runtimeMetadata *pluginRuntimeArtifactMetadata,
-	frontendAssets []*pluginRuntimeArtifactFrontendAsset,
-	installSQLAssets []*pluginRuntimeArtifactSQLAsset,
-	uninstallSQLAssets []*pluginRuntimeArtifactSQLAsset,
+	manifest *pluginDynamicArtifactManifest,
+	runtimeMetadata *pluginDynamicArtifactMetadata,
+	frontendAssets []*pluginDynamicArtifactFrontendAsset,
+	installSQLAssets []*pluginDynamicArtifactSQLAsset,
+	uninstallSQLAssets []*pluginDynamicArtifactSQLAsset,
 ) {
 	t.Helper()
 
@@ -865,17 +865,17 @@ func writeRuntimeWasmArtifact(
 
 func buildTestRuntimeWasmArtifactContent(
 	t *testing.T,
-	manifest *pluginRuntimeArtifactManifest,
-	runtimeMetadata *pluginRuntimeArtifactMetadata,
-	frontendAssets []*pluginRuntimeArtifactFrontendAsset,
-	installSQLAssets []*pluginRuntimeArtifactSQLAsset,
-	uninstallSQLAssets []*pluginRuntimeArtifactSQLAsset,
+	manifest *pluginDynamicArtifactManifest,
+	runtimeMetadata *pluginDynamicArtifactMetadata,
+	frontendAssets []*pluginDynamicArtifactFrontendAsset,
+	installSQLAssets []*pluginDynamicArtifactSQLAsset,
+	uninstallSQLAssets []*pluginDynamicArtifactSQLAsset,
 ) []byte {
 	t.Helper()
 
 	manifestContent, err := json.Marshal(manifest)
 	if err != nil {
-		t.Fatalf("failed to marshal runtime manifest: %v", err)
+		t.Fatalf("failed to marshal dynamic manifest: %v", err)
 	}
 	runtimeContent, err := json.Marshal(runtimeMetadata)
 	if err != nil {
@@ -883,28 +883,28 @@ func buildTestRuntimeWasmArtifactContent(
 	}
 
 	wasm := []byte{0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00}
-	wasm = appendWasmCustomSection(wasm, pluginRuntimeWasmSectionManifest, manifestContent)
-	wasm = appendWasmCustomSection(wasm, pluginRuntimeWasmSectionRuntime, runtimeContent)
+	wasm = appendWasmCustomSection(wasm, pluginDynamicWasmSectionManifest, manifestContent)
+	wasm = appendWasmCustomSection(wasm, pluginDynamicWasmSectionDynamic, runtimeContent)
 	if len(frontendAssets) > 0 {
 		frontendContent, err := json.Marshal(frontendAssets)
 		if err != nil {
 			t.Fatalf("failed to marshal frontend assets: %v", err)
 		}
-		wasm = appendWasmCustomSection(wasm, pluginRuntimeWasmSectionFrontend, frontendContent)
+		wasm = appendWasmCustomSection(wasm, pluginDynamicWasmSectionFrontend, frontendContent)
 	}
 	if len(installSQLAssets) > 0 {
 		installContent, err := json.Marshal(installSQLAssets)
 		if err != nil {
 			t.Fatalf("failed to marshal install sql assets: %v", err)
 		}
-		wasm = appendWasmCustomSection(wasm, pluginRuntimeWasmSectionInstallSQL, installContent)
+		wasm = appendWasmCustomSection(wasm, pluginDynamicWasmSectionInstallSQL, installContent)
 	}
 	if len(uninstallSQLAssets) > 0 {
 		uninstallContent, err := json.Marshal(uninstallSQLAssets)
 		if err != nil {
 			t.Fatalf("failed to marshal uninstall sql assets: %v", err)
 		}
-		wasm = appendWasmCustomSection(wasm, pluginRuntimeWasmSectionUninstallSQL, uninstallContent)
+		wasm = appendWasmCustomSection(wasm, pluginDynamicWasmSectionUninstallSQL, uninstallContent)
 	}
 	return wasm
 }

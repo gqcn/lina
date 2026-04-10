@@ -16,13 +16,13 @@ const mysqlUser = process.env.E2E_DB_USER ?? "root";
 const mysqlPassword = process.env.E2E_DB_PASSWORD ?? "12345678";
 const mysqlDatabase = process.env.E2E_DB_NAME ?? "lina";
 
-const pluginID = "plugin-runtime-governance";
+const pluginID = "plugin-dynamic-governance";
 const pluginName = "Runtime Governance Plugin";
 const pluginVersion = "v0.2.0";
-const pluginMenuKey = "plugin:plugin-runtime-governance:main-entry";
-const pluginButtonMenuKey = "plugin:plugin-runtime-governance:records:list";
+const pluginMenuKey = "plugin:plugin-dynamic-governance:main-entry";
+const pluginButtonMenuKey = "plugin:plugin-dynamic-governance:records:list";
 const pluginMenuName = "运行时治理示例";
-const pluginPermission = "plugin-runtime-governance:records:list";
+const pluginPermission = "plugin-dynamic-governance:records:list";
 const pluginRecordTable = "plugin_runtime_governance_record";
 const testRoleName = "运行时治理角色";
 const testRoleKey = "runtime_governance_role";
@@ -188,7 +188,7 @@ function buildRuntimeWasmArtifact(options: {
       id: options.id,
       name: options.name,
       version: options.version,
-      type: "runtime",
+      type: "dynamic",
       description: options.description,
     }),
   );
@@ -203,7 +203,7 @@ function buildRuntimeWasmArtifact(options: {
 
   const bytes: number[] = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
   appendCustomSection(bytes, "lina.plugin.manifest", manifestPayload);
-  appendCustomSection(bytes, "lina.plugin.runtime", runtimePayload);
+  appendCustomSection(bytes, "lina.plugin.dynamic", runtimePayload);
 
   if (frontendAssets.length > 0) {
     appendCustomSection(
@@ -306,8 +306,8 @@ async function createAdminApiContext() {
   return createApiContext(await loginByPassword(config.adminUser, config.adminPass));
 }
 
-async function uploadRuntimePlugin(adminApi: APIRequestContext, artifactPath: string) {
-  const response = await adminApi.post("plugins/runtime/package", {
+async function uploadDynamicPlugin(adminApi: APIRequestContext, artifactPath: string) {
+  const response = await adminApi.post("plugins/dynamic/package", {
     multipart: {
       overwriteSupport: "0",
       file: {
@@ -317,12 +317,12 @@ async function uploadRuntimePlugin(adminApi: APIRequestContext, artifactPath: st
       },
     },
   });
-  assertOk(response, "上传 runtime 插件失败");
+  assertOk(response, "上传动态插件失败");
 }
 
 async function installPlugin(adminApi: APIRequestContext) {
   const response = await adminApi.post(`plugins/${pluginID}/install`);
-  assertOk(response, "安装 runtime 插件失败");
+  assertOk(response, "安装动态插件失败");
 }
 
 async function setPluginEnabled(adminApi: APIRequestContext, enabled: boolean) {
@@ -389,7 +389,7 @@ async function queryPluginResource(apiContext: APIRequestContext) {
   const response = await apiContext.get(
     `plugins/${pluginID}/resources/records?pageNum=1&pageSize=20`,
   );
-  assertOk(response, "查询 runtime 插件资源失败");
+  assertOk(response, "查询动态插件资源失败");
   return (unwrapApiData(await response.json()) ?? {}) as PluginResourceResponse;
 }
 
@@ -433,7 +433,7 @@ function buildRuntimeGovernanceArtifact() {
     ],
     installSQLAssets: [
       {
-        key: "001-plugin-runtime-governance.sql",
+        key: "001-plugin-dynamic-governance.sql",
         content: [
           `CREATE TABLE IF NOT EXISTS ${pluginRecordTable} (`,
           "  id INT PRIMARY KEY AUTO_INCREMENT,",
@@ -451,7 +451,7 @@ function buildRuntimeGovernanceArtifact() {
     ],
     uninstallSQLAssets: [
       {
-        key: "001-plugin-runtime-governance.sql",
+        key: "001-plugin-dynamic-governance.sql",
         content: [
           `DELETE FROM sys_role_menu WHERE menu_id IN (SELECT menu_ids.id FROM (SELECT id FROM sys_menu WHERE menu_key IN ('${pluginMenuKey}', '${pluginButtonMenuKey}')) AS menu_ids);`,
           `DELETE FROM sys_menu WHERE menu_key IN ('${pluginMenuKey}', '${pluginButtonMenuKey}');`,
@@ -480,7 +480,7 @@ function buildRuntimeGovernanceArtifact() {
   });
 }
 
-test.describe("TC-69 运行时插件权限治理", () => {
+test.describe("TC-69 动态插件权限治理", () => {
   let adminApi: APIRequestContext | null = null;
 
   test.beforeAll(async () => {
@@ -505,15 +505,15 @@ test.describe("TC-69 运行时插件权限治理", () => {
     cleanupGovernanceRows();
   });
 
-  test("TC-69a: runtime 插件菜单和按钮权限会跟随角色授权、禁用隐藏与重新启用恢复", async () => {
+  test("TC-69a: 动态插件菜单和按钮权限会跟随角色授权、禁用隐藏与重新启用恢复", async () => {
     const artifactPath = writeRuntimeArtifact(buildRuntimeGovernanceArtifact());
-    await uploadRuntimePlugin(adminApi!, artifactPath);
+    await uploadDynamicPlugin(adminApi!, artifactPath);
     await installPlugin(adminApi!);
     await setPluginEnabled(adminApi!, true);
 
     const adminDeptID = await getAdminDeptID(adminApi!);
     const menuIDs = getPluginMenuIDs();
-    expect(menuIDs.length, "runtime 插件菜单和按钮权限都应写入 sys_menu").toBe(2);
+    expect(menuIDs.length, "动态插件菜单和按钮权限都应写入 sys_menu").toBe(2);
 
     const roleID = await createRole(adminApi!, menuIDs);
     const userID = await createUser(adminApi!, adminDeptID, roleID);
@@ -523,11 +523,11 @@ test.describe("TC-69 运行时插件权限治理", () => {
     const userInfo = await fetchUserInfo(userApi);
     expect(
       hasMenuName(userInfo.menus ?? [], pluginMenuName),
-      "角色授权后，用户应看到 runtime 插件菜单",
+      "角色授权后，用户应看到动态插件菜单",
     ).toBeTruthy();
     expect(
       userInfo.permissions ?? [],
-      "角色授权后，用户应拿到 runtime 插件按钮权限",
+      "角色授权后，用户应拿到动态插件按钮权限",
     ).toContain(pluginPermission);
 
     const selfScopedRecords = await queryPluginResource(userApi);
@@ -538,7 +538,7 @@ test.describe("TC-69 运行时插件权限治理", () => {
     const disabledInfo = await fetchUserInfo(userApi);
     expect(
       hasMenuName(disabledInfo.menus ?? [], pluginMenuName),
-      "禁用 runtime 插件后，菜单应从用户视图中隐藏",
+      "禁用动态插件后，菜单应从用户视图中隐藏",
     ).toBeFalsy();
     expect(disabledInfo.permissions ?? []).not.toContain(pluginPermission);
 

@@ -1,4 +1,4 @@
-// This file implements runtime plugin install and uninstall flows together with
+// This file implements dynamic plugin install and uninstall flows together with
 // shared helpers that resolve plugin-owned resource paths safely.
 
 package plugin
@@ -17,7 +17,7 @@ import (
 	"lina-core/pkg/pluginhost"
 )
 
-// Install executes install lifecycle for a discovered runtime plugin.
+// Install executes install lifecycle for a discovered dynamic plugin.
 func (s *Service) Install(ctx context.Context, pluginID string) error {
 	manifest, err := s.getPluginManifestByID(pluginID)
 	if err != nil {
@@ -52,7 +52,7 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 	if err != nil {
 		return err
 	}
-	if err = s.syncPluginMetadata(ctx, manifest, registry, "Runtime plugin install lifecycle completed on current node."); err != nil {
+	if err = s.syncPluginMetadata(ctx, manifest, registry, "Dynamic plugin install lifecycle completed on current node."); err != nil {
 		return err
 	}
 	return s.DispatchHookEvent(
@@ -66,7 +66,7 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 	)
 }
 
-// Uninstall executes uninstall lifecycle for an installed runtime plugin.
+// Uninstall executes uninstall lifecycle for an installed dynamic plugin.
 func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 	manifest, err := s.getPluginManifestByID(pluginID)
 	if err != nil {
@@ -110,7 +110,7 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 		manifest.Version,
 		pluginInstalledNo,
 		pluginStatusDisabled,
-		"Runtime plugin uninstall lifecycle completed on current node.",
+		"Dynamic plugin uninstall lifecycle completed on current node.",
 	); err != nil {
 		return err
 	}

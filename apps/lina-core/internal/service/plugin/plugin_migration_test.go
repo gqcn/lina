@@ -13,16 +13,16 @@ func TestRuntimePluginReinstallReplaysInstallSQL(t *testing.T) {
 	service := New()
 	ctx := context.Background()
 
-	pluginID := "plugin-runtime-reinstall"
+	pluginID := "plugin-dynamic-reinstall"
 	tableName := "plugin_runtime_reinstall_log"
 	artifactPath := createTestRuntimeStorageArtifact(
 		t,
 		pluginID,
 		"Runtime Reinstall Plugin",
 		"v0.9.1",
-		[]*pluginRuntimeArtifactSQLAsset{
+		[]*pluginDynamicArtifactSQLAsset{
 			{
-				Key: "001-plugin-runtime-reinstall.sql",
+				Key: "001-plugin-dynamic-reinstall.sql",
 				Content: strings.Join([]string{
 					fmt.Sprintf("DROP TABLE IF EXISTS %s;", tableName),
 					fmt.Sprintf("CREATE TABLE %s (id INT PRIMARY KEY AUTO_INCREMENT, marker VARCHAR(32) NOT NULL);", tableName),
@@ -30,9 +30,9 @@ func TestRuntimePluginReinstallReplaysInstallSQL(t *testing.T) {
 				}, "\n"),
 			},
 		},
-		[]*pluginRuntimeArtifactSQLAsset{
+		[]*pluginDynamicArtifactSQLAsset{
 			{
-				Key:     "001-plugin-runtime-reinstall.sql",
+				Key:     "001-plugin-dynamic-reinstall.sql",
 				Content: fmt.Sprintf("DROP TABLE IF EXISTS %s;", tableName),
 			},
 		},
@@ -40,7 +40,7 @@ func TestRuntimePluginReinstallReplaysInstallSQL(t *testing.T) {
 
 	manifest, err := service.loadRuntimePluginManifestFromArtifact(artifactPath)
 	if err != nil {
-		t.Fatalf("expected runtime storage artifact to be valid, got error: %v", err)
+		t.Fatalf("expected dynamic storage artifact to be valid, got error: %v", err)
 	}
 
 	cleanupPluginGovernanceRowsHard(t, ctx, pluginID)

@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: 插件目录与清单契约统一
-系统 SHALL 为所有插件提供统一的目录结构与清单契约。源码插件 MUST 放置在 `apps/lina-plugins/<plugin-id>/` 目录下；当前运行时 `wasm` 插件 MUST 能从 `plugin.runtime.storagePath` 中被发现，并解析出与源码插件等价的 manifest 信息。
+系统 SHALL 为所有插件提供统一的目录结构与清单契约。源码插件 MUST 放置在 `apps/lina-plugins/<plugin-id>/` 目录下；当前 `dynamic` 动态 `wasm` 插件 MUST 能从 `plugin.dynamic.storagePath` 中被发现，并解析出与源码插件等价的 manifest 信息。
 
 #### Scenario: 发现源码插件目录
 - **WHEN** 宿主扫描 `apps/lina-plugins/` 下的插件目录
@@ -15,26 +15,26 @@
 - **AND** 宿主不再要求 `schemaVersion`、`compatibility`、`entry` 等扩展元数据
 - **AND** 菜单、权限、前端页面、`Slot` 和 SQL 文件位置优先按照目录与代码约定推导，而不是在清单中重复配置
 
-#### Scenario: 清单一级类型只保留源码与运行时两类
+#### Scenario: 清单一级类型只保留源码与动态两类
 - **WHEN** 宿主解析 `plugin.yaml` 中的 `type`
-- **THEN** `type` 仅允许 `source` 或 `runtime`
-- **AND** 当前仅 `wasm` 作为运行时插件的产物语义，不再作为一级插件类型
-- **AND** 对历史上的 `wasm` 一级类型值，宿主在治理视角下统一按 `runtime` 处理
+- **THEN** `type` 仅允许 `source` 或 `dynamic`
+- **AND** 当前仅 `wasm` 作为动态插件的产物语义，不再作为一级插件类型
+- **AND** 对历史上的 `wasm` 一级类型值，宿主在治理视角下统一按 `dynamic` 处理
 
-#### Scenario: 安装运行时插件产物
-- **WHEN** 管理员上传一个 `wasm` 文件安装运行时插件
+#### Scenario: 安装动态插件产物
+- **WHEN** 管理员上传一个 `wasm` 文件安装动态插件
 - **THEN** 宿主能够解析出与源码模式一致的插件标识、名称、版本与一级插件类型
-- **AND** 对缺少这些基础字段的运行时插件拒绝安装
-- **AND** 宿主将上传产物写入 `plugin.runtime.storagePath/<plugin-id>.wasm`
+- **AND** 对缺少这些基础字段的动态插件拒绝安装
+- **AND** 宿主将上传产物写入 `plugin.dynamic.storagePath/<plugin-id>.wasm`
 
-#### Scenario: 运行时产物使用独立存储目录
-- **WHEN** 宿主发现、上传或同步一个运行时 `wasm` 插件产物
-- **THEN** 运行时产物 MUST 使用 `plugin.runtime.storagePath/<plugin-id>.wasm` 作为宿主侧规范落盘路径
+#### Scenario: 动态插件产物使用独立存储目录
+- **WHEN** 宿主发现、上传或同步一个 `dynamic` `wasm` 动态插件产物
+- **THEN** 运行时产物 MUST 使用 `plugin.dynamic.storagePath/<plugin-id>.wasm` 作为宿主侧规范落盘路径
 - **AND** 宿主不得再依赖 `apps/lina-plugins/<plugin-id>/plugin.yaml` 作为 runtime 发现入口
 - **AND** 运行时样例插件的可读源码目录 SHOULD 与源码插件一样继续收敛在 `backend/`、`frontend/` 与 `manifest/` 下维护
 
 ### Requirement: 插件生命周期状态机可治理
-系统 SHALL 为插件提供可审计的生命周期状态机，并按源码插件与运行时插件区分生命周期语义。
+系统 SHALL 为插件提供可审计的生命周期状态机，并按源码插件与动态插件区分生命周期语义。
 
 #### Scenario: 源码插件随宿主编译集成
 - **WHEN** 宿主编译源码插件所在的源码树并生成 Lina 二进制
@@ -47,8 +47,8 @@
 - **THEN** 该源码插件默认处于“已集成且已启用”状态
 - **AND** 宿主后续同步不会覆盖管理员对该源码插件做出的显式禁用操作
 
-#### Scenario: 安装运行时插件
-- **WHEN** 管理员安装一个合法的 `wasm` 运行时插件
+#### Scenario: 安装动态插件
+- **WHEN** 管理员安装一个合法的 `wasm` 动态插件
 - **THEN** 宿主创建插件安装记录与当前版本记录
 - **AND** 宿主按清单依次处理迁移、资源注册、权限接入与前后端装载准备
 - **AND** 插件在显式启用前不会对普通用户可见
@@ -59,8 +59,8 @@
 - **AND** 宿主保留插件业务数据、角色授权关系与安装记录
 - **AND** 插件重新启用后可以恢复既有治理关系
 
-#### Scenario: 卸载运行时插件
-- **WHEN** 管理员卸载一个运行时插件
+#### Scenario: 卸载动态插件
+- **WHEN** 管理员卸载一个动态插件
 - **THEN** 宿主移除该插件在宿主侧注册的菜单、资源引用、运行时产物与挂载信息
 - **AND** 宿主默认不删除插件自己的业务数据表或业务数据
 - **AND** 宿主保留卸载审计信息

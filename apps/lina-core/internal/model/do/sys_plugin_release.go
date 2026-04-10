@@ -15,7 +15,7 @@ type SysPluginRelease struct {
 	Id               any         // 主键ID
 	PluginId         any         // 插件唯一标识（kebab-case）
 	ReleaseVersion   any         // 插件版本号
-	Type             any         // 插件一级类型（source/runtime）
+	Type             any         // 插件一级类型（source/dynamic）
 	RuntimeKind      any         // 运行时产物类型（当前仅 wasm）
 	SchemaVersion    any         // plugin.yaml 清单 schema 版本
 	MinHostVersion   any         // 宿主最小兼容版本

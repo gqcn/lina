@@ -41,13 +41,13 @@ const (
 	ExtensionPointAuthLoginFailed ExtensionPoint = "auth.login.failed"
 	// ExtensionPointAuthLogoutSucceeded is fired after user logout succeeds.
 	ExtensionPointAuthLogoutSucceeded ExtensionPoint = "auth.logout.succeeded"
-	// ExtensionPointPluginInstalled is fired after a runtime plugin is installed.
+	// ExtensionPointPluginInstalled is fired after a dynamic plugin is installed.
 	ExtensionPointPluginInstalled ExtensionPoint = "plugin.installed"
 	// ExtensionPointPluginEnabled is fired after a plugin is enabled.
 	ExtensionPointPluginEnabled ExtensionPoint = "plugin.enabled"
 	// ExtensionPointPluginDisabled is fired after a plugin is disabled.
 	ExtensionPointPluginDisabled ExtensionPoint = "plugin.disabled"
-	// ExtensionPointPluginUninstalled is fired after a runtime plugin is uninstalled.
+	// ExtensionPointPluginUninstalled is fired after a dynamic plugin is uninstalled.
 	ExtensionPointPluginUninstalled ExtensionPoint = "plugin.uninstalled"
 	// ExtensionPointSystemStarted is fired after host HTTP server startup.
 	ExtensionPointSystemStarted ExtensionPoint = "system.started"
