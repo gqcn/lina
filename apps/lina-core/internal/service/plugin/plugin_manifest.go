@@ -17,6 +17,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	configsvc "lina-core/internal/service/config"
+	"lina-core/pkg/pluginhost"
 )
 
 var pluginSQLFileNamePattern = regexp.MustCompile(`^\d{3}-[a-z0-9-]+\.sql$`)
@@ -39,6 +40,7 @@ type pluginManifest struct {
 	Hooks            []*pluginHookSpec
 	BackendResources map[string]*pluginResourceSpec
 	RuntimeArtifact  *pluginDynamicArtifact
+	SourcePlugin     *pluginhost.SourcePlugin
 }
 
 // scanPluginManifests merges source-plugin discovery and runtime-wasm discovery
@@ -86,7 +88,7 @@ func (s *Service) scanPluginManifests() ([]*pluginManifest, error) {
 func (s *Service) scanSourcePluginManifests() ([]*pluginManifest, error) {
 	pluginRootDir, err := s.resolvePluginRootDir()
 	if err != nil {
-		return []*pluginManifest{}, nil
+		return s.scanEmbeddedSourcePluginManifests()
 	}
 
 	manifestFiles, err := gfile.ScanDirFile(pluginRootDir, "plugin.yaml", true)
@@ -94,6 +96,9 @@ func (s *Service) scanSourcePluginManifests() ([]*pluginManifest, error) {
 		return nil, err
 	}
 	sort.Strings(manifestFiles)
+	if len(manifestFiles) == 0 {
+		return s.scanEmbeddedSourcePluginManifests()
+	}
 
 	manifests := make([]*pluginManifest, 0, len(manifestFiles))
 	for _, manifestFile := range manifestFiles {
@@ -109,6 +114,9 @@ func (s *Service) scanSourcePluginManifests() ([]*pluginManifest, error) {
 		if normalizePluginType(manifest.Type) == pluginTypeDynamic {
 			continue
 		}
+		if sourcePlugin, ok := pluginhost.GetSourcePlugin(strings.TrimSpace(manifest.ID)); ok {
+			manifest.SourcePlugin = sourcePlugin
+		}
 		if err = s.validatePluginManifest(manifest, manifestFile); err != nil {
 			return nil, err
 		}
@@ -121,6 +129,9 @@ func (s *Service) scanSourcePluginManifests() ([]*pluginManifest, error) {
 		}
 
 		manifests = append(manifests, manifest)
+	}
+	if len(manifests) == 0 {
+		return s.scanEmbeddedSourcePluginManifests()
 	}
 	return manifests, nil
 }
@@ -262,15 +273,22 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 	if strings.TrimSpace(filePath) == "" && strings.TrimSpace(manifest.RootDir) != "" {
 		rootDir = manifest.RootDir
 	}
+	fileLabel := strings.TrimSpace(filePath)
+	if fileLabel == "" {
+		fileLabel = strings.TrimSpace(manifest.ManifestPath)
+	}
+	if fileLabel == "" {
+		fileLabel = manifest.ID
+	}
 
 	if manifest.ID == "" {
-		return gerror.Newf("插件清单缺少id: %s", filePath)
+		return gerror.Newf("插件清单缺少id: %s", fileLabel)
 	}
 	if manifest.Name == "" {
-		return gerror.Newf("插件清单缺少name: %s", filePath)
+		return gerror.Newf("插件清单缺少name: %s", fileLabel)
 	}
 	if manifest.Version == "" {
-		return gerror.Newf("插件清单缺少version: %s", filePath)
+		return gerror.Newf("插件清单缺少version: %s", fileLabel)
 	}
 	if manifest.Type == "" {
 		manifest.Type = pluginTypeSource.String()
@@ -278,21 +296,24 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 		manifest.Type = normalizePluginType(manifest.Type).String()
 	}
 	if !isSupportedPluginType(manifest.Type) {
-		return gerror.Newf("插件类型仅支持 source/dynamic: %s", filePath)
+		return gerror.Newf("插件类型仅支持 source/dynamic: %s", fileLabel)
 	}
 	if !pluginManifestIDPattern.MatchString(manifest.ID) {
 		return gerror.Newf("插件ID需使用kebab-case风格: %s", manifest.ID)
 	}
 	if err := validatePluginManifestSemanticVersion(manifest.Version); err != nil {
-		return gerror.Wrapf(err, "插件版本不合法: %s", filePath)
+		return gerror.Wrapf(err, "插件版本不合法: %s", fileLabel)
 	}
 	if normalizePluginType(manifest.Type) == pluginTypeSource {
+		if manifest.SourcePlugin != nil && strings.TrimSpace(manifest.SourcePlugin.ID) != "" && manifest.ID != manifest.SourcePlugin.ID {
+			return gerror.Newf("源码插件嵌入清单 ID 与注册插件 ID 不一致: %s != %s", manifest.ID, manifest.SourcePlugin.ID)
+		}
 		goModPath := filepath.Join(rootDir, "go.mod")
-		if !gfile.Exists(goModPath) {
+		if !hasSourcePluginEmbeddedFiles(manifest) && !gfile.Exists(goModPath) {
 			return gerror.Newf("源码插件目录缺少 go.mod: %s", rootDir)
 		}
 		backendEntryPath := filepath.Join(rootDir, "backend", "plugin.go")
-		if !gfile.Exists(backendEntryPath) {
+		if !hasSourcePluginEmbeddedFiles(manifest) && !gfile.Exists(backendEntryPath) {
 			return gerror.Newf("源码插件目录缺少 backend/plugin.go: %s", rootDir)
 		}
 	} else if err := s.validateRuntimePluginArtifact(manifest, rootDir); err != nil {
@@ -303,27 +324,52 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 			return gerror.Wrapf(err, "动态插件产物校验失败: %s", filePath)
 		}
 	}
-	if err := validatePluginSQLPaths(rootDir, s.discoverPluginSQLPaths(rootDir, false), false); err != nil {
-		return gerror.Wrapf(err, "插件清单 install SQL 约束不合法: %s", filePath)
+	if embeddedFiles := getSourcePluginEmbeddedFiles(manifest); embeddedFiles != nil {
+		if err := validatePluginSQLPathsInFS(embeddedFiles, s.listPluginInstallSQLPaths(manifest), false); err != nil {
+			return gerror.Wrapf(err, "插件清单 install SQL 约束不合法: %s", fileLabel)
+		}
+		if err := validatePluginSQLPathsInFS(embeddedFiles, s.listPluginUninstallSQLPaths(manifest), true); err != nil {
+			return gerror.Wrapf(err, "插件清单 uninstall SQL 约束不合法: %s", fileLabel)
+		}
+		if err := validatePluginManifestFilePathsInFS(
+			embeddedFiles,
+			s.listPluginFrontendPagePaths(manifest),
+			"frontend/pages/",
+			pluginVueFileExts,
+		); err != nil {
+			return gerror.Wrapf(err, "插件清单 frontend page 约束不合法: %s", fileLabel)
+		}
+		if err := validatePluginManifestFilePathsInFS(
+			embeddedFiles,
+			s.listPluginFrontendSlotPaths(manifest),
+			"frontend/slots/",
+			pluginVueFileExts,
+		); err != nil {
+			return gerror.Wrapf(err, "插件清单 frontend slot 约束不合法: %s", fileLabel)
+		}
+		return nil
 	}
-	if err := validatePluginSQLPaths(rootDir, s.discoverPluginSQLPaths(rootDir, true), true); err != nil {
-		return gerror.Wrapf(err, "插件清单 uninstall SQL 约束不合法: %s", filePath)
+	if err := validatePluginSQLPaths(rootDir, s.listPluginInstallSQLPaths(manifest), false); err != nil {
+		return gerror.Wrapf(err, "插件清单 install SQL 约束不合法: %s", fileLabel)
+	}
+	if err := validatePluginSQLPaths(rootDir, s.listPluginUninstallSQLPaths(manifest), true); err != nil {
+		return gerror.Wrapf(err, "插件清单 uninstall SQL 约束不合法: %s", fileLabel)
 	}
 	if err := validatePluginManifestFilePaths(
 		rootDir,
-		s.discoverPluginPagePaths(rootDir),
+		s.listPluginFrontendPagePaths(manifest),
 		"frontend/pages/",
 		pluginVueFileExts,
 	); err != nil {
-		return gerror.Wrapf(err, "插件清单 frontend page 约束不合法: %s", filePath)
+		return gerror.Wrapf(err, "插件清单 frontend page 约束不合法: %s", fileLabel)
 	}
 	if err := validatePluginManifestFilePaths(
 		rootDir,
-		s.discoverPluginSlotPaths(rootDir),
+		s.listPluginFrontendSlotPaths(manifest),
 		"frontend/slots/",
 		pluginVueFileExts,
 	); err != nil {
-		return gerror.Wrapf(err, "插件清单 frontend slot 约束不合法: %s", filePath)
+		return gerror.Wrapf(err, "插件清单 frontend slot 约束不合法: %s", fileLabel)
 	}
 	return nil
 }

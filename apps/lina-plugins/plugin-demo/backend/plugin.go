@@ -5,6 +5,7 @@ import (
 
 	"github.com/gogf/gf/v2/net/ghttp"
 
+	plugindemo "lina-plugin-demo"
 	"lina-core/pkg/pluginhost"
 	democtrl "lina-plugin-demo/backend/internal/controller/demo"
 )
@@ -15,6 +16,7 @@ const (
 
 func init() {
 	plugin := pluginhost.NewSourcePlugin(pluginID)
+	plugin.UseEmbeddedFiles(plugindemo.EmbeddedFiles)
 	plugin.RegisterRoutes(
 		pluginhost.ExtensionPointHTTPRouteRegister,
 		pluginhost.CallbackExecutionModeBlocking,

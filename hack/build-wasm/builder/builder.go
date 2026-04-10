@@ -228,11 +228,16 @@ func BuildRuntimeWasmArtifactFromSource(pluginDir string) (*RuntimeBuildOutput, 
 	}, nil
 }
 
-// WriteRuntimeWasmArtifactFromSource builds and writes one dynamic artifact into temp/<plugin-id>.wasm.
-func WriteRuntimeWasmArtifactFromSource(pluginDir string) (*RuntimeBuildOutput, error) {
+// WriteRuntimeWasmArtifactFromSource builds and writes one dynamic artifact into
+// the requested output directory. When outputDir is empty, temp/<plugin-id>.wasm
+// under the plugin source tree is used for backward compatibility.
+func WriteRuntimeWasmArtifactFromSource(pluginDir string, outputDir string) (*RuntimeBuildOutput, error) {
 	out, err := BuildRuntimeWasmArtifactFromSource(pluginDir)
 	if err != nil {
 		return nil, err
+	}
+	if strings.TrimSpace(outputDir) != "" {
+		out.ArtifactPath = filepath.Join(filepath.Clean(outputDir), filepath.Base(out.ArtifactPath))
 	}
 	if err = os.MkdirAll(filepath.Dir(out.ArtifactPath), 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create dynamic artifact directory: %w", err)

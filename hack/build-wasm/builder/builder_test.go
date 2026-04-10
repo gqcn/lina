@@ -103,7 +103,7 @@ func TestWriteRuntimeWasmArtifactFromSourceWritesGeneratedFile(t *testing.T) {
 		"id: plugin-dynamic-write\nname: Dynamic Write\nversion: v0.1.0\ntype: dynamic\n",
 	)
 
-	out, err := WriteRuntimeWasmArtifactFromSource(pluginDir)
+	out, err := WriteRuntimeWasmArtifactFromSource(pluginDir, "")
 	if err != nil {
 		t.Fatalf("expected dynamic artifact write to succeed, got error: %v", err)
 	}
@@ -117,6 +117,27 @@ func TestWriteRuntimeWasmArtifactFromSourceWritesGeneratedFile(t *testing.T) {
 	}
 	if len(content) == 0 {
 		t.Fatalf("expected generated dynamic artifact to contain bytes")
+	}
+}
+
+func TestWriteRuntimeWasmArtifactFromSourceSupportsExternalOutputDir(t *testing.T) {
+	pluginDir := t.TempDir()
+	outputDir := filepath.Join(t.TempDir(), "output")
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "plugin.yaml"),
+		"id: plugin-dynamic-output\nname: Dynamic Output\nversion: v0.1.0\ntype: dynamic\n",
+	)
+
+	out, err := WriteRuntimeWasmArtifactFromSource(pluginDir, outputDir)
+	if err != nil {
+		t.Fatalf("expected dynamic artifact write to external dir to succeed, got error: %v", err)
+	}
+	if expected := filepath.Join(outputDir, "plugin-dynamic-output.wasm"); out.ArtifactPath != expected {
+		t.Fatalf("expected generated dynamic artifact path %s, got %s", expected, out.ArtifactPath)
+	}
+	if _, err = os.Stat(out.ArtifactPath); err != nil {
+		t.Fatalf("expected generated dynamic artifact to exist in external dir, got error: %v", err)
 	}
 }
 

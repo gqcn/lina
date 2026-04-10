@@ -2,6 +2,10 @@
 .PHONY: wasm
 wasm:
 	@set -e; \
+	output_dir="$(out)"; \
+	if [ -z "$$output_dir" ]; then \
+		output_dir="../../temp/output"; \
+	fi; \
 	plugin_list=""; \
 	if [ -n "$(p)" ]; then \
 		plugin_list="$(p)"; \
@@ -27,5 +31,5 @@ wasm:
 			exit 1; \
 		fi; \
 		echo "构建 dynamic wasm 插件: $$plugin"; \
-		(cd ../../hack/build-wasm && go run . --plugin-dir ../../apps/lina-plugins/$$plugin); \
+		(cd ../../hack/build-wasm && go run . --plugin-dir ../../apps/lina-plugins/$$plugin --output-dir "$$output_dir"); \
 	done

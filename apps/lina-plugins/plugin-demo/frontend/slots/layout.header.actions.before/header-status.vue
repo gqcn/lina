@@ -5,6 +5,8 @@ export const pluginSlotMeta = {
   order: 0,
   slotKey: pluginSlotKeys.layoutHeaderActionsBefore,
 };
+
+export default {};
 </script>
 
 <template>

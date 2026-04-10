@@ -5,6 +5,7 @@ package pluginhost
 
 import (
 	"context"
+	"io/fs"
 
 	"github.com/gogf/gf/v2/net/ghttp"
 )
@@ -14,6 +15,7 @@ type SourcePlugin struct {
 	// ID is the stable plugin id and must match `plugin.yaml`.
 	ID string
 
+	embeddedFiles     fs.FS
 	resources         []*ResourceSpec
 	hookHandlers      []*HookHandlerRegistration
 	routeRegistrars   []*RouteHandlerRegistration
@@ -247,6 +249,22 @@ func NewSourcePlugin(id string) *SourcePlugin {
 		menuFilters:       make([]*MenuFilterHandlerRegistration, 0),
 		permissionFilters: make([]*PermissionFilterHandlerRegistration, 0),
 	}
+}
+
+// UseEmbeddedFiles binds one plugin-owned embedded filesystem to the source plugin.
+func (p *SourcePlugin) UseEmbeddedFiles(fileSystem fs.FS) {
+	if p == nil {
+		return
+	}
+	p.embeddedFiles = fileSystem
+}
+
+// GetEmbeddedFiles returns the plugin-owned embedded filesystem when declared.
+func (p *SourcePlugin) GetEmbeddedFiles() fs.FS {
+	if p == nil {
+		return nil
+	}
+	return p.embeddedFiles
 }
 
 // NewHookPayload creates one published hook payload wrapper for plugins.

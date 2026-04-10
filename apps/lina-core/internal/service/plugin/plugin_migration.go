@@ -12,7 +12,6 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gfile"
 	"github.com/gogf/gf/v2/os/gtime"
 
 	"lina-core/internal/dao"
@@ -100,20 +99,21 @@ func (s *Service) resolvePluginSQLAssets(
 		}
 	}
 
-	relativePaths := s.discoverPluginSQLPaths(manifest.RootDir, direction == pluginMigrationDirectionUninstall)
+	relativePaths := s.listPluginInstallSQLPaths(manifest)
+	if direction == pluginMigrationDirectionUninstall {
+		relativePaths = s.listPluginUninstallSQLPaths(manifest)
+	}
 	items := make([]*pluginSQLAsset, 0, len(relativePaths))
 	for _, relativePath := range relativePaths {
-		sqlPath, err := s.resolvePluginResourcePath(manifest.RootDir, relativePath)
+		sqlContent, err := s.readSourcePluginAssetContent(manifest, relativePath)
 		if err != nil {
 			return nil, err
 		}
-
-		sqlContent := strings.TrimSpace(gfile.GetContents(sqlPath))
 		if sqlContent == "" {
-			return nil, gerror.Newf("插件SQL文件为空: %s", sqlPath)
+			return nil, gerror.Newf("插件SQL文件为空: %s", relativePath)
 		}
 		items = append(items, &pluginSQLAsset{
-			Key:     filepath.Base(sqlPath),
+			Key:     filepath.Base(relativePath),
 			Content: sqlContent,
 		})
 	}

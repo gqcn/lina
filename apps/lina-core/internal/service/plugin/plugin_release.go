@@ -5,6 +5,7 @@ package plugin
 
 import (
 	"context"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -169,6 +170,9 @@ func (s *Service) buildPluginPackagePath(manifest *pluginManifest) string {
 	if manifest == nil {
 		return ""
 	}
+	if hasSourcePluginEmbeddedFiles(manifest) {
+		return "embedded/source-plugins/" + manifest.ID
+	}
 	if manifest.RuntimeArtifact != nil && strings.TrimSpace(manifest.RuntimeArtifact.Path) != "" {
 		return filepath.ToSlash(filepath.Base(manifest.RuntimeArtifact.Path))
 	}
@@ -178,6 +182,9 @@ func (s *Service) buildPluginPackagePath(manifest *pluginManifest) string {
 func (s *Service) buildPluginReleaseManifestPath(manifest *pluginManifest) string {
 	if manifest == nil || normalizePluginType(manifest.Type) == pluginTypeDynamic {
 		return ""
+	}
+	if hasSourcePluginEmbeddedFiles(manifest) {
+		return path.Clean(strings.ReplaceAll(manifest.ManifestPath, "\\", "/"))
 	}
 	return filepath.ToSlash(filepath.Base(manifest.ManifestPath))
 }
@@ -196,12 +203,12 @@ func (s *Service) buildPluginFrontendPageCount(manifest *pluginManifest) int {
 	if manifest == nil || normalizePluginType(manifest.Type) != pluginTypeSource {
 		return 0
 	}
-	return len(s.discoverPluginPagePaths(manifest.RootDir))
+	return len(s.listPluginFrontendPagePaths(manifest))
 }
 
 func (s *Service) buildPluginFrontendSlotCount(manifest *pluginManifest) int {
 	if manifest == nil || normalizePluginType(manifest.Type) != pluginTypeSource {
 		return 0
 	}
-	return len(s.discoverPluginSlotPaths(manifest.RootDir))
+	return len(s.listPluginFrontendSlotPaths(manifest))
 }

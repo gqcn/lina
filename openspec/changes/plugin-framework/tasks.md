@@ -254,3 +254,6 @@
 - [ ] **FB-120**: 调查 `TC0068-runtime-wasm-failure-isolation` 中登录审计 Hook 未写入记录的回归，修复动态插件失败隔离链路并恢复对应 E2E 断言
 - [x] **FB-121**: 将动态插件内部类型标识从 `runtime` 统一收敛为 `dynamic`，同步更新配置键、API 路径、宿主页壳标识、样例插件 `plugin-demo-dynamic` 与相关文档测试
 - [x] **FB-122**: 审查并统一动态插件相关源码文件名，将仍使用 `plugin_runtime` 命名的源码文件收敛为 `plugin_dynamic`
+- [x] **FB-123**: 将源码插件资源嵌入责任下沉到插件自身，通过 `//go:embed` 在插件包内嵌入 `plugin.yaml`、约定目录 SQL 与前端资源索引，并移除宿主侧聚合 source catalog 构建
+- [x] **FB-124**: 调整 `make build` 输出体验，默认隐藏前端与构建工具详细日志，仅在显式传入 `verbose=1` 时输出完整编译信息
+- [x] **FB-125**: 为构建详细日志开关增加 `v=1` 短参数别名，并保持与 `verbose=1` 行为一致

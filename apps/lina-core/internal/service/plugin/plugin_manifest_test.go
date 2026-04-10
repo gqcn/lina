@@ -11,8 +11,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/gogf/gf/v2/os/gfile"
+
+	"lina-core/pkg/pluginhost"
 )
 
 func TestValidatePluginManifestAcceptsMinimalSourcePlugin(t *testing.T) {
@@ -267,7 +270,7 @@ func TestStoreUploadedRuntimePackageWritesCanonicalWasmIntoRuntimeStorage(t *tes
 	if err != nil {
 		t.Fatalf("failed to resolve repo root: %v", err)
 	}
-	storageArtifactPath := filepath.Join(repoRoot, "temp", "runtime", buildPluginDynamicArtifactFileName(pluginID))
+	storageArtifactPath := filepath.Join(repoRoot, "temp", "output", buildPluginDynamicArtifactFileName(pluginID))
 	_ = os.Remove(storageArtifactPath)
 	t.Cleanup(func() {
 		_ = os.Remove(storageArtifactPath)
@@ -552,6 +555,90 @@ func TestResolvePluginSQLAssetsFallsBackToDirectoryConvention(t *testing.T) {
 	}
 }
 
+func TestScanEmbeddedSourcePluginManifestsUsesPluginEmbeddedFiles(t *testing.T) {
+	service := New()
+
+	const pluginID = "plugin-embedded-manifest"
+	sourcePlugin := pluginhost.NewSourcePlugin(pluginID)
+	sourcePlugin.UseEmbeddedFiles(fstest.MapFS{
+		"plugin.yaml":                                 &fstest.MapFile{Data: []byte("id: plugin-embedded-manifest\nname: Embedded Manifest Plugin\nversion: 0.1.0\ntype: source\n")},
+		"frontend/pages/main-entry.vue":              &fstest.MapFile{Data: []byte("<template><div /></template>\n")},
+		"frontend/slots/layout.header.after/tip.vue": &fstest.MapFile{Data: []byte("<template><div /></template>\n")},
+		"manifest/sql/001-plugin-embedded-manifest.sql": &fstest.MapFile{
+			Data: []byte("SELECT 1;\n"),
+		},
+		"manifest/sql/uninstall/001-plugin-embedded-manifest.sql": &fstest.MapFile{
+			Data: []byte("SELECT 2;\n"),
+		},
+	})
+	pluginhost.RegisterSourcePlugin(sourcePlugin)
+
+	manifests, err := service.scanEmbeddedSourcePluginManifests()
+	if err != nil {
+		t.Fatalf("expected embedded source manifests to load, got error: %v", err)
+	}
+
+	var target *pluginManifest
+	for _, manifest := range manifests {
+		if manifest != nil && manifest.ID == pluginID {
+			target = manifest
+			break
+		}
+	}
+	if target == nil {
+		t.Fatalf("expected embedded source plugin %s to be discovered", pluginID)
+	}
+	if target.ManifestPath != "embedded/source-plugins/plugin-embedded-manifest/plugin.yaml" {
+		t.Fatalf("unexpected embedded manifest path: %s", target.ManifestPath)
+	}
+	if len(service.listPluginFrontendPagePaths(target)) != 1 {
+		t.Fatalf("expected embedded frontend page paths to be discovered")
+	}
+	if len(service.listPluginFrontendSlotPaths(target)) != 1 {
+		t.Fatalf("expected embedded frontend slot paths to be discovered")
+	}
+}
+
+func TestResolvePluginSQLAssetsUsesEmbeddedSourcePluginFiles(t *testing.T) {
+	service := New()
+
+	manifest := &pluginManifest{
+		ID:      "plugin-embedded-sql-assets",
+		Name:    "Embedded SQL Assets Plugin",
+		Version: "0.1.0",
+		Type:    pluginTypeSource.String(),
+		SourcePlugin: func() *pluginhost.SourcePlugin {
+			sourcePlugin := pluginhost.NewSourcePlugin("plugin-embedded-sql-assets")
+			sourcePlugin.UseEmbeddedFiles(fstest.MapFS{
+				"plugin.yaml": &fstest.MapFile{Data: []byte("id: plugin-embedded-sql-assets\nname: Embedded SQL Assets Plugin\nversion: 0.1.0\ntype: source\n")},
+				"manifest/sql/001-plugin-embedded-sql-assets.sql": &fstest.MapFile{
+					Data: []byte("SELECT 1;\n"),
+				},
+				"manifest/sql/uninstall/001-plugin-embedded-sql-assets.sql": &fstest.MapFile{
+					Data: []byte("SELECT 2;\n"),
+				},
+			})
+			return sourcePlugin
+		}(),
+	}
+
+	installAssets, err := service.resolvePluginSQLAssets(manifest, pluginMigrationDirectionInstall)
+	if err != nil {
+		t.Fatalf("expected embedded install sql assets, got error: %v", err)
+	}
+	if len(installAssets) != 1 || installAssets[0].Content != "SELECT 1;" {
+		t.Fatalf("unexpected embedded install assets: %#v", installAssets)
+	}
+
+	uninstallAssets, err := service.resolvePluginSQLAssets(manifest, pluginMigrationDirectionUninstall)
+	if err != nil {
+		t.Fatalf("expected embedded uninstall sql assets, got error: %v", err)
+	}
+	if len(uninstallAssets) != 1 || uninstallAssets[0].Content != "SELECT 2;" {
+		t.Fatalf("unexpected embedded uninstall assets: %#v", uninstallAssets)
+	}
+}
+
 func TestDerivePluginLifecycleState(t *testing.T) {
 	testCases := []struct {
 		name       string
@@ -731,7 +818,7 @@ func createTestRuntimeStorageArtifactWithFilename(
 		t.Fatalf("failed to resolve repo root: %v", err)
 	}
 
-	storageDir := filepath.Join(repoRoot, "temp", "runtime")
+	storageDir := filepath.Join(repoRoot, "temp", "output")
 	if err = os.MkdirAll(storageDir, 0o755); err != nil {
 		t.Fatalf("failed to create dynamic storage dir: %v", err)
 	}

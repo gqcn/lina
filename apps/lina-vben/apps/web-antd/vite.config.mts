@@ -1,4 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join, relative, sep } from 'node:path';
 
 import { defineConfig } from '@vben/vite-config';
@@ -9,6 +10,7 @@ let cachedApidocsHtml: string | undefined;
 
 const pluginPageModuleId = 'virtual:lina-plugin-pages';
 const pluginSlotModuleId = 'virtual:lina-plugin-slots';
+const appRequire = createRequire(import.meta.url);
 
 function collectPluginSourceFiles(pluginRoot: string) {
   const pageFiles: string[] = [];
@@ -46,6 +48,10 @@ function normalizeFsPath(filePath: string) {
   return filePath.split(sep).join('/');
 }
 
+function normalizeImporterPath(filePath: string) {
+  return normalizeFsPath(filePath.split('?')[0]?.split('#')[0] || filePath);
+}
+
 function toViteFsPath(filePath: string) {
   const normalizedPath = normalizeFsPath(filePath);
   return normalizedPath.startsWith('/@fs/')
@@ -55,7 +61,7 @@ function toViteFsPath(filePath: string) {
 
 function isPluginFrontendSourceFile(pluginRoot: string, filePath: string) {
   const normalizedPluginRoot = normalizeFsPath(pluginRoot);
-  const normalizedFilePath = normalizeFsPath(filePath);
+  const normalizedFilePath = normalizeImporterPath(filePath);
 
   if (!normalizedFilePath.startsWith(normalizedPluginRoot)) {
     return false;
@@ -68,6 +74,17 @@ function isPluginFrontendSourceFile(pluginRoot: string, filePath: string) {
   return (
     normalizedFilePath.includes('/frontend/pages/') ||
     normalizedFilePath.includes('/frontend/slots/')
+  );
+}
+
+function isBareModuleImport(source: string) {
+  return (
+    !!source &&
+    !source.startsWith('.') &&
+    !source.startsWith('/') &&
+    !source.startsWith('#') &&
+    !source.startsWith('\0') &&
+    !source.startsWith('virtual:')
   );
 }
 
@@ -144,6 +161,24 @@ export default defineConfig(async () => {
     application: {},
     vite: {
       plugins: [
+        {
+          name: 'lina-plugin-source-deps',
+          resolveId(source, importer) {
+            if (
+              !importer ||
+              !isPluginFrontendSourceFile(pluginRoot, importer) ||
+              !isBareModuleImport(source)
+            ) {
+              return null;
+            }
+
+            try {
+              return appRequire.resolve(source);
+            } catch {
+              return null;
+            }
+          },
+        },
         {
           name: 'lina-plugin-registry',
           configureServer(server) {

@@ -9,6 +9,7 @@ FRONTEND_PID  := $(PID_DIR)/frontend.pid
 BACKEND_PORT  := 8080
 FRONTEND_PORT := 5666
 EMBED_DIR     := $(BACKEND_DIR)/internal/packed/public
+OUTPUT_DIR    := temp/output
 
 # 引用复杂指令子文件
 include hack/makefiles/up.mk

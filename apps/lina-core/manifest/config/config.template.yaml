@@ -30,7 +30,7 @@ upload:
 
 plugin:
   dynamic:
-    storagePath: "temp/runtime"
+    storagePath: "temp/output"
 
 # OpenAPI documentation configuration
 openapi:

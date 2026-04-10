@@ -36,3 +36,18 @@ func GetSourcePlugin(id string) (*SourcePlugin, bool) {
 	plugin, ok := sourcePluginRegistry[id]
 	return plugin, ok
 }
+
+// ListSourcePlugins returns all registered compile-time source plugins.
+func ListSourcePlugins() []*SourcePlugin {
+	sourcePluginRegistryMu.RLock()
+	defer sourcePluginRegistryMu.RUnlock()
+
+	items := make([]*SourcePlugin, 0, len(sourcePluginRegistry))
+	for _, plugin := range sourcePluginRegistry {
+		if plugin == nil {
+			continue
+		}
+		items = append(items, plugin)
+	}
+	return items
+}

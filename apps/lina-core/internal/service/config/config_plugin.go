@@ -23,7 +23,7 @@ type PluginDynamicConfig struct {
 func (s *Service) GetPlugin(ctx context.Context) *PluginConfig {
 	cfg := &PluginConfig{
 		Dynamic: PluginDynamicConfig{
-			StoragePath: "temp/runtime",
+			StoragePath: "temp/output",
 		},
 	}
 	_ = g.Cfg().MustGet(ctx, "plugin").Scan(cfg)
@@ -33,7 +33,7 @@ func (s *Service) GetPlugin(ctx context.Context) *PluginConfig {
 		cfg.Dynamic.StoragePath = strings.TrimSpace(cfg.Runtime.StoragePath)
 	}
 	if cfg.Dynamic.StoragePath == "" {
-		cfg.Dynamic.StoragePath = "temp/runtime"
+		cfg.Dynamic.StoragePath = "temp/output"
 	}
 	return cfg
 }

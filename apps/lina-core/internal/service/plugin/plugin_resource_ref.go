@@ -134,8 +134,8 @@ func (s *Service) buildPluginResourceRefDescriptors(manifest *pluginManifest) []
 	// those findings into abstract review records.
 	installSQLAssetCount := s.countPluginSQLAssets(manifest, pluginMigrationDirectionInstall)
 	uninstallSQLAssetCount := s.countPluginSQLAssets(manifest, pluginMigrationDirectionUninstall)
-	frontendPagePaths := s.discoverPluginPagePaths(manifest.RootDir)
-	frontendSlotPaths := s.discoverPluginSlotPaths(manifest.RootDir)
+	frontendPagePaths := s.listPluginFrontendPagePaths(manifest)
+	frontendSlotPaths := s.listPluginFrontendSlotPaths(manifest)
 
 	descriptors := []*pluginResourceRefDescriptor{
 		{

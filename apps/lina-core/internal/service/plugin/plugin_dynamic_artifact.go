@@ -321,12 +321,8 @@ func (s *Service) buildPluginRegistryChecksum(manifest *pluginManifest) string {
 	if manifest.RuntimeArtifact != nil {
 		return manifest.RuntimeArtifact.Checksum
 	}
-	if strings.TrimSpace(manifest.ManifestPath) == "" {
-		return ""
-	}
-
-	content := gfile.GetBytes(manifest.ManifestPath)
-	if len(content) == 0 {
+	content, err := s.readSourcePluginManifestContent(manifest)
+	if err != nil || len(content) == 0 {
 		return ""
 	}
 	return fmt.Sprintf("%x", sha256.Sum256(content))

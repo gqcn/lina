@@ -10,8 +10,12 @@ import (
 )
 
 func main() {
-	var pluginDir string
+	var (
+		outputDir string
+		pluginDir string
+	)
 	flag.StringVar(&pluginDir, "plugin-dir", "", "Runtime plugin directory")
+	flag.StringVar(&outputDir, "output-dir", "", "Directory used to store generated wasm")
 	flag.Parse()
 
 	if pluginDir == "" {
@@ -25,7 +29,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	out, err := builder.WriteRuntimeWasmArtifactFromSource(absolutePluginDir)
+	out, err := builder.WriteRuntimeWasmArtifactFromSource(absolutePluginDir, outputDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to build runtime artifact: %v\n", err)
 		os.Exit(1)
