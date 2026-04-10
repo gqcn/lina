@@ -196,7 +196,7 @@ func TestScanPluginManifestsRejectsDuplicatePluginIDs(t *testing.T) {
 
 	manifestPath := filepath.Join(pluginDir, "plugin.yaml")
 	manifestContent := strings.Join([]string{
-		"id: plugin-demo",
+		"id: plugin-demo-source",
 		"name: Duplicate Plugin",
 		"version: 0.1.0",
 		"type: source",
@@ -561,7 +561,7 @@ func TestScanEmbeddedSourcePluginManifestsUsesPluginEmbeddedFiles(t *testing.T) 
 	const pluginID = "plugin-embedded-manifest"
 	sourcePlugin := pluginhost.NewSourcePlugin(pluginID)
 	sourcePlugin.UseEmbeddedFiles(fstest.MapFS{
-		"plugin.yaml":                                 &fstest.MapFile{Data: []byte("id: plugin-embedded-manifest\nname: Embedded Manifest Plugin\nversion: 0.1.0\ntype: source\n")},
+		"plugin.yaml":                                &fstest.MapFile{Data: []byte("id: plugin-embedded-manifest\nname: Embedded Manifest Plugin\nversion: 0.1.0\ntype: source\n")},
 		"frontend/pages/main-entry.vue":              &fstest.MapFile{Data: []byte("<template><div /></template>\n")},
 		"frontend/slots/layout.header.after/tip.vue": &fstest.MapFile{Data: []byte("<template><div /></template>\n")},
 		"manifest/sql/001-plugin-embedded-manifest.sql": &fstest.MapFile{

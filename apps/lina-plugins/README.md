@@ -46,8 +46,9 @@
 
 - 运维与 review 说明已整理到 [OPERATIONS.md](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/OPERATIONS.md)。
 - 当前仓库提供两个 review 样例：
-  - `plugin-demo`：源码插件样例
+  - `plugin-demo-source`：源码插件样例
   - `plugin-demo-dynamic`：动态插件样例
+  - 其中 `plugin-demo-source` 当前只保留左侧菜单页示例；动态页面挂载、独立静态页等对比能力由 `plugin-demo-dynamic` 演示
 
 ## 设计原则
 
@@ -487,13 +488,13 @@ apps/lina-plugins/
 ### 推荐示例
 
 ```yaml
-id: plugin-demo
-name: 示例插件
+id: plugin-demo-source
+name: 源码插件示例
 version: v0.1.0
 type: source
-description: 提供插件扫描、状态管理、左侧菜单页面、前端 Slot 与公开/受保护路由示例的源码插件
+description: 提供左侧菜单页面与公开/受保护路由示例的源码插件
 author: lina-team
-homepage: https://example.com/lina/plugins/plugin-demo
+homepage: https://example.com/lina/plugins/plugin-demo-source
 license: Apache-2.0
 ```
 
@@ -561,7 +562,7 @@ license: Apache-2.0
 package linaplugins
 
 import (
-	_ "lina-plugin-demo/backend"
+	_ "lina-plugin-demo-source/backend"
 )
 ```
 
@@ -571,7 +572,7 @@ import (
 package linaplugins
 
 import (
-	_ "lina-plugin-demo/backend"
+	_ "lina-plugin-demo-source/backend"
 	_ "lina-plugin-foo/backend"
 )
 ```
@@ -591,7 +592,7 @@ import (
 	"lina-core/pkg/pluginhost"
 )
 
-const pluginID = "plugin-demo"
+const pluginID = "plugin-demo-source"
 
 func init() {
 	plugin := pluginhost.NewSourcePlugin(pluginID)
@@ -710,8 +711,8 @@ frontend/pages/**/*.vue
 ```vue
 <script lang="ts">
 export const pluginPageMeta = {
-  routePath: "plugin-demo-sidebar-entry",
-  title: "插件示例",
+  routePath: "plugin-demo-source-sidebar-entry",
+  title: "源码插件示例",
 };
 </script>
 ```
@@ -738,8 +739,8 @@ export const pluginPageMeta = {
 
 | 文件路径                           | 推导结果                    |
 | ---------------------------------- | --------------------------- |
-| `frontend/pages/sidebar-entry.vue` | `plugin-demo-sidebar-entry` |
-| `frontend/pages/user/profile.vue`  | `plugin-demo-user-profile`  |
+| `frontend/pages/sidebar-entry.vue` | `plugin-demo-source-sidebar-entry` |
+| `frontend/pages/user/profile.vue`  | `plugin-demo-source-user-profile`  |
 
 ### 页面开发约束
 
@@ -1007,18 +1008,18 @@ manifest/sql/uninstall/*.sql
 
 ## 参考实现
 
-当前仓库中最小可运行样例是`plugin-demo`：
+当前仓库中最小可运行样例是`plugin-demo-source`：
 
 | 文件                                                             | 作用               |
 | ---------------------------------------------------------------- | ------------------ |
-| `apps/lina-plugins/plugin-demo/plugin.yaml`                                      | 源码插件最小清单示例     |
-| `apps/lina-plugins/plugin-demo/backend/plugin.go`                                | 源码插件后端注册入口示例 |
-| `apps/lina-plugins/plugin-demo/frontend/pages/sidebar-entry.vue`                 | 源码插件页面示例         |
-| `apps/lina-plugins/plugin-demo/manifest/sql/001-plugin-demo.sql`                 | 源码插件菜单与权限示例   |
+| `apps/lina-plugins/plugin-demo-source/plugin.yaml`                               | 源码插件最小清单示例     |
+| `apps/lina-plugins/plugin-demo-source/backend/plugin.go`                         | 源码插件后端注册入口示例 |
+| `apps/lina-plugins/plugin-demo-source/frontend/pages/sidebar-entry.vue`          | 源码插件页面示例         |
+| `apps/lina-plugins/plugin-demo-source/manifest/sql/001-plugin-demo-source.sql`   | 源码插件菜单与权限示例   |
 | `apps/lina-plugins/plugin-demo-dynamic/plugin.yaml`                              | 动态插件最小清单示例     |
 | `apps/lina-plugins/plugin-demo-dynamic/backend/plugin.go`                        | 动态插件后端结构示例     |
 | `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/mount.js`                  | 动态内嵌挂载入口示例     |
 | `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/standalone.html`           | 动态独立静态页示例       |
 | `apps/lina-plugins/plugin-demo-dynamic/manifest/sql/001-plugin-demo-dynamic.sql` | 动态插件菜单 SQL 示例    |
 
-如果要新增新插件，建议先复制`plugin-demo`的整体结构，再按本文档约束删减或扩展，而不是从零随意拼目录。
+如果要新增新插件，建议先复制`plugin-demo-source`的整体结构，再按本文档约束删减或扩展，而不是从零随意拼目录。

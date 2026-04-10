@@ -105,8 +105,8 @@ func TestConvertToRouteItemsKeepsRegularViewRouteUnchanged(t *testing.T) {
 	routes := convertToRouteItems([]*menusvc.MenuItem{
 		{
 			Id:        104,
-			Name:      "Plugin Demo",
-			Path:      "plugin-demo-sidebar-entry",
+			Name:      "Plugin Demo Source",
+			Path:      "plugin-demo-source-sidebar-entry",
 			Component: "system/plugin/dynamic-page",
 			Type:      "M",
 			IsFrame:   0,
@@ -126,7 +126,7 @@ func TestConvertToRouteItemsKeepsRegularViewRouteUnchanged(t *testing.T) {
 	if route.Meta == nil || route.Meta.IframeSrc != "" || route.Meta.Link != "" {
 		t.Fatalf("expected regular route meta to stay without link semantics, got %#v", route.Meta)
 	}
-	if route.Path != "/plugin-demo-sidebar-entry" {
+	if route.Path != "/plugin-demo-source-sidebar-entry" {
 		t.Fatalf("expected normal menu path, got %s", route.Path)
 	}
 }

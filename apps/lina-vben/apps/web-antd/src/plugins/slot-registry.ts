@@ -188,10 +188,22 @@ export async function notifyPluginRegistryChangedIfNeeded() {
 
   registryGlobal.__linaPluginRegistryCheckPromise = (async () => {
     try {
+      // Reuse any in-flight baseline load so the first focus restore does not
+      // misclassify "no snapshot yet" as "plugin registry changed".
+      if (!getPluginStateSignature()) {
+        await getPluginStatePromise();
+      }
+
+      const previousSignature = getPluginStateSignature();
       const items = await pluginDynamicList();
       const nextSignature = buildPluginStateSignature(items);
 
-      if (nextSignature === getPluginStateSignature()) {
+      if (!previousSignature) {
+        setPluginStateSnapshot(items);
+        return false;
+      }
+
+      if (nextSignature === previousSignature) {
         return false;
       }
 

@@ -2,7 +2,7 @@
 
 `plugin-demo-dynamic`是当前`plugin-framework`迭代提供的独立动态`wasm`样例插件。
 
-与[`plugin-demo`](../plugin-demo/README.md)不同，这个插件不会以源码形式编译进宿主，而是用于演示当前动态插件契约下的一条最小闭环：
+与[`plugin-demo-source`](../plugin-demo-source/README.md)不同，这个插件不会以源码形式编译进宿主，而是用于演示当前动态插件契约下的一条最小闭环：
 
 - 通过插件自带`SQL`向宿主注入 1 个左侧菜单入口；
 - 菜单在宿主主内容区打开一页简要说明；
@@ -90,7 +90,7 @@ make wasm p=plugin-demo-dynamic
 
 ## 后端示例边界
 
-`backend/`目录的存在，是为了让这个动态样例在 review 形态上与`plugin-demo`保持一致。
+`backend/`目录的存在，是为了让这个动态样例在 review 形态上与`plugin-demo-source`保持一致。
 
 当前边界如下：
 

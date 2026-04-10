@@ -153,57 +153,37 @@ export class PluginPage {
   }
 
   headerActionBeforeSlot(): Locator {
-    return this.page.getByText("plugin-demo 头部前置扩展").first();
+    return this.page.getByText("plugin-demo-source 头部前置扩展").first();
   }
 
   headerActionAfterSlot(): Locator {
-    return this.page.getByText("plugin-demo 头部后置扩展").first();
+    return this.page.getByText("plugin-demo-source 头部后置扩展").first();
   }
 
   pluginSidebarSimpleTitle(): Locator {
-    return this.page.getByRole("heading", { name: "插件示例已生效" }).first();
+    return this.page
+      .getByRole("heading", { name: "源码插件示例已生效" })
+      .first();
   }
 
   pluginSidebarBriefDescription(): Locator {
     return this.page.getByText(
-      "这是一条来自 plugin-demo 接口的简要介绍，用于验证插件页面可读取插件后端数据。",
+      "这是一条来自 plugin-demo-source 接口的简要介绍，用于验证源码插件菜单页可读取插件后端数据。",
     );
-  }
-
-  pluginSidebarLegacyDescription(): Locator {
-    return this.page.getByText(
-      "当前页面用于验证 plugin-demo 已成功接入宿主左侧菜单，并能在后台主内容区正常打开。",
-    );
-  }
-
-  pluginSummaryMessage(): Locator {
-    return this.page.getByText(
-      "plugin-demo 仅演示最小源码插件接入，不包含数据库读写示例。",
-    );
-  }
-
-  pluginSummaryErrorToast(): Locator {
-    return this.page
-      .locator(".ant-message-notice")
-      .filter({
-        hasText:
-          "这是一条来自 plugin-demo 接口的简要介绍，用于验证插件页面可读取插件后端数据。",
-      })
-      .first();
   }
 
   workspaceBeforeSlot(): Locator {
     return this.page.getByText(
-      "plugin-demo 正在通过 `dashboard.workspace.before` 在工作台顶部插入横幅内容。",
+      "plugin-demo-source 正在通过 `dashboard.workspace.before` 在工作台顶部插入横幅内容。",
     );
   }
 
   workspaceAfterSlot(): Locator {
-    return this.page.getByText("插件示例工作台卡片").first();
+    return this.page.getByText("源码插件示例工作台卡片").first();
   }
 
   crudToolbarSlot(): Locator {
-    return this.page.getByText("plugin-demo CRUD 扩展").first();
+    return this.page.getByText("plugin-demo-source CRUD 扩展").first();
   }
 
   async gotoManage() {
@@ -341,28 +321,14 @@ export class PluginPage {
     ).toBeVisible();
   }
 
-  async expectWorkspaceSlotVisible() {
-    await expect(this.workspaceBeforeSlot()).toBeVisible();
-    await expect(this.workspaceAfterSlot()).toBeVisible();
-  }
-
   async expectWorkspaceSlotHidden() {
     await expect(this.workspaceBeforeSlot()).toHaveCount(0);
     await expect(this.workspaceAfterSlot()).toHaveCount(0);
   }
 
-  async expectHeaderSlotsVisible() {
-    await expect(this.headerActionBeforeSlot()).toBeVisible();
-    await expect(this.headerActionAfterSlot()).toBeVisible();
-  }
-
   async expectHeaderSlotsHidden() {
     await expect(this.headerActionBeforeSlot()).toHaveCount(0);
     await expect(this.headerActionAfterSlot()).toHaveCount(0);
-  }
-
-  async expectCrudSlotsVisible() {
-    await expect(this.crudToolbarSlot()).toBeVisible();
   }
 
   async expectCrudSlotsHidden() {
@@ -470,11 +436,8 @@ export class PluginPage {
   }
 
   async openSidebarExampleFromMenu() {
-    await this.clickSidebarMenuItem("插件示例");
+    await this.clickSidebarMenuItem("源码插件示例");
     await expect(this.pluginSidebarSimpleTitle()).toBeVisible();
     await expect(this.pluginSidebarBriefDescription()).toBeVisible();
-    await expect(this.pluginSidebarLegacyDescription()).toHaveCount(0);
-    await expect(this.pluginSummaryMessage()).toHaveCount(0);
-    await expect(this.pluginSummaryErrorToast()).toHaveCount(0);
   }
 }

@@ -19,6 +19,8 @@ Lina 当前的前后端扩展方式仍以“宿主源码直接改造”为主，
 
 ## 2026-04-06 实现快照
 
+说明：本节记录首轮落地时的实现快照；其中提到的源码样例 `plugin-demo` 已在后续反馈中收敛并更名为 `plugin-demo-source`。
+
 当前仓库中的第一刀实现，已经明确补上一条约束：
 
 - `plugin-demo` 的插件特定前后端实现必须收敛在 `apps/lina-plugins/plugin-demo/`
@@ -63,6 +65,15 @@ Lina 当前的前后端扩展方式仍以“宿主源码直接改造”为主，
 2. `4.3` 中 runtime `wasm` 的真实装载、Hook 调用、超时控制、错误隔离与卸载回收。
 3. `7.3` 中针对 runtime 装载失败、隔离与回滚的验收验证。
 4. `7.4` 中针对插件权限治理链路的验收验证。
+
+## 2026-04-10 源码样例收敛补充
+
+针对当前样例插件的 review 反馈，源码样例继续收敛为更清晰的 source / dynamic 配对关系：
+
+- 源码样例插件统一从 `plugin-demo` 更名为 `plugin-demo-source`，目录调整为 `apps/lina-plugins/plugin-demo-source/`。
+- 插件显示名称与左侧菜单名称统一使用“源码插件示例”，避免再与动态样例混淆。
+- `plugin-demo-source` 前端只保留左侧菜单页示例；右上角、登录页、工作台、CRUD 等额外 `Slot` 示例全部移除。
+- 动态插件能力继续由 `plugin-demo-dynamic` 负责演示，源码样例不再承担额外前端 `Slot` 展示职责。
 
 ## Goals / Non-Goals
 

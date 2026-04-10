@@ -21,6 +21,7 @@ import PluginSlotOutlet from '#/components/plugin/plugin-slot-outlet.vue';
 import { $t } from '#/locales';
 import { pluginSlotKeys } from '#/plugins/plugin-slots';
 import {
+  getPluginStateMap,
   notifyPluginRegistryChangedIfNeeded,
   onPluginRegistryChanged,
 } from '#/plugins/slot-registry';
@@ -141,6 +142,7 @@ function handlePluginRegistryMaybeChanged() {
 // We fetch on mount to have data ready
 onMounted(() => {
   messageStore.fetchMessages();
+  void getPluginStateMap();
   disposePluginRegistryListener = onPluginRegistryChanged(() =>
     refreshPluginAwareAccess(),
   );

@@ -1,5 +1,5 @@
 package linaplugins
 
 import (
-	_ "lina-plugin-demo/backend"
+	_ "lina-plugin-demo-source/backend"
 )

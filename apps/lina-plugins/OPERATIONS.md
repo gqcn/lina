@@ -6,7 +6,7 @@
 
 当前仓库仍然以**第一期源码插件底座**为主，但 `apps/lina-plugins/` 下已经同时提供：
 
-- `plugin-demo`：源码插件样例
+- `plugin-demo-source`：源码插件样例
 - `plugin-demo-dynamic`：动态插件样例
 
 动态插件完整能力尚未交付，但宿主已经先补齐了后续阶段会复用的元数据表：
@@ -44,7 +44,8 @@
 
 - 源码插件视为“随宿主编译即已集成”，不走安装/卸载流程。
 - 源码插件禁用后，只会隐藏路由、菜单、页面和 `Slot`，不会删除历史业务数据。
-- 当前仓库至少保留 `plugin-demo` 与 `plugin-demo-dynamic` 两个样例目录，分别用于 source / dynamic 两种接入模式的 review。
+- 当前仓库至少保留 `plugin-demo-source` 与 `plugin-demo-dynamic` 两个样例目录，分别用于 source / dynamic 两种接入模式的 review。
+- 当前源码样例 `plugin-demo-source` 只保留一个左侧菜单页，不再额外演示登录页、工作台、CRUD 或右上角 `Slot` 扩展。
 
 ## 动态插件
 
