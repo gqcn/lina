@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import type { NotificationItem } from '@vben/layouts';
-import type { RouteRecordRaw } from 'vue-router';
 
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
@@ -22,13 +21,10 @@ import PluginSlotOutlet from '#/components/plugin/plugin-slot-outlet.vue';
 import { $t } from '#/locales';
 import { pluginSlotKeys } from '#/plugins/plugin-slots';
 import {
-  notifyPluginRegistryChanged,
   notifyPluginRegistryChangedIfNeeded,
   onPluginRegistryChanged,
 } from '#/plugins/slot-registry';
-import { generateAccess } from '#/router/access';
-import { resetRoutes } from '#/router/index';
-import { accessRoutes } from '#/router/routes';
+import { refreshAccessibleState } from '#/router/access-refresh';
 import { useAuthStore } from '#/store';
 import { useMessageStore } from '#/store/message';
 import LoginForm from '#/views/_core/authentication/login.vue';
@@ -46,7 +42,6 @@ const [PreviewModal, previewModalApi] = useVbenModal({
 });
 
 let disposePluginRegistryListener: (() => void) | null = null;
-let pluginAccessRefreshing = false;
 
 // Map server messages to NotificationItem format
 const notifications = computed<NotificationItem[]>(() =>
@@ -126,68 +121,8 @@ function handleNotificationClick(item: NotificationItem) {
   }
 }
 
-function collectAccessibleRouteNames(
-  routes: RouteRecordRaw[],
-  names: Set<string> = new Set(),
-) {
-  for (const route of routes) {
-    if (typeof route.name === 'string' && route.name) {
-      names.add(route.name);
-    }
-    if (route.children?.length) {
-      collectAccessibleRouteNames(route.children, names);
-    }
-  }
-  return names;
-}
-
 async function refreshPluginAwareAccess() {
-  if (pluginAccessRefreshing) {
-    return;
-  }
-  pluginAccessRefreshing = true;
-
-  try {
-    const currentFullPath = router.currentRoute.value.fullPath;
-    const userInfo = await authStore.fetchUserInfo();
-    const userRoles = userStore.userInfo?.roles ?? [];
-
-    resetRoutes();
-
-    const { accessibleMenus, accessibleRoutes } = await generateAccess(
-      {
-        roles: userRoles,
-        router,
-        routes: accessRoutes,
-      },
-      {
-        showLoadingToast: false,
-      },
-    );
-
-    accessStore.setAccessMenus(accessibleMenus);
-    accessStore.setAccessRoutes(accessibleRoutes);
-    accessStore.setIsAccessChecked(true);
-
-    const accessibleNames = collectAccessibleRouteNames(accessibleRoutes);
-    const resolved = router.resolve(currentFullPath);
-    const hasAccessibleMatch = resolved.matched.some((route) => {
-      return typeof route.name === 'string' && accessibleNames.has(route.name);
-    });
-
-    if (hasAccessibleMatch) {
-      await router.replace(currentFullPath);
-      return;
-    }
-
-    const fallbackPath =
-      userInfo.homePath || preferences.app.defaultHomePath || '/';
-    if (router.currentRoute.value.fullPath !== fallbackPath) {
-      await router.replace(fallbackPath);
-    }
-  } finally {
-    pluginAccessRefreshing = false;
-  }
+  await refreshAccessibleState(router, { showLoadingToast: false });
 }
 
 function handlePluginRegistryMaybeChanged() {

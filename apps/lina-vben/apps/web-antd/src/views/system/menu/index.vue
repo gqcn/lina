@@ -5,6 +5,7 @@ import type { VxeGridProps } from '#/adapter/vxe-table';
 import type { Menu } from '#/api/system/menu';
 
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { Page, useVbenDrawer } from '@vben/common-ui';
 import { $t } from '@vben/locales';
@@ -14,6 +15,7 @@ import { Popconfirm, Space, Switch, Tooltip } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { menuList, menuRemove } from '#/api/system/menu';
+import { refreshAccessibleState } from '#/router/access-refresh';
 import { eachTree, treeToList } from '#/utils/tree';
 
 import { columns, querySchema } from './data';
@@ -29,6 +31,8 @@ const formOptions: VbenFormProps = {
   schema: querySchema(),
   wrapperClass: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
 };
+
+const router = useRouter();
 
 const gridOptions: VxeGridProps = {
   columns,
@@ -113,7 +117,10 @@ async function handleEdit(record: Menu) {
 const cascadingDeletion = ref(false);
 async function handleDelete(row: Menu) {
   await menuRemove(row.id, cascadingDeletion.value);
-  await tableApi.query();
+  await Promise.all([
+    tableApi.query(),
+    refreshAccessibleState(router, { showLoadingToast: false }),
+  ]);
 }
 
 function removeConfirmTitle(row: Menu) {
@@ -132,7 +139,10 @@ function removeConfirmTitle(row: Menu) {
  * 编辑/添加成功后刷新表格
  */
 async function afterEditOrAdd() {
-  tableApi.query();
+  await Promise.all([
+    tableApi.query(),
+    refreshAccessibleState(router, { showLoadingToast: false }),
+  ]);
 }
 
 /**
