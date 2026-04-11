@@ -5,7 +5,7 @@ id: plugin-demo-source
 
 # 插件显示名称。
 # 必填。
-# 用于插件管理页面、开发文档和人工 review 展示。
+# 用于插件管理页面、开发文档和展示。
 name: 源码插件示例
 
 # 插件语义化版本号。
@@ -23,7 +23,7 @@ type: source
 
 # 插件说明。
 # 可选。
-# 建议概述插件的能力边界，方便开发者和 reviewer 快速理解插件用途。
+# 建议概述插件的能力边界，方便开发者快速理解插件用途。
 description: 提供左侧菜单页面与公开/受保护路由示例的源码插件
 
 # 插件作者或归属团队。
@@ -54,7 +54,7 @@ license: Apache-2.0
 # - `sort`：可选，排序值；越小越靠前。
 # - `visible/status/is_frame/is_cache`：可选，均使用 `0/1` 语义，与宿主菜单字段保持一致。
 # - `query` / `query_param`：可选，附加路由参数；优先推荐使用结构化的 `query` 写法。
-# - `remark`：可选，写入宿主菜单备注，便于后台治理和人工 review。
+# - `remark`：可选，写入宿主菜单备注，便于后台治理。
 menus:
   # 该示例声明一个左侧菜单入口，打开宿主提供的插件动态页面壳。
   - key: plugin:plugin-demo-source:sidebar-entry

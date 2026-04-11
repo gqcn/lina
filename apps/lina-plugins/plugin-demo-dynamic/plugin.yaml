@@ -17,7 +17,6 @@ version: v0.1.0
 type: dynamic
 
 # 插件说明。
-# 用于插件管理页、治理摘要和人工 review 理解插件用途。
 description: 提供独立的 dynamic wasm 插件样例，演示左侧菜单内嵌页面与独立静态页面跳转
 
 # 插件作者或归属团队。
@@ -46,7 +45,7 @@ license: Apache-2.0
 # - `sort`：可选，排序值；越小越靠前。
 # - `visible/status/is_frame/is_cache`：可选，均使用 `0/1` 语义，与宿主菜单字段保持一致。
 # - `query` / `query_param`：可选，附加路由参数；推荐优先使用结构化的 `query`。
-# - `remark`：可选，写入宿主菜单备注，便于后台治理和人工 review。
+# - `remark`：可选，写入宿主菜单备注，便于后台治理。
 menus:
   # 该示例声明一个宿主内嵌菜单，实际页面资源来自动态插件托管的 `mount.js`。
   - key: plugin:plugin-demo-dynamic:main-entry
