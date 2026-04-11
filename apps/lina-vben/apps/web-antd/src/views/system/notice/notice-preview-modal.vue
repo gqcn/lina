@@ -27,7 +27,7 @@ const [Modal, modalApi] = useVbenModal({
       modalApi.setState({ loading: true });
       try {
         noticeTypeDicts.value =
-          await dictStore.getDictOptions('sys_notice_type');
+          await dictStore.getDictOptionsAsync('sys_notice_type');
         notice.value = await noticeInfo(data.id);
       } finally {
         modalApi.setState({ loading: false });

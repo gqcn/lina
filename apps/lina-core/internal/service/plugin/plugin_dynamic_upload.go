@@ -119,15 +119,24 @@ func (s *Service) storeUploadedRuntimePackage(
 	if registry != nil && normalizePluginType(registry.Type) != pluginTypeDynamic {
 		return nil, gerror.New("已存在同名源码插件，不允许上传动态插件覆盖")
 	}
+
+	allowInstalledUpgradeOverwrite := false
 	if registry != nil && registry.Installed == pluginInstalledYes {
-		return nil, gerror.New("已安装的动态插件暂不支持通过上传覆盖，请先卸载后再重新上传")
+		compareResult, compareErr := compareSemanticVersions(manifest.Version, registry.Version)
+		if compareErr != nil {
+			return nil, compareErr
+		}
+		if compareResult <= 0 {
+			return nil, gerror.New("已安装的动态插件只允许上传更高版本作为待切换 release")
+		}
+		allowInstalledUpgradeOverwrite = true
 	}
 	if conflictPath, conflictErr := s.findDuplicateRuntimeArtifactPath(storageDir, manifest.ID, targetPath); conflictErr != nil {
 		return nil, conflictErr
 	} else if conflictPath != "" {
 		return nil, gerror.Newf("动态插件目录存在重复的插件ID %s，请先移除冲突文件: %s", manifest.ID, conflictPath)
 	}
-	if gfile.Exists(targetPath) && !overwriteSupport {
+	if gfile.Exists(targetPath) && !overwriteSupport && !allowInstalledUpgradeOverwrite {
 		return nil, gerror.New("动态插件文件已存在，请开启覆盖后重试")
 	}
 	if err = gfile.Mkdir(storageDir); err != nil {

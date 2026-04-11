@@ -21,3 +21,14 @@ func (s *Service) getPluginRegistry(ctx context.Context, pluginID string) (*enti
 		Scan(&plugin)
 	return plugin, err
 }
+
+func (s *Service) listAllPluginRegistries(ctx context.Context) ([]*entity.SysPlugin, error) {
+	var list []*entity.SysPlugin
+	err := dao.SysPlugin.Ctx(ctx).
+		OrderAsc(dao.SysPlugin.Columns().PluginId).
+		Scan(&list)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
+}

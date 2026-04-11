@@ -42,9 +42,11 @@ test.describe('TC0057 字典数据面板无独立导出导入功能', () => {
     // Wait for data to load
     await adminPage.waitForTimeout(500);
 
-    // Data panel should have add and delete buttons
+    // Assert against the toolbar actions only. The data table also renders
+    // row-level delete buttons, so an unscoped role query becomes ambiguous.
     const dataPanel = adminPage.locator('#dict-data');
-    await expect(dataPanel.getByRole('button', { name: /新\s*增/ })).toBeVisible();
-    await expect(dataPanel.getByRole('button', { name: /删\s*除/ })).toBeVisible();
+    const dataToolbar = dataPanel.locator('.vxe-grid--toolbar, .vxe-toolbar').first();
+    await expect(dataToolbar.getByRole('button', { name: /新\s*增/ }).first()).toBeVisible();
+    await expect(dataToolbar.getByRole('button', { name: /删\s*除/ }).first()).toBeVisible();
   });
 });

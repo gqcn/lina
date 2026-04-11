@@ -87,15 +87,26 @@ type RuntimeResourceSpec = {
   };
 };
 
-function unwrapApiData(payload: any) {
-  if (payload && typeof payload === "object" && "data" in payload) {
-    return payload.data;
-  }
-  return payload;
-}
-
 function assertOk(response: APIResponse, message: string) {
   expect(response.ok(), `${message}, status=${response.status()}`).toBeTruthy();
+}
+
+async function expectApiSuccess<T = any>(
+  response: APIResponse,
+  message: string,
+): Promise<T> {
+  assertOk(response, message);
+
+  const payload = (await response.json()) as {
+    code?: number;
+    data?: T;
+    message?: string;
+  };
+  expect(
+    payload?.code,
+    `${message}, business code=${payload?.code}, business message=${payload?.message ?? ""}`,
+  ).toBe(0);
+  return (payload?.data ?? null) as T;
 }
 
 function repoRoot() {
@@ -108,6 +119,18 @@ function tempDir() {
 
 function tempArtifactPath(pluginID: string) {
   return path.join(tempDir(), `${pluginID}.wasm`);
+}
+
+function runtimeStorageDir() {
+  return path.join(tempDir(), "output");
+}
+
+function runtimeStorageArtifactPath(pluginID: string) {
+  return path.join(runtimeStorageDir(), `${pluginID}.wasm`);
+}
+
+function runtimeReleaseArchiveDir(pluginID: string) {
+  return path.join(runtimeStorageDir(), "releases", pluginID);
 }
 
 function runtimePluginDir(pluginID: string) {
@@ -239,6 +262,11 @@ function cleanupRuntimeWorkspace() {
   for (const pluginID of [goodPluginID, badPluginID]) {
     rmSync(runtimePluginDir(pluginID), { force: true, recursive: true });
     rmSync(tempArtifactPath(pluginID), { force: true });
+    // Dynamic uploads persist to plugin.dynamic.storagePath instead of the
+    // plugin workspace, so the E2E fixture must remove both the mutable staged
+    // artifact and the archived release directory to stay self-contained.
+    rmSync(runtimeStorageArtifactPath(pluginID), { force: true });
+    rmSync(runtimeReleaseArchiveDir(pluginID), { force: true, recursive: true });
   }
 }
 
@@ -294,8 +322,10 @@ async function loginByPassword(
   const loginResponse = await anonymousApi.post("auth/login", {
     data: { username, password },
   });
-  assertOk(loginResponse, `登录失败: ${username}`);
-  const loginPayload = unwrapApiData(await loginResponse.json());
+  const loginPayload = await expectApiSuccess<{ accessToken?: string }>(
+    loginResponse,
+    `登录失败: ${username}`,
+  );
   await anonymousApi.dispose();
   expect(loginPayload?.accessToken, "登录后应返回 accessToken").toBeTruthy();
   return loginPayload.accessToken as string;
@@ -315,8 +345,10 @@ async function listPlugins(
   adminApi: APIRequestContext,
 ): Promise<PluginListItem[]> {
   const response = await adminApi.get("plugins");
-  assertOk(response, "查询插件列表失败");
-  const payload = unwrapApiData(await response.json());
+  const payload = await expectApiSuccess<{ list?: PluginListItem[] }>(
+    response,
+    "查询插件列表失败",
+  );
   return payload?.list ?? [];
 }
 
@@ -340,12 +372,15 @@ async function uploadDynamicPlugin(
       },
     },
   });
-  assertOk(response, `上传 runtime wasm 失败: ${artifactPath}`);
+  await expectApiSuccess(
+    response,
+    `上传 runtime wasm 失败: ${artifactPath}`,
+  );
 }
 
 async function installPlugin(adminApi: APIRequestContext, pluginID: string) {
   const response = await adminApi.post(`plugins/${pluginID}/install`);
-  assertOk(response, `安装动态插件失败: ${pluginID}`);
+  await expectApiSuccess(response, `安装动态插件失败: ${pluginID}`);
 }
 
 async function setPluginEnabled(
@@ -356,7 +391,7 @@ async function setPluginEnabled(
   const response = await adminApi.put(
     enabled ? `plugins/${pluginID}/enable` : `plugins/${pluginID}/disable`,
   );
-  assertOk(response, `切换插件启停失败: ${pluginID}`);
+  await expectApiSuccess(response, `切换插件启停失败: ${pluginID}`);
 }
 
 async function queryPluginResource(
@@ -367,8 +402,12 @@ async function queryPluginResource(
   const response = await adminApi.get(
     `plugins/${pluginID}/resources/${resourceID}?pageNum=1&pageSize=20`,
   );
-  assertOk(response, `查询插件资源失败: ${pluginID}/${resourceID}`);
-  return unwrapApiData(await response.json()) ?? {};
+  return (
+    (await expectApiSuccess<PluginResourceResponse>(
+      response,
+      `查询插件资源失败: ${pluginID}/${resourceID}`,
+    )) ?? {}
+  );
 }
 
 function buildGoodRuntimeArtifact() {

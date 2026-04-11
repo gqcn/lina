@@ -24,7 +24,7 @@ type SysPluginRelease struct {
 	ManifestPath     any         // 插件清单路径
 	PackagePath      any         // 插件源码目录或运行时产物路径
 	Checksum         any         // 插件清单或产物校验值
-	ManifestSnapshot any         // 插件清单快照（YAML）
+	ManifestSnapshot any         // 插件清单与资源摘要快照（YAML，不保存具体 SQL/前端文件路径）
 	CreatedAt        *gtime.Time // 创建时间
 	UpdatedAt        *gtime.Time // 更新时间
 	DeletedAt        *gtime.Time // 删除时间

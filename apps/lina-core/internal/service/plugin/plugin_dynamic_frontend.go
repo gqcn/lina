@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
+
+	"lina-core/internal/model/entity"
 )
 
 // RuntimeFrontendAssetOutput contains one resolved frontend asset ready to be served.
@@ -23,32 +25,32 @@ type RuntimeFrontendAssetOutput struct {
 // enabled dynamic plugins during host startup. Request-time resolution still
 // keeps a lazy-loading fallback so one failed preload does not block the host.
 func (s *Service) PrewarmRuntimeFrontendBundles(ctx context.Context) error {
-	manifests, err := s.scanPluginManifests()
+	registries, err := s.listRuntimeRegistries(ctx)
 	if err != nil {
 		return err
 	}
 
-	logger.Debugf(ctx, "runtime frontend bundle prewarm started manifests=%d", len(manifests))
+	logger.Debugf(ctx, "runtime frontend bundle prewarm started registries=%d", len(registries))
 	failures := make([]string, 0)
-	for _, manifest := range manifests {
-		if manifest == nil || normalizePluginType(manifest.Type) != pluginTypeDynamic {
+	for _, registry := range registries {
+		if registry == nil {
+			continue
+		}
+		if registry.Installed != pluginInstalledYes || registry.Status != pluginStatusEnabled {
+			s.invalidateRuntimeFrontendBundle(ctx, registry.PluginId, "plugin_not_enabled_during_prewarm")
+			continue
+		}
+
+		manifest, manifestErr := s.loadActiveDynamicPluginManifest(ctx, registry)
+		if manifestErr != nil {
+			failures = append(
+				failures,
+				gerror.Wrapf(manifestErr, "预热动态插件前端资源失败: %s", registry.PluginId).Error(),
+			)
 			continue
 		}
 		if manifest.RuntimeArtifact == nil || len(manifest.RuntimeArtifact.FrontendAssets) == 0 {
 			s.invalidateRuntimeFrontendBundle(ctx, manifest.ID, "no_embedded_frontend_assets")
-			continue
-		}
-
-		registry, registryErr := s.getPluginRegistry(ctx, manifest.ID)
-		if registryErr != nil {
-			failures = append(
-				failures,
-				gerror.Wrapf(registryErr, "预热动态插件前端资源失败: %s", manifest.ID).Error(),
-			)
-			continue
-		}
-		if registry == nil || registry.Installed != pluginInstalledYes || registry.Status != pluginStatusEnabled {
-			s.invalidateRuntimeFrontendBundle(ctx, manifest.ID, "plugin_not_enabled_during_prewarm")
 			continue
 		}
 
@@ -77,7 +79,29 @@ func (s *Service) ResolveRuntimeFrontendAsset(
 	version string,
 	relativePath string,
 ) (*RuntimeFrontendAssetOutput, error) {
-	manifest, err := s.getPluginManifestByID(pluginID)
+	registry, err := s.getPluginRegistry(ctx, pluginID)
+	if err != nil {
+		return nil, err
+	}
+	if registry == nil || registry.Installed != pluginInstalledYes || registry.Status != pluginStatusEnabled {
+		return nil, gerror.New("当前动态插件未启用")
+	}
+
+	if strings.TrimSpace(version) == "" {
+		return nil, gerror.New("当前动态插件版本不存在或已切换")
+	}
+	release, err := s.getPluginRelease(ctx, pluginID, version)
+	if err != nil {
+		return nil, err
+	}
+	if release == nil {
+		return nil, gerror.New("当前动态插件版本不存在或已切换")
+	}
+	if !isRuntimeFrontendReleaseServable(release) {
+		return nil, gerror.New("当前动态插件版本不存在或已切换")
+	}
+
+	manifest, err := s.loadRuntimePluginManifestFromRelease(ctx, release)
 	if err != nil {
 		return nil, err
 	}
@@ -86,17 +110,6 @@ func (s *Service) ResolveRuntimeFrontendAsset(
 	}
 	if manifest.RuntimeArtifact == nil || len(manifest.RuntimeArtifact.FrontendAssets) == 0 {
 		return nil, gerror.New("当前动态插件未声明前端资源")
-	}
-	if strings.TrimSpace(version) == "" || version != manifest.Version {
-		return nil, gerror.New("当前动态插件版本不存在或已切换")
-	}
-
-	registry, err := s.getPluginRegistry(ctx, pluginID)
-	if err != nil {
-		return nil, err
-	}
-	if registry == nil || registry.Installed != pluginInstalledYes || registry.Status != pluginStatusEnabled {
-		return nil, gerror.New("当前动态插件未启用")
 	}
 
 	bundle, err := s.ensureRuntimeFrontendBundle(ctx, manifest)
@@ -120,6 +133,19 @@ func (s *Service) ResolveRuntimeFrontendAsset(
 		Content:     content,
 		ContentType: contentType,
 	}, nil
+}
+
+func isRuntimeFrontendReleaseServable(release *entity.SysPluginRelease) bool {
+	if release == nil {
+		return false
+	}
+
+	switch strings.TrimSpace(release.Status) {
+	case pluginReleaseStatusActive.String(), pluginReleaseStatusInstalled.String():
+		return true
+	default:
+		return false
+	}
 }
 
 // BuildRuntimeFrontendPublicBaseURL returns the stable public base URL for runtime assets.

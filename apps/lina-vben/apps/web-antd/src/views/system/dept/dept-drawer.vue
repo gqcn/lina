@@ -147,7 +147,7 @@ const [BasicDrawer, drawerApi] = useVbenDrawer({
     await initDeptSelect(id);
 
     // 加载字典：状态选项
-    const statusOptions = await dictStore.getDictOptions('sys_normal_disable');
+    const statusOptions = await dictStore.getDictOptionsAsync('sys_normal_disable');
     formApi.updateSchema([
       {
         fieldName: 'status',

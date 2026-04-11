@@ -27,6 +27,8 @@ export interface PluginDynamicState {
   id: string;
   installed: number;
   enabled: number;
+  version: string;
+  generation: number;
   statusKey: string;
 }
 

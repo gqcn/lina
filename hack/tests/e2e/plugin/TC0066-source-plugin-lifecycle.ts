@@ -482,4 +482,32 @@ test.describe("TC-66 源码插件生命周期", () => {
       "插件状态未变化时，焦点恢复不应重复拉取菜单",
     ).toHaveLength(0);
   });
+
+  test("TC-66k: 登录后打开插件管理页时公共插件状态接口不重复重查", async ({
+    page,
+  }) => {
+    await syncPlugins(adminApi!);
+    await updatePluginStatus(adminApi!, pluginID, true);
+
+    const runtimeStateResponses: string[] = [];
+    page.on("response", (response) => {
+      if (
+        response.request().method() === "GET" &&
+        response.url().includes("/api/v1/plugins/dynamic")
+      ) {
+        runtimeStateResponses.push(response.url());
+      }
+    });
+
+    await loginAsAdmin(page);
+    const pluginPage = new PluginPage(page);
+    await pluginPage.gotoManage();
+    await pluginPage.expectSidebarMenuVisible(pluginMenuName);
+    await page.waitForTimeout(1500);
+
+    expect(
+      runtimeStateResponses.length,
+      "登录并打开插件管理页时，公共插件状态接口不应重复触发多次",
+    ).toBeLessThanOrEqual(2);
+  });
 });

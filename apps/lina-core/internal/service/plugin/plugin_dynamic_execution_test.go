@@ -70,6 +70,67 @@ func TestBuildRuntimeWasmArtifactEmbedsBackendContracts(t *testing.T) {
 	}
 }
 
+func TestLoadRuntimePluginManifestFromArtifactHydratesBackendContracts(t *testing.T) {
+	service := New()
+	pluginDir := t.TempDir()
+
+	mustWriteRuntimeSourceFile(
+		t,
+		filepath.Join(pluginDir, "plugin.yaml"),
+		"id: plugin-dynamic-active-contract\nname: Active Contract\nversion: v0.2.0\ntype: dynamic\n",
+	)
+	mustWriteRuntimeSourceFile(
+		t,
+		filepath.Join(pluginDir, "backend", "hooks", "001-login.yaml"),
+		strings.Join([]string{
+			"event: auth.login.succeeded",
+			"action: sleep",
+			"timeoutMs: 50",
+			"sleepMs: 10",
+		}, "\n"),
+	)
+	mustWriteRuntimeSourceFile(
+		t,
+		filepath.Join(pluginDir, "backend", "resources", "001-records.yaml"),
+		strings.Join([]string{
+			"key: records",
+			"type: table-list",
+			"table: plugin_runtime_records",
+			"fields:",
+			"  - name: id",
+			"    column: id",
+			"orderBy:",
+			"  column: id",
+			"  direction: asc",
+		}, "\n"),
+	)
+
+	buildOut, err := service.BuildRuntimeWasmArtifactFromSource(pluginDir)
+	if err != nil {
+		t.Fatalf("expected dynamic artifact build to succeed, got error: %v", err)
+	}
+	if err = os.MkdirAll(filepath.Dir(buildOut.ArtifactPath), 0o755); err != nil {
+		t.Fatalf("expected runtime artifact directory to be created, got error: %v", err)
+	}
+	if err = os.WriteFile(buildOut.ArtifactPath, buildOut.Content, 0o644); err != nil {
+		t.Fatalf("expected runtime artifact to be written, got error: %v", err)
+	}
+
+	manifest, err := service.loadRuntimePluginManifestFromArtifact(buildOut.ArtifactPath)
+	if err != nil {
+		t.Fatalf("expected runtime manifest load to succeed, got error: %v", err)
+	}
+	if len(manifest.Hooks) != 1 {
+		t.Fatalf("expected runtime manifest to expose 1 hook, got %d", len(manifest.Hooks))
+	}
+	if len(manifest.BackendResources) != 1 {
+		t.Fatalf("expected runtime manifest to expose 1 backend resource, got %d", len(manifest.BackendResources))
+	}
+	if _, ok := manifest.BackendResources["records"]; !ok {
+		t.Fatalf("expected runtime manifest to expose resource key records, got %#v", manifest.BackendResources)
+	}
+}
+
 func TestRunPluginDeclaredHookHonorsTimeoutAndErrorActions(t *testing.T) {
 	service := New()
 

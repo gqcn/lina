@@ -61,14 +61,28 @@ test.describe('TC0046 用户头像下拉菜单', () => {
     await adminPage.goto('/');
     await adminPage.waitForLoadState('networkidle');
 
-    // The header should contain an avatar image (either user's or default)
+    // The user dropdown trigger should always stay visible in the header.
     const header = adminPage.locator('header');
-    const avatarImg = header.locator('img[alt]').first();
-    await expect(avatarImg).toBeVisible();
+    const avatarTrigger = header.locator('button').last();
+    await expect(avatarTrigger).toBeVisible();
 
-    // The avatar should have a valid src (not empty)
-    const src = await avatarImg.getAttribute('src');
-    expect(src).toBeTruthy();
-    expect(src!.length).toBeGreaterThan(0);
+    // The avatar widget can render a real image or a visible fallback label.
+    const avatarImages = avatarTrigger.locator('img[alt]');
+    const hasVisibleAvatarImage =
+      (await avatarImages.count()) > 0 &&
+      (await avatarImages.first().isVisible());
+    const hasVisibleAvatarFallback = await avatarTrigger
+      .getByText(/理员|管理员/)
+      .first()
+      .isVisible()
+      .catch(() => false);
+
+    expect(hasVisibleAvatarImage || hasVisibleAvatarFallback).toBeTruthy();
+
+    if (hasVisibleAvatarImage) {
+      const src = await avatarImages.first().getAttribute('src');
+      expect(src).toBeTruthy();
+      expect(src!.length).toBeGreaterThan(0);
+    }
   });
 });

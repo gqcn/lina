@@ -47,7 +47,11 @@ func (s *Service) syncPluginReleaseMetadata(ctx context.Context, manifest *plugi
 		return err
 	}
 
-	releaseStatus := s.buildPluginReleaseStatus(registry.Installed, registry.Status)
+	releaseID := 0
+	if existing != nil {
+		releaseID = existing.Id
+	}
+	releaseStatus := s.buildPluginReleaseStatusForManifest(manifest, registry, releaseID)
 	// Persist only review-oriented locators and summary snapshots here. Concrete SQL
 	// files and frontend source paths are intentionally excluded from table storage.
 	data := do.SysPluginRelease{
@@ -57,8 +61,8 @@ func (s *Service) syncPluginReleaseMetadata(ctx context.Context, manifest *plugi
 		RuntimeKind:      s.buildPluginDynamicKind(manifest),
 		Status:           releaseStatus.String(),
 		ManifestPath:     s.buildPluginReleaseManifestPath(manifest),
-		PackagePath:      s.buildPluginPackagePath(manifest),
-		Checksum:         registry.Checksum,
+		PackagePath:      s.buildPluginReleasePackagePathForSync(manifest, existing),
+		Checksum:         s.buildPluginRegistryChecksum(manifest),
 		ManifestSnapshot: snapshot,
 	}
 
@@ -84,6 +88,37 @@ func (s *Service) getPluginRelease(ctx context.Context, pluginID string, version
 	return release, err
 }
 
+func (s *Service) getPluginReleaseByID(ctx context.Context, releaseID int) (*entity.SysPluginRelease, error) {
+	if releaseID <= 0 {
+		return nil, nil
+	}
+
+	var release *entity.SysPluginRelease
+	err := dao.SysPluginRelease.Ctx(ctx).
+		Where(do.SysPluginRelease{Id: releaseID}).
+		Scan(&release)
+	return release, err
+}
+
+func (s *Service) getPluginRegistryRelease(ctx context.Context, registry *entity.SysPlugin) (*entity.SysPluginRelease, error) {
+	if registry == nil {
+		return nil, nil
+	}
+	if registry.ReleaseId > 0 {
+		release, err := s.getPluginReleaseByID(ctx, registry.ReleaseId)
+		if err != nil {
+			return nil, err
+		}
+		if release != nil {
+			return release, nil
+		}
+	}
+	if strings.TrimSpace(registry.Version) == "" {
+		return nil, nil
+	}
+	return s.getPluginRelease(ctx, registry.PluginId, registry.Version)
+}
+
 func (s *Service) buildPluginReleaseStatus(installed int, enabled int) pluginReleaseStatus {
 	if installed != pluginInstalledYes {
 		return pluginReleaseStatusUninstalled
@@ -92,6 +127,26 @@ func (s *Service) buildPluginReleaseStatus(installed int, enabled int) pluginRel
 		return pluginReleaseStatusActive
 	}
 	return pluginReleaseStatusInstalled
+}
+
+func (s *Service) buildPluginReleaseStatusForManifest(
+	manifest *pluginManifest,
+	registry *entity.SysPlugin,
+	releaseID int,
+) pluginReleaseStatus {
+	if manifest == nil || registry == nil {
+		return pluginReleaseStatusPrepared
+	}
+	if normalizePluginType(manifest.Type) != pluginTypeDynamic {
+		return s.buildPluginReleaseStatus(registry.Installed, registry.Status)
+	}
+	if registry.ReleaseId > 0 && releaseID == registry.ReleaseId {
+		return s.buildPluginReleaseStatus(registry.Installed, registry.Status)
+	}
+	if strings.TrimSpace(registry.Version) == strings.TrimSpace(manifest.Version) && registry.ReleaseId <= 0 {
+		return s.buildPluginReleaseStatus(registry.Installed, registry.Status)
+	}
+	return pluginReleaseStatusPrepared
 }
 
 func (s *Service) buildPluginManifestSnapshot(manifest *pluginManifest) (string, error) {
@@ -175,9 +230,68 @@ func (s *Service) buildPluginPackagePath(manifest *pluginManifest) string {
 		return "embedded/source-plugins/" + manifest.ID
 	}
 	if manifest.RuntimeArtifact != nil && strings.TrimSpace(manifest.RuntimeArtifact.Path) != "" {
-		return filepath.ToSlash(filepath.Base(manifest.RuntimeArtifact.Path))
+		normalizedPath := filepath.ToSlash(filepath.Clean(manifest.RuntimeArtifact.Path))
+		if marker := "/releases/"; strings.Contains(normalizedPath, marker) {
+			return strings.TrimPrefix(normalizedPath[strings.LastIndex(normalizedPath, marker):], "/")
+		}
+		return filepath.ToSlash(filepath.Base(normalizedPath))
 	}
 	return filepath.ToSlash(manifest.RootDir)
+}
+
+// buildPluginReleasePackagePathForSync keeps archived dynamic-release package
+// paths stable. Once a release has been switched to the versioned archive, the
+// mutable staging artifact must no longer overwrite that persisted pointer.
+func (s *Service) buildPluginReleasePackagePathForSync(
+	manifest *pluginManifest,
+	existing *entity.SysPluginRelease,
+) string {
+	if existing != nil {
+		existingPackagePath := filepath.ToSlash(strings.TrimSpace(existing.PackagePath))
+		if shouldPreserveArchivedPluginReleasePackagePath(manifest, existingPackagePath) {
+			return existingPackagePath
+		}
+	}
+	return s.buildPluginPackagePath(manifest)
+}
+
+func shouldPreserveArchivedPluginReleasePackagePath(
+	manifest *pluginManifest,
+	packagePath string,
+) bool {
+	if manifest == nil || normalizePluginType(manifest.Type) != pluginTypeDynamic {
+		return false
+	}
+	normalizedPath := filepath.ToSlash(strings.TrimSpace(packagePath))
+	if normalizedPath == "" {
+		return false
+	}
+	normalizedPath = strings.TrimPrefix(filepath.Clean("/"+normalizedPath), "/")
+	return strings.Contains("/"+normalizedPath, "/releases/")
+}
+
+func (s *Service) updatePluginReleaseState(
+	ctx context.Context,
+	releaseID int,
+	status pluginReleaseStatus,
+	packagePath string,
+) error {
+	if releaseID <= 0 {
+		return nil
+	}
+
+	data := do.SysPluginRelease{
+		Status: status.String(),
+	}
+	if strings.TrimSpace(packagePath) != "" {
+		data.PackagePath = filepath.ToSlash(strings.TrimSpace(packagePath))
+	}
+
+	_, err := dao.SysPluginRelease.Ctx(ctx).
+		Where(do.SysPluginRelease{Id: releaseID}).
+		Data(data).
+		Update()
+	return err
 }
 
 func (s *Service) buildPluginReleaseManifestPath(manifest *pluginManifest) string {

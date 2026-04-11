@@ -17,6 +17,10 @@ type SysPlugin struct {
 	Type         string      `json:"type"         orm:"type"          description:"插件一级类型（source/dynamic）"`
 	Installed    int         `json:"installed"    orm:"installed"     description:"安装状态（1=已安装 0=未安装）"`
 	Status       int         `json:"status"       orm:"status"        description:"启用状态（1=启用 0=禁用）"`
+	DesiredState string      `json:"desiredState" orm:"desired_state" description:"宿主期望状态（uninstalled/installed/enabled）"`
+	CurrentState string      `json:"currentState" orm:"current_state" description:"宿主当前状态（uninstalled/installed/enabled/reconciling/failed）"`
+	Generation   int64       `json:"generation"   orm:"generation"    description:"宿主当前生效代际号"`
+	ReleaseId    int         `json:"releaseId"    orm:"release_id"    description:"宿主当前生效 release ID"`
 	ManifestPath string      `json:"manifestPath" orm:"manifest_path" description:"插件清单文件路径"`
 	Checksum     string      `json:"checksum"     orm:"checksum"      description:"插件包校验值"`
 	InstalledAt  *gtime.Time `json:"installedAt"  orm:"installed_at"  description:"安装时间"`

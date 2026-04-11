@@ -1,8 +1,8 @@
 import type { PluginDynamicState } from '#/api/system/plugin/model';
 import type { RouteRecordStringComponent } from '@vben/types';
 
-import { pluginDynamicList } from '#/api/system/plugin';
 import { getPluginPages } from '#/plugins/page-registry';
+import { getPluginStateMap } from '#/plugins/slot-registry';
 
 type RouteLike = Pick<
   RouteRecordStringComponent,
@@ -130,7 +130,16 @@ export async function filterDisabledPluginRoutes<T extends RouteLike>(
   }
 
   try {
-    const runtimeStates = await pluginDynamicList();
+    const pluginStateMap = await getPluginStateMap();
+    const runtimeStates: PluginDynamicState[] = [];
+    const seenPluginIDs = new Set<string>();
+    for (const item of pluginStateMap.values()) {
+      if (!item?.id || seenPluginIDs.has(item.id)) {
+        continue;
+      }
+      seenPluginIDs.add(item.id);
+      runtimeStates.push(item);
+    }
     if (runtimeStates.length === 0) {
       return routes;
     }

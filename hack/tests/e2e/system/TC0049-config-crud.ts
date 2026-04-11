@@ -9,11 +9,13 @@ test.describe('TC0049 参数设置管理', () => {
     const configPage = new ConfigPage(adminPage);
     await configPage.goto();
 
-    // Verify table has mock data (at least 5 rows from mock)
+    // Verify the page renders a non-empty table before interacting with filters.
     const rowCount = await configPage.getRowCount();
-    expect(rowCount).toBeGreaterThanOrEqual(5);
+    expect(rowCount).toBeGreaterThanOrEqual(1);
 
-    // Verify known mock data is visible
+    // Search for a stable seed config instead of assuming it stays on the first page.
+    await configPage.fillSearchField('参数键名', 'sys.index.skinName');
+    await configPage.clickSearch();
     const hasSkinName = await configPage.hasConfig('sys.index.skinName');
     expect(hasSkinName).toBeTruthy();
   });

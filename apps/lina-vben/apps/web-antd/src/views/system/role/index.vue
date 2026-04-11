@@ -72,7 +72,7 @@ const dictStore = useDictStore();
 const statusLabel = ref({ checked: '正常', unchecked: '停用' });
 
 onMounted(async () => {
-  const statusOptions = await dictStore.getDictOptions('sys_normal_disable');
+  const statusOptions = await dictStore.getDictOptionsAsync('sys_normal_disable');
   const checked = statusOptions.find((d) => d.value === '1');
   const unchecked = statusOptions.find((d) => d.value === '0');
   statusLabel.value = {

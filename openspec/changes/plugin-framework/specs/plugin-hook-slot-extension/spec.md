@@ -28,6 +28,11 @@
 - **AND** 宿主记录该插件的执行失败信息
 - **AND** 其他插件的 Hook 仍按顺序继续执行或按策略被安全跳过
 
+#### Scenario: 当前生效动态 release 的 Hook 契约持续可用
+- **WHEN** 一个动态插件已经切换到某个 active release，随后又出现 staged 升级、失败回滚或 active release 重载
+- **THEN** 宿主仍然按当前 active release 内嵌声明的 Hook 契约分发事件
+- **AND** 宿主不会因为只恢复了顶层 manifest 元数据而丢失该 release 的 Hook 声明
+
 ### Requirement: 宿主以回调注册方式发布通用后端扩展点
 系统 SHALL 为源码插件提供最小化、回调注册式的后端扩展接口，避免插件作者为常见扩展场景维护复杂声明式属性。
 

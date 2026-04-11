@@ -14,8 +14,10 @@ type DynamicListRes struct {
 
 // PluginDynamicItem represents public dynamic state of one plugin.
 type PluginDynamicItem struct {
-	Id        string `json:"id" dc:"插件唯一标识" eg:"plugin-demo-dynamic"`
-	Installed int    `json:"installed" dc:"安装状态：1=已安装/已集成 0=未安装" eg:"1"`
-	Enabled   int    `json:"enabled" dc:"启用状态：1=启用 0=禁用" eg:"1"`
-	StatusKey string `json:"statusKey" dc:"插件状态在系统插件注册表中的定位键名" eg:"sys_plugin.status:plugin-demo-dynamic"`
+	Id         string `json:"id" dc:"插件唯一标识" eg:"plugin-demo-dynamic"`
+	Installed  int    `json:"installed" dc:"安装状态：1=已安装/已集成 0=未安装" eg:"1"`
+	Enabled    int    `json:"enabled" dc:"启用状态：1=启用 0=禁用" eg:"1"`
+	Version    string `json:"version" dc:"插件当前生效版本号；若仅上传未切换则仍返回旧版本" eg:"v0.1.0"`
+	Generation int64  `json:"generation" dc:"插件当前生效代际号；前端可据此判断当前插件页面是否需要刷新" eg:"3"`
+	StatusKey  string `json:"statusKey" dc:"插件状态在系统插件注册表中的定位键名" eg:"sys_plugin.status:plugin-demo-dynamic"`
 }

@@ -37,7 +37,23 @@ export class PluginPage {
   }
 
   pluginIframeFrame() {
-    return this.page.frameLocator("iframe");
+    return this.page.frameLocator("iframe:visible");
+  }
+
+  pluginIframe(): Locator {
+    return this.page.locator("iframe:visible").first();
+  }
+
+  pluginPageRefreshNotice(): Locator {
+    return this.page
+      .locator(".ant-notification-notice", { hasText: "插件已更新" })
+      .last();
+  }
+
+  pluginPageRefreshButton(): Locator {
+    return this.pluginPageRefreshNotice()
+      .getByRole("button", { name: "刷新当前页面" })
+      .first();
   }
 
   pluginDynamicEmbeddedHost(): Locator {

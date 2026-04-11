@@ -148,6 +148,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	if err = pluginSvc.PrewarmRuntimeFrontendBundles(ctx); err != nil {
 		logger.Warningf(ctx, "prewarm runtime frontend bundles failed: %v", err)
 	}
+	pluginSvc.StartRuntimeReconciler(ctx)
 
 	// =============================================================================================
 	// Static service for frontend assets.

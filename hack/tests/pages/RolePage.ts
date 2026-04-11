@@ -10,8 +10,12 @@ export class RolePage {
 
   async goto() {
     await this.page.goto('/system/role');
-    await this.page.waitForLoadState('load');
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForLoadState('networkidle');
+    await this.page.locator('.vxe-table').first().waitFor({ state: 'visible', timeout: 10000 });
+    await this.page.getByLabel('角色名称', { exact: true }).first().waitFor({
+      state: 'visible',
+      timeout: 10000,
+    });
   }
 
   /** Create a new role by clicking "新增" toolbar button */
@@ -30,7 +34,7 @@ export class RolePage {
     await this.page
       .getByRole('button', { name: /新\s*增/ })
       .first()
-      .click();
+      .click({ force: true });
 
     // Wait for drawer to open
     await this.drawer.waitFor({ state: 'visible', timeout: 10000 });
@@ -180,24 +184,22 @@ export class RolePage {
 
   /** Search role by name */
   async searchRole(name: string) {
-    // Wait for search form to be ready
-    await this.page.waitForLoadState('load');
-
-    const searchForm = this.page.locator('.vxe-grid--form').first();
-    const searchInput = searchForm.getByPlaceholder('请输入角色名称').first();
-    await searchInput.waitFor({ state: 'visible', timeout: 5000 });
+    // Prefer the accessible label because it stays stable even when the form DOM is re-created.
+    await this.page.waitForLoadState('networkidle');
+    const searchInput = this.page.getByLabel('角色名称', { exact: true }).first();
+    await searchInput.waitFor({ state: 'visible', timeout: 10000 });
     await searchInput.fill(name);
 
     // Click search button
-    await searchForm.getByRole('button', { name: /搜\s*索/ }).click();
-    await this.page.waitForLoadState('load');
+    await this.page.getByRole('button', { name: /搜\s*索/ }).first().click();
+    await this.page.waitForLoadState('networkidle');
     await this.page.waitForTimeout(500);
   }
 
   /** Reset search */
   async resetSearch() {
-    await this.page.locator('.vxe-grid--form').first().getByRole('button', { name: /重\s*置/ }).click();
-    await this.page.waitForLoadState('load');
+    await this.page.getByRole('button', { name: /重\s*置/ }).first().click();
+    await this.page.waitForLoadState('networkidle');
     await this.page.waitForTimeout(500);
   }
 
@@ -257,7 +259,7 @@ export class RolePage {
     await this.page
       .getByRole('button', { name: /新\s*增/ })
       .first()
-      .click();
+      .click({ force: true });
 
     await this.drawer.waitFor({ state: 'visible', timeout: 10000 });
     await this.page.waitForTimeout(500);

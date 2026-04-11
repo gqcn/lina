@@ -61,7 +61,7 @@ const statusLabel = computed(() => {
 });
 
 onMounted(async () => {
-  const statusOptions = await dictStore.getDictOptions('sys_normal_disable');
+  const statusOptions = await dictStore.getDictOptionsAsync('sys_normal_disable');
   gridApi.formApi.updateSchema([
     {
       fieldName: 'status',

@@ -58,6 +58,16 @@ var runtimeFrontendBundleCache = struct {
 	items: map[string]*runtimeFrontendBundle{},
 }
 
+func buildRuntimeFrontendBundleCacheKey(pluginID string, version string) string {
+	return strings.TrimSpace(pluginID) + "@" + strings.TrimSpace(version)
+}
+
+func hasRuntimeFrontendAssets(manifest *pluginManifest) bool {
+	return manifest != nil &&
+		manifest.RuntimeArtifact != nil &&
+		len(manifest.RuntimeArtifact.FrontendAssets) > 0
+}
+
 func buildRuntimeFrontendBundle(manifest *pluginManifest) (*runtimeFrontendBundle, error) {
 	if manifest == nil {
 		return nil, gerror.New("插件清单不能为空")
@@ -260,7 +270,7 @@ func (s *Service) ensureRuntimeFrontendBundle(ctx context.Context, manifest *plu
 		}
 	}
 
-	cacheKey := strings.TrimSpace(manifest.ID)
+	cacheKey := buildRuntimeFrontendBundleCacheKey(manifest.ID, manifest.Version)
 	runtimeFrontendBundleCache.mu.RLock()
 	cachedBundle := runtimeFrontendBundleCache.items[cacheKey]
 	runtimeFrontendBundleCache.mu.RUnlock()
@@ -326,20 +336,27 @@ func (s *Service) ensureRuntimeFrontendBundle(ctx context.Context, manifest *plu
 }
 
 func (s *Service) invalidateRuntimeFrontendBundle(ctx context.Context, pluginID string, reason string) {
-	cacheKey := strings.TrimSpace(pluginID)
-	if cacheKey == "" {
+	normalizedPluginID := strings.TrimSpace(pluginID)
+	if normalizedPluginID == "" {
 		return
 	}
 
 	runtimeFrontendBundleCache.mu.Lock()
 	defer runtimeFrontendBundleCache.mu.Unlock()
 
-	if _, ok := runtimeFrontendBundleCache.items[cacheKey]; ok {
-		logger.Debugf(ctx, "runtime frontend bundle invalidated plugin=%s reason=%s", cacheKey, strings.TrimSpace(reason))
-	} else {
-		logger.Debugf(ctx, "runtime frontend bundle invalidate skipped plugin=%s reason=%s cache=empty", cacheKey, strings.TrimSpace(reason))
+	deletedCount := 0
+	for cacheKey := range runtimeFrontendBundleCache.items {
+		if !strings.HasPrefix(cacheKey, normalizedPluginID+"@") {
+			continue
+		}
+		delete(runtimeFrontendBundleCache.items, cacheKey)
+		deletedCount++
 	}
-	delete(runtimeFrontendBundleCache.items, cacheKey)
+	if deletedCount > 0 {
+		logger.Debugf(ctx, "runtime frontend bundle invalidated plugin=%s reason=%s deleted=%d", normalizedPluginID, strings.TrimSpace(reason), deletedCount)
+		return
+	}
+	logger.Debugf(ctx, "runtime frontend bundle invalidate skipped plugin=%s reason=%s cache=empty", normalizedPluginID, strings.TrimSpace(reason))
 }
 
 func resetRuntimeFrontendBundleCache() {

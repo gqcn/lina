@@ -23,9 +23,10 @@ import OperlogDetailDrawer from './operlog-detail-drawer.vue';
 const dictStore = useDictStore();
 
 onMounted(async () => {
+  // Wait for dictionary requests to finish before wiring select options into the form.
   const [operTypeOptions, operStatusOptions] = await Promise.all([
-    dictStore.getDictOptions('sys_oper_type'),
-    dictStore.getDictOptions('sys_oper_status'),
+    dictStore.getDictOptionsAsync('sys_oper_type'),
+    dictStore.getDictOptionsAsync('sys_oper_status'),
   ]);
   gridApi.formApi.updateSchema([
     {

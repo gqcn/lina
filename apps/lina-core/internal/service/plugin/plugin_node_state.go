@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"os"
+	"strings"
 
 	"github.com/gogf/gf/v2/os/gtime"
 
@@ -13,6 +14,15 @@ import (
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 )
+
+type pluginNodeProjectionInput struct {
+	PluginID     string
+	ReleaseID    int
+	DesiredState string
+	CurrentState string
+	Generation   int64
+	Message      string
+}
 
 // syncPluginNodeState updates the current node projection of one plugin lifecycle state.
 func (s *Service) syncPluginNodeState(
@@ -23,42 +33,78 @@ func (s *Service) syncPluginNodeState(
 	enabled int,
 	message string,
 ) error {
-	nodeKey := s.getCurrentNodeName()
-	state := derivePluginNodeState(installed, enabled)
-	release, err := s.getPluginRelease(ctx, pluginID, version)
+	registry, err := s.getPluginRegistry(ctx, pluginID)
 	if err != nil {
 		return err
+	}
+	if registry == nil {
+		_, releaseErr := s.getPluginRelease(ctx, pluginID, version)
+		if releaseErr != nil {
+			return releaseErr
+		}
+		return s.syncPluginNodeProjection(ctx, pluginNodeProjectionInput{
+			PluginID:     pluginID,
+			ReleaseID:    0,
+			DesiredState: derivePluginNodeState(installed, enabled),
+			CurrentState: derivePluginNodeState(installed, enabled),
+			Generation:   int64(1),
+			Message:      message,
+		})
+	}
+
+	desiredState := strings.TrimSpace(registry.DesiredState)
+	if desiredState == "" {
+		desiredState = derivePluginNodeState(installed, enabled)
+	}
+	currentState := strings.TrimSpace(registry.CurrentState)
+	if currentState == "" {
+		currentState = derivePluginNodeState(installed, enabled)
+	}
+	generation := registry.Generation
+	if generation <= 0 {
+		generation = 1
+	}
+	return s.syncPluginNodeProjection(ctx, pluginNodeProjectionInput{
+		PluginID:     registry.PluginId,
+		ReleaseID:    registry.ReleaseId,
+		DesiredState: desiredState,
+		CurrentState: currentState,
+		Generation:   generation,
+		Message:      message,
+	})
+}
+
+func (s *Service) syncPluginNodeProjection(ctx context.Context, in pluginNodeProjectionInput) error {
+	pluginID := strings.TrimSpace(in.PluginID)
+	nodeKey := s.getCurrentNodeName()
+	desiredState := strings.TrimSpace(in.DesiredState)
+	if desiredState == "" {
+		desiredState = pluginNodeStateUninstalled.String()
+	}
+	currentState := strings.TrimSpace(in.CurrentState)
+	if currentState == "" {
+		currentState = desiredState
+	}
+	generation := in.Generation
+	if generation <= 0 {
+		generation = 1
+	}
+
+	data := do.SysPluginNodeState{
+		PluginId:        pluginID,
+		ReleaseId:       in.ReleaseID,
+		NodeKey:         nodeKey,
+		DesiredState:    desiredState,
+		CurrentState:    currentState,
+		Generation:      generation,
+		LastHeartbeatAt: gtime.Now(),
+		ErrorMessage:    strings.TrimSpace(in.Message),
 	}
 
 	existing, err := s.getPluginNodeState(ctx, pluginID, nodeKey)
 	if err != nil {
 		return err
 	}
-
-	generation := int64(1)
-	if existing != nil && existing.Generation > 0 {
-		generation = existing.Generation
-	}
-	// Use the release identifier as the lower bound of the generation so the
-	// persisted node projection can evolve into a multi-generation model later.
-	if release != nil && generation < int64(release.Id) {
-		generation = int64(release.Id)
-	}
-
-	data := do.SysPluginNodeState{
-		PluginId:        pluginID,
-		ReleaseId:       0,
-		NodeKey:         nodeKey,
-		DesiredState:    state,
-		CurrentState:    state,
-		Generation:      generation,
-		LastHeartbeatAt: gtime.Now(),
-		ErrorMessage:    message,
-	}
-	if release != nil {
-		data.ReleaseId = release.Id
-	}
-
 	if existing == nil {
 		_, err = dao.SysPluginNodeState.Ctx(ctx).Data(data).Insert()
 		return err

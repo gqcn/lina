@@ -98,6 +98,86 @@ func TestSyncAndListRetainsMissingRuntimeRegistryAndReconcilesState(t *testing.T
 	}
 }
 
+func TestListRuntimeStatesProjectsMissingRuntimeArtifactWithoutMutatingRegistry(t *testing.T) {
+	var (
+		service  = New()
+		ctx      = context.Background()
+		pluginID = "plugin-dynamic-runtime-state-readonly"
+	)
+
+	artifactPath := createTestRuntimeStorageArtifact(
+		t,
+		pluginID,
+		"Runtime State Readonly Plugin",
+		"v0.9.7",
+		nil,
+		nil,
+	)
+
+	cleanupPluginGovernanceRowsHard(t, ctx, pluginID)
+	t.Cleanup(func() {
+		cleanupPluginGovernanceRowsHard(t, ctx, pluginID)
+	})
+
+	manifest, err := service.loadRuntimePluginManifestFromArtifact(artifactPath)
+	if err != nil {
+		t.Fatalf("expected dynamic artifact manifest to load, got error: %v", err)
+	}
+	if _, err = service.syncPluginManifest(ctx, manifest); err != nil {
+		t.Fatalf("expected dynamic manifest sync to succeed, got error: %v", err)
+	}
+	if err = service.setPluginInstalled(ctx, pluginID, pluginInstalledYes); err != nil {
+		t.Fatalf("expected dynamic plugin install state to be set, got error: %v", err)
+	}
+	if err = service.setPluginStatus(ctx, pluginID, pluginStatusEnabled); err != nil {
+		t.Fatalf("expected dynamic plugin enable state to be set, got error: %v", err)
+	}
+
+	registryBefore, err := service.getPluginRegistry(ctx, pluginID)
+	if err != nil {
+		t.Fatalf("expected runtime registry lookup to succeed, got error: %v", err)
+	}
+	if registryBefore == nil {
+		t.Fatalf("expected runtime registry row to exist before artifact removal")
+	}
+	if registryBefore.Installed != pluginInstalledYes || registryBefore.Status != pluginStatusEnabled {
+		t.Fatalf("expected runtime registry row to remain installed+enabled before projection, got installed=%d enabled=%d", registryBefore.Installed, registryBefore.Status)
+	}
+
+	if err = os.Remove(artifactPath); err != nil {
+		t.Fatalf("failed to remove dynamic artifact: %v", err)
+	}
+
+	runtimeStates, err := service.ListRuntimeStates(ctx)
+	if err != nil {
+		t.Fatalf("expected runtime state list to succeed, got error: %v", err)
+	}
+	var runtimeState *PluginDynamicStateItem
+	for _, current := range runtimeStates.List {
+		if current != nil && current.Id == pluginID {
+			runtimeState = current
+			break
+		}
+	}
+	if runtimeState == nil {
+		t.Fatalf("expected missing dynamic plugin to remain visible in public runtime states")
+	}
+	if runtimeState.Installed != pluginInstalledNo || runtimeState.Enabled != pluginStatusDisabled {
+		t.Fatalf("expected public runtime state projection to return uninstalled+disabled, got installed=%d enabled=%d", runtimeState.Installed, runtimeState.Enabled)
+	}
+
+	registryAfter, err := service.getPluginRegistry(ctx, pluginID)
+	if err != nil {
+		t.Fatalf("expected runtime registry lookup after projection to succeed, got error: %v", err)
+	}
+	if registryAfter == nil {
+		t.Fatalf("expected runtime registry row to remain after runtime-state projection")
+	}
+	if registryAfter.Installed != pluginInstalledYes || registryAfter.Status != pluginStatusEnabled {
+		t.Fatalf("expected runtime-state projection to avoid mutating sys_plugin, got installed=%d enabled=%d", registryAfter.Installed, registryAfter.Status)
+	}
+}
+
 func TestFilterMenusHidesRuntimeMenusWhenArtifactIsMissing(t *testing.T) {
 	var (
 		service  = New()

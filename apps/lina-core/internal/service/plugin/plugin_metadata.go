@@ -21,6 +21,9 @@ type pluginResourceOwnerType string
 // pluginNodeStateValue defines the current node-state projection enum.
 type pluginNodeStateValue string
 
+// pluginHostStateValue defines the desired/current host lifecycle state enum.
+type pluginHostStateValue string
+
 // pluginLifecycleStateValue defines the lifecycle summary enum exposed by plugin governance.
 type pluginLifecycleStateValue string
 
@@ -39,13 +42,17 @@ type pluginResourceOrderDirection string
 const (
 	pluginMigrationDirectionInstall   pluginMigrationDirection = "install"
 	pluginMigrationDirectionUninstall pluginMigrationDirection = "uninstall"
+	pluginMigrationDirectionUpgrade   pluginMigrationDirection = "upgrade"
+	pluginMigrationDirectionRollback  pluginMigrationDirection = "rollback"
 
 	pluginMigrationStatusFailed    = 0
 	pluginMigrationStatusSucceeded = 1
 
+	pluginReleaseStatusPrepared   pluginReleaseStatus = "prepared"
 	pluginReleaseStatusUninstalled pluginReleaseStatus = "uninstalled"
 	pluginReleaseStatusInstalled   pluginReleaseStatus = "installed"
 	pluginReleaseStatusActive      pluginReleaseStatus = "active"
+	pluginReleaseStatusFailed      pluginReleaseStatus = "failed"
 
 	pluginMigrationExecutionStatusSucceeded pluginMigrationExecutionStatus = "succeeded"
 	pluginMigrationExecutionStatusFailed    pluginMigrationExecutionStatus = "failed"
@@ -70,9 +77,17 @@ const (
 	pluginResourceOwnerTypeFrontendSlotEntry   pluginResourceOwnerType = "frontend-slot-entry"
 	pluginResourceOwnerTypeMenuEntry           pluginResourceOwnerType = "menu-entry"
 
+	pluginNodeStateReconciling pluginNodeStateValue = "reconciling"
+	pluginNodeStateFailed      pluginNodeStateValue = "failed"
 	pluginNodeStateEnabled     pluginNodeStateValue = "enabled"
 	pluginNodeStateInstalled   pluginNodeStateValue = "installed"
 	pluginNodeStateUninstalled pluginNodeStateValue = "uninstalled"
+
+	pluginHostStateReconciling pluginHostStateValue = "reconciling"
+	pluginHostStateFailed      pluginHostStateValue = "failed"
+	pluginHostStateEnabled     pluginHostStateValue = "enabled"
+	pluginHostStateInstalled   pluginHostStateValue = "installed"
+	pluginHostStateUninstalled pluginHostStateValue = "uninstalled"
 
 	pluginLifecycleStateSourceEnabled      pluginLifecycleStateValue = "source_enabled"
 	pluginLifecycleStateSourceDisabled     pluginLifecycleStateValue = "source_disabled"
@@ -112,6 +127,9 @@ func (value pluginResourceOwnerType) String() string { return string(value) }
 
 // String returns the canonical node-state value.
 func (value pluginNodeStateValue) String() string { return string(value) }
+
+// String returns the canonical host-state value.
+func (value pluginHostStateValue) String() string { return string(value) }
 
 // String returns the canonical lifecycle-state value.
 func (value pluginLifecycleStateValue) String() string { return string(value) }
@@ -171,6 +189,18 @@ func derivePluginNodeState(installed int, enabled int) string {
 		return pluginNodeStateEnabled.String()
 	}
 	return pluginNodeStateInstalled.String()
+}
+
+// derivePluginHostState converts install and enablement flags into the stable
+// host lifecycle state stored in sys_plugin desired_state/current_state.
+func derivePluginHostState(installed int, enabled int) string {
+	if installed != pluginInstalledYes {
+		return pluginHostStateUninstalled.String()
+	}
+	if enabled == pluginStatusEnabled {
+		return pluginHostStateEnabled.String()
+	}
+	return pluginHostStateInstalled.String()
 }
 
 // derivePluginLifecycleState converts the plugin type and runtime flags into the

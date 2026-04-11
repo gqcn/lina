@@ -76,24 +76,24 @@ func (s *Service) GetInfo(ctx context.Context) (*SystemInfo, error) {
 		info.DbVersion = dbVersion
 	}
 
-	// Load component info from config
-	info.BackendComponents = s.loadComponents(ctx, "components.backend", dbVersion)
-	info.FrontendComponents = s.loadComponents(ctx, "components.frontend", "")
+	// Load component info from metadata config
+	info.BackendComponents = s.loadComponents(ctx, "backend", dbVersion)
+	info.FrontendComponents = s.loadComponents(ctx, "frontend", "")
 
 	return info, nil
 }
 
-// loadComponents reads component configuration from config file.
-func (s *Service) loadComponents(ctx context.Context, configKey string, dbVersion string) []ComponentInfo {
-	cfg := g.Cfg()
-	val, err := cfg.Get(ctx, configKey)
+// loadComponents reads component metadata from components.yaml.
+func (s *Service) loadComponents(ctx context.Context, sectionKey string, dbVersion string) []ComponentInfo {
+	cfg := g.Cfg("components")
+	val, err := cfg.Get(ctx, sectionKey)
 	if err != nil || val.IsEmpty() {
 		return nil
 	}
 
 	var components []ComponentInfo
 	if err = val.Scan(&components); err != nil {
-		logger.Warningf(ctx, "Failed to scan components config '%s': %v", configKey, err)
+		logger.Warningf(ctx, "Failed to scan components config '%s': %v", sectionKey, err)
 		return nil
 	}
 

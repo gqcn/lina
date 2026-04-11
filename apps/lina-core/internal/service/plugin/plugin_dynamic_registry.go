@@ -51,19 +51,19 @@ func (s *Service) buildPluginItem(manifest *pluginManifest, registry *entity.Sys
 		description = manifest.Description
 	}
 	if registry != nil {
-		if id == "" {
+		if registry.PluginId != "" {
 			id = registry.PluginId
 		}
-		if name == "" {
+		if registry.Name != "" {
 			name = registry.Name
 		}
-		if version == "" {
+		if registry.Version != "" {
 			version = registry.Version
 		}
-		if pluginType == "" {
+		if registry.Type != "" {
 			pluginType = registry.Type
 		}
-		if description == "" {
+		if registry.Remark != "" {
 			description = registry.Remark
 		}
 		installed = registry.Installed
@@ -131,9 +131,13 @@ func (s *Service) reconcileRuntimeRegistryArtifactState(ctx context.Context, reg
 	}
 
 	data := do.SysPlugin{
-		Installed:  pluginInstalledNo,
-		Status:     pluginStatusDisabled,
-		DisabledAt: gtime.Now(),
+		Installed:    pluginInstalledNo,
+		Status:       pluginStatusDisabled,
+		DesiredState: pluginHostStateUninstalled.String(),
+		CurrentState: pluginHostStateUninstalled.String(),
+		ReleaseId:    0,
+		Generation:   nextPluginGeneration(registry),
+		DisabledAt:   gtime.Now(),
 	}
 	if _, err = dao.SysPlugin.Ctx(ctx).
 		Where(do.SysPlugin{PluginId: registry.PluginId}).

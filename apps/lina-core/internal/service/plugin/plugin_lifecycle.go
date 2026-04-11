@@ -14,12 +14,11 @@ import (
 
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
-	"lina-core/pkg/pluginhost"
 )
 
 // Install executes install lifecycle for a discovered dynamic plugin.
 func (s *Service) Install(ctx context.Context, pluginID string) error {
-	manifest, err := s.getPluginManifestByID(pluginID)
+	manifest, err := s.getDesiredPluginManifestByID(pluginID)
 	if err != nil {
 		return err
 	}
@@ -35,43 +34,34 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 		return err
 	}
 	if registry.Installed == pluginInstalledYes {
+		compareResult, compareErr := compareSemanticVersions(manifest.Version, registry.Version)
+		if compareErr != nil {
+			return compareErr
+		}
+		if compareResult < 0 {
+			return gerror.New("不支持回退到更低版本，请使用宿主自动回滚结果或重新上传更高版本")
+		}
+		if compareResult == 0 {
+			return nil
+		}
+	}
+
+	desiredState := pluginHostStateInstalled
+	if registry.Installed == pluginInstalledYes && registry.Status == pluginStatusEnabled {
+		desiredState = pluginHostStateEnabled
+	}
+	if err = s.reconcileDynamicPluginRequest(ctx, pluginID, desiredState); err != nil {
+		return err
+	}
+	if checker := getPrimaryNodeChecker(); checker != nil && !checker() {
 		return nil
 	}
-
-	// Runtime installation prefers SQL assets embedded in the wasm artifact and
-	// falls back to directory-convention SQL only when no embedded bundle exists.
-	if err = s.executeManifestSQLFiles(ctx, manifest, pluginMigrationDirectionInstall); err != nil {
-		return err
-	}
-	if err = s.syncPluginMenus(ctx, manifest); err != nil {
-		return err
-	}
-	s.invalidateRuntimeFrontendBundle(ctx, pluginID, "plugin_installed")
-
-	if err = s.setPluginInstalled(ctx, pluginID, pluginInstalledYes); err != nil {
-		return err
-	}
-	registry, err = s.getPluginRegistry(ctx, pluginID)
-	if err != nil {
-		return err
-	}
-	if err = s.syncPluginMetadata(ctx, manifest, registry, "Dynamic plugin install lifecycle completed on current node."); err != nil {
-		return err
-	}
-	return s.DispatchHookEvent(
-		ctx,
-		pluginhost.ExtensionPointPluginInstalled,
-		pluginhost.BuildPluginLifecycleHookPayloadValues(pluginhost.PluginLifecycleHookPayloadInput{
-			PluginID: pluginID,
-			Name:     manifest.Name,
-			Version:  manifest.Version,
-		}),
-	)
+	return nil
 }
 
 // Uninstall executes uninstall lifecycle for an installed dynamic plugin.
 func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
-	manifest, err := s.getPluginManifestByID(pluginID)
+	manifest, err := s.getDesiredPluginManifestByID(pluginID)
 	if err != nil {
 		return err
 	}
@@ -86,49 +76,10 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 	if registry == nil || registry.Installed != pluginInstalledYes {
 		return nil
 	}
-
-	if registry.Status == pluginStatusEnabled {
-		// Disable before uninstall so routes, menus, and hooks stop participating
-		// before any plugin-owned uninstall SQL is executed.
-		if err = s.Disable(ctx, pluginID); err != nil {
-			return err
-		}
-	}
-	if err = s.executeManifestSQLFiles(ctx, manifest, pluginMigrationDirectionUninstall); err != nil {
+	if err = s.reconcileDynamicPluginRequest(ctx, pluginID, pluginHostStateUninstalled); err != nil {
 		return err
 	}
-	if err = s.deletePluginMenusByManifest(ctx, manifest); err != nil {
-		return err
-	}
-	if err = s.setPluginInstalled(ctx, pluginID, pluginInstalledNo); err != nil {
-		return err
-	}
-	s.invalidateRuntimeFrontendBundle(ctx, pluginID, "plugin_uninstalled")
-	if _, err = dao.SysPluginResourceRef.Ctx(ctx).
-		Unscoped().
-		Where(do.SysPluginResourceRef{PluginId: pluginID}).
-		Delete(); err != nil {
-		return err
-	}
-	if err = s.syncPluginNodeState(
-		ctx,
-		pluginID,
-		manifest.Version,
-		pluginInstalledNo,
-		pluginStatusDisabled,
-		"Dynamic plugin uninstall lifecycle completed on current node.",
-	); err != nil {
-		return err
-	}
-	return s.DispatchHookEvent(
-		ctx,
-		pluginhost.ExtensionPointPluginUninstalled,
-		pluginhost.BuildPluginLifecycleHookPayloadValues(pluginhost.PluginLifecycleHookPayloadInput{
-			PluginID: pluginID,
-			Name:     manifest.Name,
-			Version:  manifest.Version,
-		}),
-	)
+	return nil
 }
 
 // resolvePluginResourcePath resolves a plugin relative resource path to an absolute path inside plugin root.
@@ -149,9 +100,12 @@ func (s *Service) resolvePluginResourcePath(rootDir string, relativePath string)
 
 // setPluginInstalled updates plugin installation state in sys_plugin.
 func (s *Service) setPluginInstalled(ctx context.Context, pluginID string, installed int) error {
+	stableState := derivePluginHostState(installed, pluginStatusDisabled)
 	data := do.SysPlugin{
-		Installed: installed,
-		Status:    pluginStatusDisabled,
+		Installed:    installed,
+		Status:       pluginStatusDisabled,
+		DesiredState: stableState,
+		CurrentState: stableState,
 	}
 	if installed == pluginInstalledYes {
 		data.InstalledAt = gtime.Now()

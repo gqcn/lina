@@ -21,26 +21,26 @@
 
 为了让后续人工 review 不再把“当前必须交付的基础项”和“明确后延的工具链/热升级能力”混在一起，这里补充当前收尾口径：
 
-- 当前除第三期外，真正仍需补齐的核心项是：真实动态执行链路、动态失败隔离/回滚验收、插件权限治理验收，以及 `1.2` 中尚未提供的脚手架模板部分。
 - `apps/lina-plugins/<plugin-id>/` 的标准目录结构、目录职责和 review 要点已经在本文档中落地，因此“目录结构规划”本身不再是缺失项。
-- 仓库当前仍然不提供插件脚手架或打包脚本；这是有意保留的约束，而不是遗漏实现。
-- 如果后续评估认为这些脚本会明显增加复杂度、且收益不足，则继续保持“手工维护显式注册关系 + 文档约束”的模式即可。
+- 仓库中的 [plugin-demo-source](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-source/README.md) 与 [plugin-demo-dynamic](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-dynamic/README.md) 已经分别覆盖源码插件与动态插件的真实目录形态，后续开发可直接以这两个样例为样板复制和裁剪。
+- 当前仍然**不提供额外的自动脚手架脚本和打包脚本**。如果后续评估认为这些脚本会明显增加复杂度、且收益不足，则继续保持“手工维护显式注册关系 + 文档约束 + 样例目录参考”的模式即可。
 
 ## 当前范围
 
 当前仓库已经落地的是**第一期：源码插件底座**。插件机制的能力边界如下：
 
-| 能力                | 当前状态 | 说明                                                                                                                                                                                                                                               |
-| ------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `source`源码插件    | 已实现   | 插件目录位于`apps/lina-plugins/<plugin-id>/`，随宿主一起编译、打包和交付                                                                                                                                                                           |
+| 能力              | 当前状态 | 说明                                                                                                                                                                                                                                                 |
+| ----------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source`源码插件  | 已实现   | 插件目录位于`apps/lina-plugins/<plugin-id>/`，随宿主一起编译、打包和交付                                                                                                                                                                             |
 | `dynamic`动态插件 | 部分实现 | 当前已落地 `wasm` 产物自定义节校验、ABI 版本校验、checksum 与治理元数据同步，并支持上传、安装/卸载 SQL 执行、前端静态资源内存 bundle 托管，以及基于托管资源的 `iframe` / 新标签页 / 宿主内嵌挂载三种页面接入；热装载、真正的运行时执行与回滚仍未交付 |
-| 插件管理页          | 已实现   | 支持源码插件同步、启用、禁用与治理联动                                                                                                                                                                                                             |
-| 后端扩展点          | 已实现   | 通过`pluginhost`发布的回调式扩展点接入                                                                                                                                                                                                             |
-| 前端页面接入        | 已实现   | 扫描`frontend/pages/**/*.vue`并挂到宿主运行时页                                                                                                                                                                                                    |
-| 前端`Slot`接入      | 已实现   | 扫描`frontend/slots/**/*.vue`并挂到宿主公开插槽                                                                                                                                                                                                    |
-| 插件安装 SQL        | 已实现   | 通过`manifest/sql/*.sql`目录约定发现                                                                                                                                                                                                               |
-| 插件卸载 SQL        | 已实现   | 通过`manifest/sql/uninstall/*.sql`目录约定发现                                                                                                                                                                                                     |
-| 脚手架脚本          | 未提供   | 当前不再提供`hack/plugin`下的脚本；如果这些脚本会增加复杂度且收益很低，则继续保持不引入                                                                                                                                                              |
+| 插件管理页        | 已实现   | 支持源码插件同步、启用、禁用与治理联动                                                                                                                                                                                                               |
+| 后端扩展点        | 已实现   | 通过`pluginhost`发布的回调式扩展点接入                                                                                                                                                                                                               |
+| 前端页面接入      | 已实现   | 扫描`frontend/pages/**/*.vue`并挂到宿主运行时页                                                                                                                                                                                                      |
+| 前端`Slot`接入    | 已实现   | 扫描`frontend/slots/**/*.vue`并挂到宿主公开插槽                                                                                                                                                                                                      |
+| 插件安装 SQL      | 已实现   | 通过`manifest/sql/*.sql`目录约定发现                                                                                                                                                                                                                 |
+| 插件卸载 SQL      | 已实现   | 通过`manifest/sql/uninstall/*.sql`目录约定发现                                                                                                                                                                                                       |
+| 样例插件样板      | 已提供   | 提供 `plugin-demo-source` 与 `plugin-demo-dynamic` 两个真实样例目录，帮助开发者按当前真实契约复制和裁剪新插件                                                                                                                                        |
+| 脚手架脚本        | 未提供   | 当前不再提供`hack/plugin`下的自动创建脚本；如果这些脚本会增加复杂度且收益很低，则继续保持不引入                                                                                                                                                      |
 
 补充说明：
 
@@ -106,6 +106,9 @@
 - 宿主只扫描 `storagePath` 根目录下的 `*.wasm` 文件，不对外层目录层级做额外约定。
 - 动态插件上传后，宿主会以 `<storagePath>/<plugin-id>.wasm` 的规范文件名落盘；若运维手工拷贝 `.wasm` 到该目录，则可通过管理页“同步插件”识别。
 - `apps/lina-plugins/<plugin-id>/temp/<plugin-id>.wasm` 只是样例插件的本地构建输出；若要被宿主识别，仍需上传或复制到 `plugin.dynamic.storagePath`。
+- `plugin.dynamic.storagePath` 当前是节点本地文件系统目录语义；宿主不会把上传到某一节点的 `.wasm` 自动复制到其他节点。
+- 这类约束不仅适用于动态插件 `wasm`；宿主其他写入本地磁盘的上传资源同样不会自动跨节点分发，例如 `upload.path` 下的通用上传文件与其他本地静态资源。
+- 因此，多节点部署时必须为 `plugin.dynamic.storagePath`、`upload.path` 及其他需跨节点访问的资源目录配置共享存储，或在宿主之外完成可靠的文件分发；否则从节点上传的资源可能只在该节点可见，主节点安装、其他节点收敛或用户访问资源都可能失败。
 - 宿主当前会读取 `storagePath/*.wasm` 中两个必选自定义节：
   - `lina.plugin.manifest`
   - `lina.plugin.dynamic`
@@ -349,6 +352,8 @@ Content-Type: multipart/form-data
 - 上传完成后，插件默认仍是“未安装、未启用”状态。
 - 当前**不允许**通过上传直接覆盖一个已经安装的动态插件；升级/回滚的正式 release 切换能力还没有交付。
 - 除上传外，运维也可以手工把 `.wasm` 文件复制到 `plugin.dynamic.storagePath`，然后在管理页执行同步识别。
+- 若当前部署为多节点且 `plugin.dynamic.storagePath` 没有使用共享存储，上传请求落到哪一个节点，`.wasm` 文件就只会先写到哪一个节点；宿主当前不会自动把该文件同步到主节点或其他从节点。
+- 因此，多节点环境下应当将上传入口、手工拷贝流程与共享存储或外部分发流程一并设计好，再执行安装、启用、升级等生命周期动作；否则数据库中的治理记录可能已经存在，但主节点或其他节点仍然拿不到对应产物。
 
 当前仓库同时提供通用构建入口，供样例动态插件生成宿主可扫描的 wasm 产物：
 
@@ -436,6 +441,21 @@ apps/lina-plugins/
 | `<plugin-id>/frontend/slots/`              | 插件`Slot`源码目录         | 有`Slot`时必需    |
 | `<plugin-id>/manifest/sql/`                | 插件安装 SQL 目录          | 有安装 SQL 时必需 |
 | `<plugin-id>/manifest/sql/uninstall/`      | 插件卸载 SQL 目录          | 有卸载 SQL 时必需 |
+
+### 样例插件作为样板
+
+仓库当前不再额外维护 `hack/plugin-template/` 目录，而是直接使用已经接入宿主的真实样例插件作为开发样板：
+
+- 源码插件样板：[plugin-demo-source](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-source/README.md)
+- 动态插件样板：[plugin-demo-dynamic](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-dynamic/README.md)
+
+建议使用方式：
+
+1. 根据目标类型复制 `plugin-demo-source` 或 `plugin-demo-dynamic` 的整体目录
+2. 统一替换插件 ID、菜单 key、权限码、路由路径和文案
+3. 根据实际业务重命名内部模块目录与文件
+4. 若新增源码插件，在 [apps/lina-plugins/lina-plugins.go](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/lina-plugins.go) 中追加匿名导入
+5. 删除不需要的样例页面、样例 API 和样例 SQL，占位内容不必长期保留
 
 ## 元数据底座
 
@@ -526,17 +546,17 @@ license: Apache-2.0
 
 宿主当前会对`plugin.yaml`做以下校验：
 
-| 校验项             | 规则                                                                  |
-| ------------------ | --------------------------------------------------------------------- |
-| `id` 非空          | 缺失则判定清单非法                                                    |
-| `id` 格式          | 必须匹配`^[a-z0-9]+(?:-[a-z0-9]+)*$`                                  |
-| `id` 唯一性        | 不允许两个插件目录使用同一个`id`                                      |
-| `name` 非空        | 缺失则判定清单非法                                                    |
-| `version` 非空     | 缺失则判定清单非法                                                    |
-| `version` 格式     | 必须满足`semver`格式，例如`v0.1.0`；宿主当前同时兼容不带`v`前缀的写法 |
-| `type` 合法性      | 仅允许`source`或`dynamic`                                             |
+| 校验项             | 规则                                                                        |
+| ------------------ | --------------------------------------------------------------------------- |
+| `id` 非空          | 缺失则判定清单非法                                                          |
+| `id` 格式          | 必须匹配`^[a-z0-9]+(?:-[a-z0-9]+)*$`                                        |
+| `id` 唯一性        | 不允许两个插件目录使用同一个`id`                                            |
+| `name` 非空        | 缺失则判定清单非法                                                          |
+| `version` 非空     | 缺失则判定清单非法                                                          |
+| `version` 格式     | 必须满足`semver`格式，例如`v0.1.0`；宿主当前同时兼容不带`v`前缀的写法       |
+| `type` 合法性      | 仅允许`source`或`dynamic`                                                   |
 | `menus` 合法性     | 若声明菜单，则 `key` 必须使用当前插件前缀，且 `parent_key` 不得引用其他插件 |
-| `source`目录完整性 | `source`插件必须存在`go.mod`和`backend/plugin.go`                     |
+| `source`目录完整性 | `source`插件必须存在`go.mod`和`backend/plugin.go`                           |
 
 ### 明确不再允许的字段
 
@@ -748,8 +768,8 @@ export const pluginPageMeta = {
 
 例如：
 
-| 文件路径                           | 推导结果                    |
-| ---------------------------------- | --------------------------- |
+| 文件路径                           | 推导结果                           |
+| ---------------------------------- | ---------------------------------- |
 | `frontend/pages/sidebar-entry.vue` | `plugin-demo-source-sidebar-entry` |
 | `frontend/pages/user/profile.vue`  | `plugin-demo-source-user-profile`  |
 
@@ -963,18 +983,18 @@ manifest/sql/uninstall/*.sql
 
 人工 review 一个源码插件时，建议按下面清单逐项确认：
 
-| 检查项                                | 结论标准                                                                           |
-| ------------------------------------- | ---------------------------------------------------------------------------------- |
-| 插件目录位置是否正确                  | 位于`apps/lina-plugins/<plugin-id>/`                                               |
-| 是否存在`go.mod`和`backend/plugin.go` | `source`插件必须具备                                                               |
-| `plugin.yaml`是否最小化               | 不应再出现`schemaVersion`、`compatibility`、`entry`、`resources`、`metadata`等字段 |
-| `id`是否唯一且符合`kebab-case`        | 宿主范围内唯一                                                                     |
-| `lina-plugins.go`是否补了匿名导入     | 新插件必须显式接线                                                                 |
-| 页面和`Slot`是否位于约定目录          | 页面在`frontend/pages/`，`Slot`在`frontend/slots/`                                 |
-| 菜单和权限是否只在 manifest `menus` 中维护 | 不再通过插件 SQL 直接维护 `sys_menu/sys_role_menu`                             |
-| SQL 文件名和目录是否正确              | 安装和卸载 SQL 分别放在正确目录，且文件名合规                                      |
-| 禁用后是否能正确隐藏                  | 菜单、页面、`Slot`和路由都应受启停状态保护                                         |
-| 文档是否足够清晰                      | 插件自身`README.md`应说明功能范围、路由、SQL 和验证方式                            |
+| 检查项                                     | 结论标准                                                                           |
+| ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| 插件目录位置是否正确                       | 位于`apps/lina-plugins/<plugin-id>/`                                               |
+| 是否存在`go.mod`和`backend/plugin.go`      | `source`插件必须具备                                                               |
+| `plugin.yaml`是否最小化                    | 不应再出现`schemaVersion`、`compatibility`、`entry`、`resources`、`metadata`等字段 |
+| `id`是否唯一且符合`kebab-case`             | 宿主范围内唯一                                                                     |
+| `lina-plugins.go`是否补了匿名导入          | 新插件必须显式接线                                                                 |
+| 页面和`Slot`是否位于约定目录               | 页面在`frontend/pages/`，`Slot`在`frontend/slots/`                                 |
+| 菜单和权限是否只在 manifest `menus` 中维护 | 不再通过插件 SQL 直接维护 `sys_menu/sys_role_menu`                                 |
+| SQL 文件名和目录是否正确                   | 安装和卸载 SQL 分别放在正确目录，且文件名合规                                      |
+| 禁用后是否能正确隐藏                       | 菜单、页面、`Slot`和路由都应受启停状态保护                                         |
+| 文档是否足够清晰                           | 插件自身`README.md`应说明功能范围、路由、SQL 和验证方式                            |
 
 ## 常见错误
 
@@ -1022,14 +1042,14 @@ manifest/sql/uninstall/*.sql
 
 当前仓库中最小可运行样例是`plugin-demo-source`：
 
-| 文件                                                             | 作用               |
-| ---------------------------------------------------------------- | ------------------ |
-| `apps/lina-plugins/plugin-demo-source/plugin.yaml`                               | 源码插件最小清单示例     |
-| `apps/lina-plugins/plugin-demo-source/backend/plugin.go`                         | 源码插件后端注册入口示例 |
-| `apps/lina-plugins/plugin-demo-source/frontend/pages/sidebar-entry.vue`          | 源码插件页面示例         |
-| `apps/lina-plugins/plugin-demo-dynamic/plugin.yaml`                              | 动态插件最小清单示例     |
-| `apps/lina-plugins/plugin-demo-dynamic/backend/plugin.go`                        | 动态插件后端结构示例     |
-| `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/mount.js`                  | 动态内嵌挂载入口示例     |
-| `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/standalone.html`           | 动态独立静态页示例       |
+| 文件                                                                    | 作用                     |
+| ----------------------------------------------------------------------- | ------------------------ |
+| `apps/lina-plugins/plugin-demo-source/plugin.yaml`                      | 源码插件最小清单示例     |
+| `apps/lina-plugins/plugin-demo-source/backend/plugin.go`                | 源码插件后端注册入口示例 |
+| `apps/lina-plugins/plugin-demo-source/frontend/pages/sidebar-entry.vue` | 源码插件页面示例         |
+| `apps/lina-plugins/plugin-demo-dynamic/plugin.yaml`                     | 动态插件最小清单示例     |
+| `apps/lina-plugins/plugin-demo-dynamic/backend/plugin.go`               | 动态插件后端结构示例     |
+| `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/mount.js`         | 动态内嵌挂载入口示例     |
+| `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/standalone.html`  | 动态独立静态页示例       |
 
 如果要新增新插件，建议先复制`plugin-demo-source`的整体结构，再按本文档约束删减或扩展，而不是从零随意拼目录。

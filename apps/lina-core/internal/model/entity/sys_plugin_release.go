@@ -22,7 +22,7 @@ type SysPluginRelease struct {
 	ManifestPath     string      `json:"manifestPath"     orm:"manifest_path"     description:"插件清单路径"`
 	PackagePath      string      `json:"packagePath"      orm:"package_path"      description:"插件源码目录或运行时产物路径"`
 	Checksum         string      `json:"checksum"         orm:"checksum"          description:"插件清单或产物校验值"`
-	ManifestSnapshot string      `json:"manifestSnapshot" orm:"manifest_snapshot" description:"插件清单快照（YAML）"`
+	ManifestSnapshot string      `json:"manifestSnapshot" orm:"manifest_snapshot" description:"插件清单与资源摘要快照（YAML，不保存具体 SQL/前端文件路径）"`
 	CreatedAt        *gtime.Time `json:"createdAt"        orm:"created_at"        description:"创建时间"`
 	UpdatedAt        *gtime.Time `json:"updatedAt"        orm:"updated_at"        description:"更新时间"`
 	DeletedAt        *gtime.Time `json:"deletedAt"        orm:"deleted_at"        description:"删除时间"`

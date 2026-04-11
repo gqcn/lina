@@ -171,9 +171,6 @@ func (s *Service) scanRuntimePluginManifests(ctx context.Context) ([]*pluginMani
 			)
 		}
 		seenIDs[manifest.ID] = artifactPath
-		if err = s.loadPluginBackendConfig(manifest); err != nil {
-			return nil, err
-		}
 		manifests = append(manifests, manifest)
 	}
 	return manifests, nil
@@ -216,6 +213,12 @@ func (s *Service) loadRuntimePluginManifestFromArtifact(artifactPath string) (*p
 		return nil, gerror.Wrapf(err, "动态插件嵌入清单不合法: %s", artifactPath)
 	}
 	artifact.Manifest.Type = manifest.Type
+	// Runtime manifests are reloaded from both the mutable staging artifact and
+	// archived active releases. Always hydrate embedded backend contracts here so
+	// every caller receives a complete runtime manifest with hook/resource specs.
+	if err = s.loadPluginBackendConfig(manifest); err != nil {
+		return nil, err
+	}
 	return manifest, nil
 }
 

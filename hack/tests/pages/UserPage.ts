@@ -3,6 +3,9 @@ import type { Page } from '@playwright/test';
 export class UserPage {
   constructor(private page: Page) {}
 
+  /** Role column index within the main user table row. */
+  private static readonly ROLE_COLUMN_INDEX = 5;
+
   /** The Vben drawer (Sheet/Dialog) container */
   private get drawer() {
     return this.page.locator('[role="dialog"]');
@@ -18,6 +21,16 @@ export class UserPage {
     return this.roleCombobox
       .locator('xpath=ancestor::*[contains(@class,"ant-select")]')
       .first();
+  }
+
+  /**
+   * Resolve the main table row for the given username.
+   *
+   * VXE renders fixed action columns in a separate table tree, so callers that
+   * need business data should always work with the primary data row first.
+   */
+  private getUserDataRow(username: string) {
+    return this.page.locator('.vxe-body--row', { hasText: username }).first();
   }
 
   async goto() {
@@ -260,11 +273,11 @@ export class UserPage {
     for (const roleName of roleNames) {
       await this.roleCombobox.click();
       await this.page.waitForTimeout(300);
-      const option = this.page
-        .locator('.ant-select-dropdown')
-        .filter({ has: this.page.getByText(roleName, { exact: true }) })
-        .getByText(roleName, { exact: true })
-        .last();
+      // Filter the dropdown first so we do not depend on the option already being in view.
+      await this.roleCombobox.fill(roleName);
+
+      const dropdown = this.page.locator('.ant-select-dropdown:visible').last();
+      const option = dropdown.getByText(roleName, { exact: true }).first();
       await option.waitFor({ state: 'visible', timeout: 5000 });
       await option.click();
       await this.page.waitForTimeout(300);
@@ -275,9 +288,16 @@ export class UserPage {
   async getRoleNames(username: string): Promise<string> {
     await this.fillSearchField('用户账号', username);
     await this.clickSearch();
-    const row = this.page.locator('.vxe-body--row', { hasText: username }).first();
-    const roleCell = row.locator('td[field="roleNames"] .vxe-cell');
-    return (await roleCell.textContent()) || '';
+
+    const row = this.getUserDataRow(username);
+    await row.waitFor({ state: 'visible', timeout: 10000 });
+
+    // The role cell is stable by visible column order even when VXE duplicates
+    // DOM fragments for fixed columns. Using accessible cells avoids depending
+    // on internal `field` attributes that are not rendered consistently.
+    const roleCell = row.getByRole('cell').nth(UserPage.ROLE_COLUMN_INDEX);
+    const roleText = await roleCell.textContent();
+    return roleText?.trim() || '';
   }
 
   /** Get role count from user drawer */
@@ -316,6 +336,10 @@ export class UserPage {
     await this.fillSearchField('用户账号', username);
     await this.clickSearch();
 
+    // Ensure the searched row is rendered before interacting with the fixed
+    // action column. The action buttons live in a separate fixed table, but the
+    // visible edit button becomes unique once the main data row is filtered.
+    await this.getUserDataRow(username).waitFor({ state: 'visible', timeout: 10000 });
     await this.page.getByRole('button', { name: /编\s*辑/ }).first().click();
     await this.drawer.waitFor({ state: 'visible', timeout: 5000 });
 

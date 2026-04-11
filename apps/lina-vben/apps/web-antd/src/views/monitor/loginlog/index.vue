@@ -23,7 +23,8 @@ import LoginlogDetailModal from './loginlog-detail-modal.vue';
 const dictStore = useDictStore();
 
 onMounted(async () => {
-  const statusOptions = await dictStore.getDictOptions('sys_oper_status');
+  // Use the async helper so the select is populated after the dictionary API resolves.
+  const statusOptions = await dictStore.getDictOptionsAsync('sys_oper_status');
   gridApi.formApi.updateSchema([
     {
       fieldName: 'status',

@@ -139,7 +139,7 @@ func (s *Service) UpdateStatus(ctx context.Context, pluginID string, status int)
 	if status != 0 && status != 1 {
 		return gerror.New("插件状态仅支持0或1")
 	}
-	manifest, err := s.getPluginManifestByID(pluginID)
+	manifest, err := s.getDesiredPluginManifestByID(pluginID)
 	if err != nil {
 		return err
 	}
@@ -154,19 +154,15 @@ func (s *Service) UpdateStatus(ctx context.Context, pluginID string, status int)
 	if !s.IsInstalled(ctx, pluginID) {
 		return gerror.New("插件未安装")
 	}
-	if status == pluginStatusEnabled && normalizePluginType(manifest.Type) == pluginTypeDynamic {
-		if err = s.ValidateRuntimeFrontendMenuBindings(ctx, manifest); err != nil {
-			return err
+	if normalizePluginType(manifest.Type) == pluginTypeDynamic {
+		targetState := pluginHostStateInstalled
+		if status == pluginStatusEnabled {
+			targetState = pluginHostStateEnabled
 		}
-		if _, err = s.ensureRuntimeFrontendBundle(ctx, manifest); err != nil {
-			return err
-		}
+		return s.reconcileDynamicPluginRequest(ctx, pluginID, targetState)
 	}
 	if err = s.setPluginStatus(ctx, pluginID, status); err != nil {
 		return err
-	}
-	if status == pluginStatusDisabled && normalizePluginType(manifest.Type) == pluginTypeDynamic {
-		s.invalidateRuntimeFrontendBundle(ctx, pluginID, "plugin_disabled")
 	}
 	return nil
 }

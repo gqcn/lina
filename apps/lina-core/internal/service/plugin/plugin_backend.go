@@ -304,7 +304,7 @@ func (s *Service) convertSourcePluginResources(resources []*pluginhost.ResourceS
 
 // ListResourceRecords queries plugin-owned backend resource rows using the generic source-plugin contract.
 func (s *Service) ListResourceRecords(ctx context.Context, in ResourceListInput) (*ResourceListOutput, error) {
-	manifest, err := s.getPluginManifestByID(in.PluginID)
+	manifest, err := s.getActivePluginManifest(ctx, in.PluginID)
 	if err != nil {
 		return nil, err
 	}
@@ -392,9 +392,27 @@ func (s *Service) DispatchHookEvent(
 	eventName pluginhost.ExtensionPoint,
 	payload map[string]interface{},
 ) error {
-	manifests, err := s.scanPluginManifests()
+	discoveredManifests, err := s.scanPluginManifests()
 	if err != nil {
 		return err
+	}
+
+	manifests := make([]*pluginManifest, 0, len(discoveredManifests))
+	for _, manifest := range discoveredManifests {
+		if manifest == nil {
+			continue
+		}
+		if normalizePluginType(manifest.Type) != pluginTypeDynamic {
+			manifests = append(manifests, manifest)
+			continue
+		}
+
+		activeManifest, activeErr := s.getActivePluginManifest(ctx, manifest.ID)
+		if activeErr != nil {
+			logger.Warningf(ctx, "load active dynamic plugin manifest failed plugin=%s err=%v", manifest.ID, activeErr)
+			continue
+		}
+		manifests = append(manifests, activeManifest)
 	}
 
 	runtime, runtimeErr := s.buildFilterRuntimeFromManifests(ctx, manifests)
@@ -674,19 +692,7 @@ func (s *Service) HandleAuthLogoutSucceeded(ctx context.Context, input AuthLogin
 
 // getPluginManifestByID returns one plugin manifest by plugin ID.
 func (s *Service) getPluginManifestByID(pluginID string) (*pluginManifest, error) {
-	if pluginID == "" {
-		return nil, gerror.New("插件ID不能为空")
-	}
-	manifests, err := s.scanPluginManifests()
-	if err != nil {
-		return nil, err
-	}
-	for _, manifest := range manifests {
-		if manifest.ID == pluginID {
-			return manifest, nil
-		}
-	}
-	return nil, gerror.New("插件不存在")
+	return s.getDesiredPluginManifestByID(pluginID)
 }
 
 // loadPluginYAMLFile loads a YAML file into the target structure.

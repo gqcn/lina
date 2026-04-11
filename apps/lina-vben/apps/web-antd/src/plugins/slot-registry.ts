@@ -120,7 +120,10 @@ function buildPluginStateMap(items: PluginDynamicState[]) {
 
 function buildPluginStateSignature(items: PluginDynamicState[]) {
   return items
-    .map((item) => `${item.id}:${item.installed}:${item.enabled}:${item.statusKey}`)
+    .map(
+      (item) =>
+        `${item.id}:${item.installed}:${item.enabled}:${item.version}:${item.generation}:${item.statusKey}`,
+    )
     .sort()
     .join('|');
 }

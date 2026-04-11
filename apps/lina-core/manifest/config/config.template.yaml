@@ -1,95 +1,87 @@
+# HTTP 服务配置
 # https://goframe.org/docs/web/server-config-file-template
 server:
-  address:     ":8080"
+  # 服务监听地址
+  address: ":8080"
+  # OpenAPI JSON 文档访问路径
   openapiPath: "/api.json"
+  # Swagger UI 访问路径
   swaggerPath: "/swagger"
+  # 是否在启动时输出路由表
   dumpRouterMap: false
 
+# 日志配置
 # https://goframe.org/docs/core/glog-config
 logger:
-  level : "all"
+  # 日志级别
+  level: "all"
+  # 是否输出到标准输出
   stdout: true
 
+# 数据库配置
 # https://goframe.org/docs/core/gdb-config-file
 database:
   default:
+    # 默认数据库连接串
     link: "mysql:root:12345678@tcp(127.0.0.1:3306)/lina?charset=utf8mb4&parseTime=true&loc=Local&multiStatements=true"
+    # 是否开启 SQL 调试日志
     debug: true
 
+# JWT 配置
 jwt:
+  # JWT 签名密钥
   secret: "lina-jwt-secret-key-change-in-production"
+  # Token 有效期（小时）
   expireHour: 24
 
+# 在线会话配置
 session:
-  timeoutHour: 24     # Session inactive timeout (hours), sessions with no activity beyond this will be cleaned up
-  cleanupMinute: 5    # Session cleanup task interval (minutes)
+  # 会话无活动超时时间（小时）
+  timeoutHour: 24
+  # 会话清理任务执行间隔（分钟）
+  cleanupMinute: 5
 
+# 服务监控配置
+monitor:
+  # 服务指标采集间隔（秒）
+  intervalSeconds: 30
+
+# 主节点选举配置
+election:
+  # 选举锁租约时长
+  lease: 30s
+  # 租约续约间隔，建议为租约时长的三分之一
+  renewInterval: 10s
+
+# 上传配置
 upload:
+  # 上传文件保存目录
   path: "temp/upload"
-  maxSize: 10  # Maximum upload file size in MB
+  # 单个上传文件大小上限（MB）
+  maxSize: 10
 
+# 插件配置
 plugin:
+  # 动态插件相关配置
   dynamic:
+    # 动态插件构建产物存储目录
     storagePath: "temp/output"
 
-# OpenAPI documentation configuration
+# OpenAPI 文档配置
 openapi:
+  # 文档标题
   title: "Lina Admin API"
+  # 文档说明
   description: "Lina后台管理系统接口文档。"
+  # 文档版本
   version: "v0.5.0"
+  # 后端服务访问地址
   serverUrl: "http://localhost:8080"
+  # 服务地址说明
   serverDescription: "BackEndpoint"
 
-# System info page component configuration
-components:
-  backend:
-    - name: "GoFrame"
-      version: "auto"
-      url: "https://goframe.org"
-      description: "Go语言应用开发框架"
-    - name: "MySQL"
-      version: "auto"
-      url: "https://www.mysql.com"
-      description: "关系型数据库"
-    - name: "JWT"
-      version: "v5.3.1"
-      url: "https://jwt.io"
-      description: "身份认证"
-    - name: "Excelize"
-      version: "v2.10.1"
-      url: "https://github.com/qax-os/excelize"
-      description: "Excel文件处理库"
-  frontend:
-    - name: "Vue"
-      version: "3.x"
-      url: "https://vuejs.org"
-      description: "渐进式JavaScript框架"
-    - name: "Vben Admin"
-      version: "5.x"
-      url: "https://www.vben.pro"
-      description: "中后台管理框架"
-    - name: "Ant Design Vue"
-      version: "4.x"
-      url: "https://antdv.com"
-      description: "UI组件库"
-    - name: "TypeScript"
-      version: "5.x"
-      url: "https://www.typescriptlang.org"
-      description: "类型安全的JavaScript"
-    - name: "Vite"
-      version: "6.x"
-      url: "https://vite.dev"
-      description: "前端构建工具"
-    - name: "Pinia"
-      version: "3.x"
-      url: "https://pinia.vuejs.org"
-      description: "状态管理"
-    - name: "TailwindCSS"
-      version: "4.x"
-      url: "https://tailwindcss.com"
-      description: "原子化CSS框架"
-
-# Database initialization (executed by `make init`)
-# Scans sqlDir for *.sql files, sorted by ASCII order, executed sequentially
+# 数据库初始化配置
+# 执行 `make init` 时会按 ASCII 顺序扫描并执行 `sqlDir` 下的所有 SQL 文件
 init:
+  # SQL 文件目录
   sqlDir: "manifest/sql"

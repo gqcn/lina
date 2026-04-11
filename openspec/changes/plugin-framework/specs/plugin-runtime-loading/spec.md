@@ -39,6 +39,18 @@
 - **AND** 已经开始处理的旧请求允许自然结束
 - **AND** 正在使用该插件页面的用户会收到刷新当前页面的提示
 
+#### Scenario: staged 上传不立即替换当前服务 release
+- **WHEN** 管理员上传一个更高版本的动态插件 `wasm`
+- **THEN** 宿主先将该产物写入 staging 存储路径并记录为待切换 release
+- **AND** 当前 active release 继续通过其稳定归档路径服务已有请求与旧页面
+- **AND** 只有在主节点 Reconciler 成功推进代际切换后，新 release 才会成为对外服务的 active release
+
+#### Scenario: 升级失败后继续服务稳定 release
+- **WHEN** 动态插件在升级、迁移、菜单切换或前端 bundle 预热阶段失败
+- **THEN** 宿主回滚到上一个稳定 release 并恢复其 generation/release_id
+- **AND** 失败 release 的静态资源和运行时状态不会继续对普通用户生效
+- **AND** 当前稳定 release 的 Hook、资源查询和页面访问能力继续可用
+
 ### Requirement: 多节点以代际方式收敛插件状态
 系统 SHALL 在多节点部署下通过代际同步机制传播插件变更，并避免重复迁移与双重切换。
 
@@ -47,3 +59,8 @@
 - **THEN** 只有被选举出来的主节点执行共享迁移与 release 切换
 - **AND** 其他节点仅根据最新代际收敛本地状态
 - **AND** 任一节点都可以上报其当前代际与错误状态
+
+#### Scenario: 当前节点持续上报代际收敛状态
+- **WHEN** 主节点已经切换某个动态插件的 active release 或者回滚到稳定 release
+- **THEN** 每个节点都会基于最新 `generation/release_id` 更新自己的 `sys_plugin_node_state`
+- **AND** 若当前节点无法加载对应 release，则该节点会把本地投影标记为失败并保留诊断信息

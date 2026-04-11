@@ -33,7 +33,7 @@ type SysPluginReleaseColumns struct {
 	ManifestPath     string // 插件清单路径
 	PackagePath      string // 插件源码目录或运行时产物路径
 	Checksum         string // 插件清单或产物校验值
-	ManifestSnapshot string // 插件清单快照（YAML）
+	ManifestSnapshot string // 插件清单与资源摘要快照（YAML，不保存具体 SQL/前端文件路径）
 	CreatedAt        string // 创建时间
 	UpdatedAt        string // 更新时间
 	DeletedAt        string // 删除时间

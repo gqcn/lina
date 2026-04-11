@@ -5,6 +5,7 @@ package plugin
 
 import (
 	"context"
+	"strings"
 
 	"github.com/gogf/gf/v2/os/gtime"
 
@@ -27,6 +28,7 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 	}
 
 	if existing == nil {
+		stableState := derivePluginHostState(installedState, pluginStatusDisabled)
 		data := do.SysPlugin{
 			PluginId:     manifest.ID,
 			Name:         manifest.Name,
@@ -34,6 +36,9 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 			Type:         manifest.Type,
 			Installed:    installedState,
 			Status:       pluginStatusDisabled,
+			DesiredState: stableState,
+			CurrentState: stableState,
+			Generation:   int64(1),
 			ManifestPath: manifest.ManifestPath,
 			Checksum:     s.buildPluginRegistryChecksum(manifest),
 			Remark:       manifest.Description,
@@ -42,6 +47,8 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 			// Source plugins are compiled into the host, so they appear as already
 			// installed and enabled as soon as discovery succeeds.
 			data.Status = pluginStatusEnabled
+			data.DesiredState = pluginHostStateEnabled.String()
+			data.CurrentState = pluginHostStateEnabled.String()
 			data.InstalledAt = gtime.Now()
 			data.EnabledAt = gtime.Now()
 		}
@@ -64,26 +71,52 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 		if err = s.syncPluginMetadata(ctx, manifest, registry, "Source plugin manifest synchronized into host registry."); err != nil {
 			return nil, err
 		}
-		return registry, nil
+		return s.syncPluginRegistryReleaseReference(ctx, registry, manifest)
 	}
 
 	data := do.SysPlugin{
-		Name:         manifest.Name,
-		Version:      manifest.Version,
-		Type:         manifest.Type,
-		ManifestPath: manifest.ManifestPath,
-		Checksum:     s.buildPluginRegistryChecksum(manifest),
-		Remark:       manifest.Description,
+		Name:   manifest.Name,
+		Type:   manifest.Type,
+		Remark: manifest.Description,
 	}
 	if normalizePluginType(manifest.Type) == pluginTypeSource {
+		data.Version = manifest.Version
+		data.ManifestPath = manifest.ManifestPath
+		data.Checksum = s.buildPluginRegistryChecksum(manifest)
 		data.Installed = installedState
+		data.DesiredState = derivePluginHostState(installedState, existing.Status)
+		data.CurrentState = derivePluginHostState(installedState, existing.Status)
+		if existing.Generation <= 0 {
+			data.Generation = int64(1)
+		}
 		if existing.InstalledAt == nil {
 			data.InstalledAt = gtime.Now()
 		}
 		if shouldAutoEnableSourcePlugin(existing) {
 			data.Status = pluginStatusEnabled
+			data.DesiredState = pluginHostStateEnabled.String()
+			data.CurrentState = pluginHostStateEnabled.String()
 			data.EnabledAt = gtime.Now()
 		}
+	} else if !shouldTrackStagedDynamicRelease(existing, manifest) {
+		data.Version = manifest.Version
+		data.ManifestPath = manifest.ManifestPath
+		data.Checksum = s.buildPluginRegistryChecksum(manifest)
+		if existing.DesiredState == "" {
+			data.DesiredState = derivePluginHostState(existing.Installed, existing.Status)
+		}
+		if existing.CurrentState == "" {
+			data.CurrentState = derivePluginHostState(existing.Installed, existing.Status)
+		}
+		if existing.Generation <= 0 {
+			data.Generation = int64(1)
+		}
+	} else {
+		// Keep the active registry version stable while a newer dynamic artifact is
+		// merely staged in the mutable storage path. The upgrade switch is driven
+		// later by the primary-node reconciler.
+		data.ManifestPath = existing.ManifestPath
+		data.Checksum = existing.Checksum
 	}
 
 	_, err = dao.SysPlugin.Ctx(ctx).
@@ -106,7 +139,7 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 	if err = s.syncPluginMetadata(ctx, manifest, registry, "Source plugin manifest synchronized into host registry."); err != nil {
 		return nil, err
 	}
-	return registry, nil
+	return s.syncPluginRegistryReleaseReference(ctx, registry, manifest)
 }
 
 func shouldAutoEnableSourcePlugin(plugin *entity.SysPlugin) bool {
@@ -119,10 +152,51 @@ func shouldAutoEnableSourcePlugin(plugin *entity.SysPlugin) bool {
 	return plugin.EnabledAt == nil && plugin.DisabledAt == nil
 }
 
+func (s *Service) syncPluginRegistryReleaseReference(
+	ctx context.Context,
+	registry *entity.SysPlugin,
+	manifest *pluginManifest,
+) (*entity.SysPlugin, error) {
+	if registry == nil || manifest == nil {
+		return registry, nil
+	}
+	if strings.TrimSpace(registry.Version) != strings.TrimSpace(manifest.Version) {
+		return registry, nil
+	}
+
+	release, err := s.getPluginRelease(ctx, manifest.ID, manifest.Version)
+	if err != nil {
+		return nil, err
+	}
+	if release == nil || registry.ReleaseId == release.Id {
+		return registry, nil
+	}
+
+	_, err = dao.SysPlugin.Ctx(ctx).
+		Where(do.SysPlugin{PluginId: registry.PluginId}).
+		Data(do.SysPlugin{ReleaseId: release.Id}).
+		Update()
+	if err != nil {
+		return nil, err
+	}
+	return s.getPluginRegistry(ctx, registry.PluginId)
+}
+
 // setPluginStatus updates plugin enabled status in sys_plugin.
 func (s *Service) setPluginStatus(ctx context.Context, pluginID string, enabled int) error {
+	registry, err := s.getPluginRegistry(ctx, pluginID)
+	if err != nil {
+		return err
+	}
+	installed := pluginInstalledYes
+	if registry != nil {
+		installed = registry.Installed
+	}
+	stableState := derivePluginHostState(installed, enabled)
 	data := do.SysPlugin{
-		Status: enabled,
+		Status:       enabled,
+		DesiredState: stableState,
+		CurrentState: stableState,
 	}
 	if enabled == pluginStatusEnabled {
 		data.EnabledAt = gtime.Now()
@@ -130,7 +204,7 @@ func (s *Service) setPluginStatus(ctx context.Context, pluginID string, enabled 
 		data.DisabledAt = gtime.Now()
 	}
 
-	_, err := dao.SysPlugin.Ctx(ctx).
+	_, err = dao.SysPlugin.Ctx(ctx).
 		Where(do.SysPlugin{PluginId: pluginID}).
 		Data(data).
 		Update()
@@ -153,12 +227,15 @@ func (s *Service) setPluginStatus(ctx context.Context, pluginID string, enabled 
 		return err
 	}
 
-	registry, err := s.getPluginRegistry(ctx, pluginID)
+	registry, err = s.getPluginRegistry(ctx, pluginID)
 	if err != nil {
 		return err
 	}
 	if registry == nil {
 		return nil
+	}
+	if err = s.syncPluginReleaseRuntimeState(ctx, registry); err != nil {
+		return err
 	}
 	return s.syncPluginNodeState(
 		ctx,

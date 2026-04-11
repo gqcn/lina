@@ -25,6 +25,35 @@ export class DictPage {
     await this.page.locator('.vxe-table').first().waitFor({ state: 'visible', timeout: 10000 });
   }
 
+  /**
+   * Resolve a dict type row even when the table has been pushed to later pages by
+   * previously created test records. Callers can pass either dict name or dict type.
+   */
+  private async resolveTypeRow(rowText: string) {
+    const row = this.typePanel.locator('.vxe-body--row', { hasText: rowText }).first();
+    if (await row.isVisible({ timeout: 1000 }).catch(() => false)) {
+      return row;
+    }
+
+    // Seed dictionaries are usually referenced by dict type code in tests.
+    await this.clickTypeReset();
+    await this.fillTypeSearchField('字典类型', rowText);
+    await this.clickTypeSearch();
+    if (await row.isVisible({ timeout: 1000 }).catch(() => false)) {
+      return row;
+    }
+
+    // Imported dictionaries are commonly referenced by the display name instead.
+    await this.clickTypeReset();
+    await this.fillTypeSearchField('字典名称', rowText);
+    await this.clickTypeSearch();
+    if (await row.isVisible({ timeout: 3000 }).catch(() => false)) {
+      return row;
+    }
+
+    throw new Error(`Unable to find dict type row for "${rowText}"`);
+  }
+
   // ========== Type operations (left panel) ==========
 
   async createType(name: string, type: string, remark?: string) {
@@ -89,37 +118,33 @@ export class DictPage {
     await this.fillTypeSearchField('字典名称', typeName);
     await this.clickTypeSearch();
 
+    const deletedRow = this.typePanel
+      .locator('.vxe-body--row', { hasText: typeName })
+      .first();
+
     // Click delete button (ghost-button in action column)
     await this.typePanel.locator('.ant-btn-sm').filter({ hasText: /删\s*除/ }).first().click();
 
-    // Wait for modal to appear and confirm deletion
-    await this.page.waitForTimeout(300);
-    const modal = this.page.locator('.ant-modal-confirm');
+    // Confirm the visible modal directly instead of relying on a global DOM query.
+    const modal = this.page.locator('.ant-modal-confirm:visible').last();
     await modal.waitFor({ state: 'visible', timeout: 3000 });
+    await modal
+      .getByRole('button', { name: /确\s*定|确\s*认|OK/i })
+      .last()
+      .click({ force: true });
 
-    // Click confirm button via evaluate (bypass overlay issues)
-    await this.page.evaluate(() => {
-      const btn = document.querySelector('.ant-modal-confirm .ant-btn-primary') as HTMLButtonElement;
-      if (btn) btn.click();
-    });
-
-    // Wait for the modal to be completely removed from DOM
-    await modal.waitFor({ state: 'detached', timeout: 10000 });
+    await this.page.waitForLoadState('networkidle');
+    await modal.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+    await deletedRow.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
     await this.page.waitForTimeout(300);
   }
 
   async clickTypeRow(typeName: string) {
-    // Click a row in the type panel to load data in the right panel
-    await this.typePanel.locator('.vxe-body--row', { hasText: typeName }).first().click();
+    // Click a row in the type panel to load data in the right panel.
+    const row = await this.resolveTypeRow(typeName);
+    await row.click();
     await this.page.waitForLoadState('networkidle');
     await this.page.waitForTimeout(500);
-  }
-
-  async hasType(typeName: string): Promise<boolean> {
-    return this.typePanel
-      .locator('.vxe-body--row', { hasText: typeName })
-      .isVisible({ timeout: 5000 })
-      .catch(() => false);
   }
 
   // ========== Data operations (right panel) ==========

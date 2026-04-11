@@ -28,6 +28,10 @@ type SysPluginColumns struct {
 	Type         string // 插件一级类型（source/dynamic）
 	Installed    string // 安装状态（1=已安装 0=未安装）
 	Status       string // 启用状态（1=启用 0=禁用）
+	DesiredState string // 宿主期望状态（uninstalled/installed/enabled）
+	CurrentState string // 宿主当前状态（uninstalled/installed/enabled/reconciling/failed）
+	Generation   string // 宿主当前生效代际号
+	ReleaseId    string // 宿主当前生效 release ID
 	ManifestPath string // 插件清单文件路径
 	Checksum     string // 插件包校验值
 	InstalledAt  string // 安装时间
@@ -48,6 +52,10 @@ var sysPluginColumns = SysPluginColumns{
 	Type:         "type",
 	Installed:    "installed",
 	Status:       "status",
+	DesiredState: "desired_state",
+	CurrentState: "current_state",
+	Generation:   "generation",
+	ReleaseId:    "release_id",
 	ManifestPath: "manifest_path",
 	Checksum:     "checksum",
 	InstalledAt:  "installed_at",
