@@ -273,7 +273,7 @@
 - [x] **FB-151**: 在项目规范文档中补充后端 `service` 层文件顶部注释与主文件注释位置规范
 - [x] **FB-152**: 将 `cluster-deployment-toggle` 与 `refine-cluster-service-boundaries` 合并回 `plugin-framework`，清理错误的 plugin archive 痕迹
 - [x] **FB-154**: 审查并收敛后端 `service` 层在接口执行链路中的临时 `service.New()` 调用，统一改为构造阶段依赖注入，并将该约束补充到项目规范文档
-- [ ] **FB-153**: 完成插件机制当前阶段的人工校验，并在确认通过后再执行正式归档
+- [x] **FB-153**: 完成插件机制当前阶段的人工校验，并在确认通过后再执行正式归档
 - [x] **FB-112**: 修复动态插件产物被手动删除后宿主注册态未自动收敛的问题，确保插件列表仍可见缺失条目、菜单与路由立即隐藏，且公共运行时状态同步返回“未安装/未启用”
 - [x] **FB-113**: 修复动态插件产物缺失时重新上传仍被“已安装不可覆盖”错误拦截的问题，允许将缺失产物作为恢复性重传重新落盘，并补齐对应回归验证
 - [x] **FB-114**: 调整 `TC0067-runtime-wasm-lifecycle` 的 bundled runtime 样例准备方式，禁止再向 `apps/lina-plugins/plugin-demo-dynamic/runtime/` 回写生成产物，改为仅写入宿主 `plugin.dynamic.storagePath`
