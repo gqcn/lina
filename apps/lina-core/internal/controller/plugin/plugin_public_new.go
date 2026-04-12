@@ -11,8 +11,8 @@ type PublicControllerV1 struct {
 }
 
 // NewPublicV1 creates and returns a new public plugin controller instance.
-func NewPublicV1() pluginapi.IPluginPublicV1 {
+func NewPublicV1(topologies ...pluginsvc.Topology) pluginapi.IPluginPublicV1 {
 	return &PublicControllerV1{
-		pluginSvc: pluginsvc.New(),
+		pluginSvc: pluginsvc.New(topologies...),
 	}
 }

@@ -37,3 +37,27 @@ func ensureBundledRuntimeSampleArtifactForTests() error {
 	_, err = New().WriteRuntimeWasmArtifactFromSource(pluginDir)
 	return err
 }
+
+type testTopology struct {
+	enabled bool
+	primary bool
+	nodeID  string
+}
+
+func (t *testTopology) IsEnabled() bool {
+	return t != nil && t.enabled
+}
+
+func (t *testTopology) IsPrimary() bool {
+	if t == nil {
+		return true
+	}
+	return t.primary
+}
+
+func (t *testTopology) NodeID() string {
+	if t == nil || t.nodeID == "" {
+		return "test-node"
+	}
+	return t.nodeID
+}

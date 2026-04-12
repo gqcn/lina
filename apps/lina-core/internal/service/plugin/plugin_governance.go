@@ -66,7 +66,7 @@ func (s *Service) buildPluginGovernanceSnapshot(
 		snapshot.ResourceCount = resourceCount
 	}
 
-	nodeState, err := s.getPluginNodeState(ctx, pluginID, s.getCurrentNodeName())
+	nodeState, err := s.getPluginNodeState(ctx, pluginID, s.currentNodeID())
 	if err != nil {
 		return nil, err
 	}

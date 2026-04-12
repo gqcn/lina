@@ -145,6 +145,14 @@
   - [x] TC-70d：升级失败时宿主会回滚到稳定 release，失败版本资源不会继续公开服务，当前插件页保持可用
 - [x] 7.6 为插件管理与插件页面补充所需的 POM（安装/卸载、slot 可见性断言），保证 `TC0066` 可独立运行
 
+## 8. 集群部署与拓扑收敛
+
+- [x] 8.1 新增 `cluster.enabled` 与 `cluster.election.*` 配置语义，明确宿主默认按单节点模式启动
+- [x] 8.2 改造 HTTP 启动、领导选举与定时任务调度链路，使主节点专属行为由 `cluster.Service` 统一控制
+- [x] 8.3 收敛动态插件在单节点与集群模式下的状态切换、后台 Reconciler 与节点投影行为
+- [x] 8.4 收敛 `plugin` / `cluster` / `election` 组件边界，移除 `plugin` 包级集群状态并将 `election` 下沉到 `cluster` 内部实现
+- [x] 8.5 补充单节点模式、集群模式、从节点 defer 与拓扑边界收敛的后端测试和相关 OpenSpec 规格
+
 ## Feedback
 
 - [x] **FB-1**: `gf gen dao` 只处理宿主 `sys_*` 数据表，插件私有 `plugin_*` 表不再生成到 `lina-core` 的 DAO/DO/Entity
@@ -258,6 +266,14 @@
 - [x] **FB-109**: 为 runtime 前端内存资源 bundle 补齐关键 debug 日志，覆盖启动预热、缓存命中/重建、请求时懒加载与缓存失效路径，便于后续排障和人工 review
 - [x] **FB-110**: 将动态插件发现与上传从 `apps/lina-plugins/<plugin-id>/plugin.yaml` 外层目录解耦，改为统一扫描并写入 `plugin.dynamic.storagePath` 下的 `.wasm` 文件，同时支持手动拷贝后在管理页执行同步识别
 - [x] **FB-111**: 调整插件管理页上传按钮为非白底主按钮并更名为“上传插件”，同时精简上传弹窗说明文案
+- [x] **FB-147**: 删除已废弃 `GetElection()` 与 `config_election.go`，将宿主配置统一收敛到 `cluster` 配置段
+- [x] **FB-148**: 补齐运行配置中的 `cluster` 段，并移除旧版顶层 `election.*` 兼容和二次读取逻辑，降低配置复杂度
+- [x] **FB-149**: 移除 `plugin` 包级集群状态，改为 `plugin.Service` 持有显式 topology 抽象并复用统一节点标识
+- [x] **FB-150**: 将 `election` 下沉到 `cluster` 组件内部，统一选主实现归属与测试归属
+- [x] **FB-151**: 在项目规范文档中补充后端 `service` 层文件顶部注释与主文件注释位置规范
+- [x] **FB-152**: 将 `cluster-deployment-toggle` 与 `refine-cluster-service-boundaries` 合并回 `plugin-framework`，清理错误的 plugin archive 痕迹
+- [x] **FB-154**: 审查并收敛后端 `service` 层在接口执行链路中的临时 `service.New()` 调用，统一改为构造阶段依赖注入，并将该约束补充到项目规范文档
+- [ ] **FB-153**: 完成插件机制当前阶段的人工校验，并在确认通过后再执行正式归档
 - [x] **FB-112**: 修复动态插件产物被手动删除后宿主注册态未自动收敛的问题，确保插件列表仍可见缺失条目、菜单与路由立即隐藏，且公共运行时状态同步返回“未安装/未启用”
 - [x] **FB-113**: 修复动态插件产物缺失时重新上传仍被“已安装不可覆盖”错误拦截的问题，允许将缺失产物作为恢复性重传重新落盘，并补齐对应回归验证
 - [x] **FB-114**: 调整 `TC0067-runtime-wasm-lifecycle` 的 bundled runtime 样例准备方式，禁止再向 `apps/lina-plugins/plugin-demo-dynamic/runtime/` 回写生成产物，改为仅写入宿主 `plugin.dynamic.storagePath`

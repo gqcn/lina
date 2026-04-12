@@ -11,7 +11,6 @@ import (
 
 	"lina-core/internal/dao"
 	"lina-core/internal/model/entity"
-	"lina-core/internal/service/bizctx"
 )
 
 const (
@@ -67,8 +66,7 @@ func (s *Service) applyPluginResourceDataScope(
 }
 
 func (s *Service) getCurrentPluginResourceUserID(ctx context.Context) int {
-	bizCtxSvc := bizctx.New()
-	businessContext := bizCtxSvc.Get(ctx)
+	businessContext := s.bizCtxSvc.Get(ctx)
 	if businessContext == nil {
 		return 0
 	}

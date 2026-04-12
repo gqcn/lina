@@ -53,7 +53,7 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 	if err = s.reconcileDynamicPluginRequest(ctx, pluginID, desiredState); err != nil {
 		return err
 	}
-	if checker := getPrimaryNodeChecker(); checker != nil && !checker() {
+	if !s.isPrimaryNode() {
 		return nil
 	}
 	return nil

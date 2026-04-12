@@ -97,6 +97,20 @@ Lina 当前的前后端扩展方式仍以“宿主源码直接改造”为主，
 - `plugin-demo-source` 前端只保留左侧菜单页示例；右上角、登录页、工作台、CRUD 等额外 `Slot` 示例全部移除。
 - 动态插件能力继续由 `plugin-demo-dynamic` 负责演示，源码样例不再承担额外前端 `Slot` 展示职责。
 
+## 2026-04-12 集群部署与拓扑边界收敛补充
+
+随着第三期动态插件热升级、多节点代际切换与主节点 Reconciler 落地，插件机制本身已经不再只是“插件目录/清单/页面接入”的问题，而是明确依赖宿主的部署拓扑语义。原先为收敛这部分复杂度而拆出的 `cluster-deployment-toggle` 与 `refine-cluster-service-boundaries`，本质上都属于插件机制的后续反馈，而不是独立 change。
+
+本次合并后，设计边界补充如下：
+
+- 宿主默认按单节点模式运行，仅在 `cluster.enabled=true` 时启用选主与主节点专属行为。这样可以让动态插件的热升级、启停、卸载和后台收敛在单节点场景下同步完成，而不是被多节点治理逻辑拖累。
+- `cluster.Service` 作为唯一的宿主拓扑门面，负责暴露 `IsEnabled()`、`IsPrimary()`、`NodeID()` 以及按需启动内部选主实现。`cron`、HTTP 启动链路和插件运行时都通过它读取拓扑语义。
+- `plugin.Service` 不再通过包级全局变量保存 `clusterModeEnabled` 或主节点回调，而是显式持有最小拓扑接口。这样可以避免 `plugin` 包在没有依赖注入的情况下偷偷持有宿主级状态。
+- 原先独立的 `election` 组件实际已只被 `cluster` 内部使用，因此本次设计上将其视为 `cluster` 的内部实现文件，而非顶层 service 边界的一部分。
+- 节点标识生成逻辑也统一收敛到 `cluster`，并复用于动态插件节点投影等多节点治理能力，避免 `cluster` 与 `plugin` 各自生成不同的节点名。
+
+这部分收敛的结果是：插件机制的多节点治理不再散落在多个 service 之间，而是明确依赖同一套 cluster topology abstraction。后续人工校验也应以 `plugin-framework` 为唯一 review 入口，而不是把 cluster 相关 follow-up 分拆成独立 change。
+
 ## Goals / Non-Goals
 
 **Goals:**

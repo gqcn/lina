@@ -1,4 +1,4 @@
-package election
+package cluster
 
 import (
 	"context"
@@ -6,34 +6,27 @@ import (
 	"time"
 
 	_ "github.com/gogf/gf/contrib/drivers/mysql/v2"
-
-	"lina-core/internal/service/config"
-	"lina-core/internal/service/locker"
-
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/test/gtest"
+
+	"lina-core/internal/service/config"
+	"lina-core/internal/service/locker"
 )
 
-// testCfg is the default election config used in tests.
-var testCfg = &config.ElectionConfig{
+// testElectionCfg is the default election config used in tests.
+var testElectionCfg = &config.ElectionConfig{
 	Lease:         30 * time.Second,
 	RenewInterval: 1 * time.Second,
 }
 
-// newTestService creates an election service for testing.
-func newTestService() *Service {
-	return New(locker.New(), testCfg)
+func newTestElectionService() *electionService {
+	return newElectionService(locker.New(), testElectionCfg, generateNodeIdentifier())
 }
 
-// cleanupLock removes the election lock after test.
-func cleanupLock() {
-	_, _ = g.DB().Model("sys_locker").Where("name", lockName).Delete()
-}
-
-func TestElection_New(t *testing.T) {
+func TestElectionServiceNew(t *testing.T) {
 	gtest.C(t, func(t *gtest.T) {
-		svc := newTestService()
+		svc := newTestElectionService()
 
 		t.AssertNE(svc, nil)
 		t.AssertNE(svc.Holder(), "")
@@ -41,9 +34,9 @@ func TestElection_New(t *testing.T) {
 	})
 }
 
-func TestElection_StartAndBecomeLeader(t *testing.T) {
+func TestElectionServiceStartAndBecomeLeader(t *testing.T) {
 	var (
-		svc = newTestService()
+		svc = newTestElectionService()
 		ctx = context.Background()
 	)
 
@@ -68,9 +61,9 @@ func TestElection_StartAndBecomeLeader(t *testing.T) {
 	cleanupLock()
 }
 
-func TestElection_AlreadyLeader(t *testing.T) {
+func TestElectionServiceAlreadyLeader(t *testing.T) {
 	var (
-		svc = newTestService()
+		svc = newTestElectionService()
 		ctx = context.Background()
 	)
 
@@ -99,9 +92,9 @@ func TestElection_AlreadyLeader(t *testing.T) {
 	cleanupLock()
 }
 
-func TestElection_TakeOverExpiredLock(t *testing.T) {
+func TestElectionServiceTakeOverExpiredLock(t *testing.T) {
 	var (
-		svc = newTestService()
+		svc = newTestElectionService()
 		ctx = context.Background()
 	)
 
@@ -135,9 +128,9 @@ func TestElection_TakeOverExpiredLock(t *testing.T) {
 	cleanupLock()
 }
 
-func TestElection_StepDown(t *testing.T) {
+func TestElectionServiceStepDown(t *testing.T) {
 	var (
-		svc = newTestService()
+		svc = newTestElectionService()
 		ctx = context.Background()
 	)
 
@@ -158,20 +151,20 @@ func TestElection_StepDown(t *testing.T) {
 	cleanupLock()
 }
 
-func TestElection_StopWithoutStart(t *testing.T) {
+func TestElectionServiceStopWithoutStart(t *testing.T) {
 	gtest.C(t, func(t *gtest.T) {
-		svc := newTestService()
+		svc := newTestElectionService()
 		svc.Stop(context.Background())
 	})
 }
 
-func TestElection_NonLeaderRetry(t *testing.T) {
+func TestElectionServiceNonLeaderRetry(t *testing.T) {
 	var (
 		retryCfg = &config.ElectionConfig{
 			Lease:         30 * time.Second,
 			RenewInterval: 200 * time.Millisecond,
 		}
-		svc = New(locker.New(), retryCfg)
+		svc = newElectionService(locker.New(), retryCfg, generateNodeIdentifier())
 		ctx = context.Background()
 	)
 
@@ -198,4 +191,8 @@ func TestElection_NonLeaderRetry(t *testing.T) {
 	})
 
 	cleanupLock()
+}
+
+func cleanupLock() {
+	_, _ = g.DB().Model("sys_locker").Where("name", lockName).Delete()
 }

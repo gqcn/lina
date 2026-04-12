@@ -46,12 +46,15 @@ monitor:
   # 服务指标采集间隔（秒）
   intervalSeconds: 30
 
-# 主节点选举配置
-election:
-  # 选举锁租约时长
-  lease: 30s
-  # 租约续约间隔，建议为租约时长的三分之一
-  renewInterval: 10s
+# 集群部署配置
+cluster:
+  # 是否开启集群多节点模式；默认 false 表示单节点模式
+  enabled: false
+  election:
+    # 选举锁租约时长
+    lease: 30s
+    # 租约续约间隔，建议为租约时长的三分之一
+    renewInterval: 10s
 
 # 上传配置
 upload:

@@ -30,6 +30,9 @@ var (
 // StartRuntimeReconciler starts the background loop that keeps dynamic-plugin
 // desired state, active release, and current-node projection converged.
 func (s *Service) StartRuntimeReconciler(ctx context.Context) {
+	if !s.isClusterModeEnabled() {
+		return
+	}
 	runtimePluginReconcilerOnce.Do(func() {
 		go s.runRuntimePluginReconciler(context.WithoutCancel(ctx))
 	})
@@ -62,10 +65,7 @@ func (s *Service) ReconcileRuntimePlugins(ctx context.Context) error {
 		return err
 	}
 
-	isPrimary := true
-	if checker := getPrimaryNodeChecker(); checker != nil {
-		isPrimary = checker()
-	}
+	isPrimary := s.isPrimaryNode()
 
 	var firstErr error
 	for _, registry := range registries {
@@ -115,7 +115,7 @@ func (s *Service) reconcileDynamicPluginRequest(
 	if err := s.updatePluginRegistryDesiredState(ctx, pluginID, desiredState); err != nil {
 		return err
 	}
-	if checker := getPrimaryNodeChecker(); checker != nil && !checker() {
+	if !s.isPrimaryNode() {
 		return nil
 	}
 	return s.ReconcileRuntimePlugins(ctx)

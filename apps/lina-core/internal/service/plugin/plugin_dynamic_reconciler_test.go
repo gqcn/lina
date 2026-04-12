@@ -208,7 +208,12 @@ func TestDynamicPluginUpgradeFailureRollsBackStableRelease(t *testing.T) {
 }
 
 func TestDynamicPluginFollowerDefersUntilPrimaryReconciles(t *testing.T) {
-	service := New()
+	topology := &testTopology{
+		enabled: true,
+		primary: false,
+		nodeID:  "follower-node",
+	}
+	service := New(topology)
 	ctx := context.Background()
 
 	pluginID := "plugin-dynamic-follower"
@@ -218,14 +223,6 @@ func TestDynamicPluginFollowerDefersUntilPrimaryReconciles(t *testing.T) {
 	cleanupPluginGovernanceRowsHard(t, ctx, pluginID)
 	t.Cleanup(func() {
 		cleanupPluginGovernanceRowsHard(t, ctx, pluginID)
-	})
-
-	previousChecker := getPrimaryNodeChecker()
-	SetPrimaryNodeChecker(func() bool {
-		return false
-	})
-	t.Cleanup(func() {
-		SetPrimaryNodeChecker(previousChecker)
 	})
 
 	createTestRuntimeStorageArtifactWithFrontendAssets(
@@ -259,9 +256,7 @@ func TestDynamicPluginFollowerDefersUntilPrimaryReconciles(t *testing.T) {
 		t.Fatalf("expected follower current state to remain uninstalled before primary reconciliation, got %s", registryBeforePrimary.CurrentState)
 	}
 
-	SetPrimaryNodeChecker(func() bool {
-		return true
-	})
+	topology.primary = true
 	if err = service.ReconcileRuntimePlugins(ctx); err != nil {
 		t.Fatalf("expected primary reconciliation to succeed, got error: %v", err)
 	}

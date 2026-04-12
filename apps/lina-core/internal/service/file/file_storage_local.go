@@ -10,8 +10,6 @@ import (
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/grand"
-
-	"lina-core/internal/service/config"
 )
 
 // LocalStorage implements Storage interface using local file system.
@@ -20,11 +18,8 @@ type LocalStorage struct {
 }
 
 // NewLocalStorage creates a LocalStorage instance.
-// If basePath is empty, it reads from config "upload.path" with default "temp/upload".
-func NewLocalStorage(ctx context.Context, basePath string) *LocalStorage {
-	if basePath == "" {
-		basePath = config.New().GetUpload(ctx).Path
-	}
+// The caller should pass the upload path resolved during service construction.
+func NewLocalStorage(basePath string) *LocalStorage {
 	return &LocalStorage{basePath: basePath}
 }
 

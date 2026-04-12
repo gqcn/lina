@@ -18,16 +18,16 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 
 	"lina-core/internal/dao"
-	dictsvc "lina-core/internal/service/dict"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/bizctx"
 	"lina-core/internal/service/config"
+	dictsvc "lina-core/internal/service/dict"
 )
 
 const (
-	EngineLocal    = "local" // Local storage engine identifier
-	MaxExportRows  = 10000   // Maximum rows for export
+	EngineLocal   = "local" // Local storage engine identifier
+	MaxExportRows = 10000   // Maximum rows for export
 )
 
 // Dict type used in file management
@@ -35,18 +35,22 @@ const DictTypeFileScene = "sys_file_scene" // File scene dictionary
 
 // Service provides file management operations.
 type Service struct {
-	configSvc *config.Service   // Configuration service
-	storage   Storage           // Storage backend
-	bizCtxSvc *bizctx.Service   // Business context service
-	dictSvc   *dictsvc.Service  // Dictionary service for scene labels
+	configSvc *config.Service  // Configuration service
+	storage   Storage          // Storage backend
+	bizCtxSvc *bizctx.Service  // Business context service
+	dictSvc   *dictsvc.Service // Dictionary service for scene labels
 }
 
 // New creates and returns a new Service instance with local storage.
 func New() *Service {
-	ctx := context.Background()
+	var (
+		ctx         = context.Background()
+		configSvc   = config.New()
+		storagePath = configSvc.GetUpload(ctx).Path
+	)
 	return &Service{
-		configSvc: config.New(),
-		storage:   NewLocalStorage(ctx, ""),
+		configSvc: configSvc,
+		storage:   NewLocalStorage(storagePath),
 		bizCtxSvc: bizctx.New(),
 		dictSvc:   dictsvc.New(),
 	}
@@ -255,8 +259,8 @@ type ListOutput struct {
 
 // ListOutputItem defines a single file item in list output.
 type ListOutputItem struct {
-	*entity.SysFile                 // File entity
-	CreatedByName    string `json:"createdByName"` // Uploader username
+	*entity.SysFile        // File entity
+	CreatedByName   string `json:"createdByName"` // Uploader username
 }
 
 // List returns paginated file records.
@@ -493,9 +497,9 @@ func (s *Service) Suffixes(ctx context.Context) ([]*SuffixesOutput, error) {
 
 // DetailOutput defines output for file detail.
 type DetailOutput struct {
-	*entity.SysFile                    // File entity
-	CreatedByName    string `json:"createdByName"` // Uploader username
-	SceneLabel       string `json:"sceneLabel"`    // Usage scene name
+	*entity.SysFile        // File entity
+	CreatedByName   string `json:"createdByName"` // Uploader username
+	SceneLabel      string `json:"sceneLabel"`    // Usage scene name
 }
 
 // Detail returns file info with scene label.

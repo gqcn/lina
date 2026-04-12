@@ -3,8 +3,8 @@ package cron
 import (
 	"context"
 
+	"lina-core/internal/service/cluster"
 	"lina-core/internal/service/config"
-	"lina-core/internal/service/election"
 	pluginsvc "lina-core/internal/service/plugin"
 	"lina-core/internal/service/servermon"
 	"lina-core/internal/service/session"
@@ -24,7 +24,7 @@ type Service struct {
 	monCfg       *config.MonitorConfig // Monitor configuration
 	serverMonSvc *servermon.Service    // Server monitor service
 	sessionStore session.Store         // Session store
-	electionSvc  *election.Service     // Leader election service
+	clusterSvc   *cluster.Service      // Cluster topology service
 	pluginSvc    *pluginsvc.Service    // Plugin service
 }
 
@@ -33,19 +33,15 @@ func New(
 	sessionCfg *config.SessionConfig,
 	monCfg *config.MonitorConfig,
 	sessionStore session.Store,
-	electionSvc *election.Service,
+	clusterSvc *cluster.Service,
 ) *Service {
-	if electionSvc != nil {
-		pluginsvc.SetPrimaryNodeChecker(electionSvc.IsLeader)
-	}
-
 	return &Service{
 		sessionCfg:   sessionCfg,
 		monCfg:       monCfg,
 		serverMonSvc: servermon.New(),
 		sessionStore: sessionStore,
-		electionSvc:  electionSvc,
-		pluginSvc:    pluginsvc.New(),
+		clusterSvc:   clusterSvc,
+		pluginSvc:    pluginsvc.New(clusterSvc),
 	}
 }
 
@@ -62,7 +58,10 @@ func (s *Service) Start(ctx context.Context) {
 	}
 }
 
-// IsLeader returns whether the current node is the leader.
-func (s *Service) IsLeader() bool {
-	return s.electionSvc.IsLeader()
+// IsPrimary reports whether the current node should execute primary-only jobs.
+func (s *Service) IsPrimary() bool {
+	if s == nil || s.clusterSvc == nil {
+		return true
+	}
+	return s.clusterSvc.IsPrimary()
 }

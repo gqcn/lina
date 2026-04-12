@@ -28,10 +28,9 @@ import (
 	"lina-core/internal/controller/user"
 	"lina-core/internal/controller/usermsg"
 	"lina-core/internal/packed"
+	"lina-core/internal/service/cluster"
 	"lina-core/internal/service/config"
 	"lina-core/internal/service/cron"
-	"lina-core/internal/service/election"
-	"lina-core/internal/service/locker"
 	"lina-core/internal/service/middleware"
 	pluginsvc "lina-core/internal/service/plugin"
 	"lina-core/pkg/logger"
@@ -45,25 +44,29 @@ type HttpOutput struct{}
 
 func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err error) {
 	var (
-		s             = g.Server()
-		configSvc     = config.New()
-		middlewareSvc = middleware.New()
-		authCtrl      = auth.NewV1()
-		pluginPublic  = pluginctrl.NewPublicV1()
-		pluginSvc     = pluginsvc.New()
+		s         = g.Server()
+		configSvc = config.New()
 	)
 
-	// Initialize distributed locker and leader election
 	var (
-		lockerSvc   = locker.New()
-		electionCfg = configSvc.GetElection(ctx)
-		electionSvc = election.New(lockerSvc, electionCfg)
-		sessionCfg  = configSvc.GetSession(ctx)
-		monCfg      = configSvc.GetMonitor(ctx)
-		cronSvc     = cron.New(sessionCfg, monCfg, middlewareSvc.SessionStore(), electionSvc)
+		clusterCfg = configSvc.GetCluster(ctx)
+		clusterSvc = cluster.New(clusterCfg)
+		pluginSvc  = pluginsvc.New(clusterSvc)
 	)
-	// Start election when distributed deployment.
-	electionSvc.Start(ctx)
+
+	var (
+		middlewareSvc = middleware.New()
+		authCtrl      = auth.NewV1()
+		pluginPublic  = pluginctrl.NewPublicV1(clusterSvc)
+	)
+
+	var (
+		sessionCfg = configSvc.GetSession(ctx)
+		monCfg     = configSvc.GetMonitor(ctx)
+		cronSvc    = cron.New(sessionCfg, monCfg, middlewareSvc.SessionStore(), clusterSvc)
+	)
+
+	clusterSvc.Start(ctx)
 	// Start all cron jobs (session cleanup, server monitor, etc.)
 	cronSvc.Start(ctx)
 
@@ -130,7 +133,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				filectrl.NewV1(),
 				monitorctrl.NewV1(),
 				configctrl.NewV1(),
-				pluginctrl.NewV1(),
+				pluginctrl.NewV1(clusterSvc),
 			)
 		})
 	})

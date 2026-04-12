@@ -11,15 +11,14 @@ import (
 // startServerMonitorCleanup starts the stale monitor records cleanup job.
 // It runs every hour to delete records where updated_at is older than
 // (collection_interval * retention_multiplier) seconds.
-// This is a Master-Only job, only executed on the leader node.
+// This is a primary-only job, only executed on the primary node in clustered mode.
 func (s *Service) startServerMonitorCleanup(ctx context.Context) {
 	// Calculate stale threshold: interval * multiplier
 	staleThreshold := time.Duration(s.monCfg.IntervalSeconds*s.monCfg.RetentionMultiplier) * time.Second
 
 	_, err := gcron.Add(ctx, "# * * * * *", func(ctx context.Context) {
-		// Check if current node is the leader before executing
-		if !s.IsLeader() {
-			logger.Debug(ctx, "skipping server monitor cleanup on non-leader node")
+		if !s.IsPrimary() {
+			logger.Debug(ctx, "skipping server monitor cleanup on non-primary node")
 			return
 		}
 		cleaned, cleanErr := s.serverMonSvc.CleanupStale(ctx, staleThreshold)

@@ -16,7 +16,6 @@ import (
 	"github.com/gogf/gf/v2/os/gfile"
 	"gopkg.in/yaml.v3"
 
-	configsvc "lina-core/internal/service/config"
 	"lina-core/pkg/pluginhost"
 )
 
@@ -257,7 +256,7 @@ func (s *Service) resolvePluginRootDir() (string, error) {
 // directory. Relative paths are anchored at the repository root when available
 // so uploads, manual copies, and automated scans all agree on one shared path.
 func (s *Service) resolveRuntimePluginStorageDir(ctx context.Context) (string, error) {
-	storagePath := configsvc.New().GetPluginDynamicStoragePath(ctx)
+	storagePath := s.configSvc.GetPluginDynamicStoragePath(ctx)
 	if filepath.IsAbs(storagePath) {
 		return filepath.Clean(storagePath), nil
 	}

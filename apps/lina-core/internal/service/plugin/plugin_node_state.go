@@ -5,7 +5,6 @@ package plugin
 
 import (
 	"context"
-	"os"
 	"strings"
 
 	"github.com/gogf/gf/v2/os/gtime"
@@ -33,6 +32,10 @@ func (s *Service) syncPluginNodeState(
 	enabled int,
 	message string,
 ) error {
+	if !s.isClusterModeEnabled() {
+		return nil
+	}
+
 	registry, err := s.getPluginRegistry(ctx, pluginID)
 	if err != nil {
 		return err
@@ -75,8 +78,12 @@ func (s *Service) syncPluginNodeState(
 }
 
 func (s *Service) syncPluginNodeProjection(ctx context.Context, in pluginNodeProjectionInput) error {
+	if !s.isClusterModeEnabled() {
+		return nil
+	}
+
 	pluginID := strings.TrimSpace(in.PluginID)
-	nodeKey := s.getCurrentNodeName()
+	nodeKey := s.currentNodeID()
 	desiredState := strings.TrimSpace(in.DesiredState)
 	if desiredState == "" {
 		desiredState = pluginNodeStateUninstalled.String()
@@ -119,6 +126,10 @@ func (s *Service) syncPluginNodeProjection(ctx context.Context, in pluginNodePro
 
 // getPluginNodeState returns the latest node projection row for one plugin/node pair.
 func (s *Service) getPluginNodeState(ctx context.Context, pluginID string, nodeKey string) (*entity.SysPluginNodeState, error) {
+	if !s.isClusterModeEnabled() {
+		return nil, nil
+	}
+
 	var state *entity.SysPluginNodeState
 	err := dao.SysPluginNodeState.Ctx(ctx).
 		Where(do.SysPluginNodeState{
@@ -127,13 +138,4 @@ func (s *Service) getPluginNodeState(ctx context.Context, pluginID string, nodeK
 		}).
 		Scan(&state)
 	return state, err
-}
-
-// getCurrentNodeName resolves the current host node key used by plugin node-state projections.
-func (s *Service) getCurrentNodeName() string {
-	hostName, err := os.Hostname()
-	if err != nil || hostName == "" {
-		return "local-node"
-	}
-	return hostName
 }

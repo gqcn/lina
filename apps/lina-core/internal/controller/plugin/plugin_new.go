@@ -11,8 +11,8 @@ type ControllerV1 struct {
 }
 
 // NewV1 creates and returns a new plugin controller instance.
-func NewV1() pluginapi.IPluginV1 {
+func NewV1(topologies ...pluginsvc.Topology) pluginapi.IPluginV1 {
 	return &ControllerV1{
-		pluginSvc: pluginsvc.New(),
+		pluginSvc: pluginsvc.New(topologies...),
 	}
 }

@@ -370,11 +370,7 @@ func (s *Service) buildBackgroundEnabledChecker() pluginhost.PluginEnabledChecke
 }
 
 func (s *Service) buildPrimaryNodeChecker() pluginhost.PrimaryNodeChecker {
-	checker := getPrimaryNodeChecker()
-	if checker == nil {
-		return nil
-	}
 	return func() bool {
-		return checker()
+		return s.isPrimaryNode()
 	}
 }

@@ -5,11 +5,12 @@ package plugin
 import (
 	"context"
 	"strings"
-	"sync"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 
 	"lina-core/internal/model/entity"
+	"lina-core/internal/service/bizctx"
+	configsvc "lina-core/internal/service/config"
 )
 
 const (
@@ -21,32 +22,24 @@ const (
 	pluginInstalledYes     = 1         // plugin is installed
 )
 
-var (
-	primaryNodeCheckerMu sync.RWMutex
-	primaryNodeChecker   func() bool
-)
-
 // Service provides plugin management operations.
-type Service struct{}
+type Service struct {
+	topology  Topology           // topology provides cluster-mode semantics for plugin runtime behavior.
+	configSvc *configsvc.Service // configSvc provides plugin-related runtime configuration.
+	bizCtxSvc *bizctx.Service    // bizCtxSvc reads current business context for governance decisions.
+}
 
 // New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{}
-}
-
-// SetPrimaryNodeChecker registers the host callback used by plugin cron integrations to identify the primary node.
-func SetPrimaryNodeChecker(checker func() bool) {
-	primaryNodeCheckerMu.Lock()
-	defer primaryNodeCheckerMu.Unlock()
-
-	primaryNodeChecker = checker
-}
-
-func getPrimaryNodeChecker() func() bool {
-	primaryNodeCheckerMu.RLock()
-	defer primaryNodeCheckerMu.RUnlock()
-
-	return primaryNodeChecker
+func New(topologies ...Topology) *Service {
+	var topology Topology = singleNodeTopology{}
+	if len(topologies) > 0 && topologies[0] != nil {
+		topology = topologies[0]
+	}
+	return &Service{
+		topology:  topology,
+		configSvc: configsvc.New(),
+		bizCtxSvc: bizctx.New(),
+	}
 }
 
 // ListOutput defines output for plugin list query.

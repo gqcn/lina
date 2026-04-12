@@ -34,3 +34,15 @@
 - 数据层将新增插件注册、插件版本、插件资源引用、插件迁移记录等元数据模型，并约束插件 SQL 与静态资源的安装与回滚流程。
 - 构建与交付链路将新增 `apps/lina-plugins/` 的源码扫描、运行时 `wasm` 插件产物约定与示例插件验证流程。
 - 一期实现不会直接支持 `external service` 作为第一类动态插件，但设计会为后续演进预留接入模型和路由协议。
+
+## Merged Follow-up Scope (2026-04-12)
+
+由于插件机制的第三期热升级与多节点代际切换已经落地，后续围绕插件运行时又产生了两个原本被拆出的 follow-up change：`cluster-deployment-toggle` 与 `refine-cluster-service-boundaries`。这两个变更本质上都在收敛插件运行时的集群语义，而不是独立于插件机制之外的新能力，因此本次将它们并回 `plugin-framework` 统一维护。
+
+合并后的补充范围包括：
+
+- 新增 `cluster.enabled` 与 `cluster.election.*` 配置语义，使宿主默认按单节点模式启动，并只在显式开启时参与分布式选主。
+- 收敛动态插件在单节点与集群模式下的状态切换、后台 Reconciler 与节点投影行为，避免单节点部署承担不必要的多节点复杂度。
+- 将 `cluster` 明确为宿主唯一的拓扑门面，使插件运行时通过显式拓扑抽象读取 `IsEnabled`、`IsPrimary` 与 `NodeID`，不再在 `plugin` 包内维护独立的全局集群状态。
+- 将原独立 `election` 组件下沉为 `cluster` 组件内部实现细节，保证插件热升级、多节点代际切换与主节点专属调度都由同一套拓扑抽象统一承载。
+- 当前 `plugin-framework` 仍未完成最终人工校验，因此本变更保持为唯一活跃 change；此前误生成的 archive 目录不应视为有效归档结果。

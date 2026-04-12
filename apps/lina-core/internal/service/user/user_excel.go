@@ -12,7 +12,6 @@ import (
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
-	"lina-core/internal/service/auth"
 )
 
 // ExportInput defines input for Export function.
@@ -110,7 +109,6 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader) (*ImportResu
 		return &ImportResult{}, nil
 	}
 
-	authSvc := auth.New()
 	result := &ImportResult{}
 
 	for i, row := range rows[1:] { // Skip header
@@ -156,7 +154,7 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader) (*ImportResu
 			continue
 		}
 
-		hash, err := authSvc.HashPassword(password)
+		hash, err := s.authSvc.HashPassword(password)
 		if err != nil {
 			result.Fail++
 			result.FailList = append(result.FailList, ImportFailItem{
