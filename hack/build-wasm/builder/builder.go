@@ -28,6 +28,8 @@ const (
 	pluginTypeDynamic                = "dynamic"
 	pluginDynamicKindWasm            = pluginbridge.RuntimeKindWasm
 	pluginDynamicSupportedABIVersion = pluginbridge.SupportedABIVersion
+	defaultRuntimeOutputDir          = "temp/output"
+	runtimeWorkspaceDirName          = ".runtime"
 
 	pluginDynamicWasmSectionManifest            = pluginbridge.WasmSectionManifest
 	pluginDynamicWasmSectionDynamic             = pluginbridge.WasmSectionRuntime
@@ -210,6 +212,10 @@ var supportedHookModes = map[hookExtensionPoint]map[callbackExecutionMode]struct
 
 // BuildRuntimeWasmArtifactFromSource builds one dynamic wasm artifact from a clear-text plugin directory.
 func BuildRuntimeWasmArtifactFromSource(pluginDir string) (*RuntimeBuildOutput, error) {
+	return buildRuntimeWasmArtifactFromSource(pluginDir, "")
+}
+
+func buildRuntimeWasmArtifactFromSource(pluginDir string, outputDir string) (*RuntimeBuildOutput, error) {
 	embeddedResources, err := loadEmbeddedStaticResourceSet(pluginDir)
 	if err != nil {
 		return nil, err
@@ -248,7 +254,7 @@ func BuildRuntimeWasmArtifactFromSource(pluginDir string) (*RuntimeBuildOutput, 
 	if err != nil {
 		return nil, err
 	}
-	runtimePath, err := buildGuestRuntimeWasm(pluginDir)
+	runtimePath, err := buildGuestRuntimeWasm(pluginDir, manifest.ID, outputDir)
 	if err != nil {
 		return nil, err
 	}
@@ -272,23 +278,30 @@ func BuildRuntimeWasmArtifactFromSource(pluginDir string) (*RuntimeBuildOutput, 
 		return nil, err
 	}
 
+	artifactPath := filepath.Join(pluginDir, buildRuntimeBuildOutputRelativePath(manifest.ID))
+	if strings.TrimSpace(outputDir) != "" {
+		artifactPath = filepath.Join(filepath.Clean(outputDir), buildRuntimeArtifactFileName(manifest.ID))
+	}
+
 	return &RuntimeBuildOutput{
-		ArtifactPath: filepath.Join(pluginDir, buildRuntimeBuildOutputRelativePath(manifest.ID)),
+		ArtifactPath: artifactPath,
 		Content:      content,
 		RuntimePath:  runtimePath,
 	}, nil
 }
 
 // WriteRuntimeWasmArtifactFromSource builds and writes one dynamic artifact into
-// the requested output directory. When outputDir is empty, temp/<plugin-id>.wasm
-// under the plugin source tree is used for backward compatibility.
+// the requested output directory. When outputDir is empty inside the Lina
+// workspace, the generated artifact is written under temp/output/.
 func WriteRuntimeWasmArtifactFromSource(pluginDir string, outputDir string) (*RuntimeBuildOutput, error) {
-	out, err := BuildRuntimeWasmArtifactFromSource(pluginDir)
+	resolvedOutputDir, err := resolveRuntimeArtifactOutputDir(pluginDir, outputDir)
 	if err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(outputDir) != "" {
-		out.ArtifactPath = filepath.Join(filepath.Clean(outputDir), filepath.Base(out.ArtifactPath))
+
+	out, err := buildRuntimeWasmArtifactFromSource(pluginDir, resolvedOutputDir)
+	if err != nil {
+		return nil, err
 	}
 	if err = os.MkdirAll(filepath.Dir(out.ArtifactPath), 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create dynamic artifact directory: %w", err)
@@ -313,6 +326,106 @@ func buildRuntimeArtifactRelativePath(pluginID string) string {
 
 func buildRuntimeBuildOutputRelativePath(pluginID string) string {
 	return filepath.Join("temp", buildRuntimeArtifactFileName(pluginID))
+}
+
+func resolveRuntimeArtifactOutputDir(pluginDir string, outputDir string) (string, error) {
+	normalizedOutputDir := strings.TrimSpace(outputDir)
+	if normalizedOutputDir != "" {
+		return filepath.Clean(normalizedOutputDir), nil
+	}
+
+	if repoRoot, ok := findRuntimeBuildRepoRoot(pluginDir); ok {
+		return filepath.Join(repoRoot, defaultRuntimeOutputDir), nil
+	}
+	if workingDir, err := os.Getwd(); err == nil {
+		if repoRoot, ok := findRuntimeBuildRepoRoot(workingDir); ok {
+			return filepath.Join(repoRoot, defaultRuntimeOutputDir), nil
+		}
+	}
+	return filepath.Join(pluginDir, "temp"), nil
+}
+
+func findRuntimeBuildRepoRoot(startDir string) (string, bool) {
+	normalizedStartDir := strings.TrimSpace(startDir)
+	if normalizedStartDir == "" {
+		return "", false
+	}
+
+	current, err := filepath.Abs(normalizedStartDir)
+	if err != nil {
+		return "", false
+	}
+	current = filepath.Clean(current)
+
+	for depth := 0; depth < 8; depth++ {
+		if runtimeBuildRepoRootMatches(current) {
+			return current, true
+		}
+
+		parent := filepath.Dir(current)
+		if parent == current {
+			break
+		}
+		current = parent
+	}
+	return "", false
+}
+
+func runtimeBuildRepoRootMatches(dir string) bool {
+	if _, err := os.Stat(filepath.Join(dir, "apps", "lina-core", "go.mod")); err != nil {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(dir, "apps", "lina-vben", "package.json")); err != nil {
+		return false
+	}
+	return true
+}
+
+func resolveGuestRuntimeOutputPath(pluginDir string, pluginID string, outputDir string) (string, error) {
+	normalizedOutputDir := strings.TrimSpace(outputDir)
+	if normalizedOutputDir != "" {
+		return filepath.Join(
+			filepath.Clean(normalizedOutputDir),
+			runtimeWorkspaceDirName,
+			buildRuntimeWorkspaceKey(pluginID),
+			"runtime-plugin.wasm",
+		), nil
+	}
+
+	if repoRoot, ok := findRuntimeBuildRepoRoot(pluginDir); ok {
+		return filepath.Join(
+			repoRoot,
+			defaultRuntimeOutputDir,
+			runtimeWorkspaceDirName,
+			buildRuntimeWorkspaceKey(pluginID),
+			"runtime-plugin.wasm",
+		), nil
+	}
+	if workingDir, err := os.Getwd(); err == nil {
+		if repoRoot, ok := findRuntimeBuildRepoRoot(workingDir); ok {
+			return filepath.Join(
+				repoRoot,
+				defaultRuntimeOutputDir,
+				runtimeWorkspaceDirName,
+				buildRuntimeWorkspaceKey(pluginID),
+				"runtime-plugin.wasm",
+			), nil
+		}
+	}
+
+	tempDir, err := os.MkdirTemp("", "lina-build-wasm-")
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(tempDir, "runtime-plugin.wasm"), nil
+}
+
+func buildRuntimeWorkspaceKey(pluginID string) string {
+	normalizedID := strings.TrimSpace(pluginID)
+	if normalizedID == "" {
+		return "plugin"
+	}
+	return normalizedID
 }
 
 func validateRuntimeBuildManifest(manifest *pluginManifest, manifestPath string) error {
@@ -864,7 +977,7 @@ func splitTagList(value string) []string {
 	return result
 }
 
-func buildGuestRuntimeWasm(pluginDir string) (string, error) {
+func buildGuestRuntimeWasm(pluginDir string, pluginID string, outputDir string) (string, error) {
 	// The WASM guest runtime entry (main.go) lives at the plugin root
 	// directory.
 	mainGoPath := filepath.Join(pluginDir, "main.go")
@@ -875,7 +988,10 @@ func buildGuestRuntimeWasm(pluginDir string) (string, error) {
 		return "", err
 	}
 
-	outputPath := filepath.Join(pluginDir, "temp", "runtime-plugin.wasm")
+	outputPath, err := resolveGuestRuntimeOutputPath(pluginDir, pluginID, outputDir)
+	if err != nil {
+		return "", err
+	}
 	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
 		return "", err
 	}

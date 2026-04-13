@@ -20,7 +20,8 @@ func buildRuntimeArtifactWithHackTool(t *testing.T, pluginDir string) *runtimeBu
 		t.Fatalf("failed to resolve repo root: %v", err)
 	}
 	builderDir := filepath.Join(repoRoot, "hack", "build-wasm")
-	cmd := exec.Command("go", "run", ".", "--plugin-dir", pluginDir)
+	outputDir := filepath.Join(t.TempDir(), "output")
+	cmd := exec.Command("go", "run", ".", "--plugin-dir", pluginDir, "--output-dir", outputDir)
 	cmd.Dir = builderDir
 	cmd.Env = append(os.Environ(), "GOWORK="+filepath.Join(repoRoot, "go.work"))
 	output, err := cmd.CombinedOutput()
@@ -32,7 +33,7 @@ func buildRuntimeArtifactWithHackTool(t *testing.T, pluginDir string) *runtimeBu
 	if err := New().loadPluginYAMLFile(filepath.Join(pluginDir, "plugin.yaml"), manifest); err != nil {
 		t.Fatalf("failed to load plugin manifest after build: %v", err)
 	}
-	artifactPath := filepath.Join(pluginDir, "temp", buildPluginDynamicArtifactFileName(manifest.ID))
+	artifactPath := filepath.Join(outputDir, buildPluginDynamicArtifactFileName(manifest.ID))
 	content, err := os.ReadFile(artifactPath)
 	if err != nil {
 		t.Fatalf("failed to read built artifact: %v", err)

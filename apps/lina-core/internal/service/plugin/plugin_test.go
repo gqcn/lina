@@ -36,7 +36,15 @@ func ensureBundledRuntimeSampleArtifactForTests() error {
 	}
 
 	builderDir := filepath.Join(repoRoot, "hack", "build-wasm")
-	cmd := exec.Command("go", "run", ".", "--plugin-dir", pluginDir)
+	cmd := exec.Command(
+		"go",
+		"run",
+		".",
+		"--plugin-dir",
+		pluginDir,
+		"--output-dir",
+		filepath.Join(repoRoot, "temp", "output"),
+	)
 	cmd.Dir = builderDir
 	cmd.Env = append(os.Environ(), "GOWORK="+filepath.Join(repoRoot, "go.work"))
 	output, err := cmd.CombinedOutput()

@@ -29,9 +29,6 @@ plugin-demo-dynamic/
   manifest/
     sql/
       # 当前样例未提供业务 SQL；若后续新增业务表迁移，可继续按目录约定补充
-  temp/
-    # 按需生成且被 Git 忽略：
-    # plugin-demo-dynamic.wasm
 ```
 
 ## 动态行为
@@ -56,8 +53,7 @@ plugin-demo-dynamic/
 - `backend/`保存 1 份演示用后端示例代码；
 - `frontend/pages/`保存宿主内嵌挂载入口和独立静态页；
 - `plugin.yaml`保存插件基础信息和菜单元数据；
-- `manifest/sql/`仅在需要业务迁移时保存安装与卸载`SQL`；
-- `temp/`仅保存本地构建产物，不进入版本库。
+- `manifest/sql/`仅在需要业务迁移时保存安装与卸载`SQL`。
 
 动态元数据不再通过额外的`JSON`边车文件维护。执行`make wasm`时，构建器会基于当前源码树自动生成：
 
@@ -71,12 +67,13 @@ plugin-demo-dynamic/
 - `hack/build-wasm`优先读取该声明，再生成宿主继续消费的自定义节快照；
 - 宿主上传、启用、菜单校验和`/plugin-assets/...`托管仍只依赖这些快照，而不是在运行时回调 guest 读取资源。
 
-生成产物会被`Git`忽略：
+标准仓库构建流程生成的产物会被`Git`忽略：
 
-- `temp/plugin-demo-dynamic.wasm`按需生成；
-- `temp/`目录不应提交到仓库。
+- 最终运行时产物输出到仓库根 `temp/output/plugin-demo-dynamic.wasm`；
+- guest runtime 的中间 `wasm` 输出到仓库根 `temp/output/.runtime/plugin-demo-dynamic/runtime-plugin.wasm`；
+- 仓库根 `temp/` 目录不应提交到 Git。
 
-动态真正读取的也不是本地`temp/`目录。宿主会从`plugin.dynamic.storagePath`下上传或手工拷贝进去的`.wasm`文件中解析前端资源，并在内存中构建只读资源 bundle；宿主重启后，会在启动预热或请求时懒加载阶段重新构建这些 bundle。
+动态真正读取的也不是插件源码目录。宿主会从`plugin.dynamic.storagePath`下上传或手工拷贝进去的`.wasm`文件中解析前端资源，并在内存中构建只读资源 bundle；宿主重启后，会在启动预热或请求时懒加载阶段重新构建这些 bundle。
 
 ## 构建流程
 
@@ -118,7 +115,7 @@ make wasm p=plugin-demo-dynamic
 - `frontend/pages/mount.js`是否只依赖文档已发布的宿主`ESM`契约；
 - `frontend/pages/standalone.html`是否保持框架无关；
 - `plugin.yaml`里的`menus`是否只声明 1 个属于该插件的左侧菜单；
-- 执行`make wasm p=plugin-demo-dynamic`后，是否会生成`temp/plugin-demo-dynamic.wasm`；
+- 执行`make wasm p=plugin-demo-dynamic`后，是否会生成`temp/output/plugin-demo-dynamic.wasm`；
 - 执行`make wasm p=plugin-demo-dynamic`后，生成的 guest 运行时是否能够通过固定前缀`/api/v1/extensions/plugin-demo-dynamic/backend-summary`返回真实 bridge 响应；
 - 动态契约测试是否仍能证明生成出的`wasm`与明文源码树保持一致；
 - 未来新增的`backend/hooks/*.yaml`或`backend/resources/*.yaml`是否仍严格遵守已发布的声明式动态`ABI`，而不是假设宿主会执行任意`Go`代码。

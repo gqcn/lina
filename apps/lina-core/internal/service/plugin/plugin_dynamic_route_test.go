@@ -108,8 +108,7 @@ func TestExecuteDynamicWasmBridgeReturnsGuestResponse(t *testing.T) {
 		t.Fatalf("failed to resolve repo root: %v", err)
 	}
 
-	pluginDir := filepath.Join(repoRoot, "apps", "lina-plugins", "plugin-demo-dynamic")
-	artifactPath := filepath.Join(pluginDir, "temp", "plugin-demo-dynamic.wasm")
+	artifactPath := filepath.Join(repoRoot, "temp", "output", "plugin-demo-dynamic.wasm")
 	manifest, err := service.loadRuntimePluginManifestFromArtifact(artifactPath)
 	if err != nil {
 		t.Fatalf("expected bundled runtime artifact to load, got error: %v", err)

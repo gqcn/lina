@@ -64,6 +64,11 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected dynamic build to succeed, got error: %v", err)
 	}
+	if out.RuntimePath != "" {
+		t.Cleanup(func() {
+			_ = os.RemoveAll(filepath.Dir(out.RuntimePath))
+		})
+	}
 	if expected := filepath.Join(pluginDir, "temp", "plugin-dynamic-builder.wasm"); out.ArtifactPath != expected {
 		t.Fatalf("expected artifact path %s, got %s", expected, out.ArtifactPath)
 	}
@@ -131,6 +136,9 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	if out.RuntimePath == "" {
 		t.Fatal("expected executable guest runtime path to be generated")
 	}
+	if _, err = os.Stat(filepath.Join(pluginDir, "temp", "runtime-plugin.wasm")); !os.IsNotExist(err) {
+		t.Fatalf("expected guest runtime wasm to stop being written into plugin temp/, got err=%v", err)
+	}
 	runtimeStrings, err := readCommandOutput("strings", out.RuntimePath)
 	if err != nil {
 		t.Fatalf("expected runtime wasm strings inspection to succeed, got error: %v", err)
@@ -176,13 +184,22 @@ func TestWriteRuntimeWasmArtifactFromSourceWritesGeneratedFile(t *testing.T) {
 		"id: plugin-dynamic-write\nname: Dynamic Write\nversion: v0.1.0\ntype: dynamic\n",
 	)
 
+	repoRoot, ok := findRuntimeBuildRepoRoot(".")
+	if !ok {
+		t.Fatal("expected builder test to resolve repo root")
+	}
 	out, err := WriteRuntimeWasmArtifactFromSource(pluginDir, "")
 	if err != nil {
 		t.Fatalf("expected dynamic artifact write to succeed, got error: %v", err)
 	}
-	if filepath.Base(filepath.Dir(out.ArtifactPath)) != "temp" {
-		t.Fatalf("expected generated dynamic artifact to be written under temp/, got %s", out.ArtifactPath)
+	expectedPath := filepath.Join(repoRoot, defaultRuntimeOutputDir, "plugin-dynamic-write.wasm")
+	if out.ArtifactPath != expectedPath {
+		t.Fatalf("expected generated dynamic artifact path %s, got %s", expectedPath, out.ArtifactPath)
 	}
+	t.Cleanup(func() {
+		_ = os.Remove(out.ArtifactPath)
+		_ = os.RemoveAll(filepath.Join(repoRoot, defaultRuntimeOutputDir, runtimeWorkspaceDirName, "plugin-dynamic-write"))
+	})
 
 	content, err := os.ReadFile(out.ArtifactPath)
 	if err != nil {
@@ -190,6 +207,9 @@ func TestWriteRuntimeWasmArtifactFromSourceWritesGeneratedFile(t *testing.T) {
 	}
 	if len(content) == 0 {
 		t.Fatalf("expected generated dynamic artifact to contain bytes")
+	}
+	if _, err = os.Stat(filepath.Join(pluginDir, "temp", "plugin-dynamic-write.wasm")); !os.IsNotExist(err) {
+		t.Fatalf("expected generated dynamic artifact to stop being written into plugin temp/, got err=%v", err)
 	}
 }
 
@@ -211,6 +231,9 @@ func TestWriteRuntimeWasmArtifactFromSourceSupportsExternalOutputDir(t *testing.
 	}
 	if _, err = os.Stat(out.ArtifactPath); err != nil {
 		t.Fatalf("expected generated dynamic artifact to exist in external dir, got error: %v", err)
+	}
+	if _, err = os.Stat(filepath.Join(pluginDir, "temp", "runtime-plugin.wasm")); !os.IsNotExist(err) {
+		t.Fatalf("expected guest runtime wasm to stop being written into plugin temp/, got err=%v", err)
 	}
 }
 

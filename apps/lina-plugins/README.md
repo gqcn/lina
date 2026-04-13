@@ -96,17 +96,17 @@
 
 当前仓库已经交付“上传 `wasm` -> 安装/启用 -> 前端托管 -> declarative backend Hook / 资源执行”的二期运行时链路，并把**产物契约与宿主校验规则**真正落到了代码里，便于人工 review。
 
-为了让 reviewer 能看到一个“不是抽象 JSON，而是实际资源文件”的动态样例，仓库提供了独立的 [plugin-demo-dynamic](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-dynamic/README.md) 插件目录。该目录现在直接以插件源码树作为作者侧真相源：`plugin_embed.go` 通过 `go:embed` 统一声明 `plugin.yaml`、`frontend/`、`manifest/` 等静态资源，`hack/build-wasm` 再把这些资源转换为宿主可治理的 Wasm 自定义节快照；`temp/<plugin-id>.wasm` 只作为本地构建产物按需生成，自动化测试会验证生成产物与明文源码保持一致。
+为了让 reviewer 能看到一个“不是抽象 JSON，而是实际资源文件”的动态样例，仓库提供了独立的 [plugin-demo-dynamic](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-dynamic/README.md) 插件目录。该目录现在直接以插件源码树作为作者侧真相源：`plugin_embed.go` 通过 `go:embed` 统一声明 `plugin.yaml`、`frontend/`、`manifest/` 等静态资源，`hack/build-wasm` 再把这些资源转换为宿主可治理的 Wasm 自定义节快照；标准仓库构建流程会把最终产物统一输出到仓库根 `temp/output/`，自动化测试会验证生成产物与明文源码保持一致。
 
 当前约定如下：
 
 - `apps/lina-plugins/<plugin-id>/` 仅作为动态样例插件的明文源码与构建输入目录，不再作为宿主运行时发现入口。
 - 动态插件作者推荐在根目录提供 `plugin_embed.go`，通过 `go:embed plugin.yaml frontend manifest` 统一声明需要随 `.wasm` 交付的静态资源。
-- 宿主当前通过配置项 `plugin.dynamic.storagePath` 发现和管理 runtime `wasm` 插件，默认值为 `temp/runtime`。
+- 宿主当前通过配置项 `plugin.dynamic.storagePath` 发现和管理 runtime `wasm` 插件，默认值为 `temp/output`。
 - 当 `storagePath` 使用相对路径时，宿主会以仓库根目录作为解析基准，保证上传、手工拷贝和后台同步识别走同一目录。
 - 宿主只扫描 `storagePath` 根目录下的 `*.wasm` 文件，不对外层目录层级做额外约定。
 - 动态插件上传后，宿主会以 `<storagePath>/<plugin-id>.wasm` 的规范文件名落盘；若运维手工拷贝 `.wasm` 到该目录，则可通过管理页“同步插件”识别。
-- `apps/lina-plugins/<plugin-id>/temp/<plugin-id>.wasm` 只是样例插件的本地构建输出；若要被宿主识别，仍需上传或复制到 `plugin.dynamic.storagePath`。
+- 仓库标准构建入口会把 `apps/lina-plugins/<plugin-id>/` 的动态样例产物统一输出到 `temp/output/<plugin-id>.wasm`；若要被宿主识别，仍需上传或复制到 `plugin.dynamic.storagePath`。
 - `plugin.dynamic.storagePath` 当前是节点本地文件系统目录语义；宿主不会把上传到某一节点的 `.wasm` 自动复制到其他节点。
 - 这类约束不仅适用于动态插件 `wasm`；宿主其他写入本地磁盘的上传资源同样不会自动跨节点分发，例如 `upload.path` 下的通用上传文件与其他本地静态资源。
 - 因此，多节点部署时必须为 `plugin.dynamic.storagePath`、`upload.path` 及其他需跨节点访问的资源目录配置共享存储，或在宿主之外完成可靠的文件分发；否则从节点上传的资源可能只在该节点可见，主节点安装、其他节点收敛或用户访问资源都可能失败。
@@ -366,10 +366,10 @@ make wasm p=plugin-demo-dynamic
 
 其中：
 
-- `make wasm` 会遍历 `apps/lina-plugins/` 下所有 `type: dynamic` 的插件目录并生成 `temp/<plugin-id>.wasm`
+- `make wasm` 会遍历 `apps/lina-plugins/` 下所有 `type: dynamic` 的插件目录并生成 `temp/output/<plugin-id>.wasm`
 - `make wasm p=<plugin-id>` 只构建指定动态插件
 - `make wasm` 当前直接通过根级 `hack/build-wasm/` 独立 Go 工具生成产物；该工具有自己的 `go.mod`，不依赖 `apps/lina-core`
-- 生成产物不会提交到 Git，`.gitignore` 已忽略 `apps/lina-plugins/*/temp/`
+- 生成产物不会提交到 Git，`.gitignore` 已忽略仓库根 `temp/`
 - 根级 `make dev` / `make build` 会自动复用同一个通用构建入口，避免因为仓库中不提交 wasm 而导致宿主扫描失败
 
 当前仍然**没有**落地的能力包括：
