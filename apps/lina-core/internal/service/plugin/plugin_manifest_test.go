@@ -16,6 +16,7 @@ import (
 	"github.com/gogf/gf/v2/os/gfile"
 
 	"lina-core/pkg/pluginhost"
+	"lina-core/pkg/pluginbridge"
 )
 
 func TestValidatePluginManifestAcceptsMinimalSourcePlugin(t *testing.T) {
@@ -92,8 +93,8 @@ func TestValidatePluginManifestAcceptsRuntimePluginWithEmbeddedWasmMetadata(t *t
 	if manifest.RuntimeArtifact.RuntimeKind != pluginDynamicKindWasm.String() {
 		t.Fatalf("expected runtime kind wasm, got %s", manifest.RuntimeArtifact.RuntimeKind)
 	}
-	if manifest.RuntimeArtifact.ABIVersion != pluginDynamicSupportedABIVersion {
-		t.Fatalf("expected ABI version %s, got %s", pluginDynamicSupportedABIVersion, manifest.RuntimeArtifact.ABIVersion)
+	if manifest.RuntimeArtifact.ABIVersion != pluginbridge.SupportedABIVersion {
+		t.Fatalf("expected ABI version %s, got %s", pluginbridge.SupportedABIVersion, manifest.RuntimeArtifact.ABIVersion)
 	}
 }
 
@@ -166,13 +167,15 @@ func TestValidatePluginManifestRejectsMismatchedRuntimeWasmManifest(t *testing.T
 		},
 		&pluginDynamicArtifactMetadata{
 			RuntimeKind:   pluginDynamicKindWasm.String(),
-			ABIVersion:    pluginDynamicSupportedABIVersion,
+			ABIVersion:    pluginbridge.SupportedABIVersion,
 			SQLAssetCount: 1,
 		},
 		nil,
 		[]*pluginDynamicArtifactSQLAsset{
 			{Key: "001-plugin-dynamic-mismatch.sql", Content: "SELECT 1;"},
 		},
+		nil,
+		nil,
 		nil,
 	)
 
@@ -258,10 +261,12 @@ func TestStoreUploadedRuntimePackageWritesCanonicalWasmIntoRuntimeStorage(t *tes
 		},
 		&pluginDynamicArtifactMetadata{
 			RuntimeKind:        pluginDynamicKindWasm.String(),
-			ABIVersion:         pluginDynamicSupportedABIVersion,
+			ABIVersion:         pluginbridge.SupportedABIVersion,
 			FrontendAssetCount: len(defaultTestRuntimeFrontendAssets()),
 		},
 		defaultTestRuntimeFrontendAssets(),
+		nil,
+		nil,
 		nil,
 		nil,
 	)
@@ -861,13 +866,15 @@ func createTestRuntimeStorageArtifactWithFilename(
 		},
 		&pluginDynamicArtifactMetadata{
 			RuntimeKind:        pluginDynamicKindWasm.String(),
-			ABIVersion:         pluginDynamicSupportedABIVersion,
+			ABIVersion:         pluginbridge.SupportedABIVersion,
 			FrontendAssetCount: len(defaultTestRuntimeFrontendAssets()),
 			SQLAssetCount:      len(installSQLAssets) + len(uninstallSQLAssets),
 		},
 		defaultTestRuntimeFrontendAssets(),
 		installSQLAssets,
 		uninstallSQLAssets,
+		nil,
+		nil,
 	)
 	return artifactPath
 }
@@ -913,13 +920,15 @@ func createTestRuntimePluginDirWithFrontendAssets(
 		},
 		&pluginDynamicArtifactMetadata{
 			RuntimeKind:        pluginDynamicKindWasm.String(),
-			ABIVersion:         pluginDynamicSupportedABIVersion,
+			ABIVersion:         pluginbridge.SupportedABIVersion,
 			FrontendAssetCount: len(frontendAssets),
 			SQLAssetCount:      len(installSQLAssets) + len(uninstallSQLAssets),
 		},
 		frontendAssets,
 		installSQLAssets,
 		uninstallSQLAssets,
+		nil,
+		nil,
 	)
 
 	return pluginDir
@@ -956,6 +965,8 @@ func writeRuntimeWasmArtifact(
 	frontendAssets []*pluginDynamicArtifactFrontendAsset,
 	installSQLAssets []*pluginDynamicArtifactSQLAsset,
 	uninstallSQLAssets []*pluginDynamicArtifactSQLAsset,
+	routeContracts []*pluginbridge.RouteContract,
+	bridgeSpec *pluginbridge.BridgeSpec,
 ) {
 	t.Helper()
 
@@ -966,6 +977,8 @@ func writeRuntimeWasmArtifact(
 		frontendAssets,
 		installSQLAssets,
 		uninstallSQLAssets,
+		routeContracts,
+		bridgeSpec,
 	)
 	if err := os.WriteFile(filePath, wasm, 0o644); err != nil {
 		t.Fatalf("failed to write runtime wasm artifact %s: %v", filePath, err)
@@ -979,6 +992,8 @@ func buildTestRuntimeWasmArtifactContent(
 	frontendAssets []*pluginDynamicArtifactFrontendAsset,
 	installSQLAssets []*pluginDynamicArtifactSQLAsset,
 	uninstallSQLAssets []*pluginDynamicArtifactSQLAsset,
+	routeContracts []*pluginbridge.RouteContract,
+	bridgeSpec *pluginbridge.BridgeSpec,
 ) []byte {
 	t.Helper()
 
@@ -992,28 +1007,69 @@ func buildTestRuntimeWasmArtifactContent(
 	}
 
 	wasm := []byte{0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00}
-	wasm = appendWasmCustomSection(wasm, pluginDynamicWasmSectionManifest, manifestContent)
-	wasm = appendWasmCustomSection(wasm, pluginDynamicWasmSectionDynamic, runtimeContent)
+	wasm = appendWasmCustomSection(wasm, pluginbridge.WasmSectionManifest, manifestContent)
+	wasm = appendWasmCustomSection(wasm, pluginbridge.WasmSectionRuntime, runtimeContent)
 	if len(frontendAssets) > 0 {
 		frontendContent, err := json.Marshal(frontendAssets)
 		if err != nil {
 			t.Fatalf("failed to marshal frontend assets: %v", err)
 		}
-		wasm = appendWasmCustomSection(wasm, pluginDynamicWasmSectionFrontend, frontendContent)
+		wasm = appendWasmCustomSection(wasm, pluginbridge.WasmSectionFrontendAssets, frontendContent)
 	}
 	if len(installSQLAssets) > 0 {
 		installContent, err := json.Marshal(installSQLAssets)
 		if err != nil {
 			t.Fatalf("failed to marshal install sql assets: %v", err)
 		}
-		wasm = appendWasmCustomSection(wasm, pluginDynamicWasmSectionInstallSQL, installContent)
+		wasm = appendWasmCustomSection(wasm, pluginbridge.WasmSectionInstallSQL, installContent)
 	}
 	if len(uninstallSQLAssets) > 0 {
 		uninstallContent, err := json.Marshal(uninstallSQLAssets)
 		if err != nil {
 			t.Fatalf("failed to marshal uninstall sql assets: %v", err)
 		}
-		wasm = appendWasmCustomSection(wasm, pluginDynamicWasmSectionUninstallSQL, uninstallContent)
+		wasm = appendWasmCustomSection(wasm, pluginbridge.WasmSectionUninstallSQL, uninstallContent)
+	}
+	if len(routeContracts) > 0 {
+		routeContent, err := json.Marshal(routeContracts)
+		if err != nil {
+			t.Fatalf("failed to marshal route contracts: %v", err)
+		}
+		wasm = appendWasmCustomSection(wasm, pluginbridge.WasmSectionBackendRoutes, routeContent)
+	}
+	if bridgeSpec != nil {
+		bridgeContent, err := json.Marshal(bridgeSpec)
+		if err != nil {
+			t.Fatalf("failed to marshal bridge spec: %v", err)
+		}
+		wasm = appendWasmCustomSection(wasm, pluginbridge.WasmSectionBackendBridge, bridgeContent)
 	}
 	return wasm
+}
+
+func appendWasmCustomSection(content []byte, name string, payload []byte) []byte {
+	sectionPayload := append([]byte{}, encodeWasmULEB128(uint32(len(name)))...)
+	sectionPayload = append(sectionPayload, []byte(name)...)
+	sectionPayload = append(sectionPayload, payload...)
+
+	result := append([]byte{}, content...)
+	result = append(result, 0x00)
+	result = append(result, encodeWasmULEB128(uint32(len(sectionPayload)))...)
+	result = append(result, sectionPayload...)
+	return result
+}
+
+func encodeWasmULEB128(value uint32) []byte {
+	result := make([]byte, 0, 5)
+	for {
+		current := byte(value & 0x7f)
+		value >>= 7
+		if value != 0 {
+			current |= 0x80
+		}
+		result = append(result, current)
+		if value == 0 {
+			return result
+		}
+	}
 }

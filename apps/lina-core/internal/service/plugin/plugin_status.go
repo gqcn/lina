@@ -64,7 +64,7 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 			return nil, err
 		}
 		if normalizePluginType(manifest.Type) == pluginTypeSource {
-			if err = s.syncPluginMenus(ctx, manifest); err != nil {
+			if err = s.syncPluginMenusAndPermissions(ctx, manifest); err != nil {
 				return nil, err
 			}
 		}
@@ -132,7 +132,7 @@ func (s *Service) syncPluginManifest(ctx context.Context, manifest *pluginManife
 		return nil, err
 	}
 	if normalizePluginType(manifest.Type) == pluginTypeSource {
-		if err = s.syncPluginMenus(ctx, manifest); err != nil {
+		if err = s.syncPluginMenusAndPermissions(ctx, manifest); err != nil {
 			return nil, err
 		}
 	}

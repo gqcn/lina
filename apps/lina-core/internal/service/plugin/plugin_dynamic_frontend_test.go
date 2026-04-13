@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"lina-core/pkg/pluginbridge"
 )
 
 func TestEnsureRuntimeFrontendBundleReadsEmbeddedAssetsWithoutExtraction(t *testing.T) {
@@ -123,6 +125,30 @@ func createTestRuntimeStorageArtifactWithFrontendAssets(
 	installSQLAssets []*pluginDynamicArtifactSQLAsset,
 	uninstallSQLAssets []*pluginDynamicArtifactSQLAsset,
 ) string {
+	return createTestRuntimeStorageArtifactWithFrontendAssetsAndBackendContracts(
+		t,
+		pluginID,
+		pluginName,
+		version,
+		frontendAssets,
+		installSQLAssets,
+		uninstallSQLAssets,
+		nil,
+		nil,
+	)
+}
+
+func createTestRuntimeStorageArtifactWithFrontendAssetsAndBackendContracts(
+	t *testing.T,
+	pluginID string,
+	pluginName string,
+	version string,
+	frontendAssets []*pluginDynamicArtifactFrontendAsset,
+	installSQLAssets []*pluginDynamicArtifactSQLAsset,
+	uninstallSQLAssets []*pluginDynamicArtifactSQLAsset,
+	routeContracts []*pluginbridge.RouteContract,
+	bridgeSpec *pluginbridge.BridgeSpec,
+) string {
 	t.Helper()
 
 	repoRoot, err := findRepoRoot(".")
@@ -151,13 +177,15 @@ func createTestRuntimeStorageArtifactWithFrontendAssets(
 		},
 		&pluginDynamicArtifactMetadata{
 			RuntimeKind:        pluginDynamicKindWasm.String(),
-			ABIVersion:         pluginDynamicSupportedABIVersion,
+			ABIVersion:         pluginbridge.SupportedABIVersion,
 			FrontendAssetCount: len(frontendAssets),
 			SQLAssetCount:      len(installSQLAssets) + len(uninstallSQLAssets),
 		},
 		frontendAssets,
 		installSQLAssets,
 		uninstallSQLAssets,
+		routeContracts,
+		bridgeSpec,
 	)
 	return artifactPath
 }

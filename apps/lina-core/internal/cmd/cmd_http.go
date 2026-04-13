@@ -71,7 +71,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	cronSvc.Start(ctx)
 
 	// Enhance OpenAPI documentation with config values and JWT security scheme.
-	m.enhanceOpenAPIDocs(ctx, s, configSvc)
+	m.enhanceOpenAPIDocs(ctx, s, configSvc, pluginSvc)
 
 	// =============================================================================================
 	// Dynamic routes registering.
@@ -135,6 +135,17 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				configctrl.NewV1(),
 				pluginctrl.NewV1(clusterSvc),
 			)
+		})
+
+		// Dynamic plugin routes reuse the standard RouterGroup + Middleware flow,
+		// while their route matching and governance remain host-owned.
+		group.Group("/extensions", func(group *ghttp.RouterGroup) {
+			group.Middleware(
+				pluginSvc.PrepareDynamicRouteMiddleware,
+				pluginSvc.AuthenticateDynamicRouteMiddleware,
+				middlewareSvc.OperLog,
+			)
+			pluginSvc.RegisterDynamicRouteDispatcher(group)
 		})
 	})
 
@@ -220,6 +231,7 @@ func (m *Main) enhanceOpenAPIDocs(
 	ctx context.Context,
 	server *ghttp.Server,
 	configSvc *config.Service,
+	pluginSvc *pluginsvc.Service,
 ) {
 	// Set OpenAPI info from configuration
 	oaiCfg := configSvc.GetOpenApi(ctx)
@@ -255,6 +267,9 @@ func (m *Main) enhanceOpenAPIDocs(
 	}
 	oai.Security = &goai.SecurityRequirements{
 		{"BearerAuth": {}},
+	}
+	if err := pluginSvc.ProjectDynamicRoutesToOpenAPI(ctx, oai.Paths); err != nil {
+		logger.Warningf(ctx, "project dynamic plugin routes to OpenAPI failed: %v", err)
 	}
 }
 

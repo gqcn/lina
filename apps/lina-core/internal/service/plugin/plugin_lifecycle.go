@@ -14,9 +14,11 @@ import (
 
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
+	"lina-core/internal/model/entity"
 )
 
-// Install executes install lifecycle for a discovered dynamic plugin.
+// Install executes install lifecycle for a discovered dynamic plugin. Repeated
+// installs are treated as idempotent unless the same version needs a refresh.
 func (s *Service) Install(ctx context.Context, pluginID string) error {
 	manifest, err := s.getDesiredPluginManifestByID(pluginID)
 	if err != nil {
@@ -42,7 +44,11 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 			return gerror.New("不支持回退到更低版本，请使用宿主自动回滚结果或重新上传更高版本")
 		}
 		if compareResult == 0 {
-			return nil
+			// Keeping the same version label does not imply the runtime artifact is
+			// unchanged; rebuilt Wasm bytes still need to flow through refresh.
+			if !s.shouldRefreshInstalledDynamicRelease(ctx, registry, manifest) {
+				return nil
+			}
 		}
 	}
 
@@ -57,6 +63,50 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 		return nil
 	}
 	return nil
+}
+
+// shouldRefreshInstalledDynamicRelease decides whether an already installed
+// dynamic release should be re-converged even though the semantic version did
+// not change. It compares desired checksum, registry checksum, and archived
+// release content to detect rebuilt artifacts and stale archives.
+func (s *Service) shouldRefreshInstalledDynamicRelease(
+	ctx context.Context,
+	registry *entity.SysPlugin,
+	manifest *pluginManifest,
+) bool {
+	if registry == nil || manifest == nil {
+		return false
+	}
+	if normalizePluginType(manifest.Type) != pluginTypeDynamic {
+		return false
+	}
+	if registry.Installed != pluginInstalledYes {
+		return false
+	}
+	if strings.TrimSpace(registry.Checksum) == "" {
+		return true
+	}
+	desiredChecksum := strings.TrimSpace(s.buildPluginRegistryChecksum(manifest))
+	if desiredChecksum == "" {
+		return true
+	}
+	if desiredChecksum != strings.TrimSpace(registry.Checksum) {
+		return true
+	}
+
+	release, err := s.getPluginRegistryRelease(ctx, registry)
+	if err != nil || release == nil {
+		return true
+	}
+	packagePath, err := s.resolvePluginReleasePackagePath(ctx, release)
+	if err != nil {
+		return true
+	}
+	archivedManifest, err := s.loadRuntimePluginManifestFromArtifact(packagePath)
+	if err != nil || archivedManifest == nil {
+		return true
+	}
+	return strings.TrimSpace(s.buildPluginRegistryChecksum(archivedManifest)) != desiredChecksum
 }
 
 // Uninstall executes uninstall lifecycle for an installed dynamic plugin.

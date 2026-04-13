@@ -3,8 +3,12 @@ package builder
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"lina-core/pkg/pluginbridge"
 )
 
 func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
@@ -39,6 +43,16 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 		t,
 		filepath.Join(pluginDir, "backend", "resources", "001-records.yaml"),
 		"key: records\ntype: table-list\ntable: plugin_runtime_records\nfields:\n  - name: id\n    column: id\norderBy:\n  column: id\n  direction: asc\ndataScope:\n  userColumn: owner_user_id\n",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "backend", "api", "dynamic", "v1", "review_summary.go"),
+		"package v1\n\nimport \"github.com/gogf/gf/v2/frame/g\"\n\ntype ReviewSummaryReq struct {\n\tg.Meta `path:\"/review-summary\" method:\"get\" tags:\"动态插件示例\" summary:\"查询摘要\" dc:\"返回一个动态插件摘要\" access:\"login\" permission:\"plugin-dynamic-builder:review:view\" operLog:\"other\"`\n}\n",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "main.go"),
+		"package main\n\nfunc main() {}\n",
 	)
 
 	out, err := BuildRuntimeWasmArtifactFromSource(pluginDir)
@@ -92,6 +106,32 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	}
 	if len(resources) != 1 || resources[0].DataScope == nil || resources[0].DataScope.UserColumn != "owner_user_id" {
 		t.Fatalf("unexpected embedded resource specs: %#v", resources)
+	}
+
+	var routes []*pluginbridge.RouteContract
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionBackendRoutes], &routes); err != nil {
+		t.Fatalf("expected route section json to unmarshal, got error: %v", err)
+	}
+	if len(routes) != 1 || routes[0].Permission != "plugin-dynamic-builder:review:view" {
+		t.Fatalf("unexpected embedded route specs: %#v", routes)
+	}
+
+	bridgeSpec := &pluginbridge.BridgeSpec{}
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionBackendBridge], bridgeSpec); err != nil {
+		t.Fatalf("expected bridge section json to unmarshal, got error: %v", err)
+	}
+	if !bridgeSpec.RouteExecution || bridgeSpec.RequestCodec != pluginbridge.CodecProtobuf {
+		t.Fatalf("unexpected embedded bridge spec: %#v", bridgeSpec)
+	}
+	if out.RuntimePath == "" {
+		t.Fatal("expected executable guest runtime path to be generated")
+	}
+	runtimeStrings, err := readCommandOutput("strings", out.RuntimePath)
+	if err != nil {
+		t.Fatalf("expected runtime wasm strings inspection to succeed, got error: %v", err)
+	}
+	if !strings.Contains(runtimeStrings, "_initialize") {
+		t.Fatalf("expected runtime guest wasm to expose _initialize, got output: %s", runtimeStrings)
 	}
 }
 
@@ -150,6 +190,15 @@ func mustWriteFile(t *testing.T, filePath string, content string) {
 	if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
 		t.Fatalf("failed to write file %s: %v", filePath, err)
 	}
+}
+
+func readCommandOutput(name string, args ...string) (string, error) {
+	cmd := exec.Command(name, args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
 }
 
 func parseWasmCustomSections(content []byte) (map[string][]byte, error) {

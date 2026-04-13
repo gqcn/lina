@@ -96,19 +96,6 @@ func (c *ControllerV1) GetAll(ctx context.Context, req *v1.GetAllReq) (res *v1.G
 	return &v1.GetAllRes{List: routes}, nil
 }
 
-// getUserIdFromContext extracts user ID from context
-func getUserIdFromContext(ctx context.Context) int {
-	val := ctx.Value("userId")
-	if val == nil {
-		return 0
-	}
-	userId, ok := val.(int)
-	if !ok {
-		return 0
-	}
-	return userId
-}
-
 // buildFilteredTree builds a tree from filtered menu items
 func buildFilteredTree(items []*menusvc.MenuItem) []*menusvc.MenuItem {
 	nodeMap := make(map[int]*menusvc.MenuItem)

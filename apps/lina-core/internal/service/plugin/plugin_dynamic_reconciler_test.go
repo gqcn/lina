@@ -3,8 +3,14 @@ package plugin
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
+	"net/http"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"lina-core/pkg/pluginbridge"
 )
 
 func TestDynamicPluginUpgradeKeepsPreviousReleaseFrontendAssets(t *testing.T) {
@@ -286,5 +292,203 @@ func buildVersionedRuntimeFrontendAssets(marker string) []*pluginDynamicArtifact
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("<html><body>" + marker + "</body></html>")),
 			ContentType:   "text/html; charset=utf-8",
 		},
+	}
+}
+
+func TestBundledDynamicPluginEnableMakesDynamicRouteExecutable(t *testing.T) {
+	service := New()
+	ctx := context.Background()
+
+	const pluginID = "plugin-demo-dynamic"
+
+	repoRoot, err := findRepoRoot(".")
+	if err != nil {
+		t.Fatalf("expected repo root resolution to succeed, got error: %v", err)
+	}
+	cmd := exec.Command("make", "wasm", "p=plugin-demo-dynamic", "out=../../temp/output")
+	cmd.Dir = filepath.Join(repoRoot, "apps", "lina-plugins")
+	if output, buildErr := cmd.CombinedOutput(); buildErr != nil {
+		t.Fatalf("expected bundled dynamic plugin artifact build to succeed, got error: %v output=%s", buildErr, string(output))
+	}
+
+	if err := service.Install(ctx, pluginID); err != nil {
+		t.Fatalf("expected bundled dynamic plugin install to succeed, got error: %v", err)
+	}
+	if err := service.Enable(ctx, pluginID); err != nil {
+		t.Fatalf("expected bundled dynamic plugin enable to succeed, got error: %v", err)
+	}
+
+	registry, err := service.getPluginRegistry(ctx, pluginID)
+	if err != nil {
+		t.Fatalf("expected plugin registry lookup to succeed, got error: %v", err)
+	}
+	if registry == nil {
+		t.Fatal("expected plugin registry row after enable")
+	}
+	if registry.Installed != pluginInstalledYes || registry.Status != pluginStatusEnabled {
+		t.Fatalf("expected bundled dynamic plugin to be installed+enabled, got %#v", registry)
+	}
+	if registry.ReleaseId <= 0 {
+		t.Fatalf("expected bundled dynamic plugin to keep active release id, got %d", registry.ReleaseId)
+	}
+
+	manifest, err := service.getActivePluginManifest(ctx, pluginID)
+	if err != nil {
+		t.Fatalf("expected active plugin manifest to load, got error: %v", err)
+	}
+	if manifest == nil || len(manifest.Routes) == 0 || manifest.BridgeSpec == nil || !manifest.BridgeSpec.RouteExecution {
+		t.Fatalf("expected bundled dynamic plugin active manifest to expose executable routes, got %#v", manifest)
+	}
+	if manifest.Routes[0].Path != "/backend-summary" || manifest.Routes[0].Method != http.MethodGet {
+		t.Fatalf("expected bundled dynamic plugin active route to expose GET /backend-summary, got %#v", manifest.Routes[0])
+	}
+
+	response, err := service.executeDynamicRoute(ctx, manifest, &pluginbridge.BridgeRequestEnvelopeV1{
+		PluginID: pluginID,
+		Route: &pluginbridge.RouteMatchSnapshotV1{
+			InternalPath: "/backend-summary",
+			PublicPath:   "/api/v1/extensions/plugin-demo-dynamic/backend-summary",
+			Access:       pluginbridge.AccessLogin,
+			Permission:   "plugin-demo-dynamic:backend:view",
+		},
+		Identity: &pluginbridge.IdentitySnapshotV1{
+			UserID:       1,
+			Username:     "admin",
+			IsSuperAdmin: true,
+		},
+		Request: &pluginbridge.HTTPRequestSnapshotV1{
+			Method: http.MethodGet,
+		},
+	})
+	if err != nil {
+		t.Fatalf("expected bundled dynamic plugin route execution to succeed, got error: %v", err)
+	}
+	if response == nil || response.StatusCode != 200 {
+		t.Fatalf("expected bundled dynamic plugin route response 200, got %#v", response)
+	}
+
+	payload := map[string]any{}
+	if err = json.Unmarshal(response.Body, &payload); err != nil {
+		t.Fatalf("expected bundled dynamic plugin response to be valid json, got error: %v", err)
+	}
+	if payload["pluginId"] != pluginID {
+		t.Fatalf("expected bundled dynamic plugin payload to preserve pluginId, got %#v", payload)
+	}
+}
+
+func TestInstallSameVersionDynamicPluginRefreshesArchivedReleaseArtifact(t *testing.T) {
+	service := New()
+	ctx := context.Background()
+
+	pluginID := "plugin-dynamic-same-version-refresh"
+	pluginName := "Dynamic Same Version Refresh Plugin"
+	version := "v0.1.0"
+
+	cleanupPluginGovernanceRowsHard(t, ctx, pluginID)
+	t.Cleanup(func() {
+		cleanupPluginGovernanceRowsHard(t, ctx, pluginID)
+	})
+
+	initialRoutes := []*pluginbridge.RouteContract{
+		{
+			Path:       "/review-summary",
+			Method:     http.MethodGet,
+			Access:     pluginbridge.AccessLogin,
+			Permission: pluginID + ":review:view",
+			OperLog:    "other",
+		},
+	}
+	initialBridge := &pluginbridge.BridgeSpec{
+		ABIVersion:     pluginbridge.ABIVersionV1,
+		RuntimeKind:    pluginbridge.RuntimeKindWasm,
+		RouteExecution: true,
+		RequestCodec:   pluginbridge.CodecProtobuf,
+		ResponseCodec:  pluginbridge.CodecProtobuf,
+		AllocExport:    pluginbridge.DefaultGuestAllocExport,
+		ExecuteExport:  pluginbridge.DefaultGuestExecuteExport,
+	}
+	createTestRuntimeStorageArtifactWithFrontendAssetsAndBackendContracts(
+		t,
+		pluginID,
+		pluginName,
+		version,
+		buildVersionedRuntimeFrontendAssets("version-one"),
+		nil,
+		nil,
+		initialRoutes,
+		initialBridge,
+	)
+
+	if err := service.Install(ctx, pluginID); err != nil {
+		t.Fatalf("expected initial install to succeed, got error: %v", err)
+	}
+	if err := service.Enable(ctx, pluginID); err != nil {
+		t.Fatalf("expected initial enable to succeed, got error: %v", err)
+	}
+
+	registryBeforeRefresh, err := service.getPluginRegistry(ctx, pluginID)
+	if err != nil {
+		t.Fatalf("expected registry lookup before refresh to succeed, got error: %v", err)
+	}
+	if registryBeforeRefresh == nil {
+		t.Fatal("expected registry row before same-version refresh")
+	}
+
+	refreshedRoutes := []*pluginbridge.RouteContract{
+		{
+			Path:       "/review-summary",
+			Method:     http.MethodGet,
+			Access:     pluginbridge.AccessLogin,
+			Permission: pluginID + ":review:inspect",
+			OperLog:    "other",
+		},
+	}
+	createTestRuntimeStorageArtifactWithFrontendAssetsAndBackendContracts(
+		t,
+		pluginID,
+		pluginName,
+		version,
+		buildVersionedRuntimeFrontendAssets("version-two"),
+		nil,
+		nil,
+		refreshedRoutes,
+		initialBridge,
+	)
+
+	if err = service.Install(ctx, pluginID); err != nil {
+		t.Fatalf("expected same-version refresh install to succeed, got error: %v", err)
+	}
+
+	registryAfterRefresh, err := service.getPluginRegistry(ctx, pluginID)
+	if err != nil {
+		t.Fatalf("expected registry lookup after refresh to succeed, got error: %v", err)
+	}
+	if registryAfterRefresh == nil {
+		t.Fatal("expected registry row after same-version refresh")
+	}
+	if registryAfterRefresh.ReleaseId != registryBeforeRefresh.ReleaseId {
+		t.Fatalf("expected same-version refresh to reuse active release id, before=%d after=%d", registryBeforeRefresh.ReleaseId, registryAfterRefresh.ReleaseId)
+	}
+	if registryAfterRefresh.Generation <= registryBeforeRefresh.Generation {
+		t.Fatalf("expected same-version refresh to advance generation, before=%d after=%d", registryBeforeRefresh.Generation, registryAfterRefresh.Generation)
+	}
+
+	activeManifest, err := service.getActivePluginManifest(ctx, pluginID)
+	if err != nil {
+		t.Fatalf("expected active manifest after refresh to load, got error: %v", err)
+	}
+	if activeManifest == nil || activeManifest.RuntimeArtifact == nil {
+		t.Fatalf("expected active manifest runtime artifact after refresh, got %#v", activeManifest)
+	}
+	if len(activeManifest.Routes) != 1 || activeManifest.Routes[0].Permission != pluginID+":review:inspect" {
+		t.Fatalf("expected active manifest routes to refresh with new permission, got %#v", activeManifest.Routes)
+	}
+
+	asset, err := service.ResolveRuntimeFrontendAsset(ctx, pluginID, version, "index.html")
+	if err != nil {
+		t.Fatalf("expected refreshed frontend asset to resolve, got error: %v", err)
+	}
+	if !strings.Contains(string(asset.Content), "version-two") {
+		t.Fatalf("expected refreshed frontend asset to contain version-two marker, got %s", string(asset.Content))
 	}
 }

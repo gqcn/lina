@@ -9,9 +9,9 @@ import (
 
 // Create creates a user
 func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.CreateRes, err error) {
-	status := 1
+	status := usersvc.StatusNormal
 	if req.Status != nil {
-		status = *req.Status
+		status = usersvc.Status(*req.Status)
 	}
 	sex := 0
 	if req.Sex != nil {

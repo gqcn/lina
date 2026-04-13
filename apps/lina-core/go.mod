@@ -8,7 +8,9 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/mssola/useragent v1.0.0
 	github.com/shirou/gopsutil/v4 v4.26.2
+	github.com/tetratelabs/wazero v1.9.0
 	github.com/xuri/excelize/v2 v2.10.1
+	google.golang.org/protobuf v1.36.10
 	golang.org/x/crypto v0.49.0
 )
 

@@ -12,7 +12,6 @@ import (
 	"github.com/mssola/useragent"
 	"golang.org/x/crypto/bcrypt"
 
-	"lina-core/internal/consts"
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
@@ -21,6 +20,12 @@ import (
 	pluginsvc "lina-core/internal/service/plugin"
 	"lina-core/internal/service/session"
 	"lina-core/pkg/logger"
+)
+
+const (
+	// statusDisabled represents a disabled user status.
+	// Mirrors user.StatusDisabled; duplicated here to avoid circular import.
+	statusDisabled = 0
 )
 
 // Service provides authentication operations.
@@ -125,7 +130,7 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 	}
 
 	// Check status
-	if user.Status == consts.UserStatusDisabled {
+	if user.Status == statusDisabled {
 		recordLoginLog(in.Username, loginlog.LoginStatusFail, "用户已停用")
 		dispatchLoginFailed(in.Username, "用户已停用")
 		return nil, gerror.New("用户已停用")

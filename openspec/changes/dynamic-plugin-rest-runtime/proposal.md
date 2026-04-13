@@ -18,7 +18,8 @@
 - 在宿主新增动态路由解析与治理骨架：支持`pluginId`快速定位、方法与路径匹配、登录校验、权限校验，以及登录路由的业务上下文注入。
 - 在宿主补充统一的动态路由执行器接口、请求／响应快照骨架和稳定`v1` bridge envelope，并接入真实`wasm`执行器。
 - 将动态路由执行输入绑定到当前`active release`的运行时快照，并按`runtimeKind`选择执行器，为后续真实`wasm`桥接预留接入点。
-- 在动态产物中新增 bridge ABI 合同区段，固定初始化入口、请求缓冲分配入口、执行入口以及请求／响应编解码协议。
+- 在动态产物中新增 bridge ABI 合同区段，固定初始化入口、请求缓冲分配入口、执行入口以及请求／响应二进制编解码协议，禁止以`json`或纯文本协议承载桥接`DTO`。
+- 在`lina-core/pkg`沉淀动态插件可复用公共组件，封装 bridge envelope、二进制 codec、guest 侧处理器适配和错误响应辅助，降低动态插件业务代码复杂度。
 - 明确动态治理元数据规则：`access`默认`login`；`public`路由不能声明`permission`；`operLog`只有显式声明时才保留。
 - 将动态路由声明的`permission`自动物化为隐藏的合成权限菜单，复用现有`sys_menu.perms`与角色授权体系。
 - 将已启用动态插件的路由合同投影为宿主`OpenAPI`路径；可执行运行时展示真实`200/500`响应语义，未接入执行器时仍保留`501`占位说明。
@@ -36,8 +37,34 @@
 
 - 后端新增动态路由合同模型、合同校验、产物嵌入与宿主装载逻辑。
 - 动态插件源码到`Wasm`产物的构建职责统一由`hack/build-wasm`维护，宿主`plugin`组件与编译阶段解耦。
+- 后端新增`lina-core/pkg`级别的动态 bridge 公共组件，宿主执行器、构建器测试与样例插件可复用同一套信封和 codec 合同。
 - 动态插件菜单同步逻辑需要额外维护基于`permission`声明生成的隐藏权限节点。
 - 宿主`HTTP`启动链路需要注册固定前缀分发入口，并在启动时合并动态插件接口文档。
 - 宿主动态路由分发入口需要收敛到统一执行器调用，以便后续平滑替换为真实`Wasm`桥接。
 - 后端新增受限`wasm bridge`执行层；只有声明可执行 bridge 的动态产物才会真正执行业务路由，其余产物仍返回`501`占位响应。
 - 动态插件样例新增`backend/runtime/wasm/`入口，证明插件本地中间件、业务执行与响应回写可以在受限 bridge 内完成。
+
+### Host Functions（宿主回调能力扩展）
+
+- 为`Wasm`动态插件新增 Host Functions 回调机制，让 Guest 运行时能够安全地调用宿主提供的受控服务（日志、状态存储、数据库读写）。
+- 在`pluginbridge`包新增 Host Call 协议层：以单一入口函数`lina_env.host_call(opcode, reqPtr, reqLen)`统一分发，新增能力不改变`Wasm`导入签名。
+- 新增能力声明模型：插件在`plugin.yaml`中声明所需`Host Function`能力，构建器嵌入`Wasm`自定义段，宿主运行时按 opcode 映射校验，未声明的能力调用立即拒绝。
+- Phase 1 支持四类能力：`host:log`（结构化日志）、`host:state`（插件隔离键值存储）、`host:db:query`（只读`SQL`查询）、`host:db:execute`（写入`SQL`，禁止`DDL`）。
+- 新增`sys_plugin_state`表用于插件隔离的键值状态存储，按`pluginID`自动隔离。
+- 数据库访问采用开放模式——插件可查询/操作所有表，安全性由管理员决定是否授予该能力来控制。`SQL`语句前缀校验 +`DDL`关键词黑名单防护。
+- Guest SDK 提供高级封装`API`（`HostLog`、`HostStateGet/Set/Delete`、`HostDBQuery/Execute`），降低插件开发复杂度。
+- 使用独立的`guestHostCallResponseBuffer`响应缓冲区，避免 Host Call 回调中与主请求缓冲区冲突。
+
+## Additional Capabilities
+
+- `plugin-host-call`：动态插件从"单向桥接"扩展为"双向桥接"，Guest 可通过受控的 Host Functions 回调宿主，实现日志输出、状态持久化和数据库读写等业务操作。
+
+## Additional Impact
+
+- 后端新增 Host Call 协议层（opcode 常量、能力校验、请求/响应编解码）。
+- 后端新增 Host Call 分发器和四类能力处理器（日志、状态存储、数据库查询、数据库写入）。
+- 新增`sys_plugin_state`表`DDL`（`012-plugin-host-call.sql`）。
+- `pluginbridge`包新增 Guest 侧 Host Call SDK（`//go:build wasip1`）。
+- `Wasm`运行时加载链路需在 WASI 实例化后注册 Host Call 模块。
+- 构建器需校验并嵌入能力声明到`Wasm`自定义段。
+- 动态插件样例新增`/host-call-demo`路由，演示日志+状态存储的完整 Host Call 工作流。

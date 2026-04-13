@@ -44,3 +44,19 @@
 - **WHEN** 一个动态插件路由被外部请求命中
 - **THEN** 登录校验、权限校验和业务上下文注入由宿主基于路由合同统一执行
 - **AND** 动态插件只声明治理需求，不直接调用宿主治理中间件
+
+### Requirement: 动态插件复用公共 bridge 组件降低编写复杂度
+
+系统 SHALL 将动态插件 bridge envelope、二进制 codec、guest 侧处理器适配、错误响应辅助等可复用逻辑抽象到`apps/lina-core/pkg`公共组件中，避免插件作者在每个动态插件中重复编写底层`ABI`与编解码样板。
+
+#### Scenario: 插件运行时复用公共组件
+
+- **WHEN** 开发者编写`backend/runtime/wasm`动态插件运行时
+- **THEN** 开发者可以复用`apps/lina-core/pkg/pluginbridge`中的请求／响应信封、二进制编解码和处理器适配逻辑
+- **AND** 插件业务代码主要实现路由处理函数，不需要重复实现底层内存读写与 bridge envelope 打包流程
+
+#### Scenario: 公共组件不包含编译阶段流程
+
+- **WHEN** 宿主、构建器或动态插件样例复用`apps/lina-core/pkg/pluginbridge`
+- **THEN** 该组件只提供稳定合同、编解码、运行时辅助与无副作用校验逻辑
+- **AND** 该组件不包含源码扫描、`go build`调用或产物写入等编译阶段流程

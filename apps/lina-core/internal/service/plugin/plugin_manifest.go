@@ -17,6 +17,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"lina-core/pkg/pluginhost"
+	"lina-core/pkg/pluginbridge"
 )
 
 var pluginSQLFileNamePattern = regexp.MustCompile(`^\d{3}-[a-z0-9-]+\.sql$`)
@@ -39,6 +40,9 @@ type pluginManifest struct {
 	RootDir          string
 	Hooks            []*pluginHookSpec
 	BackendResources map[string]*pluginResourceSpec
+	Routes           []*pluginbridge.RouteContract
+	BridgeSpec       *pluginbridge.BridgeSpec
+	HostCapabilities map[string]struct{}
 	RuntimeArtifact  *pluginDynamicArtifact
 	SourcePlugin     *pluginhost.SourcePlugin
 }
@@ -206,7 +210,10 @@ func (s *Service) loadRuntimePluginManifestFromArtifact(artifactPath string) (*p
 		Menus:           artifact.Manifest.Menus,
 		ManifestPath:    "",
 		RootDir:         filepath.Dir(artifactPath),
-		RuntimeArtifact: artifact,
+		Routes:           artifact.RouteContracts,
+		BridgeSpec:       artifact.BridgeSpec,
+		HostCapabilities: pluginbridge.CapabilitySliceToMap(artifact.Capabilities),
+		RuntimeArtifact:  artifact,
 	}
 	if err = s.validateUploadedRuntimeManifest(manifest); err != nil {
 		return nil, gerror.Wrapf(err, "动态插件嵌入清单不合法: %s", artifactPath)

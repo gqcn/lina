@@ -175,6 +175,10 @@ func (s *Service) buildPluginManifestSnapshot(manifest *pluginManifest) (string,
 		MenuCount:                 s.buildPluginMenuCount(manifest),
 		BackendHookCount:          len(manifest.Hooks),
 		ResourceSpecCount:         len(manifest.BackendResources),
+		RouteCount:                len(manifest.Routes),
+		RouteExecutionEnabled:     s.buildPluginDynamicRouteExecutionEnabled(manifest),
+		RouteRequestCodec:         s.buildPluginDynamicRouteRequestCodec(manifest),
+		RouteResponseCodec:        s.buildPluginDynamicRouteResponseCodec(manifest),
 		RuntimeFrontendAssetCount: s.buildPluginDynamicFrontendAssetCount(manifest),
 		RuntimeSQLAssetCount:      s.buildPluginDynamicSQLAssetCount(manifest),
 	}
@@ -212,6 +216,27 @@ func (s *Service) buildPluginDynamicSQLAssetCount(manifest *pluginManifest) int 
 		return 0
 	}
 	return manifest.RuntimeArtifact.SQLAssetCount
+}
+
+func (s *Service) buildPluginDynamicRouteExecutionEnabled(manifest *pluginManifest) bool {
+	if manifest == nil || manifest.BridgeSpec == nil {
+		return false
+	}
+	return manifest.BridgeSpec.RouteExecution
+}
+
+func (s *Service) buildPluginDynamicRouteRequestCodec(manifest *pluginManifest) string {
+	if manifest == nil || manifest.BridgeSpec == nil {
+		return ""
+	}
+	return manifest.BridgeSpec.RequestCodec
+}
+
+func (s *Service) buildPluginDynamicRouteResponseCodec(manifest *pluginManifest) string {
+	if manifest == nil || manifest.BridgeSpec == nil {
+		return ""
+	}
+	return manifest.BridgeSpec.ResponseCodec
 }
 
 func (s *Service) countPluginSQLAssets(manifest *pluginManifest, direction pluginMigrationDirection) int {

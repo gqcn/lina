@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	"lina-core/pkg/pluginbridge"
 )
 
 func TestSyncSourcePluginMenusFromManifest(t *testing.T) {
@@ -207,6 +209,88 @@ func TestDynamicPluginInstallAndUninstallManageMenusFromManifest(t *testing.T) {
 	}
 }
 
+func TestDynamicPluginRoutePermissionsMaterializeHiddenMenus(t *testing.T) {
+	service := New()
+	ctx := context.Background()
+
+	const pluginID = "plugin-dynamic-route-permission"
+
+	artifactPath := createTestRuntimeStorageArtifactWithMenus(
+		t,
+		pluginID,
+		"Runtime Route Permission Plugin",
+		"v0.3.0",
+		nil,
+		nil,
+		nil,
+	)
+
+	writeRuntimeWasmArtifact(
+		t,
+		artifactPath,
+		&pluginDynamicArtifactManifest{
+			ID:      pluginID,
+			Name:    "Runtime Route Permission Plugin",
+			Version: "v0.3.0",
+			Type:    pluginTypeDynamic.String(),
+		},
+		&pluginDynamicArtifactMetadata{
+			RuntimeKind:        pluginDynamicKindWasm.String(),
+			ABIVersion:         pluginbridge.SupportedABIVersion,
+			FrontendAssetCount: len(defaultTestRuntimeFrontendAssets()),
+			RouteCount:         1,
+		},
+		defaultTestRuntimeFrontendAssets(),
+		nil,
+		nil,
+		[]*pluginbridge.RouteContract{
+			{
+				Path:       "/review-summary",
+				Method:     http.MethodGet,
+				Access:     pluginbridge.AccessLogin,
+				Permission: "plugin-dynamic-route-permission:review:view",
+			},
+		},
+		&pluginbridge.BridgeSpec{
+			ABIVersion:     pluginbridge.ABIVersionV1,
+			RuntimeKind:    pluginbridge.RuntimeKindWasm,
+			RouteExecution: true,
+			RequestCodec:   pluginbridge.CodecProtobuf,
+			ResponseCodec:  pluginbridge.CodecProtobuf,
+		},
+	)
+
+	manifest, err := service.loadRuntimePluginManifestFromArtifact(artifactPath)
+	if err != nil {
+		t.Fatalf("expected dynamic runtime manifest to load, got error: %v", err)
+	}
+
+	cleanupPluginGovernanceRowsHard(t, ctx, pluginID)
+	cleanupPluginMenuRowsHard(t, ctx, pluginID)
+	t.Cleanup(func() {
+		cleanupPluginMenuRowsHard(t, ctx, pluginID)
+		cleanupPluginGovernanceRowsHard(t, ctx, pluginID)
+	})
+
+	if _, err = service.syncPluginManifest(ctx, manifest); err != nil {
+		t.Fatalf("expected runtime plugin manifest sync to succeed, got error: %v", err)
+	}
+	if err = service.Install(ctx, pluginID); err != nil {
+		t.Fatalf("expected runtime plugin install to succeed, got error: %v", err)
+	}
+
+	menu, err := queryMenuByKey(ctx, buildDynamicRoutePermissionMenuKey(pluginID, "plugin-dynamic-route-permission:review:view"))
+	if err != nil {
+		t.Fatalf("expected synthetic permission menu query to succeed, got error: %v", err)
+	}
+	if menu == nil {
+		t.Fatal("expected synthetic permission menu to be created")
+	}
+	if menu.Type != pluginMenuTypeButton.String() || menu.Visible != 0 {
+		t.Fatalf("expected synthetic permission menu to be hidden button, got %#v", menu)
+	}
+}
+
 func createTestRuntimeStorageArtifactWithMenus(
 	t *testing.T,
 	pluginID string,
@@ -245,13 +329,15 @@ func createTestRuntimeStorageArtifactWithMenus(
 		},
 		&pluginDynamicArtifactMetadata{
 			RuntimeKind:        pluginDynamicKindWasm.String(),
-			ABIVersion:         pluginDynamicSupportedABIVersion,
+			ABIVersion:         pluginbridge.SupportedABIVersion,
 			FrontendAssetCount: len(defaultTestRuntimeFrontendAssets()),
 			SQLAssetCount:      len(installSQLAssets) + len(uninstallSQLAssets),
 		},
 		defaultTestRuntimeFrontendAssets(),
 		installSQLAssets,
 		uninstallSQLAssets,
+		nil,
+		nil,
 	)
 	return artifactPath
 }

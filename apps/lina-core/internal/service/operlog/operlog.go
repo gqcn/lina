@@ -32,6 +32,38 @@ const (
 	OperTypeOther  = 6 // 其他
 )
 
+// OperTag* constants define semantic operLog tag values used in g.Meta and plugin bridge specs.
+const (
+	OperTagCreate = "create" // 新增
+	OperTagUpdate = "update" // 修改
+	OperTagDelete = "delete" // 删除
+	OperTagExport = "export" // 导出
+	OperTagImport = "import" // 导入
+	OperTagOther  = "other"  // 其他
+)
+
+// operTagToType maps semantic operLog tag to OperType int value.
+var operTagToType = map[string]int{
+	OperTagCreate: OperTypeCreate,
+	OperTagUpdate: OperTypeUpdate,
+	OperTagDelete: OperTypeDelete,
+	OperTagExport: OperTypeExport,
+	OperTagImport: OperTypeImport,
+	OperTagOther:  OperTypeOther,
+}
+
+// ResolveOperTag converts a semantic operLog tag to the corresponding OperType int value.
+// Returns OperTypeOther if the tag is not recognized.
+func ResolveOperTag(tag string) (int, bool) {
+	v, ok := operTagToType[tag]
+	return v, ok
+}
+
+// ValidOperTags returns all valid operLog tag values.
+func ValidOperTags() []string {
+	return []string{OperTagCreate, OperTagUpdate, OperTagDelete, OperTagExport, OperTagImport, OperTagOther}
+}
+
 // Operation status values (matching sys_oper_status dictionary)
 const (
 	OperStatusSuccess = 0 // 成功

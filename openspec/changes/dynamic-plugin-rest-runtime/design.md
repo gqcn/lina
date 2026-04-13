@@ -27,18 +27,24 @@
 - 将动态路由治理元数据统一放在`g.Meta`中维护。
 - 让运行时产物携带完整路由合同与桥接合同，宿主无需在请求时扫描源码。
 - 让宿主在固定前缀下完成快速匹配、鉴权、权限校验和业务上下文注入。
+- 让动态插件固定前缀路由复用宿主统一的`RouterGroup + Middleware`注册方式，避免单独维护一条旁路分发入口。
 - 让动态路由优先通过真实`Wasm bridge`执行，未声明可执行桥接时再回退到`501`占位。
 - 让动态插件权限继续复用宿主现有`sys_menu.perms`体系。
 - 让系统`OpenAPI`按运行时状态投影动态插件公开接口。
+- 让宿主到动态插件的桥接`DTO`使用高效二进制编解码，禁止使用`json`或纯文本协议承载请求／响应信封。
+- 将动态插件可复用的桥接合同、编解码与运行时辅助逻辑沉淀到`lina-core/pkg`公共组件，降低插件业务代码编写复杂度。
 
 **Non-Goals**
 
 - 不在`WASI`中运行完整`GoFrame`私有`HTTP`服务器。
 - 不让动态插件占用宿主任意全局路径空间。
 - 不向动态插件开放宿主`Auth`、`Ctx`、`OperLog`等中间件自由拼装能力。
+- 不为动态插件保留一条脱离宿主统一中间件注册方式的专用旁路入口。
 - 不支持`WebSocket`、`SSE`、流式响应和长连接协议。
 - 不为每条动态路由在宿主再定义一层额外业务`DTO`映射。
 - 不让动态插件直接拿到宿主原始登录令牌或宿主内部服务实例。
+- 不在`lina-core`运行时业务组件中保留源码扫描、编译调用、产物生成等编译阶段逻辑。
+- 不要求插件作者为每条动态路由重复编写内存分配、桥接信封装配和二进制编解码样板代码。
 
 ## Decisions
 
@@ -122,6 +128,13 @@
 - `manifest.Routes`
 - `manifest.RuntimeArtifact.BridgeSpec`
 
+#### 运行时组件边界
+
+- `apps/lina-core/internal/service/plugin`是运行时业务组件，只负责动态插件产物装载、运行时合同校验、生命周期治理和请求执行。
+- 源码扫描、`g.Meta`静态提取、`go build`调用、自定义区段写入和样例产物生成都属于编译阶段逻辑，必须统一收敛到`hack/build-wasm`或`hack/`下的独立脚本／工具。
+- 宿主运行时可以消费构建阶段已经嵌入产物的合同与区段，但不得反向调用构建器，也不得为了请求执行去读取插件源码目录。
+- 如果需要宿主与构建器复用合同结构、校验规则或产物区段常量，应把这类无副作用的公共模型放入`apps/lina-core/pkg`，而不是把构建流程放回`internal/service/plugin`。
+
 **理由**
 
 - 请求链路不再依赖源码扫描；
@@ -132,6 +145,22 @@
 ### 宿主治理前置，桥接执行后置
 
 **决策**：宿主先完成治理，再通过统一执行器将请求转入动态插件运行时。
+
+#### 宿主统一中间件注册方式
+
+动态插件固定前缀路由虽然仍由宿主掌握治理权，但它们在宿主侧的接入方式要与普通宿主路由保持一致：统一挂在`RouterGroup`下，通过`group.Middleware(...)`声明宿主中间件链，再由最终处理器进入动态插件执行器。
+
+其中：
+
+- 通用中间件（如`NeverDoneCtx`、`HandlerResponse`、`CORS`、`Ctx`）继续复用宿主现有注册链；
+- 动态插件特有的治理阶段（如固定前缀命中后的路由匹配、按路由`access`决定的鉴权、权限校验）也以宿主中间件形式挂载，而不是在独立分发入口中手工串联；
+- 动态插件仍**不能自由选择或拼装宿主中间件**，中间件编排权完全由宿主掌握。
+
+**理由**
+
+- 宿主所有`HTTP`入口都遵循同一套路由与中间件注册方式，可降低理解和维护成本；
+- 动态路由治理逻辑仍然保留在宿主，但从“手工串联流程”演进为“宿主中间件链编排”，更符合现有后端工程结构；
+- 通用中间件的改动可以自然覆盖动态插件固定前缀入口，减少后续遗漏。
 
 #### 宿主治理职责
 
@@ -163,10 +192,29 @@
 
 具体业务参数解析仍由插件在其自身运行时内处理。这样既避免宿主为每条动态路由做额外 DTO 适配，也保留了插件业务灵活性。
 
+信封结构是宿主与插件共享的逻辑模型；跨`Wasm`内存传递时必须使用版本化二进制编解码，不能把信封再编码成`json`或纯文本负载。
+
 **理由**
 
 - 动态插件只是业务扩展，不需要宿主重建一套完整接口层。
 - 宿主只治理“如何进入插件”，插件自己决定“如何消费快照并执行业务”。
+
+### 桥接`DTO`采用高效二进制编解码
+
+**决策**：`v1`桥接协议的请求／响应信封采用二进制`protobuf`线格式承载，`BridgeSpec.requestCodec`与`BridgeSpec.responseCodec`只允许声明`protobuf`，宿主拒绝可执行 bridge 使用`json`、`text`、`plain`等文本类编解码协议。
+
+#### 编解码边界
+
+- 二进制编解码只作用于`DynamicRouteBridgeRequestEnvelopeV1`与`DynamicRouteBridgeResponseEnvelopeV1`这类宿主到插件的桥接`DTO`。
+- 客户端原始请求体作为`[]byte`放入请求快照透传；如果业务接口本身接收`JSON`请求体，也由插件业务处理原始请求体，宿主不得把整个桥接信封降级为`JSON`。
+- `protobuf`消息定义、编解码器、请求／响应信封装配、错误响应辅助和 guest 侧处理器适配器统一抽象到`apps/lina-core/pkg/pluginbridge`公共组件。
+- 插件运行时只需复用公共组件注册业务处理函数，不应重复编写底层内存读写、信封编解码和响应打包样板。
+
+**理由**
+
+- 请求／响应快照会出现在每次动态路由调用链路中，使用二进制协议能降低序列化体积和`CPU`开销。
+- 固定`protobuf`线格式后，宿主与动态插件可以共享稳定`schema`，避免`map[string]interface{}`或文本协议带来的运行时反射与歧义。
+- 公共组件把高风险`ABI`细节封装起来，插件作者主要关注业务处理逻辑，更适合`AI agent`生成动态插件。
 
 ### 统一请求／响应快照模型
 
@@ -237,8 +285,8 @@ GOARCH=wasm
 | 字段 | 值 |
 | --- | --- |
 | `protocolVersion` | `v1` |
-| `requestCodec` | `json` |
-| `responseCodec` | `json` |
+| `requestCodec` | `protobuf` |
+| `responseCodec` | `protobuf` |
 | `initializeEntrypoint` | `_initialize` |
 | `requestAllocExport` | `lina_dynamic_route_alloc` |
 | `executeEntrypoint` | `lina_dynamic_route_execute` |
@@ -309,7 +357,7 @@ GOARCH=wasm
 - 标签、摘要、描述来自动态路由合同；
 - `login`路由声明`BearerAuth`；
 - 可执行运行时展示`200`与`500`响应语义；
-- 未声明可执行 bridge 的运行时展示`200`与`501`占位说明。
+- 未声明可执行 bridge 的运行时仅展示`501`占位说明。
 
 **理由**
 
@@ -338,7 +386,8 @@ GOARCH=wasm
 
 **缓解措施**
 
-- 固定`v1 + json`桥接协议；
+- 固定`v1 + protobuf`二进制桥接协议；
+- 通过`apps/lina-core/pkg/pluginbridge`封装信封`schema`、编解码器与 guest 侧`ABI`辅助逻辑；
 - 将桥接 ABI 明确写入产物元数据；
 - 通过单一独立构建器统一产物生成规则，减少环境差异；
 - 用样例插件和单元测试覆盖典型桥接路径。
@@ -365,5 +414,155 @@ GOARCH=wasm
 - 动态权限菜单物化与生命周期同步；
 - `OpenAPI`运行时感知投影；
 - 宿主真实`Wasm bridge`执行；
+- 宿主拒绝`json`或纯文本桥接`DTO`编解码合同；
+- 公共`pluginbridge`组件能被宿主执行器与样例动态插件复用；
 - 样例动态插件通过受限 bridge 返回真实业务响应；
 - `E2E`验证插件生命周期与动态路由真实执行闭环。
+
+## Host Functions（宿主回调能力）
+
+### Context
+
+单向`Wasm bridge`协议只解决了"宿主把请求发给 Guest、Guest 返回响应"的问题，但 Guest 无法回调宿主，导致无法执行日志记录、状态持久化、数据库读写等操作，业务场景极度受限。本节为`Wasm` Guest 增加 **Host Functions** 能力，让插件能安全地调用宿主提供的受控服务，从而支撑真实业务扩展场景。
+
+### 架构概览
+
+```text
+Guest (WASM)                              Host (Go/wazero)
+  |                                         |
+  |-- lina_env.host_call(op, ptr, len) --->|  Guest invokes host
+  |                                         |  1. Read request from Guest memory
+  |                                         |  2. Dispatch by opcode
+  |                                         |  3. Execute (log/DB/state)
+  |<-- lina_host_call_alloc(size) ---------|  4. Callback Guest to alloc buffer
+  |-- return ptr ------------------------->|  5. Write response to Guest memory
+  |<-- return packed(ptr, len) ------------|  6. Return response pointer+length
+  |                                         |
+```
+
+**关键设计决策**：
+
+- **单一入口函数**：所有宿主调用通过`lina_env.host_call(opcode, reqPtr, reqLen) → uint64`统一分发，新增能力不改变`Wasm`导入签名。
+- **独立响应缓冲区**：Guest 导出`lina_host_call_alloc`，使用独立的`guestHostCallResponseBuffer`，避免与主请求缓冲区冲突。
+- **能力声明+运行时校验**：插件在`plugin.yaml`中声明所需能力，宿主在每次 Host Call 时校验。
+- **复用`wazero`再入特性**：Host Function 回调中调用 Guest 导出函数（`lina_host_call_alloc`），`wazero`原生支持。
+
+### 能力清单（Phase 1）
+
+| 能力标识 | Opcode | 说明 |
+|----------|--------|------|
+| `host:log` | `0x0001` | 通过宿主`logger`组件输出结构化日志 |
+| `host:state` | `0x0101`–`0x0103` | 插件隔离的键值状态存储（`sys_plugin_state`表） |
+| `host:db:query` | `0x0201` | 只读`SQL`查询（仅`SELECT`，可访问所有表） |
+| `host:db:execute` | `0x0202` | 写入`SQL`（`INSERT`/`UPDATE`/`DELETE`，禁止`DDL`） |
+
+### 能力声明模型
+
+插件在`plugin.yaml`中声明所需能力：
+
+```yaml
+capabilities:
+  - host:log
+  - host:state
+  - host:db:query
+```
+
+构建器在构建阶段校验能力字符串合法性，并嵌入`Wasm`自定义段`lina.plugin.backend.capabilities`。宿主装载产物时恢复出`manifest.HostCapabilities`，在每次 Host Call 分发时按 opcode 映射到能力标识做`O(1)`校验。未声明的能力调用返回`capability_denied`状态。
+
+### Host Call 协议
+
+#### 请求流程
+
+1. Guest 调用`lina_env.host_call(opcode, reqPtr, reqLen)`。
+2. Host Function 从 Guest 内存读取`reqLen`字节的请求负载。
+3. Host 按 opcode 查找能力映射，校验当前插件是否声明了对应能力。
+4. Host 分发到对应处理器执行操作。
+5. Host 将响应序列化后调用 Guest 导出`lina_host_call_alloc(respLen)`分配缓冲区。
+6. Host 将响应写入 Guest 内存，返回打包的`packed(respPtr, respLen)`。
+
+#### 响应信封
+
+所有 Host Call 响应统一使用`HostCallResponseEnvelope`：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `status` | `uint32` | 状态码：`0=success`、`1=capability_denied`、`2=invalid_request`、`3=internal_error` |
+| `payload` | `bytes` | 序列化的响应负载（按 opcode 不同有不同结构） |
+
+#### 编码方式
+
+请求与响应负载使用手写`protowire`编码（与现有桥接`codec`保持一致），每种 opcode 有独立的请求/响应消息结构。
+
+### 各能力实现细节
+
+#### `host:log`（结构化日志）
+
+Guest 通过`HostLog(level, message, fields)`发送日志请求，宿主使用项目封装的`logger`组件输出，自动附加`[plugin:{pluginID}]`前缀标识日志来源。
+
+#### `host:state`（插件隔离状态存储）
+
+基于`sys_plugin_state`表实现键值存储，所有操作自动按`pluginID`隔离：
+
+- `StateGet(key)`：查询单个状态值
+- `StateSet(key, value)`：写入或更新状态值（`INSERT ... ON DUPLICATE KEY UPDATE`）
+- `StateDelete(key)`：删除单个状态值
+
+表结构：
+
+```sql
+CREATE TABLE IF NOT EXISTS sys_plugin_state (
+    id           INT PRIMARY KEY AUTO_INCREMENT,
+    plugin_id    VARCHAR(64)   NOT NULL DEFAULT '',
+    state_key    VARCHAR(255)  NOT NULL DEFAULT '',
+    state_value  LONGTEXT,
+    created_at   DATETIME,
+    updated_at   DATETIME,
+    UNIQUE KEY uk_plugin_state (plugin_id, state_key)
+);
+```
+
+#### `host:db:query`（只读数据库查询）
+
+- 仅允许`SELECT`语句（前缀校验）
+- 黑名单拒绝`DDL`关键词（`DROP`、`ALTER`、`CREATE`、`TRUNCATE`、`GRANT`、`REVOKE`）
+- `maxRows`上限 1000 行
+- 返回列名、行数据和行数
+
+#### `host:db:execute`（数据库写入）
+
+- 仅允许`INSERT`、`UPDATE`、`DELETE`、`REPLACE`语句
+- 黑名单拒绝`DDL`关键词和`SELECT`语句
+- 返回受影响行数和最后插入`ID`
+
+**DB 访问模式**：开放访问——插件可查询/操作所有表。安全性由管理员决定是否授予该能力来控制。`SQL`语句前缀校验 +`DDL`关键词黑名单防护。
+
+### 安全边界
+
+- 每次 Host Call 都经过能力校验，未声明的能力调用立即拒绝。
+- 状态存储按`pluginID`强隔离，插件无法访问其他插件的状态。
+- 数据库访问受`SQL`前缀校验和`DDL`黑名单双重防护。
+- Host Function 注册在`wazero Runtime`级别（非模块实例级别），与模块缓存机制兼容。
+- 插件运行时上下文通过`context.Context`传递，每个请求独立的`hostCallContext`携带`pluginID`、`capabilities`和`service`引用。
+
+### Guest SDK
+
+`pluginbridge`包提供面向 Guest 的高级`API`封装（`//go:build wasip1`）：
+
+- `HostLog(level, message, fields) error`
+- `HostStateGet(key) (string, bool, error)`
+- `HostStateSet(key, value) error`
+- `HostStateDelete(key) error`
+- `HostDBQuery(sql, args, maxRows) (*HostDBQueryResult, error)`
+- `HostDBExecute(sql, args) (int64, int64, error)`
+- `HostStateGetInt(key) (int, bool, error)` / `HostStateSetInt(key, value) error`
+
+内部通过`//go:wasmimport lina_env host_call`导入宿主函数，`invokeHostCall(opcode, reqBytes)`处理指针传递和响应解码。
+
+### Phase 2 预留
+
+| 能力 | 说明 |
+|------|------|
+| `host:http` | 出站`HTTP`请求，域名白名单控制 |
+| `host:event` | 系统事件发布/订阅 |
+| `host:config` | 读取宿主配置项 |
+| 管理`UI` | 能力审批/授权界面 |

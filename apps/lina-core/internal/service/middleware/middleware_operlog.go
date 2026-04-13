@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/gogf/gf/v2/os/grpool"
 
 	"lina-core/internal/service/operlog"
+	pluginsvc "lina-core/internal/service/plugin"
 	"lina-core/pkg/logger"
 )
 
@@ -22,34 +24,40 @@ func (s *Service) OperLog(r *ghttp.Request) {
 
 	// Collect all data synchronously (r.Response buffer is only available now)
 	var (
-		method     = r.Method
-		handler    = r.GetServeHandler()
-		operLogTag = ""
+		method      = r.Method
+		handler     = r.GetServeHandler()
+		operLogTag  = ""
+		title       = ""
+		operSummary = ""
+		dynamicMeta = pluginsvc.GetDynamicRouteOperLogMetadata(r)
 	)
 	if handler != nil {
 		operLogTag = handler.GetMetaTag("operLog")
+		title = handler.GetMetaTag("tags")
+		operSummary = handler.GetMetaTag("summary")
+	}
+	if dynamicMeta != nil {
+		if strings.TrimSpace(dynamicMeta.OperLogTag) != "" {
+			operLogTag = dynamicMeta.OperLogTag
+		}
+		if strings.TrimSpace(dynamicMeta.Title) != "" {
+			title = dynamicMeta.Title
+		}
+		if strings.TrimSpace(dynamicMeta.Summary) != "" {
+			operSummary = dynamicMeta.Summary
+		}
 	}
 
 	// Only log write operations (POST/PUT/DELETE) or GET with operLog tag
 	shouldLog := false
 	switch method {
-	case "POST", "PUT", "DELETE":
+	case http.MethodPost, http.MethodPut, http.MethodDelete:
 		shouldLog = true
-	case "GET":
+	case http.MethodGet:
 		shouldLog = operLogTag != ""
 	}
 	if !shouldLog {
 		return
-	}
-
-	title := ""
-	if handler != nil {
-		title = handler.GetMetaTag("tags")
-	}
-
-	operSummary := ""
-	if handler != nil {
-		operSummary = handler.GetMetaTag("summary")
 	}
 
 	operType := inferOperType(method, r.URL.Path, operLogTag)
@@ -70,10 +78,16 @@ func (s *Service) OperLog(r *ghttp.Request) {
 	// Get response result (skip binary content like xlsx exports)
 	jsonResult := ""
 	resContentType := r.Response.Header().Get("Content-Type")
+	if resContentType == "" && dynamicMeta != nil {
+		resContentType = dynamicMeta.ResponseContentType
+	}
 	if isBinaryContentType(resContentType) {
 		jsonResult = "[二进制内容]"
 	} else {
 		jsonResult = truncate(r.Response.BufferString(), maxParamLen)
+		if jsonResult == "" && dynamicMeta != nil {
+			jsonResult = truncate(dynamicMeta.ResponseBody, maxParamLen)
+		}
 	}
 
 	status := operlog.OperStatusSuccess
@@ -116,31 +130,21 @@ func (s *Service) OperLog(r *ghttp.Request) {
 // inferOperType determines operation type from HTTP method and path.
 func inferOperType(method, path, operLogTag string) int {
 	if operLogTag != "" {
-		switch operLogTag {
-		case "1":
-			return operlog.OperTypeCreate
-		case "2":
-			return operlog.OperTypeUpdate
-		case "3":
-			return operlog.OperTypeDelete
-		case "4":
-			return operlog.OperTypeExport
-		case "5":
-			return operlog.OperTypeImport
-		default:
-			return operlog.OperTypeOther
+		if operType, ok := operlog.ResolveOperTag(operLogTag); ok {
+			return operType
 		}
+		return operlog.OperTypeOther
 	}
 
 	switch method {
-	case "POST":
+	case http.MethodPost:
 		if strings.Contains(strings.ToLower(path), "import") {
 			return operlog.OperTypeImport
 		}
 		return operlog.OperTypeCreate
-	case "PUT":
+	case http.MethodPut:
 		return operlog.OperTypeUpdate
-	case "DELETE":
+	case http.MethodDelete:
 		return operlog.OperTypeDelete
 	default:
 		return operlog.OperTypeOther

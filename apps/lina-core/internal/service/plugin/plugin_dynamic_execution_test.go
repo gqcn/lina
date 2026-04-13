@@ -47,10 +47,7 @@ func TestBuildRuntimeWasmArtifactEmbedsBackendContracts(t *testing.T) {
 		}, "\n"),
 	)
 
-	buildOut, err := service.BuildRuntimeWasmArtifactFromSource(pluginDir)
-	if err != nil {
-		t.Fatalf("expected dynamic artifact build to succeed, got error: %v", err)
-	}
+	buildOut := buildRuntimeArtifactWithHackTool(t, pluginDir)
 
 	artifact, err := service.parseRuntimeWasmArtifactContent(buildOut.ArtifactPath, buildOut.Content)
 	if err != nil {
@@ -105,10 +102,8 @@ func TestLoadRuntimePluginManifestFromArtifactHydratesBackendContracts(t *testin
 		}, "\n"),
 	)
 
-	buildOut, err := service.BuildRuntimeWasmArtifactFromSource(pluginDir)
-	if err != nil {
-		t.Fatalf("expected dynamic artifact build to succeed, got error: %v", err)
-	}
+	buildOut := buildRuntimeArtifactWithHackTool(t, pluginDir)
+	var err error
 	if err = os.MkdirAll(filepath.Dir(buildOut.ArtifactPath), 0o755); err != nil {
 		t.Fatalf("expected runtime artifact directory to be created, got error: %v", err)
 	}

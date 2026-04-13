@@ -166,6 +166,10 @@ type pluginManifestSnapshot struct {
 	MenuCount                 int    `yaml:"menuCount,omitempty"`
 	BackendHookCount          int    `yaml:"backendHookCount,omitempty"`
 	ResourceSpecCount         int    `yaml:"resourceSpecCount,omitempty"`
+	RouteCount                int    `yaml:"routeCount,omitempty"`
+	RouteExecutionEnabled     bool   `yaml:"routeExecutionEnabled,omitempty"`
+	RouteRequestCodec         string `yaml:"routeRequestCodec,omitempty"`
+	RouteResponseCodec        string `yaml:"routeResponseCodec,omitempty"`
 	RuntimeFrontendAssetCount int    `yaml:"runtimeFrontendAssetCount,omitempty"`
 	RuntimeSQLAssetCount      int    `yaml:"runtimeSqlAssetCount,omitempty"`
 }

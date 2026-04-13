@@ -8,7 +8,7 @@ import (
 
 // ExportReq defines the request for exporting operation logs.
 type ExportReq struct {
-	g.Meta         `path:"/operlog/export" method:"get" tags:"操作日志" summary:"导出操作日志" operLog:"4" dc:"导出操作日志数据为Excel文件，支持按条件筛选导出，也支持导出指定ID的记录"`
+	g.Meta         `path:"/operlog/export" method:"get" tags:"操作日志" summary:"导出操作日志" operLog:"export" dc:"导出操作日志数据为Excel文件，支持按条件筛选导出，也支持导出指定ID的记录"`
 	Title          string `json:"title" dc:"按模块标题筛选（模糊匹配）" eg:"用户管理"`
 	OperName       string `json:"operName" dc:"按操作人员筛选（模糊匹配）" eg:"admin"`
 	OperType       *int   `json:"operType" dc:"按操作类型筛选：1=新增 2=修改 3=删除 4=导出 5=导入" eg:"1"`

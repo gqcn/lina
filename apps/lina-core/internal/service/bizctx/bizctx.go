@@ -4,10 +4,13 @@ import (
 	"context"
 
 	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/gogf/gf/v2/os/gctx"
 
-	"lina-core/internal/consts"
 	"lina-core/internal/model"
 )
+
+// contextKey is the key for business context in request context.
+const contextKey gctx.StrKey = "BizCtx"
 
 // Service provides business context operations.
 type Service struct{}
@@ -19,12 +22,12 @@ func New() *Service {
 
 // Init initializes and injects business context into request.
 func (s *Service) Init(r *ghttp.Request, ctx *model.Context) {
-	r.SetCtxVar(consts.ContextKey, ctx)
+	r.SetCtxVar(contextKey, ctx)
 }
 
 // Get retrieves business context from context.
 func (s *Service) Get(ctx context.Context) *model.Context {
-	value := ctx.Value(consts.ContextKey)
+	value := ctx.Value(contextKey)
 	if value == nil {
 		return nil
 	}

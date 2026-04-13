@@ -121,6 +121,9 @@ func (s *Service) reconcileDynamicPluginRequest(
 	return s.ReconcileRuntimePlugins(ctx)
 }
 
+// reconcileDynamicPluginIfNeeded selects the smallest convergence action for
+// the current registry row: install, upgrade, same-version refresh, state
+// toggle, or uninstall.
 func (s *Service) reconcileDynamicPluginIfNeeded(ctx context.Context, registry *entity.SysPlugin) error {
 	if registry == nil || normalizePluginType(registry.Type) != pluginTypeDynamic {
 		return nil
@@ -150,7 +153,13 @@ func (s *Service) reconcileDynamicPluginIfNeeded(ctx context.Context, registry *
 		return s.applyDynamicInstall(ctx, registry, desiredManifest, desiredState)
 	}
 	if strings.TrimSpace(desiredManifest.Version) != strings.TrimSpace(registry.Version) {
+		// Version drift means upgrade semantics, including upgrade SQL and release switch.
 		return s.applyDynamicUpgrade(ctx, registry, desiredManifest, desiredState)
+	}
+	if s.shouldRefreshInstalledDynamicRelease(ctx, registry, desiredManifest) {
+		// Same semantic version can still require refresh when the staged artifact,
+		// archive bytes, or synthesized checksum changed after a rebuild.
+		return s.applyDynamicRefresh(ctx, registry, desiredManifest, desiredState)
 	}
 	if desiredState != stableState {
 		return s.applyDynamicStateToggle(ctx, registry, desiredManifest, desiredState)
@@ -199,6 +208,9 @@ func (s *Service) reconcileCurrentNodeProjection(ctx context.Context, registry *
 	})
 }
 
+// applyDynamicInstall performs the first activation of a discovered dynamic
+// plugin, including artifact archive, SQL install, permission/menu projection,
+// optional frontend bundle preparation, and registry finalization.
 func (s *Service) applyDynamicInstall(
 	ctx context.Context,
 	registry *entity.SysPlugin,
@@ -223,7 +235,7 @@ func (s *Service) applyDynamicInstall(
 	if err = s.executeManifestSQLFiles(ctx, manifest, pluginMigrationDirectionInstall); err != nil {
 		return s.rollbackDynamicInstallOrUpgrade(ctx, registry, nil, manifest, release.Id, err)
 	}
-	if err = s.syncPluginMenus(ctx, manifest); err != nil {
+	if err = s.syncPluginMenusAndPermissions(ctx, manifest); err != nil {
 		return s.rollbackDynamicInstallOrUpgrade(ctx, registry, nil, manifest, release.Id, err)
 	}
 	if desiredState == pluginHostStateEnabled.String() {
@@ -277,6 +289,8 @@ func (s *Service) applyDynamicInstall(
 	return nil
 }
 
+// applyDynamicUpgrade moves an installed plugin to a new semantic version.
+// Unlike refresh, this path runs upgrade SQL and may replace the active release.
 func (s *Service) applyDynamicUpgrade(
 	ctx context.Context,
 	registry *entity.SysPlugin,
@@ -286,6 +300,11 @@ func (s *Service) applyDynamicUpgrade(
 	activeManifest, err := s.loadActiveDynamicPluginManifest(ctx, registry)
 	if err != nil {
 		return err
+	}
+	// Invalidate the Wasm module cache for the previous active artifact before
+	// replacing it so subsequent requests compile from the new artifact.
+	if activeManifest != nil && activeManifest.RuntimeArtifact != nil {
+		InvalidateWasmModuleCache(activeManifest.RuntimeArtifact.Path)
 	}
 	release, err := s.getPluginRelease(ctx, manifest.ID, manifest.Version)
 	if err != nil {
@@ -305,7 +324,7 @@ func (s *Service) applyDynamicUpgrade(
 	if err = s.executeManifestSQLFiles(ctx, manifest, pluginMigrationDirectionUpgrade); err != nil {
 		return s.rollbackDynamicInstallOrUpgrade(ctx, registry, activeManifest, manifest, release.Id, err)
 	}
-	if err = s.syncPluginMenus(ctx, manifest); err != nil {
+	if err = s.syncPluginMenusAndPermissions(ctx, manifest); err != nil {
 		return s.rollbackDynamicInstallOrUpgrade(ctx, registry, activeManifest, manifest, release.Id, err)
 	}
 	if desiredState == pluginHostStateEnabled.String() {
@@ -339,6 +358,8 @@ func (s *Service) applyDynamicUpgrade(
 	return s.syncPluginMetadata(ctx, manifest, registry, "Dynamic plugin release upgraded on primary node.")
 }
 
+// applyDynamicStateToggle flips enable/disable status for the current active
+// release without changing the installed version or artifact archive.
 func (s *Service) applyDynamicStateToggle(
 	ctx context.Context,
 	registry *entity.SysPlugin,
@@ -395,10 +416,69 @@ func (s *Service) applyDynamicStateToggle(
 	)
 }
 
+// applyDynamicRefresh reapplies host projections for the same semantic version
+// when the artifact checksum or archived bytes changed. It intentionally skips
+// upgrade SQL because the version contract did not advance.
+func (s *Service) applyDynamicRefresh(
+	ctx context.Context,
+	registry *entity.SysPlugin,
+	manifest *pluginManifest,
+	desiredState string,
+) error {
+	release, err := s.getPluginRegistryRelease(ctx, registry)
+	if err != nil {
+		return err
+	}
+	if release == nil {
+		return gerror.Newf("插件发布记录不存在: %s@%s", manifest.ID, manifest.Version)
+	}
+	if err = s.markPluginRegistryReconciling(ctx, registry, pluginHostStateValue(desiredState)); err != nil {
+		return err
+	}
+
+	// Invalidate any previously cached compiled module so the refreshed artifact
+	// is recompiled on next bridge invocation.
+	if manifest.RuntimeArtifact != nil {
+		InvalidateWasmModuleCache(manifest.RuntimeArtifact.Path)
+	}
+	archivedPath, err := s.archiveRuntimePluginReleaseArtifact(ctx, manifest)
+	if err != nil {
+		return s.rollbackDynamicReleaseFailure(ctx, registry, release.Id, err)
+	}
+	if err = s.syncPluginMenusAndPermissions(ctx, manifest); err != nil {
+		return s.rollbackDynamicReleaseFailure(ctx, registry, release.Id, err)
+	}
+
+	enabled := pluginStatusDisabled
+	if desiredState == pluginHostStateEnabled.String() {
+		enabled = pluginStatusEnabled
+		if err = s.ValidateRuntimeFrontendMenuBindings(ctx, manifest); err != nil {
+			return s.rollbackDynamicReleaseFailure(ctx, registry, release.Id, err)
+		}
+		if hasRuntimeFrontendAssets(manifest) {
+			if _, err = s.ensureRuntimeFrontendBundle(ctx, manifest); err != nil {
+				return s.rollbackDynamicReleaseFailure(ctx, registry, release.Id, err)
+			}
+		}
+	}
+
+	registry, err = s.finalizePluginRegistryState(ctx, registry, manifest, release, pluginInstalledYes, enabled)
+	if err != nil {
+		return s.rollbackDynamicReleaseFailure(ctx, registry, release.Id, err)
+	}
+	if err = s.updatePluginReleaseState(ctx, release.Id, s.buildPluginReleaseStatus(pluginInstalledYes, enabled), archivedPath); err != nil {
+		return err
+	}
+	return s.syncPluginMetadata(ctx, manifest, registry, "Dynamic plugin release refreshed on primary node.")
+}
+
 func (s *Service) applyDynamicUninstall(ctx context.Context, registry *entity.SysPlugin) error {
 	manifest, err := s.loadActiveDynamicPluginManifest(ctx, registry)
 	if err != nil {
 		return err
+	}
+	if manifest != nil && manifest.RuntimeArtifact != nil {
+		InvalidateWasmModuleCache(manifest.RuntimeArtifact.Path)
 	}
 	release, err := s.getPluginRegistryRelease(ctx, registry)
 	if err != nil {

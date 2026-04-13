@@ -3,6 +3,7 @@ package plugin
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -34,8 +35,15 @@ func ensureBundledRuntimeSampleArtifactForTests() error {
 		return statErr
 	}
 
-	_, err = New().WriteRuntimeWasmArtifactFromSource(pluginDir)
-	return err
+	builderDir := filepath.Join(repoRoot, "hack", "build-wasm")
+	cmd := exec.Command("go", "run", ".", "--plugin-dir", pluginDir)
+	cmd.Dir = builderDir
+	cmd.Env = append(os.Environ(), "GOWORK="+filepath.Join(repoRoot, "go.work"))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("run hack/build-wasm failed: %w: %s", err, string(output))
+	}
+	return nil
 }
 
 type testTopology struct {

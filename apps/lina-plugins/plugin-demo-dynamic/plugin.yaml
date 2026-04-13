@@ -31,6 +31,15 @@ homepage: https://example.com/lina/plugins/plugin-demo-dynamic
 # 可选。
 license: Apache-2.0
 
+# 插件宿主调用能力声明。
+# 声明该插件需要使用的宿主 Host Function 能力。
+# 宿主在运行时校验每次 Host Call 的 opcode 是否在声明范围内。
+# 支持的能力标识：host:log、host:state、host:db:query、host:db:execute。
+capabilities:
+  - host:log
+  - host:state
+  - host:db:query
+
 # 插件菜单元数据。
 # 宿主会在动态插件安装时按这些声明写入 `sys_menu`，卸载时再按同一份声明删除菜单与角色关联。
 # 每个菜单对象支持的常用字段说明：

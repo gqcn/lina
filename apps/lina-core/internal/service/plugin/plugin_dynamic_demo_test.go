@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"lina-core/internal/model/entity"
+	"lina-core/pkg/pluginbridge"
 )
 
 func TestPluginDemoRuntimePluginMatchesReviewSource(t *testing.T) {
@@ -28,9 +29,9 @@ func TestPluginDemoRuntimePluginMatchesReviewSource(t *testing.T) {
 		t.Fatalf("failed to load dynamic plugin manifest: %v", err)
 	}
 
-	expectedFrontendAssets := mustCollectRuntimeBuilderFrontendAssets(t, service, pluginDir)
-	expectedInstallSQLAssets := mustCollectRuntimeBuilderSQLAssets(t, service, pluginDir, false)
-	expectedUninstallSQLAssets := mustCollectRuntimeBuilderSQLAssets(t, service, pluginDir, true)
+	expectedFrontendAssets := mustCollectDynamicFrontendAssets(t, pluginDir)
+	expectedInstallSQLAssets := mustCollectDynamicSQLAssets(t, pluginDir, false)
+	expectedUninstallSQLAssets := mustCollectDynamicSQLAssets(t, pluginDir, true)
 	expectedMetadata := buildExpectedRuntimeReviewMetadata(
 		expectedFrontendAssets,
 		expectedInstallSQLAssets,
@@ -108,10 +109,8 @@ func TestPluginDemoRuntimePluginMatchesReviewSource(t *testing.T) {
 func stageRuntimePluginForValidation(t *testing.T, service *Service, sourcePluginDir string) string {
 	t.Helper()
 
-	buildOut, err := service.BuildRuntimeWasmArtifactFromSource(sourcePluginDir)
-	if err != nil {
-		t.Fatalf("failed to build source dynamic artifact: %v", err)
-	}
+	buildOut := buildRuntimeArtifactWithHackTool(t, sourcePluginDir)
+	var err error
 
 	targetPluginDir := t.TempDir()
 	if err = os.MkdirAll(filepath.Join(targetPluginDir, "runtime"), 0o755); err != nil {
@@ -128,7 +127,7 @@ func stageRuntimePluginForValidation(t *testing.T, service *Service, sourcePlugi
 
 	artifactPath := filepath.Join(
 		targetPluginDir,
-		buildPluginDynamicArtifactRelativePath(buildOut.Manifest.ID),
+		buildPluginDynamicArtifactRelativePath("plugin-demo-dynamic"),
 	)
 	if err = os.WriteFile(artifactPath, buildOut.Content, 0o644); err != nil {
 		t.Fatalf("failed to write staged dynamic artifact: %v", err)
@@ -144,37 +143,68 @@ func buildExpectedRuntimeReviewMetadata(
 ) *pluginDynamicArtifactMetadata {
 	return &pluginDynamicArtifactMetadata{
 		RuntimeKind:        pluginDynamicKindWasm.String(),
-		ABIVersion:         pluginDynamicSupportedABIVersion,
+		ABIVersion:         pluginbridge.SupportedABIVersion,
 		FrontendAssetCount: len(frontendAssets),
 		SQLAssetCount:      len(installSQLAssets) + len(uninstallSQLAssets),
 	}
 }
 
-func mustCollectRuntimeBuilderFrontendAssets(
+func mustCollectDynamicFrontendAssets(
 	t *testing.T,
-	service *Service,
 	pluginDir string,
 ) []*pluginDynamicArtifactFrontendAsset {
 	t.Helper()
 
-	assets, err := service.collectRuntimeBuilderFrontendAssets(pluginDir)
+	frontendDir := filepath.Join(pluginDir, "frontend", "pages")
+	files, err := os.ReadDir(frontendDir)
 	if err != nil {
-		t.Fatalf("failed to collect runtime builder frontend assets: %v", err)
+		t.Fatalf("failed to collect dynamic frontend assets: %v", err)
+	}
+	assets := make([]*pluginDynamicArtifactFrontendAsset, 0, len(files))
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		content, err := os.ReadFile(filepath.Join(frontendDir, file.Name()))
+		if err != nil {
+			t.Fatalf("failed to read dynamic frontend asset: %v", err)
+		}
+		assets = append(assets, &pluginDynamicArtifactFrontendAsset{
+			Path:    file.Name(),
+			Content: content,
+		})
 	}
 	return assets
 }
 
-func mustCollectRuntimeBuilderSQLAssets(
+func mustCollectDynamicSQLAssets(
 	t *testing.T,
-	service *Service,
 	pluginDir string,
 	uninstall bool,
 ) []*pluginDynamicArtifactSQLAsset {
 	t.Helper()
 
-	assets, err := service.collectRuntimeBuilderSQLAssets(pluginDir, uninstall)
+	searchDir := filepath.Join(pluginDir, "manifest", "sql")
+	if uninstall {
+		searchDir = filepath.Join(pluginDir, "manifest", "sql", "uninstall")
+	}
+	entries, err := os.ReadDir(searchDir)
 	if err != nil {
-		t.Fatalf("failed to collect runtime builder SQL assets: %v", err)
+		if os.IsNotExist(err) {
+			return []*pluginDynamicArtifactSQLAsset{}
+		}
+		t.Fatalf("failed to collect dynamic SQL assets: %v", err)
+	}
+	assets := make([]*pluginDynamicArtifactSQLAsset, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".sql" {
+			continue
+		}
+		content, err := os.ReadFile(filepath.Join(searchDir, entry.Name()))
+		if err != nil {
+			t.Fatalf("failed to read dynamic SQL asset: %v", err)
+		}
+		assets = append(assets, &pluginDynamicArtifactSQLAsset{Key: entry.Name(), Content: strings.TrimSpace(string(content))})
 	}
 	return assets
 }

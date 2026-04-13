@@ -15,18 +15,8 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gfile"
-)
 
-const (
-	pluginDynamicWasmSectionManifest      = "lina.plugin.manifest"
-	pluginDynamicWasmSectionDynamic       = "lina.plugin.dynamic"
-	pluginDynamicWasmSectionLegacyRuntime = "lina.plugin.runtime"
-	pluginDynamicWasmSectionFrontend      = "lina.plugin.frontend.assets"
-	pluginDynamicWasmSectionInstallSQL    = "lina.plugin.install.sql"
-	pluginDynamicWasmSectionUninstallSQL  = "lina.plugin.uninstall.sql"
-	pluginDynamicWasmSectionBackendHooks  = "lina.plugin.backend.hooks"
-	pluginDynamicWasmSectionBackendRes    = "lina.plugin.backend.resources"
-	pluginDynamicSupportedABIVersion      = "v1"
+	"lina-core/pkg/pluginbridge"
 )
 
 // missingRuntimePluginArtifactError marks the "wasm not generated yet" state so
@@ -83,12 +73,16 @@ type pluginDynamicArtifact struct {
 	ABIVersion         string
 	FrontendAssetCount int
 	SQLAssetCount      int
+	RouteCount         int
 	Manifest           *pluginDynamicArtifactManifest
 	FrontendAssets     []*pluginDynamicArtifactFrontendAsset
 	InstallSQLAssets   []*pluginDynamicArtifactSQLAsset
 	UninstallSQLAssets []*pluginDynamicArtifactSQLAsset
 	HookSpecs          []*pluginHookSpec
 	ResourceSpecs      []*pluginResourceSpec
+	RouteContracts     []*pluginbridge.RouteContract
+	BridgeSpec         *pluginbridge.BridgeSpec
+	Capabilities       []string
 }
 
 // pluginDynamicArtifactManifest stores the plugin identity embedded into wasm.
@@ -102,12 +96,7 @@ type pluginDynamicArtifactManifest struct {
 }
 
 // pluginDynamicArtifactMetadata stores the host-owned runtime metadata section.
-type pluginDynamicArtifactMetadata struct {
-	RuntimeKind        string `json:"runtimeKind" yaml:"runtimeKind"`
-	ABIVersion         string `json:"abiVersion" yaml:"abiVersion"`
-	FrontendAssetCount int    `json:"frontendAssetCount,omitempty" yaml:"frontendAssetCount,omitempty"`
-	SQLAssetCount      int    `json:"sqlAssetCount,omitempty" yaml:"sqlAssetCount,omitempty"`
-}
+type pluginDynamicArtifactMetadata = pluginbridge.RuntimeArtifactMetadata
 
 // pluginDynamicArtifactFrontendAsset stores one embedded frontend static asset.
 type pluginDynamicArtifactFrontendAsset struct {
@@ -193,22 +182,24 @@ func (s *Service) parseRuntimeWasmArtifact(filePath string) (*pluginDynamicArtif
 }
 
 // parseRuntimeWasmArtifactContent parses one wasm artifact directly from memory.
+// Runtime metadata carries fast review summaries, but the parsed section payloads
+// remain the source of truth used by the host at runtime.
 func (s *Service) parseRuntimeWasmArtifactContent(filePath string, content []byte) (*pluginDynamicArtifact, error) {
 	sections, err := parseWasmCustomSections(content)
 	if err != nil {
 		return nil, gerror.Wrapf(err, "解析动态插件产物失败: %s", filePath)
 	}
 
-	manifestSection, ok := sections[pluginDynamicWasmSectionManifest]
+	manifestSection, ok := sections[pluginbridge.WasmSectionManifest]
 	if !ok {
-		return nil, gerror.Newf("动态插件缺少自定义节 %s: %s", pluginDynamicWasmSectionManifest, filePath)
+		return nil, gerror.Newf("动态插件缺少自定义节 %s: %s", pluginbridge.WasmSectionManifest, filePath)
 	}
-	runtimeSection, ok := sections[pluginDynamicWasmSectionDynamic]
+	runtimeSection, ok := sections[pluginbridge.WasmSectionRuntime]
 	if !ok {
-		runtimeSection, ok = sections[pluginDynamicWasmSectionLegacyRuntime]
+		runtimeSection, ok = sections[pluginbridge.WasmSectionLegacyRuntime]
 	}
 	if !ok {
-		return nil, gerror.Newf("动态插件缺少自定义节 %s: %s", pluginDynamicWasmSectionDynamic, filePath)
+		return nil, gerror.Newf("动态插件缺少自定义节 %s: %s", pluginbridge.WasmSectionRuntime, filePath)
 	}
 
 	embeddedManifest := &pluginDynamicArtifactManifest{}
@@ -230,7 +221,7 @@ func (s *Service) parseRuntimeWasmArtifactContent(filePath string, content []byt
 	frontendAssets, err := parseRuntimeArtifactFrontendAssets(
 		filePath,
 		sections,
-		pluginDynamicWasmSectionFrontend,
+		pluginbridge.WasmSectionFrontendAssets,
 	)
 	if err != nil {
 		return nil, err
@@ -238,7 +229,7 @@ func (s *Service) parseRuntimeWasmArtifactContent(filePath string, content []byt
 	installSQLAssets, err := parseRuntimeArtifactSQLAssets(
 		filePath,
 		sections,
-		pluginDynamicWasmSectionInstallSQL,
+		pluginbridge.WasmSectionInstallSQL,
 	)
 	if err != nil {
 		return nil, err
@@ -246,7 +237,7 @@ func (s *Service) parseRuntimeWasmArtifactContent(filePath string, content []byt
 	uninstallSQLAssets, err := parseRuntimeArtifactSQLAssets(
 		filePath,
 		sections,
-		pluginDynamicWasmSectionUninstallSQL,
+		pluginbridge.WasmSectionUninstallSQL,
 	)
 	if err != nil {
 		return nil, err
@@ -256,6 +247,18 @@ func (s *Service) parseRuntimeWasmArtifactContent(filePath string, content []byt
 		return nil, err
 	}
 	resourceSpecs, err := s.parseRuntimeArtifactResourceSpecs(filePath, embeddedManifest.ID, sections)
+	if err != nil {
+		return nil, err
+	}
+	routeContracts, err := s.parseRuntimeArtifactRouteContracts(filePath, embeddedManifest.ID, sections)
+	if err != nil {
+		return nil, err
+	}
+	bridgeSpec, err := s.parseRuntimeArtifactBridgeSpec(filePath, sections)
+	if err != nil {
+		return nil, err
+	}
+	capabilities, err := s.parseRuntimeArtifactCapabilities(filePath, sections)
 	if err != nil {
 		return nil, err
 	}
@@ -272,11 +275,14 @@ func (s *Service) parseRuntimeWasmArtifactContent(filePath string, content []byt
 	if abiVersion == "" {
 		return nil, gerror.Newf("动态插件缺少 ABI 版本: %s", filePath)
 	}
-	if abiVersion != pluginDynamicSupportedABIVersion {
+	if abiVersion != pluginbridge.SupportedABIVersion {
 		return nil, gerror.Newf("动态插件 ABI 版本不受支持: %s", runtimeMetadata.ABIVersion)
 	}
 
 	totalSQLAssetCount := len(installSQLAssets) + len(uninstallSQLAssets)
+	// Metadata counts are emitted by the builder as an integrity summary. When the
+	// summary is present it must match the actual decoded sections, otherwise the
+	// artifact likely mixed stale metadata with a newer payload.
 	if runtimeMetadata.SQLAssetCount > 0 && runtimeMetadata.SQLAssetCount != totalSQLAssetCount {
 		return nil, gerror.Newf(
 			"动态插件 SQL 资源数量与元数据不一致: metadata=%d actual=%d",
@@ -285,6 +291,8 @@ func (s *Service) parseRuntimeWasmArtifactContent(filePath string, content []byt
 		)
 	}
 	if runtimeMetadata.SQLAssetCount <= 0 {
+		// Older artifacts may not carry the summary count yet, so backfill it from
+		// the parsed detail sections for backwards compatibility.
 		runtimeMetadata.SQLAssetCount = totalSQLAssetCount
 	}
 	if runtimeMetadata.FrontendAssetCount > 0 && runtimeMetadata.FrontendAssetCount != len(frontendAssets) {
@@ -297,6 +305,18 @@ func (s *Service) parseRuntimeWasmArtifactContent(filePath string, content []byt
 	if runtimeMetadata.FrontendAssetCount <= 0 {
 		runtimeMetadata.FrontendAssetCount = len(frontendAssets)
 	}
+	// RouteCount follows the same rule: positive metadata means "builder saw this
+	// exact number of contracts", while zero/negative means "derive from payload".
+	if runtimeMetadata.RouteCount > 0 && runtimeMetadata.RouteCount != len(routeContracts) {
+		return nil, gerror.Newf(
+			"动态插件路由数量与元数据不一致: metadata=%d actual=%d",
+			runtimeMetadata.RouteCount,
+			len(routeContracts),
+		)
+	}
+	if runtimeMetadata.RouteCount <= 0 {
+		runtimeMetadata.RouteCount = len(routeContracts)
+	}
 
 	return &pluginDynamicArtifact{
 		Path:               filePath,
@@ -305,12 +325,16 @@ func (s *Service) parseRuntimeWasmArtifactContent(filePath string, content []byt
 		ABIVersion:         abiVersion,
 		FrontendAssetCount: maxInt(runtimeMetadata.FrontendAssetCount, 0),
 		SQLAssetCount:      maxInt(runtimeMetadata.SQLAssetCount, 0),
+		RouteCount:         maxInt(runtimeMetadata.RouteCount, 0),
 		Manifest:           embeddedManifest,
 		FrontendAssets:     frontendAssets,
 		InstallSQLAssets:   installSQLAssets,
 		UninstallSQLAssets: uninstallSQLAssets,
 		HookSpecs:          hookSpecs,
 		ResourceSpecs:      resourceSpecs,
+		RouteContracts:     routeContracts,
+		BridgeSpec:         bridgeSpec,
+		Capabilities:       capabilities,
 	}, nil
 }
 
@@ -336,12 +360,13 @@ func (s *Service) buildRuntimeArtifactRemark(manifest *pluginManifest) string {
 	}
 
 	return fmt.Sprintf(
-		"The host validated one %s runtime artifact using ABI %s with %d embedded frontend assets, %d install SQL assets, and %d uninstall SQL assets declared.",
+		"The host validated one %s runtime artifact using ABI %s with %d embedded frontend assets, %d install SQL assets, %d uninstall SQL assets, and %d dynamic routes declared.",
 		manifest.RuntimeArtifact.RuntimeKind,
 		manifest.RuntimeArtifact.ABIVersion,
 		manifest.RuntimeArtifact.FrontendAssetCount,
 		len(manifest.RuntimeArtifact.InstallSQLAssets),
 		len(manifest.RuntimeArtifact.UninstallSQLAssets),
+		len(manifest.RuntimeArtifact.RouteContracts),
 	)
 }
 
@@ -472,7 +497,7 @@ func (s *Service) parseRuntimeArtifactHookSpecs(
 	pluginID string,
 	sections map[string][]byte,
 ) ([]*pluginHookSpec, error) {
-	content, ok := sections[pluginDynamicWasmSectionBackendHooks]
+	content, ok := sections[pluginbridge.WasmSectionBackendHooks]
 	if !ok {
 		return []*pluginHookSpec{}, nil
 	}
@@ -494,7 +519,7 @@ func (s *Service) parseRuntimeArtifactResourceSpecs(
 	pluginID string,
 	sections map[string][]byte,
 ) ([]*pluginResourceSpec, error) {
-	content, ok := sections[pluginDynamicWasmSectionBackendRes]
+	content, ok := sections[pluginbridge.WasmSectionBackendResources]
 	if !ok {
 		return []*pluginResourceSpec{}, nil
 	}
@@ -511,6 +536,64 @@ func (s *Service) parseRuntimeArtifactResourceSpecs(
 		cloned = append(cloned, clonePluginResourceSpec(item))
 	}
 	return cloned, nil
+}
+
+func (s *Service) parseRuntimeArtifactRouteContracts(
+	filePath string,
+	pluginID string,
+	sections map[string][]byte,
+) ([]*pluginbridge.RouteContract, error) {
+	content, ok := sections[pluginbridge.WasmSectionBackendRoutes]
+	if !ok {
+		return []*pluginbridge.RouteContract{}, nil
+	}
+
+	items := make([]*pluginbridge.RouteContract, 0)
+	if err := json.Unmarshal(content, &items); err != nil {
+		return nil, gerror.Wrapf(err, "解析动态插件后端动态路由契约失败: %s", filePath)
+	}
+	if err := pluginbridge.ValidateRouteContracts(pluginID, items); err != nil {
+		return nil, gerror.Wrapf(err, "校验动态插件后端动态路由契约失败: %s", filePath)
+	}
+	return items, nil
+}
+
+func (s *Service) parseRuntimeArtifactBridgeSpec(
+	filePath string,
+	sections map[string][]byte,
+) (*pluginbridge.BridgeSpec, error) {
+	content, ok := sections[pluginbridge.WasmSectionBackendBridge]
+	if !ok {
+		return nil, nil
+	}
+
+	spec := &pluginbridge.BridgeSpec{}
+	if err := json.Unmarshal(content, spec); err != nil {
+		return nil, gerror.Wrapf(err, "解析动态插件 bridge 契约失败: %s", filePath)
+	}
+	if err := pluginbridge.ValidateBridgeSpec(spec); err != nil {
+		return nil, gerror.Wrapf(err, "校验动态插件 bridge 契约失败: %s", filePath)
+	}
+	return spec, nil
+}
+
+func (s *Service) parseRuntimeArtifactCapabilities(
+	filePath string,
+	sections map[string][]byte,
+) ([]string, error) {
+	content, ok := sections[pluginbridge.WasmSectionBackendCapabilities]
+	if !ok {
+		return nil, nil
+	}
+
+	var items []string
+	if err := json.Unmarshal(content, &items); err != nil {
+		return nil, gerror.Wrapf(err, "解析动态插件能力声明失败: %s", filePath)
+	}
+	if err := pluginbridge.ValidateCapabilities(items); err != nil {
+		return nil, gerror.Wrapf(err, "校验动态插件能力声明失败: %s", filePath)
+	}
+	return pluginbridge.NormalizeCapabilities(items), nil
 }
 
 func parseRuntimeArtifactFrontendAssets(

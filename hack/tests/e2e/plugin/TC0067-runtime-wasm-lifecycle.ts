@@ -410,10 +410,14 @@ async function resetBundledRuntimePlugin(adminApi: APIRequestContext) {
 }
 
 function ensureBundledRuntimePluginArtifact() {
-  execFileSync("make", ["wasm", `p=${bundledRuntimePluginID}`], {
-    cwd: repoRoot(),
-    stdio: "inherit",
-  });
+  execFileSync(
+    "make",
+    ["wasm", `p=${bundledRuntimePluginID}`, "out=../../temp/output"],
+    {
+      cwd: path.join(repoRoot(), "apps", "lina-plugins"),
+      stdio: "inherit",
+    },
+  );
   rmSync(bundledRuntimeLegacyArtifactPath, { force: true });
   return bundledRuntimeStorageArtifactPath();
 }
@@ -754,5 +758,45 @@ test.describe("TC-67 运行时 wasm 插件生命周期", () => {
     expect(pluginAfterReupload?.installed).toBe(0);
     expect(pluginAfterReupload?.enabled).toBe(0);
     await expect(pluginPage.pluginRow(pluginID)).toBeVisible();
+  });
+
+  test("TC-67j: 启用 plugin-demo-dynamic 后固定前缀动态路由返回真实 Wasm bridge 响应", async ({
+    page,
+  }) => {
+    await loginAsAdmin(page);
+
+    const pluginPage = new PluginPage(page);
+    await pluginPage.gotoManage();
+    await expect(pluginPage.pluginRow(bundledRuntimePluginID)).toBeVisible();
+
+    await installPlugin(adminApi!, bundledRuntimePluginID);
+    await page.reload();
+    await pluginPage.setPluginEnabled(bundledRuntimePluginID, true);
+
+    const response = await adminApi!.get(
+      `extensions/${bundledRuntimePluginID}/backend-summary`,
+    );
+    assertOk(response, "请求动态插件固定前缀路由失败");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["x-lina-plugin-bridge"]).toBe(
+      bundledRuntimePluginID,
+    );
+    expect(response.headers()["x-lina-plugin-middleware"]).toBe(
+      "backend-summary",
+    );
+
+    const payload = await response.json();
+    expect(payload.message).toContain("plugin-demo-dynamic Wasm bridge runtime");
+    expect(payload.pluginId).toBe(bundledRuntimePluginID);
+    expect(payload.publicPath).toBe(
+      `/api/v1/extensions/${bundledRuntimePluginID}/backend-summary`,
+    );
+    expect(payload.access).toBe("login");
+    expect(payload.permission).toBe(
+      "plugin-demo-dynamic:backend:view",
+    );
+    expect(payload.authenticated).toBeTruthy();
+    expect(payload.username).toBe(config.adminUser);
+    expect(payload.isSuperAdmin).toBeTruthy();
   });
 });

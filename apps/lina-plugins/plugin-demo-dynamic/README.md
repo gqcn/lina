@@ -14,13 +14,13 @@
 ```text
 plugin-demo-dynamic/
   go.mod
+  main.go
   README.md
   plugin.yaml
   backend/
-    plugin.go
-    api/
-    internal/controller/
-    service/
+    api/                  # route contract definitions (g.Meta extracted by build system)
+    internal/controller/  # sample route handlers
+    runtime/              # reusable guest runtime dispatcher for root main.go
   frontend/
     pages/
       mount.js
@@ -50,7 +50,8 @@ plugin-demo-dynamic/
 
 当前样例的单一真相源就是插件目录内的明文源码本身：
 
-- `backend/`保存 1 份仅供 review 的后端示例代码；
+- `main.go`保存动态插件`Wasm` guest runtime 入口；
+- `backend/`保存 1 份演示用后端示例代码；
 - `frontend/pages/`保存宿主内嵌挂载入口和独立静态页；
 - `plugin.yaml`保存插件基础信息和菜单元数据；
 - `manifest/sql/`仅在需要业务迁移时保存安装与卸载`SQL`；
@@ -89,24 +90,27 @@ make wasm p=plugin-demo-dynamic
 
 ## 后端示例边界
 
-`backend/`目录的存在，是为了让这个动态样例在 review 形态上与`plugin-demo-source`保持一致。
+`backend/`目录包含动态插件后端扩展所需的两类内容：
+
+- `plugin-demo-dynamic/main.go`是`Wasm bridge` guest runtime 入口，负责导出宿主约定的`Wasm ABI`；
+- `backend/api/`声明路由合同（`g.Meta`），构建器在`make wasm`时从中提取路由元数据并嵌入运行时产物；
+- `backend/runtime/`实现受限`Wasm bridge`请求分发，宿主通过固定前缀`/api/v1/extensions/{pluginId}/...`把治理后的请求快照桥接到该运行时。
 
 当前边界如下：
 
-- Lina 动态插件已经支持把宿主定义的声明式后端契约嵌入到`wasm`包中；
-- 当前这类契约主要覆盖动态`Hook`执行与通用资源声明，宿主会为其提供超时控制、错误隔离与卸载清理；
-- Lina 动态插件当前仍然**不支持**动态执行插件自带的`Go`后端源码；
-- 因此，`backend/plugin.go`仍然只是 review 示例，不会自动向宿主注册；
-- 如果动态插件今天确实需要可执行的后端能力，应通过`backend/hooks/`或`backend/resources/`下的声明式文件接入，这些内容会在`make wasm`时被编译进自定义节。
+- 动态插件**不支持**源码插件式路由注册（即不通过`pluginhost.SourcePlugin`直接注册宿主`ghttp`路由树）；
+- 动态插件的公开路由只允许位于固定前缀`/api/v1/extensions/{pluginId}/...`下，宿主统一掌握治理权；
+- 如果动态插件需要可执行后端能力，应通过根目录`main.go`和`backend/runtime/`实现受限 bridge 运行时，并在`backend/api/`下声明路由合同，在`backend/hooks/`和`backend/resources/`下声明扩展契约，这些内容会在`make wasm`时一并编译进产物。
 
-## Review 关注点
+## 验收关注点
 
-人工 review 这个样例时，建议重点确认：
+验收或使用这个样例时，建议重点确认：
 
 - `plugin.yaml`是否清晰标识该插件属于独立动态插件；
 - `frontend/pages/mount.js`是否只依赖文档已发布的宿主`ESM`契约；
 - `frontend/pages/standalone.html`是否保持框架无关；
 - `plugin.yaml`里的`menus`是否只声明 1 个属于该插件的左侧菜单；
 - 执行`make wasm p=plugin-demo-dynamic`后，是否会生成`temp/plugin-demo-dynamic.wasm`；
+- 执行`make wasm p=plugin-demo-dynamic`后，生成的 guest 运行时是否能够通过固定前缀`/api/v1/extensions/plugin-demo-dynamic/backend-summary`返回真实 bridge 响应；
 - 动态契约测试是否仍能证明生成出的`wasm`与明文源码树保持一致；
 - 未来新增的`backend/hooks/*.yaml`或`backend/resources/*.yaml`是否仍严格遵守已发布的声明式动态`ABI`，而不是假设宿主会执行任意`Go`代码。

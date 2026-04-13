@@ -1048,7 +1048,8 @@ manifest/sql/uninstall/*.sql
 | `apps/lina-plugins/plugin-demo-source/backend/plugin.go`                | 源码插件后端注册入口示例 |
 | `apps/lina-plugins/plugin-demo-source/frontend/pages/sidebar-entry.vue` | 源码插件页面示例         |
 | `apps/lina-plugins/plugin-demo-dynamic/plugin.yaml`                     | 动态插件最小清单示例     |
-| `apps/lina-plugins/plugin-demo-dynamic/backend/plugin.go`               | 动态插件后端结构示例     |
+| `apps/lina-plugins/plugin-demo-dynamic/backend/api/`                    | 动态插件路由合同定义示例 |
+| `apps/lina-plugins/plugin-demo-dynamic/main.go`                         | 动态插件`Wasm bridge`入口示例   |
 | `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/mount.js`         | 动态内嵌挂载入口示例     |
 | `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/standalone.html`  | 动态独立静态页示例       |
 

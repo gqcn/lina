@@ -62,7 +62,7 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 		}
 		f.SetCellValue(sheet, cellName(5, row), sexText)
 		statusText := "正常"
-		if u.Status == 0 {
+		if u.Status == int(StatusDisabled) {
 			statusText = "停用"
 		}
 		f.SetCellValue(sheet, cellName(6, row), statusText)
@@ -168,7 +168,7 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader) (*ImportResu
 		data := do.SysUser{
 			Username: username,
 			Password: hash,
-			Status:   1,
+			Status:   int(StatusNormal),
 		}
 		if len(row) > 2 {
 			data.Nickname = row[2]
@@ -192,7 +192,7 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader) (*ImportResu
 		if len(row) > 6 {
 			switch row[6] {
 			case "停用", "0":
-				data.Status = 0
+				data.Status = int(StatusDisabled)
 			}
 		}
 		if len(row) > 7 {

@@ -7,8 +7,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"mime"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -16,20 +20,25 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"lina-core/pkg/pluginbridge"
 )
 
 const (
 	pluginTypeDynamic                = "dynamic"
-	pluginDynamicKindWasm            = "wasm"
-	pluginDynamicSupportedABIVersion = "v1"
+	pluginDynamicKindWasm            = pluginbridge.RuntimeKindWasm
+	pluginDynamicSupportedABIVersion = pluginbridge.SupportedABIVersion
 
-	pluginDynamicWasmSectionManifest     = "lina.plugin.manifest"
-	pluginDynamicWasmSectionDynamic      = "lina.plugin.dynamic"
-	pluginDynamicWasmSectionFrontend     = "lina.plugin.frontend.assets"
-	pluginDynamicWasmSectionInstallSQL   = "lina.plugin.install.sql"
-	pluginDynamicWasmSectionUninstallSQL = "lina.plugin.uninstall.sql"
-	pluginDynamicWasmSectionBackendHooks = "lina.plugin.backend.hooks"
-	pluginDynamicWasmSectionBackendRes   = "lina.plugin.backend.resources"
+	pluginDynamicWasmSectionManifest            = pluginbridge.WasmSectionManifest
+	pluginDynamicWasmSectionDynamic             = pluginbridge.WasmSectionRuntime
+	pluginDynamicWasmSectionFrontend            = pluginbridge.WasmSectionFrontendAssets
+	pluginDynamicWasmSectionInstallSQL          = pluginbridge.WasmSectionInstallSQL
+	pluginDynamicWasmSectionUninstallSQL        = pluginbridge.WasmSectionUninstallSQL
+	pluginDynamicWasmSectionBackendHooks        = pluginbridge.WasmSectionBackendHooks
+	pluginDynamicWasmSectionBackendRes          = pluginbridge.WasmSectionBackendResources
+	pluginDynamicWasmSectionBackendRoutes       = pluginbridge.WasmSectionBackendRoutes
+	pluginDynamicWasmSectionBackendBridge       = pluginbridge.WasmSectionBackendBridge
+	pluginDynamicWasmSectionBackendCapabilities = pluginbridge.WasmSectionBackendCapabilities
 )
 
 var (
@@ -42,15 +51,17 @@ var (
 type RuntimeBuildOutput struct {
 	ArtifactPath string
 	Content      []byte
+	RuntimePath  string
 }
 
 type pluginManifest struct {
-	ID          string      `yaml:"id"`
-	Name        string      `yaml:"name"`
-	Version     string      `yaml:"version"`
-	Type        string      `yaml:"type"`
-	Description string      `yaml:"description"`
-	Menus       []*menuSpec `yaml:"menus"`
+	ID           string      `yaml:"id"`
+	Name         string      `yaml:"name"`
+	Version      string      `yaml:"version"`
+	Type         string      `yaml:"type"`
+	Description  string      `yaml:"description"`
+	Menus        []*menuSpec `yaml:"menus"`
+	Capabilities []string    `yaml:"capabilities"`
 }
 
 type dynamicArtifactManifest struct {
@@ -62,12 +73,7 @@ type dynamicArtifactManifest struct {
 	Menus       []*menuSpec `json:"menus,omitempty" yaml:"menus,omitempty"`
 }
 
-type dynamicArtifactMetadata struct {
-	RuntimeKind        string `json:"runtimeKind" yaml:"runtimeKind"`
-	ABIVersion         string `json:"abiVersion" yaml:"abiVersion"`
-	FrontendAssetCount int    `json:"frontendAssetCount,omitempty" yaml:"frontendAssetCount,omitempty"`
-	SQLAssetCount      int    `json:"sqlAssetCount,omitempty" yaml:"sqlAssetCount,omitempty"`
-}
+type dynamicArtifactMetadata = pluginbridge.RuntimeArtifactMetadata
 
 type frontendAsset struct {
 	Path          string `json:"path" yaml:"path"`
@@ -230,6 +236,18 @@ func BuildRuntimeWasmArtifactFromSource(pluginDir string) (*RuntimeBuildOutput, 
 	if err != nil {
 		return nil, err
 	}
+	routeContracts, err := collectRouteContracts(pluginDir, manifest.ID)
+	if err != nil {
+		return nil, err
+	}
+	runtimePath, err := buildGuestRuntimeWasm(pluginDir)
+	if err != nil {
+		return nil, err
+	}
+	bridgeSpec := buildBridgeSpec(runtimePath)
+	if err = pluginbridge.ValidateBridgeSpec(bridgeSpec); err != nil {
+		return nil, err
+	}
 
 	content, err := buildRuntimeArtifactContent(
 		manifest,
@@ -238,6 +256,9 @@ func BuildRuntimeWasmArtifactFromSource(pluginDir string) (*RuntimeBuildOutput, 
 		uninstallSQLAssets,
 		hookSpecs,
 		resourceSpecs,
+		routeContracts,
+		bridgeSpec,
+		runtimePath,
 	)
 	if err != nil {
 		return nil, err
@@ -246,6 +267,7 @@ func BuildRuntimeWasmArtifactFromSource(pluginDir string) (*RuntimeBuildOutput, 
 	return &RuntimeBuildOutput{
 		ArtifactPath: filepath.Join(pluginDir, buildRuntimeBuildOutputRelativePath(manifest.ID)),
 		Content:      content,
+		RuntimePath:  runtimePath,
 	}, nil
 }
 
@@ -308,6 +330,10 @@ func validateRuntimeBuildManifest(manifest *pluginManifest, manifestPath string)
 	if err := validateSemanticVersion(manifest.Version); err != nil {
 		return fmt.Errorf("dynamic plugin version is invalid: %w", err)
 	}
+	if err := pluginbridge.ValidateCapabilities(manifest.Capabilities); err != nil {
+		return fmt.Errorf("dynamic plugin capabilities invalid: %w", err)
+	}
+	manifest.Capabilities = pluginbridge.NormalizeCapabilities(manifest.Capabilities)
 	return nil
 }
 
@@ -466,6 +492,208 @@ func collectResourceSpecs(pluginDir string, pluginID string) ([]*resourceSpec, e
 		items = append(items, spec)
 	}
 	return items, nil
+}
+
+func collectRouteContracts(pluginDir string, pluginID string) ([]*pluginbridge.RouteContract, error) {
+	apiDir := filepath.Join(pluginDir, "backend", "api")
+	info, err := os.Stat(apiDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []*pluginbridge.RouteContract{}, nil
+		}
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("runtime backend api path is not a directory: %s", apiDir)
+	}
+
+	fset := token.NewFileSet()
+	contracts := make([]*pluginbridge.RouteContract, 0)
+	err = filepath.WalkDir(apiDir, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() || filepath.Ext(path) != ".go" {
+			return nil
+		}
+		fileNode, parseErr := parser.ParseFile(fset, path, nil, parser.ParseComments)
+		if parseErr != nil {
+			return fmt.Errorf("failed to parse api file %s: %w", path, parseErr)
+		}
+		items, extractErr := extractRouteContractsFromFile(fileNode)
+		if extractErr != nil {
+			return fmt.Errorf("failed to extract route contract from %s: %w", path, extractErr)
+		}
+		contracts = append(contracts, items...)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err = pluginbridge.ValidateRouteContracts(pluginID, contracts); err != nil {
+		return nil, err
+	}
+	return contracts, nil
+}
+
+func extractRouteContractsFromFile(fileNode *ast.File) ([]*pluginbridge.RouteContract, error) {
+	items := make([]*pluginbridge.RouteContract, 0)
+	for _, decl := range fileNode.Decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok || genDecl.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range genDecl.Specs {
+			typeSpec, ok := spec.(*ast.TypeSpec)
+			if !ok {
+				continue
+			}
+			structType, ok := typeSpec.Type.(*ast.StructType)
+			if !ok || structType.Fields == nil {
+				continue
+			}
+			for _, field := range structType.Fields.List {
+				if field == nil || field.Tag == nil {
+					continue
+				}
+				if len(field.Names) != 0 {
+					continue
+				}
+				tagValue := strings.Trim(field.Tag.Value, "`")
+				if strings.TrimSpace(tagValue) == "" {
+					continue
+				}
+				metaValues := parseStructTagValues(tagValue)
+				if metaValues["path"] == "" || metaValues["method"] == "" {
+					continue
+				}
+				contract := &pluginbridge.RouteContract{
+					Path:        metaValues["path"],
+					Method:      metaValues["method"],
+					Tags:        splitTagList(metaValues["tags"]),
+					Summary:     metaValues["summary"],
+					Description: metaValues["dc"],
+					Access:      metaValues["access"],
+					Permission:  metaValues["permission"],
+					RequestType: strings.TrimSpace(typeSpec.Name.Name),
+				}
+				if metaValues["operLog"] != "" {
+					contract.OperLog = metaValues["operLog"]
+				}
+				items = append(items, contract)
+			}
+		}
+	}
+	return items, nil
+}
+
+func parseStructTagValues(tagValue string) map[string]string {
+	values := make(map[string]string)
+	cursor := 0
+	for cursor < len(tagValue) {
+		for cursor < len(tagValue) && tagValue[cursor] == ' ' {
+			cursor++
+		}
+		if cursor >= len(tagValue) {
+			break
+		}
+		keyStart := cursor
+		for cursor < len(tagValue) && tagValue[cursor] != ':' {
+			cursor++
+		}
+		if cursor >= len(tagValue) || tagValue[cursor] != ':' {
+			break
+		}
+		key := strings.TrimSpace(tagValue[keyStart:cursor])
+		cursor++
+		if cursor >= len(tagValue) || tagValue[cursor] != '"' {
+			break
+		}
+		cursor++
+		valueStart := cursor
+		for cursor < len(tagValue) {
+			if tagValue[cursor] == '"' && tagValue[cursor-1] != '\\' {
+				break
+			}
+			cursor++
+		}
+		if cursor >= len(tagValue) {
+			break
+		}
+		values[key] = tagValue[valueStart:cursor]
+		cursor++
+	}
+	return values
+}
+
+func splitTagList(value string) []string {
+	normalized := strings.TrimSpace(value)
+	if normalized == "" {
+		return nil
+	}
+	items := strings.Split(normalized, ",")
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		tag := strings.TrimSpace(item)
+		if tag == "" {
+			continue
+		}
+		result = append(result, tag)
+	}
+	return result
+}
+
+func buildGuestRuntimeWasm(pluginDir string) (string, error) {
+	// The WASM guest runtime entry (main.go) lives at the plugin root
+	// directory.
+	mainGoPath := filepath.Join(pluginDir, "main.go")
+	if _, err := os.Stat(mainGoPath); err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+
+	outputPath := filepath.Join(pluginDir, "temp", "runtime-plugin.wasm")
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
+		return "", err
+	}
+	buildDir := pluginDir
+	buildTarget := "."
+	buildEnv := append(os.Environ(), "GOOS=wasip1", "GOARCH=wasm")
+	if _, goModErr := os.Stat(filepath.Join(pluginDir, "go.mod")); os.IsNotExist(goModErr) {
+		// When the plugin root has no go.mod (e.g. synthetic test directories),
+		// create a minimal one so that 'go build' can proceed.
+		goModContent := "module lina-plugin-runtime-guest\n\ngo 1.25.0\n"
+		if writeErr := os.WriteFile(filepath.Join(pluginDir, "go.mod"), []byte(goModContent), 0o644); writeErr != nil {
+			return "", writeErr
+		}
+		buildEnv = append(buildEnv, "GOWORK=off")
+	}
+	cmd := exec.Command("go", "build", "-buildmode=c-shared", "-o", outputPath, buildTarget)
+	cmd.Dir = buildDir
+	cmd.Env = buildEnv
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to build dynamic guest runtime: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+	return outputPath, nil
+}
+
+func buildBridgeSpec(runtimePath string) *pluginbridge.BridgeSpec {
+	spec := &pluginbridge.BridgeSpec{
+		ABIVersion:  pluginbridge.ABIVersionV1,
+		RuntimeKind: pluginbridge.RuntimeKindWasm,
+	}
+	if strings.TrimSpace(runtimePath) != "" {
+		spec.RouteExecution = true
+		spec.RequestCodec = pluginbridge.CodecProtobuf
+		spec.ResponseCodec = pluginbridge.CodecProtobuf
+		spec.AllocExport = pluginbridge.DefaultGuestAllocExport
+		spec.ExecuteExport = pluginbridge.DefaultGuestExecuteExport
+	}
+	pluginbridge.NormalizeBridgeSpec(spec)
+	return spec
 }
 
 func loadYAMLFile(filePath string, target interface{}) error {
@@ -698,6 +926,9 @@ func buildRuntimeArtifactContent(
 	uninstallSQLAssets []*sqlAsset,
 	hookSpecs []*hookSpec,
 	resourceSpecs []*resourceSpec,
+	routeContracts []*pluginbridge.RouteContract,
+	bridgeSpec *pluginbridge.BridgeSpec,
+	runtimePath string,
 ) ([]byte, error) {
 	manifestPayload, err := json.Marshal(&dynamicArtifactManifest{
 		ID:          manifest.ID,
@@ -715,12 +946,20 @@ func buildRuntimeArtifactContent(
 		ABIVersion:         pluginDynamicSupportedABIVersion,
 		FrontendAssetCount: len(frontendAssets),
 		SQLAssetCount:      len(installSQLAssets) + len(uninstallSQLAssets),
+		RouteCount:         len(routeContracts),
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	content := []byte{0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00}
+	if strings.TrimSpace(runtimePath) != "" {
+		runtimeBytes, err := os.ReadFile(runtimePath)
+		if err != nil {
+			return nil, err
+		}
+		content = runtimeBytes
+	}
 	content = appendWasmCustomSection(content, pluginDynamicWasmSectionManifest, manifestPayload)
 	content = appendWasmCustomSection(content, pluginDynamicWasmSectionDynamic, runtimePayload)
 
@@ -758,6 +997,27 @@ func buildRuntimeArtifactContent(
 			return nil, err
 		}
 		content = appendWasmCustomSection(content, pluginDynamicWasmSectionBackendRes, payload)
+	}
+	if len(routeContracts) > 0 {
+		payload, err := json.Marshal(routeContracts)
+		if err != nil {
+			return nil, err
+		}
+		content = appendWasmCustomSection(content, pluginDynamicWasmSectionBackendRoutes, payload)
+	}
+	if bridgeSpec != nil {
+		payload, err := json.Marshal(bridgeSpec)
+		if err != nil {
+			return nil, err
+		}
+		content = appendWasmCustomSection(content, pluginDynamicWasmSectionBackendBridge, payload)
+	}
+	if len(manifest.Capabilities) > 0 {
+		payload, err := json.Marshal(manifest.Capabilities)
+		if err != nil {
+			return nil, err
+		}
+		content = appendWasmCustomSection(content, pluginDynamicWasmSectionBackendCapabilities, payload)
 	}
 	return content, nil
 }

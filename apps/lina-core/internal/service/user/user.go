@@ -6,7 +6,6 @@ import (
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
 
-	"lina-core/internal/consts"
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
@@ -15,6 +14,20 @@ import (
 	"lina-core/internal/service/dept"
 	"lina-core/internal/service/role"
 	"lina-core/pkg/logger"
+)
+
+// Status represents user account status.
+type Status int
+
+const (
+	// StatusNormal represents a normal user status.
+	StatusNormal Status = 1
+
+	// StatusDisabled represents a disabled user status.
+	StatusDisabled Status = 0
+
+	// DefaultAdminUsername is the username of the default admin user.
+	DefaultAdminUsername = "admin"
 )
 
 // Service provides user management operations.
@@ -344,7 +357,7 @@ type CreateInput struct {
 	Email    string // Email
 	Phone    string // Phone number
 	Sex      int    // Gender: 0=Unknown 1=Male 2=Female
-	Status   int    // Status: 1=Normal 0=Disabled
+	Status   Status // Status: StatusNormal=Normal StatusDisabled=Disabled
 	Remark   string // Remark
 	DeptId   *int   // Department ID
 	PostIds  []int  // Post ID list
@@ -582,7 +595,11 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 // Delete soft-deletes a user.
 func (s *Service) Delete(ctx context.Context, id int) error {
 	// Cannot delete default admin
-	if id == consts.DefaultAdminId {
+	user, err := s.GetById(ctx, id)
+	if err != nil {
+		return err
+	}
+	if user.Username == DefaultAdminUsername {
 		return gerror.New("不能删除默认管理员")
 	}
 
@@ -593,7 +610,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	}
 
 	// Soft delete using GoFrame's auto soft-delete feature
-	_, err := dao.SysUser.Ctx(ctx).
+	_, err = dao.SysUser.Ctx(ctx).
 		Where(do.SysUser{Id: id}).
 		Delete()
 	if err != nil {
@@ -615,10 +632,10 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 }
 
 // UpdateStatus updates user status.
-func (s *Service) UpdateStatus(ctx context.Context, id int, status int) error {
+func (s *Service) UpdateStatus(ctx context.Context, id int, status Status) error {
 	// Cannot disable self
 	bizCtx := s.bizCtxSvc.Get(ctx)
-	if bizCtx != nil && bizCtx.UserId == id && status == consts.UserStatusDisabled {
+	if bizCtx != nil && bizCtx.UserId == id && status == StatusDisabled {
 		return gerror.New("不能停用当前登录用户")
 	}
 

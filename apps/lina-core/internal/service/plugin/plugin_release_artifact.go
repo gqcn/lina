@@ -5,6 +5,7 @@
 package plugin
 
 import (
+	"bytes"
 	"context"
 	"path/filepath"
 	"strings"
@@ -30,6 +31,8 @@ func buildPluginDynamicReleaseArtifactRelativePath(pluginID string, version stri
 
 // archiveRuntimePluginReleaseArtifact copies the currently discovered runtime
 // artifact into a versioned archive path and returns that stable relative path.
+// Same-version refreshes are allowed to overwrite the archive when bytes differ
+// so the active release always points at the exact content currently reconciled.
 func (s *Service) archiveRuntimePluginReleaseArtifact(ctx context.Context, manifest *pluginManifest) (string, error) {
 	if manifest == nil || manifest.RuntimeArtifact == nil {
 		return "", gerror.New("动态插件归档要求存在有效产物")
@@ -42,9 +45,6 @@ func (s *Service) archiveRuntimePluginReleaseArtifact(ctx context.Context, manif
 
 	relativePath := buildPluginDynamicReleaseArtifactRelativePath(manifest.ID, manifest.Version)
 	targetPath := filepath.Join(storageDir, filepath.FromSlash(relativePath))
-	if gfile.Exists(targetPath) {
-		return relativePath, nil
-	}
 
 	sourcePath := strings.TrimSpace(manifest.RuntimeArtifact.Path)
 	if sourcePath == "" {
@@ -54,6 +54,14 @@ func (s *Service) archiveRuntimePluginReleaseArtifact(ctx context.Context, manif
 	content := gfile.GetBytes(sourcePath)
 	if len(content) == 0 {
 		return "", gerror.Newf("动态插件归档读取产物失败: %s", sourcePath)
+	}
+	if gfile.Exists(targetPath) {
+		existingContent := gfile.GetBytes(targetPath)
+		// Reuse the archived file only when the bytes are identical. A rebuilt
+		// artifact with the same version must replace the old archive content.
+		if bytes.Equal(existingContent, content) {
+			return relativePath, nil
+		}
 	}
 	if err = gfile.Mkdir(filepath.Dir(targetPath)); err != nil {
 		return "", gerror.Wrap(err, "创建动态插件 release 归档目录失败")
