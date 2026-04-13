@@ -96,11 +96,12 @@
 
 当前仓库已经交付“上传 `wasm` -> 安装/启用 -> 前端托管 -> declarative backend Hook / 资源执行”的二期运行时链路，并把**产物契约与宿主校验规则**真正落到了代码里，便于人工 review。
 
-为了让 reviewer 能看到一个“不是抽象 JSON，而是实际资源文件”的动态样例，仓库提供了独立的 [plugin-demo-dynamic](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-dynamic/README.md) 插件目录。该目录现在直接以 `backend/`、`frontend/`、`manifest/` 下的明文源码作为单一真相源，`temp/<plugin-id>.wasm` 只作为本地构建产物按需生成，自动化测试会验证生成产物与明文源码保持一致。
+为了让 reviewer 能看到一个“不是抽象 JSON，而是实际资源文件”的动态样例，仓库提供了独立的 [plugin-demo-dynamic](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-dynamic/README.md) 插件目录。该目录现在直接以插件源码树作为作者侧真相源：`plugin_embed.go` 通过 `go:embed` 统一声明 `plugin.yaml`、`frontend/`、`manifest/` 等静态资源，`hack/build-wasm` 再把这些资源转换为宿主可治理的 Wasm 自定义节快照；`temp/<plugin-id>.wasm` 只作为本地构建产物按需生成，自动化测试会验证生成产物与明文源码保持一致。
 
 当前约定如下：
 
 - `apps/lina-plugins/<plugin-id>/` 仅作为动态样例插件的明文源码与构建输入目录，不再作为宿主运行时发现入口。
+- 动态插件作者推荐在根目录提供 `plugin_embed.go`，通过 `go:embed plugin.yaml frontend manifest` 统一声明需要随 `.wasm` 交付的静态资源。
 - 宿主当前通过配置项 `plugin.dynamic.storagePath` 发现和管理 runtime `wasm` 插件，默认值为 `temp/runtime`。
 - 当 `storagePath` 使用相对路径时，宿主会以仓库根目录作为解析基准，保证上传、手工拷贝和后台同步识别走同一目录。
 - 宿主只扫描 `storagePath` 根目录下的 `*.wasm` 文件，不对外层目录层级做额外约定。
@@ -121,6 +122,7 @@
   - `lina.plugin.backend.hooks`
   - `lina.plugin.backend.resources`
 - 这些自定义节当前统一使用 JSON 编码，便于 reviewer 直接理解其字段语义。
+- 构建器当前会优先消费动态插件的 `go:embed` 资源声明，再回退到旧的目录扫描方式；宿主本身不直接读取 guest `embed.FS`，仍只消费构建后产物里的静态快照。
 
 `lina.plugin.manifest` 当前要求至少包含：
 
@@ -1048,6 +1050,7 @@ manifest/sql/uninstall/*.sql
 | `apps/lina-plugins/plugin-demo-source/backend/plugin.go`                | 源码插件后端注册入口示例 |
 | `apps/lina-plugins/plugin-demo-source/frontend/pages/sidebar-entry.vue` | 源码插件页面示例         |
 | `apps/lina-plugins/plugin-demo-dynamic/plugin.yaml`                     | 动态插件最小清单示例     |
+| `apps/lina-plugins/plugin-demo-dynamic/plugin_embed.go`                 | 动态插件作者侧资源声明示例 |
 | `apps/lina-plugins/plugin-demo-dynamic/backend/api/`                    | 动态插件路由合同定义示例 |
 | `apps/lina-plugins/plugin-demo-dynamic/main.go`                         | 动态插件`Wasm bridge`入口示例   |
 | `apps/lina-plugins/plugin-demo-dynamic/frontend/pages/mount.js`         | 动态内嵌挂载入口示例     |

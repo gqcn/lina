@@ -54,6 +54,11 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 		filepath.Join(pluginDir, "main.go"),
 		"package main\n\nfunc main() {}\n",
 	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "plugin_embed.go"),
+		"package main\n\nimport \"embed\"\n\n//go:embed plugin.yaml frontend manifest\nvar EmbeddedFiles embed.FS\n",
+	)
 
 	out, err := BuildRuntimeWasmArtifactFromSource(pluginDir)
 	if err != nil {
@@ -132,6 +137,34 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	}
 	if !strings.Contains(runtimeStrings, "_initialize") {
 		t.Fatalf("expected runtime guest wasm to expose _initialize, got output: %s", runtimeStrings)
+	}
+}
+
+func TestBuildRuntimeWasmArtifactFromSourceFailsWhenEmbeddedResourcesOmitManifest(t *testing.T) {
+	pluginDir := t.TempDir()
+
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "plugin.yaml"),
+		"id: plugin-dynamic-missing-embed\nname: Dynamic Missing Embed\nversion: v0.1.0\ntype: dynamic\n",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "frontend", "pages", "standalone.html"),
+		"<!doctype html><html><body>it works</body></html>",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "plugin_embed.go"),
+		"package main\n\nimport \"embed\"\n\n//go:embed frontend\nvar EmbeddedFiles embed.FS\n",
+	)
+
+	_, err := BuildRuntimeWasmArtifactFromSource(pluginDir)
+	if err == nil {
+		t.Fatal("expected embedded resource build without plugin.yaml to fail")
+	}
+	if !strings.Contains(err.Error(), "missing plugin.yaml") {
+		t.Fatalf("expected missing embedded manifest error, got %v", err)
 	}
 }
 

@@ -15,6 +15,7 @@
 plugin-demo-dynamic/
   go.mod
   main.go
+  plugin_embed.go
   README.md
   plugin.yaml
   backend/
@@ -51,6 +52,7 @@ plugin-demo-dynamic/
 当前样例的单一真相源就是插件目录内的明文源码本身：
 
 - `main.go`保存动态插件`Wasm` guest runtime 入口；
+- `plugin_embed.go`保存动态插件作者侧资源声明，统一通过`go:embed`声明`plugin.yaml`、`frontend`和`manifest`；
 - `backend/`保存 1 份演示用后端示例代码；
 - `frontend/pages/`保存宿主内嵌挂载入口和独立静态页；
 - `plugin.yaml`保存插件基础信息和菜单元数据；
@@ -62,6 +64,12 @@ plugin-demo-dynamic/
 - `lina.plugin.dynamic`；
 - 前端静态资源数量摘要；
 - `SQL`资源数量摘要。
+
+其中作者侧资源声明与宿主侧治理真相刻意分为两层：
+
+- 插件作者通过`plugin_embed.go`中的`go:embed`统一声明需要随`wasm`交付的静态资源；
+- `hack/build-wasm`优先读取该声明，再生成宿主继续消费的自定义节快照；
+- 宿主上传、启用、菜单校验和`/plugin-assets/...`托管仍只依赖这些快照，而不是在运行时回调 guest 读取资源。
 
 生成产物会被`Git`忽略：
 
