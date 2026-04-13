@@ -21,7 +21,7 @@ plugin-demo-dynamic/
   backend/
     api/                  # route contract definitions (g.Meta extracted by build system)
     internal/controller/  # sample route handlers
-    runtime/              # reusable guest runtime dispatcher for root main.go
+    plugin.go             # guest route entry that auto-dispatches by RequestType
   frontend/
     pages/
       mount.js
@@ -102,13 +102,13 @@ make wasm p=plugin-demo-dynamic
 
 - `plugin-demo-dynamic/main.go`是`Wasm bridge` guest runtime 入口，负责导出宿主约定的`Wasm ABI`；
 - `backend/api/`声明路由合同（`g.Meta`），构建器在`make wasm`时从中提取路由元数据并嵌入运行时产物；
-- `backend/runtime/`实现受限`Wasm bridge`请求分发，宿主通过固定前缀`/api/v1/extensions/{pluginId}/...`把治理后的请求快照桥接到该运行时。
+- `backend/plugin.go`实现受限`Wasm bridge`请求分发入口，并通过反射式 guest 路由分发器按`RequestType`自动转发到控制器方法；宿主通过固定前缀`/api/v1/extensions/{pluginId}/...`把治理后的请求快照桥接到该入口。
 
 当前边界如下：
 
 - 动态插件**不支持**源码插件式路由注册（即不通过`pluginhost.SourcePlugin`直接注册宿主`ghttp`路由树）；
 - 动态插件的公开路由只允许位于固定前缀`/api/v1/extensions/{pluginId}/...`下，宿主统一掌握治理权；
-- 如果动态插件需要可执行后端能力，应通过根目录`main.go`和`backend/runtime/`实现受限 bridge 运行时，并在`backend/api/`下声明路由合同，在`backend/hooks/`和`backend/resources/`下声明扩展契约，这些内容会在`make wasm`时一并编译进产物。
+- 如果动态插件需要可执行后端能力，应通过根目录`main.go`和`backend/plugin.go`实现受限 bridge 运行时入口，并在`backend/api/`下声明路由合同，在`backend/hooks/`和`backend/resources/`下声明扩展契约，这些内容会在`make wasm`时一并编译进产物。
 
 ## 验收关注点
 

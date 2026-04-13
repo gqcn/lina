@@ -2,10 +2,10 @@ package main
 
 import (
 	"lina-core/pkg/pluginbridge"
-	dynamicruntime "lina-plugin-demo-dynamic/backend/runtime"
+	dynamicbackend "lina-plugin-demo-dynamic/backend"
 )
 
-var guestRuntime = pluginbridge.NewGuestRuntime(dynamicruntime.HandleRequest)
+var guestRuntime = pluginbridge.NewGuestRuntime(dynamicbackend.HandleRequest)
 
 //go:wasmexport lina_dynamic_route_alloc
 func linaDynamicRouteAlloc(size uint32) uint32 {
