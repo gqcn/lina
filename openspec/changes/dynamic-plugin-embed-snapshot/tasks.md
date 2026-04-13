@@ -19,3 +19,12 @@
 ## Feedback
 
 - [x] **FB-1**: 动态插件构建产物和 guest runtime 中间 `wasm` 不应再写回 `apps/lina-plugins/<plugin-id>/temp/`，而应统一收敛到仓库根 `temp/output/`
+- [x] **FB-2**: 将 `apps/lina-core/internal/service/plugin` 中与业务无关的插件资源文件系统能力抽离到 `apps/lina-core/internal/pkg/`，降低 `plugin` 组件复杂度
+- [x] **FB-3**: 按职责拆分 `hack/build-wasm/builder/builder.go`，避免单文件维护成本继续上升
+- [x] **FB-4**: 对齐 `apps/lina-core/pkg/pluginbridge` 与 `pluginhost` 的文件命名规范，统一使用组件前缀命名
+- [x] **FB-5**: 将已抽离的 `pluginfs` 通用能力从 `apps/lina-core/internal/pkg/` 提升到 `apps/lina-core/pkg/`，确保公共能力可被组件外复用
+- [x] **FB-6**: 修正 `hack/build-wasm/builder` 的目录嵌入扫描逻辑，确保与 `go:embed` 对隐藏文件和下划线文件的默认过滤语义一致
+- [x] **FB-7**: 修正 `hack/build-wasm/builder` 在无 `go.mod` 插件目录构建 guest runtime 时遗留临时模块文件的问题
+- [x] **FB-8**: 为 `hack/build-wasm/builder` 拆分后的实现文件补齐符合规范的文件顶部用途注释
+- [x] **FB-9**: 为 `plugin_source_embedded` 与 `pluginbridge` 相关文件补齐或修正顶部用途注释格式，满足文件注释规范
+- [x] **FB-10**: 修正 `pkg/logger` 与 `pkg/pluginbridge` 组件文件顶部注释，统一满足主文件与实现文件的注释格式规范

@@ -1,3 +1,5 @@
+// This file tests reflected guest controller dispatch and guest route fallback behavior.
+
 package pluginbridge
 
 import (

@@ -1,3 +1,5 @@
+// This file tests host call request and response codec round trips.
+
 package pluginbridge
 
 import (

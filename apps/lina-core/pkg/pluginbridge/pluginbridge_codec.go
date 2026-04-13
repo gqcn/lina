@@ -1,5 +1,6 @@
-// Package pluginbridge defines the shared bridge contracts, protobuf-wire codec,
-// and guest helpers used by Lina dynamic plugin runtime execution.
+// This file defines the shared bridge contracts and protobuf-wire codec used
+// by Lina dynamic plugin runtime execution.
+
 package pluginbridge
 
 import (
@@ -89,52 +90,52 @@ type BridgeRequestEnvelopeV1 struct {
 
 // RouteMatchSnapshotV1 describes the matched route and host path mapping.
 type RouteMatchSnapshotV1 struct {
-	Method      string              `json:"method,omitempty"`
-	PublicPath  string              `json:"publicPath,omitempty"`
-	InternalPath string             `json:"internalPath,omitempty"`
-	RoutePath   string              `json:"routePath,omitempty"`
-	Access      string              `json:"access,omitempty"`
-	Permission  string              `json:"permission,omitempty"`
-	RequestType string              `json:"requestType,omitempty"`
-	PathParams  map[string]string   `json:"pathParams,omitempty"`
-	QueryValues map[string][]string `json:"queryValues,omitempty"`
+	Method       string              `json:"method,omitempty"`
+	PublicPath   string              `json:"publicPath,omitempty"`
+	InternalPath string              `json:"internalPath,omitempty"`
+	RoutePath    string              `json:"routePath,omitempty"`
+	Access       string              `json:"access,omitempty"`
+	Permission   string              `json:"permission,omitempty"`
+	RequestType  string              `json:"requestType,omitempty"`
+	PathParams   map[string]string   `json:"pathParams,omitempty"`
+	QueryValues  map[string][]string `json:"queryValues,omitempty"`
 }
 
 // HTTPRequestSnapshotV1 describes the sanitized inbound HTTP request.
 type HTTPRequestSnapshotV1 struct {
-	Method        string              `json:"method,omitempty"`
-	PublicPath    string              `json:"publicPath,omitempty"`
-	InternalPath  string              `json:"internalPath,omitempty"`
-	RawPath       string              `json:"rawPath,omitempty"`
-	RawQuery      string              `json:"rawQuery,omitempty"`
-	Host          string              `json:"host,omitempty"`
-	Scheme        string              `json:"scheme,omitempty"`
-	RemoteAddr    string              `json:"remoteAddr,omitempty"`
-	ClientIP      string              `json:"clientIp,omitempty"`
-	ContentType   string              `json:"contentType,omitempty"`
-	Headers       map[string][]string `json:"headers,omitempty"`
-	Cookies       map[string]string   `json:"cookies,omitempty"`
-	Body          []byte              `json:"body,omitempty"`
+	Method       string              `json:"method,omitempty"`
+	PublicPath   string              `json:"publicPath,omitempty"`
+	InternalPath string              `json:"internalPath,omitempty"`
+	RawPath      string              `json:"rawPath,omitempty"`
+	RawQuery     string              `json:"rawQuery,omitempty"`
+	Host         string              `json:"host,omitempty"`
+	Scheme       string              `json:"scheme,omitempty"`
+	RemoteAddr   string              `json:"remoteAddr,omitempty"`
+	ClientIP     string              `json:"clientIp,omitempty"`
+	ContentType  string              `json:"contentType,omitempty"`
+	Headers      map[string][]string `json:"headers,omitempty"`
+	Cookies      map[string]string   `json:"cookies,omitempty"`
+	Body         []byte              `json:"body,omitempty"`
 }
 
 // IdentitySnapshotV1 describes authenticated user context injected by the host.
 type IdentitySnapshotV1 struct {
-	TokenID       string   `json:"tokenId,omitempty"`
-	UserID        int32    `json:"userId,omitempty"`
-	Username      string   `json:"username,omitempty"`
-	Status        int32    `json:"status,omitempty"`
-	Permissions   []string `json:"permissions,omitempty"`
-	RoleNames     []string `json:"roleNames,omitempty"`
-	IsSuperAdmin  bool     `json:"isSuperAdmin,omitempty"`
+	TokenID      string   `json:"tokenId,omitempty"`
+	UserID       int32    `json:"userId,omitempty"`
+	Username     string   `json:"username,omitempty"`
+	Status       int32    `json:"status,omitempty"`
+	Permissions  []string `json:"permissions,omitempty"`
+	RoleNames    []string `json:"roleNames,omitempty"`
+	IsSuperAdmin bool     `json:"isSuperAdmin,omitempty"`
 }
 
 // BridgeResponseEnvelopeV1 is the guest-to-host response envelope.
 type BridgeResponseEnvelopeV1 struct {
-	StatusCode  int32                   `json:"statusCode,omitempty"`
-	ContentType string                  `json:"contentType,omitempty"`
-	Headers     map[string][]string     `json:"headers,omitempty"`
-	Body        []byte                  `json:"body,omitempty"`
-	Failure     *BridgeFailureV1        `json:"failure,omitempty"`
+	StatusCode  int32               `json:"statusCode,omitempty"`
+	ContentType string              `json:"contentType,omitempty"`
+	Headers     map[string][]string `json:"headers,omitempty"`
+	Body        []byte              `json:"body,omitempty"`
+	Failure     *BridgeFailureV1    `json:"failure,omitempty"`
 }
 
 // BridgeFailureV1 contains normalized execution failure metadata.

@@ -176,6 +176,133 @@ func TestBuildRuntimeWasmArtifactFromSourceFailsWhenEmbeddedResourcesOmitManifes
 	}
 }
 
+func TestBuildRuntimeWasmArtifactFromSourceSkipsHiddenEmbeddedDirectoryEntries(t *testing.T) {
+	pluginDir := t.TempDir()
+
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "plugin.yaml"),
+		"id: plugin-dynamic-hidden\nname: Dynamic Hidden\nversion: v0.1.0\ntype: dynamic\n",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "frontend", "pages", "visible.html"),
+		"<!doctype html><html><body>visible</body></html>",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "frontend", "pages", ".ignored.html"),
+		"hidden",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "frontend", "pages", "_draft.html"),
+		"draft",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "frontend", "pages", ".cache", "ghost.html"),
+		"ghost",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "manifest", "sql", "001-plugin-dynamic-hidden.sql"),
+		"SELECT 1;",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "manifest", "sql", ".ignored.sql"),
+		"SELECT 0;",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "manifest", "sql", "_draft.sql"),
+		"SELECT -1;",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "manifest", "sql", "uninstall", "001-plugin-dynamic-hidden.sql"),
+		"SELECT 2;",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "manifest", "sql", "uninstall", ".ignored.sql"),
+		"SELECT 3;",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "plugin_embed.go"),
+		"package main\n\nimport \"embed\"\n\n//go:embed plugin.yaml frontend manifest\nvar EmbeddedFiles embed.FS\n",
+	)
+
+	out, err := BuildRuntimeWasmArtifactFromSource(pluginDir)
+	if err != nil {
+		t.Fatalf("expected hidden-entry build to succeed, got error: %v", err)
+	}
+
+	sections, err := parseWasmCustomSections(out.Content)
+	if err != nil {
+		t.Fatalf("expected wasm custom sections to parse, got error: %v", err)
+	}
+
+	var frontend []*frontendAsset
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionFrontend], &frontend); err != nil {
+		t.Fatalf("expected frontend section json to unmarshal, got error: %v", err)
+	}
+	if len(frontend) != 1 || frontend[0].Path != "visible.html" {
+		t.Fatalf("expected only visible embedded frontend asset, got %#v", frontend)
+	}
+
+	var installSQL []*sqlAsset
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionInstallSQL], &installSQL); err != nil {
+		t.Fatalf("expected install sql section json to unmarshal, got error: %v", err)
+	}
+	if len(installSQL) != 1 || installSQL[0].Key != "001-plugin-dynamic-hidden.sql" {
+		t.Fatalf("expected only visible install sql asset, got %#v", installSQL)
+	}
+
+	var uninstallSQL []*sqlAsset
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionUninstallSQL], &uninstallSQL); err != nil {
+		t.Fatalf("expected uninstall sql section json to unmarshal, got error: %v", err)
+	}
+	if len(uninstallSQL) != 1 || uninstallSQL[0].Key != "001-plugin-dynamic-hidden.sql" {
+		t.Fatalf("expected only visible uninstall sql asset, got %#v", uninstallSQL)
+	}
+}
+
+func TestBuildRuntimeWasmArtifactFromSourceCleansTemporaryGoMod(t *testing.T) {
+	pluginDir := t.TempDir()
+	outputDir := t.TempDir()
+
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "plugin.yaml"),
+		"id: plugin-dynamic-temp-gomod\nname: Dynamic Temp GoMod\nversion: v0.1.0\ntype: dynamic\n",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "main.go"),
+		"package main\n\nfunc main() {}\n",
+	)
+
+	out, err := buildRuntimeWasmArtifactFromSource(pluginDir, outputDir)
+	if err != nil {
+		t.Fatalf("expected build without go.mod to succeed, got error: %v", err)
+	}
+	if out.RuntimePath != "" {
+		t.Cleanup(func() {
+			_ = os.RemoveAll(filepath.Dir(out.RuntimePath))
+		})
+	}
+
+	if _, err = os.Stat(filepath.Join(pluginDir, "go.mod")); !os.IsNotExist(err) {
+		t.Fatalf("expected temporary go.mod to be cleaned up, got err=%v", err)
+	}
+	if _, err = os.Stat(filepath.Join(pluginDir, "go.sum")); !os.IsNotExist(err) {
+		t.Fatalf("expected temporary go.sum to be cleaned up, got err=%v", err)
+	}
+}
+
 func TestWriteRuntimeWasmArtifactFromSourceWritesGeneratedFile(t *testing.T) {
 	pluginDir := t.TempDir()
 	mustWriteFile(

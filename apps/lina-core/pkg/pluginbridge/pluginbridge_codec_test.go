@@ -1,3 +1,5 @@
+// This file tests bridge spec validation and request-response codec round trips.
+
 package pluginbridge
 
 import (
@@ -52,14 +54,14 @@ func TestEncodeDecodeRequestEnvelopeRoundTrip(t *testing.T) {
 			},
 		},
 		Request: &HTTPRequestSnapshotV1{
-			Method:      http.MethodGet,
-			PublicPath:  "/api/v1/extensions/plugin-demo-dynamic/review-summary",
+			Method:       http.MethodGet,
+			PublicPath:   "/api/v1/extensions/plugin-demo-dynamic/review-summary",
 			InternalPath: "/review-summary",
-			RawPath:     "/api/v1/extensions/plugin-demo-dynamic/review-summary",
-			RawQuery:    "q=hello",
-			Host:        "localhost:8080",
-			Scheme:      "http",
-			ClientIP:    "127.0.0.1",
+			RawPath:      "/api/v1/extensions/plugin-demo-dynamic/review-summary",
+			RawQuery:     "q=hello",
+			Host:         "localhost:8080",
+			Scheme:       "http",
+			ClientIP:     "127.0.0.1",
 			Headers: map[string][]string{
 				"Accept": {"application/json"},
 			},

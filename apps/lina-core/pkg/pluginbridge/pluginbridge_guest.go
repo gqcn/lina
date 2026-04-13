@@ -1,3 +1,6 @@
+// This file provides the guest runtime buffers and encoded request execution
+// helpers used by plugin bridge guest modules.
+
 package pluginbridge
 
 import (

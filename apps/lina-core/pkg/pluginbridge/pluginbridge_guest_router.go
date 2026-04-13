@@ -1,3 +1,6 @@
+// This file dispatches guest bridge requests to reflected controller methods
+// and provides the guest-side route fallback mapping helpers.
+
 package pluginbridge
 
 import (

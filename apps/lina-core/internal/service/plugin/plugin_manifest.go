@@ -6,9 +6,7 @@ package plugin
 import (
 	"context"
 	"os"
-	"path"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -16,14 +14,10 @@ import (
 	"github.com/gogf/gf/v2/os/gfile"
 	"gopkg.in/yaml.v3"
 
-	"lina-core/pkg/pluginhost"
 	"lina-core/pkg/pluginbridge"
+	"lina-core/pkg/pluginfs"
+	"lina-core/pkg/pluginhost"
 )
-
-var pluginSQLFileNamePattern = regexp.MustCompile(`^\d{3}-[a-z0-9-]+\.sql$`)
-var pluginVueFileExts = map[string]struct{}{
-	".vue": {},
-}
 
 // pluginManifest defines plugin metadata loaded from plugin.yaml.
 type pluginManifest struct {
@@ -202,14 +196,14 @@ func (s *Service) loadRuntimePluginManifestFromArtifact(artifactPath string) (*p
 	}
 
 	manifest := &pluginManifest{
-		ID:              strings.TrimSpace(artifact.Manifest.ID),
-		Name:            strings.TrimSpace(artifact.Manifest.Name),
-		Version:         strings.TrimSpace(artifact.Manifest.Version),
-		Type:            normalizePluginType(artifact.Manifest.Type).String(),
-		Description:     strings.TrimSpace(artifact.Manifest.Description),
-		Menus:           artifact.Manifest.Menus,
-		ManifestPath:    "",
-		RootDir:         filepath.Dir(artifactPath),
+		ID:               strings.TrimSpace(artifact.Manifest.ID),
+		Name:             strings.TrimSpace(artifact.Manifest.Name),
+		Version:          strings.TrimSpace(artifact.Manifest.Version),
+		Type:             normalizePluginType(artifact.Manifest.Type).String(),
+		Description:      strings.TrimSpace(artifact.Manifest.Description),
+		Menus:            artifact.Manifest.Menus,
+		ManifestPath:     "",
+		RootDir:          filepath.Dir(artifactPath),
 		Routes:           artifact.RouteContracts,
 		BridgeSpec:       artifact.BridgeSpec,
 		HostCapabilities: pluginbridge.CapabilitySliceToMap(artifact.Capabilities),
@@ -339,49 +333,45 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 		}
 	}
 	if embeddedFiles := getSourcePluginEmbeddedFiles(manifest); embeddedFiles != nil {
-		if err := validatePluginSQLPathsInFS(embeddedFiles, s.listPluginInstallSQLPaths(manifest), false); err != nil {
+		if err := pluginfs.ValidateSQLPathsFromFS(embeddedFiles, s.listPluginInstallSQLPaths(manifest), false); err != nil {
 			return gerror.Wrapf(err, "插件清单 install SQL 约束不合法: %s", fileLabel)
 		}
-		if err := validatePluginSQLPathsInFS(embeddedFiles, s.listPluginUninstallSQLPaths(manifest), true); err != nil {
+		if err := pluginfs.ValidateSQLPathsFromFS(embeddedFiles, s.listPluginUninstallSQLPaths(manifest), true); err != nil {
 			return gerror.Wrapf(err, "插件清单 uninstall SQL 约束不合法: %s", fileLabel)
 		}
-		if err := validatePluginManifestFilePathsInFS(
+		if err := pluginfs.ValidateVuePathsFromFS(
 			embeddedFiles,
 			s.listPluginFrontendPagePaths(manifest),
 			"frontend/pages/",
-			pluginVueFileExts,
 		); err != nil {
 			return gerror.Wrapf(err, "插件清单 frontend page 约束不合法: %s", fileLabel)
 		}
-		if err := validatePluginManifestFilePathsInFS(
+		if err := pluginfs.ValidateVuePathsFromFS(
 			embeddedFiles,
 			s.listPluginFrontendSlotPaths(manifest),
 			"frontend/slots/",
-			pluginVueFileExts,
 		); err != nil {
 			return gerror.Wrapf(err, "插件清单 frontend slot 约束不合法: %s", fileLabel)
 		}
 		return nil
 	}
-	if err := validatePluginSQLPaths(rootDir, s.listPluginInstallSQLPaths(manifest), false); err != nil {
+	if err := pluginfs.ValidateSQLPaths(rootDir, s.listPluginInstallSQLPaths(manifest), false); err != nil {
 		return gerror.Wrapf(err, "插件清单 install SQL 约束不合法: %s", fileLabel)
 	}
-	if err := validatePluginSQLPaths(rootDir, s.listPluginUninstallSQLPaths(manifest), true); err != nil {
+	if err := pluginfs.ValidateSQLPaths(rootDir, s.listPluginUninstallSQLPaths(manifest), true); err != nil {
 		return gerror.Wrapf(err, "插件清单 uninstall SQL 约束不合法: %s", fileLabel)
 	}
-	if err := validatePluginManifestFilePaths(
+	if err := pluginfs.ValidateVuePaths(
 		rootDir,
 		s.listPluginFrontendPagePaths(manifest),
 		"frontend/pages/",
-		pluginVueFileExts,
 	); err != nil {
 		return gerror.Wrapf(err, "插件清单 frontend page 约束不合法: %s", fileLabel)
 	}
-	if err := validatePluginManifestFilePaths(
+	if err := pluginfs.ValidateVuePaths(
 		rootDir,
 		s.listPluginFrontendSlotPaths(manifest),
 		"frontend/slots/",
-		pluginVueFileExts,
 	); err != nil {
 		return gerror.Wrapf(err, "插件清单 frontend slot 约束不合法: %s", fileLabel)
 	}
@@ -390,33 +380,7 @@ func (s *Service) validatePluginManifest(manifest *pluginManifest, filePath stri
 
 // discoverPluginSQLPaths discovers plugin SQL files by directory convention.
 func (s *Service) discoverPluginSQLPaths(rootDir string, uninstall bool) []string {
-	var (
-		searchDir = filepath.Join(rootDir, "manifest", "sql")
-		relPrefix = "manifest/sql"
-	)
-
-	if uninstall {
-		searchDir = filepath.Join(rootDir, "manifest", "sql", "uninstall")
-		relPrefix = "manifest/sql/uninstall"
-	}
-
-	if !gfile.Exists(searchDir) || !gfile.IsDir(searchDir) {
-		return []string{}
-	}
-
-	sqlFiles, err := gfile.ScanDirFile(searchDir, "*.sql", false)
-	if err != nil {
-		return []string{}
-	}
-
-	items := make([]string, 0, len(sqlFiles))
-	for _, sqlFile := range sqlFiles {
-		// Return normalized relative paths for validation and execution only. These
-		// paths are intentionally not persisted into plugin review tables.
-		items = append(items, path.Join(relPrefix, filepath.Base(sqlFile)))
-	}
-	sort.Strings(items)
-	return items
+	return pluginfs.DiscoverSQLPaths(rootDir, uninstall)
 }
 
 // discoverPluginPagePaths discovers plugin page source files by directory convention.
@@ -430,96 +394,5 @@ func (s *Service) discoverPluginSlotPaths(rootDir string) []string {
 }
 
 func (s *Service) discoverPluginVuePaths(rootDir string, relativeDir string) []string {
-	searchDir := filepath.Join(rootDir, relativeDir)
-	if !gfile.Exists(searchDir) || !gfile.IsDir(searchDir) {
-		return []string{}
-	}
-
-	resourceFiles, err := gfile.ScanDirFile(searchDir, "*.vue", true)
-	if err != nil {
-		return []string{}
-	}
-
-	items := make([]string, 0, len(resourceFiles))
-	for _, resourceFile := range resourceFiles {
-		relativePath, relErr := filepath.Rel(rootDir, resourceFile)
-		if relErr != nil {
-			continue
-		}
-		items = append(items, path.Clean(strings.ReplaceAll(relativePath, "\\", "/")))
-	}
-	sort.Strings(items)
-	return items
-}
-
-func validatePluginSQLPaths(rootDir string, relativePaths []string, uninstall bool) error {
-	var (
-		expectedDir    = "manifest/sql"
-		expectedPrefix = "manifest/sql/"
-	)
-
-	if uninstall {
-		expectedDir = "manifest/sql/uninstall"
-		expectedPrefix = "manifest/sql/uninstall/"
-	}
-
-	for _, relativePath := range relativePaths {
-		if relativePath == "" {
-			return gerror.New("SQL 资源路径不能为空")
-		}
-
-		normalizedPath := path.Clean(strings.ReplaceAll(relativePath, "\\", "/"))
-		if normalizedPath == "." || normalizedPath == ".." || strings.HasPrefix(normalizedPath, "../") {
-			return gerror.Newf("SQL 资源路径非法: %s", relativePath)
-		}
-
-		if !strings.HasPrefix(normalizedPath, expectedPrefix) {
-			return gerror.Newf("SQL 资源路径必须放在 %s: %s", expectedPrefix, relativePath)
-		}
-		if !uninstall && strings.HasPrefix(normalizedPath, "manifest/sql/uninstall/") {
-			return gerror.Newf("安装 SQL 不允许放在 manifest/sql/uninstall/: %s", relativePath)
-		}
-		if path.Dir(normalizedPath) != expectedDir {
-			return gerror.Newf("SQL 资源必须放在 %s 根目录: %s", expectedDir, relativePath)
-		}
-		if !pluginSQLFileNamePattern.MatchString(path.Base(normalizedPath)) {
-			return gerror.Newf("SQL 文件名必须使用 {序号}-{当前迭代名称}.sql: %s", relativePath)
-		}
-		if !gfile.Exists(filepath.Join(rootDir, filepath.FromSlash(normalizedPath))) {
-			return gerror.Newf("SQL 资源文件不存在: %s", relativePath)
-		}
-	}
-
-	return nil
-}
-
-func validatePluginManifestFilePaths(
-	rootDir string,
-	relativePaths []string,
-	expectedPrefix string,
-	allowedExt map[string]struct{},
-) error {
-	for _, relativePath := range relativePaths {
-		if relativePath == "" {
-			return gerror.New("插件资源路径不能为空")
-		}
-
-		normalizedPath := path.Clean(strings.ReplaceAll(relativePath, "\\", "/"))
-		if normalizedPath == "." || normalizedPath == ".." || strings.HasPrefix(normalizedPath, "../") {
-			return gerror.Newf("插件资源路径非法: %s", relativePath)
-		}
-		if !strings.HasPrefix(normalizedPath, expectedPrefix) {
-			return gerror.Newf("插件资源路径必须放在 %s 下: %s", expectedPrefix, relativePath)
-		}
-		if len(allowedExt) > 0 {
-			if _, ok := allowedExt[strings.ToLower(path.Ext(normalizedPath))]; !ok {
-				return gerror.Newf("插件资源文件类型不支持: %s", relativePath)
-			}
-		}
-		if !gfile.Exists(filepath.Join(rootDir, filepath.FromSlash(normalizedPath))) {
-			return gerror.Newf("插件资源文件不存在: %s", relativePath)
-		}
-	}
-
-	return nil
+	return pluginfs.DiscoverVuePaths(rootDir, relativeDir)
 }

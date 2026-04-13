@@ -1,3 +1,6 @@
+// This file defines wasm custom section names and runtime metadata used by
+// plugin bridge artifacts.
+
 package pluginbridge
 
 const (

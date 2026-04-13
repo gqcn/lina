@@ -1,10 +1,11 @@
+// Package logger provides the project-wide logging wrapper used by Lina backend code.
 package logger
 
 import (
 	"context"
-	`sync`
+	"sync"
 
-	`github.com/gogf/gf/v2/frame/g`
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/glog"
 )
 

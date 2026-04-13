@@ -5,11 +5,9 @@ package plugin
 
 import (
 	"context"
-	"path/filepath"
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/os/gfile"
 	"github.com/gogf/gf/v2/os/gtime"
 
 	"lina-core/internal/dao"
@@ -130,22 +128,6 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 		return err
 	}
 	return nil
-}
-
-// resolvePluginResourcePath resolves a plugin relative resource path to an absolute path inside plugin root.
-func (s *Service) resolvePluginResourcePath(rootDir string, relativePath string) (string, error) {
-	if relativePath == "" {
-		return "", gerror.New("插件资源路径不能为空")
-	}
-	fullPath := filepath.Clean(filepath.Join(rootDir, relativePath))
-	rootPath := filepath.Clean(rootDir)
-	if fullPath != rootPath && !strings.HasPrefix(fullPath, rootPath+string(filepath.Separator)) {
-		return "", gerror.Newf("插件资源路径越界: %s", relativePath)
-	}
-	if !gfile.Exists(fullPath) {
-		return "", gerror.Newf("插件资源文件不存在: %s", fullPath)
-	}
-	return fullPath, nil
 }
 
 // setPluginInstalled updates plugin installation state in sys_plugin.

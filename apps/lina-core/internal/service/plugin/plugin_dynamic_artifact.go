@@ -17,6 +17,7 @@ import (
 	"github.com/gogf/gf/v2/os/gfile"
 
 	"lina-core/pkg/pluginbridge"
+	"lina-core/pkg/pluginfs"
 )
 
 // missingRuntimePluginArtifactError marks the "wasm not generated yet" state so
@@ -485,7 +486,7 @@ func parseRuntimeArtifactSQLAssets(
 		if strings.Contains(asset.Key, "/") || strings.Contains(asset.Key, "\\") {
 			return nil, gerror.Newf("动态插件 SQL 资源键不能包含路径分隔符: %s", asset.Key)
 		}
-		if !pluginSQLFileNamePattern.MatchString(asset.Key) {
+		if !pluginfs.IsValidSQLFileName(asset.Key) {
 			return nil, gerror.Newf("动态插件 SQL 资源键不符合命名规则: %s", asset.Key)
 		}
 	}
