@@ -36,3 +36,4 @@
 - [x] **FB-16**: 清理 `apps/lina-core/internal/service/plugin` 重构后遗留在根目录的单元测试，按子组件职责迁移并规范保留文件命名
 - [x] **FB-17**: 继续下沉 `plugin` 根目录中仍明显属于 `frontend/runtime/integration` 子组件的测试文件，进一步压缩根目录测试数量
 - [x] **FB-18**: 将 `apps/lina-core/internal/service/plugin` 根目录遗留的测试辅助文件与运行时测试统一归类到 `plugin_test.go`、`plugin_runtime_test.go` 等对应源码测试文件命名下
+- [x] **FB-19**: 修正本机 Go shell 环境中 `go` 与 `GOROOT` 版本错配问题，避免 `make wasm` 与 `make dev` 因 toolchain 路径污染失败
