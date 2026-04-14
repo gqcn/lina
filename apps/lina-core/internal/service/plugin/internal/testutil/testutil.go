@@ -33,7 +33,17 @@ import (
 var (
 	bundledRuntimeSampleOnce sync.Once
 	bundledRuntimeSampleErr  error
+	testDynamicStorageDir    string
 )
+
+func init() {
+	var err error
+	testDynamicStorageDir, err = os.MkdirTemp("", "lina-plugin-dynamic-storage-*")
+	if err != nil {
+		panic(fmt.Sprintf("failed to create isolated dynamic storage dir: %v", err))
+	}
+	configsvc.SetPluginDynamicStoragePathOverride(testDynamicStorageDir)
+}
 
 // Services groups the wired plugin sub-services used by package-level tests.
 type Services struct {
@@ -118,6 +128,11 @@ func NewServices() *Services {
 		Integration: integrationSvc,
 		OpenAPI:     openapiSvc,
 	}
+}
+
+// TestDynamicStorageDir returns the process-local runtime storage directory for plugin tests.
+func TestDynamicStorageDir() string {
+	return testDynamicStorageDir
 }
 
 type jwtConfigAdapter struct {
@@ -208,7 +223,7 @@ func EnsureBundledRuntimeSampleArtifactForTests(t *testing.T) {
 			"--plugin-dir",
 			pluginDir,
 			"--output-dir",
-			filepath.Join(repoRoot, "temp", "output"),
+			testDynamicStorageDir,
 		)
 		cmd.Dir = builderDir
 		cmd.Env = append(os.Environ(), "GOWORK="+filepath.Join(repoRoot, "go.work"))
@@ -372,7 +387,7 @@ func CreateTestRuntimePluginDirWithFrontendAssets(
 	return pluginDir
 }
 
-// CreateTestRuntimeStorageArtifact creates one runtime artifact in the shared temp output directory.
+// CreateTestRuntimeStorageArtifact creates one runtime artifact in the isolated test storage directory.
 func CreateTestRuntimeStorageArtifact(
 	t *testing.T,
 	pluginID string,
@@ -406,13 +421,8 @@ func CreateTestRuntimeStorageArtifactWithFilename(
 ) string {
 	t.Helper()
 
-	repoRoot, err := FindRepoRoot(".")
-	if err != nil {
-		t.Fatalf("failed to resolve repo root: %v", err)
-	}
-
-	storageDir := filepath.Join(repoRoot, "temp", "output")
-	if err = os.MkdirAll(storageDir, 0o755); err != nil {
+	storageDir := testDynamicStorageDir
+	if err := os.MkdirAll(storageDir, 0o755); err != nil {
 		t.Fatalf("failed to create dynamic storage dir: %v", err)
 	}
 
@@ -496,13 +506,8 @@ func CreateTestRuntimeStorageArtifactWithMenus(
 ) string {
 	t.Helper()
 
-	repoRoot, err := FindRepoRoot(".")
-	if err != nil {
-		t.Fatalf("failed to resolve repo root: %v", err)
-	}
-
-	storageDir := filepath.Join(repoRoot, "temp", "output")
-	if err = os.MkdirAll(storageDir, 0o755); err != nil {
+	storageDir := testDynamicStorageDir
+	if err := os.MkdirAll(storageDir, 0o755); err != nil {
 		t.Fatalf("failed to create dynamic storage dir: %v", err)
 	}
 
@@ -550,13 +555,8 @@ func CreateTestRuntimeStorageArtifactWithFrontendAssetsAndBackendContracts(
 ) string {
 	t.Helper()
 
-	repoRoot, err := FindRepoRoot(".")
-	if err != nil {
-		t.Fatalf("failed to resolve repo root: %v", err)
-	}
-
-	storageDir := filepath.Join(repoRoot, "temp", "output")
-	if err = os.MkdirAll(storageDir, 0o755); err != nil {
+	storageDir := testDynamicStorageDir
+	if err := os.MkdirAll(storageDir, 0o755); err != nil {
 		t.Fatalf("failed to create dynamic storage dir: %v", err)
 	}
 

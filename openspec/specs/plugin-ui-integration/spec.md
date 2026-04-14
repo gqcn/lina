@@ -38,6 +38,12 @@ TBD - created by archiving change plugin-framework. Update Purpose after archive
 - **AND** 宿主为该插件生成稳定的静态资源访问路径
 - **AND** 未正确准备前端资源的插件页面不能被启用
 
+#### Scenario: 动态插件前端资源可来源于嵌入资源声明
+- **WHEN** 动态插件作者通过 `go:embed` 声明 `frontend` 目录资源
+- **THEN** 构建器必须从该嵌入文件系统提取前端静态资源并写入运行时快照
+- **AND** 宿主继续从运行时快照托管 `/plugin-assets/<plugin-id>/<version>/...`
+- **AND** 宿主不需要通过 guest 运行时方法逐个读取前端资源内容
+
 ### Requirement: 插件页面纳入宿主路由与代际感知
 系统 SHALL 让已启用插件页面进入宿主动态路由体系，并在插件代际变化时保护当前用户体验。
 

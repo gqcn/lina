@@ -27,6 +27,12 @@ TBD - created by archiving change plugin-framework. Update Purpose after archive
 - **AND** 若插件仅声明后端能力则无需额外前端资源即可安装
 - **AND** 若插件声明前端资源则宿主仅在资源可被正确提取时允许启用
 
+#### Scenario: 构建器优先消费动态插件的嵌入资源声明
+- **WHEN** 构建器为动态插件生成运行时 `wasm` 产物
+- **THEN** 构建器必须优先从插件声明的嵌入文件系统读取 manifest、前端资源与 SQL 资源
+- **AND** 构建器必须把这些资源转换为宿主已发布的自定义节快照
+- **AND** 宿主在上传、装载与启用阶段继续只消费该快照，而不是执行 guest 资源读取逻辑
+
 ### Requirement: 插件启停与升级无需重启宿主
 系统 SHALL 支持在不重启宿主进程的情况下启用、禁用与升级动态插件。
 

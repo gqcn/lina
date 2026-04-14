@@ -4,9 +4,12 @@ import (
 	"context"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/gogf/gf/v2/frame/g"
 )
+
+var pluginDynamicStoragePathOverride atomic.Value
 
 // PluginConfig holds plugin-related host configuration.
 type PluginConfig struct {
@@ -40,5 +43,30 @@ func (s *Service) GetPlugin(ctx context.Context) *PluginConfig {
 
 // GetPluginDynamicStoragePath returns the normalized dynamic wasm storage directory.
 func (s *Service) GetPluginDynamicStoragePath(ctx context.Context) string {
+	if override := getPluginDynamicStoragePathOverride(); override != "" {
+		return override
+	}
 	return filepath.Clean(s.GetPlugin(ctx).Dynamic.StoragePath)
+}
+
+// SetPluginDynamicStoragePathOverride overrides the dynamic-plugin storage path.
+// Tests use this to isolate runtime artifact discovery from the shared workspace.
+func SetPluginDynamicStoragePathOverride(path string) {
+	pluginDynamicStoragePathOverride.Store(strings.TrimSpace(path))
+}
+
+func getPluginDynamicStoragePathOverride() string {
+	value := pluginDynamicStoragePathOverride.Load()
+	if value == nil {
+		return ""
+	}
+	path, ok := value.(string)
+	if !ok {
+		return ""
+	}
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
+	return filepath.Clean(path)
 }

@@ -415,7 +415,7 @@ func TestBundledDynamicPluginEnableMakesDynamicRouteExecutable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected repo root resolution to succeed, got error: %v", err)
 	}
-	cmd := exec.Command("make", "wasm", "p=plugin-demo-dynamic", "out=../../temp/output")
+	cmd := exec.Command("make", "wasm", "p=plugin-demo-dynamic", "out="+testutil.TestDynamicStorageDir())
 	cmd.Dir = filepath.Join(repoRoot, "apps", "lina-plugins")
 	if output, buildErr := cmd.CombinedOutput(); buildErr != nil {
 		t.Fatalf("expected bundled dynamic plugin artifact build to succeed, got error: %v output=%s", buildErr, string(output))

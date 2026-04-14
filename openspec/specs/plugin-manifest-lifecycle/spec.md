@@ -36,6 +36,13 @@ TBD - created by archiving change plugin-framework. Update Purpose after archive
 - **AND** 对缺少这些基础字段的动态插件拒绝安装
 - **AND** 宿主将上传产物写入 `plugin.dynamic.storagePath/<plugin-id>.wasm`
 
+#### Scenario: 动态插件通过嵌入资源声明生成清单与 SQL 快照
+
+- **WHEN** 动态插件作者使用 `go:embed` 声明 `plugin.yaml`、`manifest/sql` 与 `manifest/sql/uninstall`
+- **THEN** 构建器必须从该嵌入文件系统中读取这些资源
+- **AND** 运行时产物中嵌入的 manifest 与 SQL 快照必须继续作为宿主安装、上传和生命周期治理的真相源
+- **AND** 宿主不得改为通过 guest 运行时方法动态获取这些治理资源
+
 #### Scenario: 动态插件产物使用独立存储目录
 
 - **WHEN** 宿主发现、上传或同步一个 `dynamic` `wasm` 动态插件产物

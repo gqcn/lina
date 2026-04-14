@@ -52,7 +52,7 @@ func ensureBundledRuntimeSampleArtifactForTests() error {
 		"--plugin-dir",
 		pluginDir,
 		"--output-dir",
-		filepath.Join(repoRoot, "temp", "output"),
+		testutil.TestDynamicStorageDir(),
 	)
 	cmd.Dir = builderDir
 	cmd.Env = append(os.Environ(), "GOWORK="+filepath.Join(repoRoot, "go.work"))

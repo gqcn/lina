@@ -278,7 +278,7 @@ func TestStoreUploadedRuntimePackageWritesCanonicalWasmIntoRuntimeStorage(t *tes
 	if err != nil {
 		t.Fatalf("failed to resolve repo root: %v", err)
 	}
-	storageArtifactPath := filepath.Join(repoRoot, "temp", "output", runtime.BuildArtifactFileName(pluginID))
+	storageArtifactPath := filepath.Join(testutil.TestDynamicStorageDir(), runtime.BuildArtifactFileName(pluginID))
 	_ = os.Remove(storageArtifactPath)
 	t.Cleanup(func() {
 		_ = os.Remove(storageArtifactPath)
