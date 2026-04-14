@@ -1,6 +1,10 @@
+// This file keeps root-package test bootstrap and shared helpers for plugin facade tests.
+
 package plugin
 
 import (
+	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
@@ -8,6 +12,11 @@ import (
 	"testing"
 
 	_ "github.com/gogf/gf/contrib/drivers/mysql/v2"
+
+	"lina-core/internal/model/entity"
+	"lina-core/internal/service/plugin/internal/catalog"
+	"lina-core/internal/service/plugin/internal/testutil"
+	"lina-core/pkg/pluginbridge"
 )
 
 // TestMain keeps package-level tests self-contained by generating the bundled
@@ -22,7 +31,7 @@ func TestMain(m *testing.M) {
 }
 
 func ensureBundledRuntimeSampleArtifactForTests() error {
-	repoRoot, err := findRepoRoot(".")
+	repoRoot, err := testutil.FindRepoRoot(".")
 	if err != nil {
 		return err
 	}
@@ -54,6 +63,49 @@ func ensureBundledRuntimeSampleArtifactForTests() error {
 	return nil
 }
 
+func (s *Service) getPluginRegistry(ctx context.Context, pluginID string) (*entity.SysPlugin, error) {
+	return s.catalogSvc.GetRegistry(ctx, pluginID)
+}
+
+func (s *Service) getPluginRelease(ctx context.Context, pluginID string, version string) (*entity.SysPluginRelease, error) {
+	return s.catalogSvc.GetRelease(ctx, pluginID, version)
+}
+
+func (s *Service) getActivePluginManifest(ctx context.Context, pluginID string) (*catalog.Manifest, error) {
+	return s.catalogSvc.GetActiveManifest(ctx, pluginID)
+}
+
+func (s *Service) buildPluginGovernanceSnapshot(
+	ctx context.Context,
+	pluginID string,
+	version string,
+	pluginType string,
+	installed int,
+	enabled int,
+) (*catalog.GovernanceSnapshot, error) {
+	return s.catalogSvc.BuildGovernanceSnapshot(ctx, pluginID, version, pluginType, installed, enabled)
+}
+
+func (s *Service) loadRuntimePluginManifestFromArtifact(artifactPath string) (*catalog.Manifest, error) {
+	return s.catalogSvc.LoadManifestFromArtifactPath(artifactPath)
+}
+
+func (s *Service) syncPluginManifest(ctx context.Context, manifest *catalog.Manifest) (*entity.SysPlugin, error) {
+	return s.catalogSvc.SyncManifest(ctx, manifest)
+}
+
+func (s *Service) setPluginInstalled(ctx context.Context, pluginID string, installed int) error {
+	return s.catalogSvc.SetPluginInstalled(ctx, pluginID, installed)
+}
+
+func (s *Service) setPluginStatus(ctx context.Context, pluginID string, status int) error {
+	return s.catalogSvc.SetPluginStatus(ctx, pluginID, status)
+}
+
+func (s *Service) executeDynamicRoute(ctx context.Context, manifest *catalog.Manifest, request *pluginbridge.BridgeRequestEnvelopeV1) (*pluginbridge.BridgeResponseEnvelopeV1, error) {
+	return s.runtimeSvc.ExecuteDynamicRoute(ctx, manifest, request)
+}
+
 type testTopology struct {
 	enabled bool
 	primary bool
@@ -76,4 +128,14 @@ func (t *testTopology) NodeID() string {
 		return "test-node"
 	}
 	return t.nodeID
+}
+
+func buildVersionedRuntimeFrontendAssets(marker string) []*catalog.ArtifactFrontendAsset {
+	return []*catalog.ArtifactFrontendAsset{
+		{
+			Path:          "index.html",
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("<html><body>" + marker + "</body></html>")),
+			ContentType:   "text/html; charset=utf-8",
+		},
+	}
 }

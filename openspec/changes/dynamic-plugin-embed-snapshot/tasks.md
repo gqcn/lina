@@ -28,3 +28,11 @@
 - [x] **FB-8**: 为 `hack/build-wasm/builder` 拆分后的实现文件补齐符合规范的文件顶部用途注释
 - [x] **FB-9**: 为 `plugin_source_embedded` 与 `pluginbridge` 相关文件补齐或修正顶部用途注释格式，满足文件注释规范
 - [x] **FB-10**: 修正 `pkg/logger` 与 `pkg/pluginbridge` 组件文件顶部注释，统一满足主文件与实现文件的注释格式规范
+- [x] **FB-11**: 按职责将 `apps/lina-core/internal/service/plugin` 包内实现重组为独立子服务，降低 `plugin.Service` 维护复杂度
+- [x] **FB-12**: 修正动态插件卸载与回滚路径对隐藏权限菜单的清理与恢复，避免遗留脏 `sys_menu/sys_role_menu` 数据
+- [x] **FB-13**: 修正动态插件卸载失败回滚时 `sys_plugin` 注册表状态恢复不完整的问题，避免 `status` 与生命周期状态不一致
+- [x] **FB-14**: 调整动态路由隐藏权限菜单 `menu_key` 生成规则，避免不同 permission 归一化后发生键冲突
+- [x] **FB-15**: 修正动态路由鉴权在同秒刷新在线会话时误判会话失效的问题，避免固定前缀路由错误返回 `401`
+- [x] **FB-16**: 清理 `apps/lina-core/internal/service/plugin` 重构后遗留在根目录的单元测试，按子组件职责迁移并规范保留文件命名
+- [x] **FB-17**: 继续下沉 `plugin` 根目录中仍明显属于 `frontend/runtime/integration` 子组件的测试文件，进一步压缩根目录测试数量
+- [x] **FB-18**: 将 `apps/lina-core/internal/service/plugin` 根目录遗留的测试辅助文件与运行时测试统一归类到 `plugin_test.go`、`plugin_runtime_test.go` 等对应源码测试文件命名下

@@ -1,6 +1,6 @@
-package plugin
+// This file defines topology abstractions used by the root plugin facade.
 
-import "strings"
+package plugin
 
 // Topology defines the cluster semantics required by plugin runtime behavior.
 type Topology interface {
@@ -24,30 +24,4 @@ func (singleNodeTopology) IsPrimary() bool {
 
 func (singleNodeTopology) NodeID() string {
 	return "local-node"
-}
-
-func (s *Service) isClusterModeEnabled() bool {
-	if s == nil || s.topology == nil {
-		return false
-	}
-	return s.topology.IsEnabled()
-}
-
-func (s *Service) isPrimaryNode() bool {
-	if s == nil || s.topology == nil {
-		return true
-	}
-	return s.topology.IsPrimary()
-}
-
-func (s *Service) currentNodeID() string {
-	if s == nil || s.topology == nil {
-		return "local-node"
-	}
-
-	nodeID := strings.TrimSpace(s.topology.NodeID())
-	if nodeID == "" {
-		return "local-node"
-	}
-	return nodeID
 }
