@@ -202,11 +202,13 @@ func ensurePluginKVCacheTable(t *testing.T, ctx context.Context) {
 
 func cleanupPluginCacheNamespace(t *testing.T, ctx context.Context, pluginID string, namespace string) {
 	t.Helper()
-	_, _ = dao.SysKvCache.Ctx(ctx).Where(do.SysKvCache{
+	if _, err := dao.SysKvCache.Ctx(ctx).Where(do.SysKvCache{
 		OwnerType: kvcache.OwnerTypePlugin.String(),
 		OwnerKey:  pluginID,
 		Namespace: namespace,
-	}).Delete()
+	}).Delete(); err != nil {
+		t.Fatalf("failed to cleanup plugin cache namespace %s/%s: %v", pluginID, namespace, err)
+	}
 }
 
 func newCacheHostCallContext(pluginID string, namespace string) *hostCallContext {

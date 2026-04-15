@@ -190,7 +190,9 @@ func ensurePluginLockerTable(t *testing.T, ctx context.Context) {
 
 func cleanupPluginLock(t *testing.T, ctx context.Context, lockName string) {
 	t.Helper()
-	_, _ = dao.SysLocker.Ctx(ctx).Where(do.SysLocker{Name: lockName}).Delete()
+	if _, err := dao.SysLocker.Ctx(ctx).Where(do.SysLocker{Name: lockName}).Delete(); err != nil {
+		t.Fatalf("failed to cleanup plugin lock %s: %v", lockName, err)
+	}
 }
 
 func buildPluginLockName(pluginID string, lockName string) string {

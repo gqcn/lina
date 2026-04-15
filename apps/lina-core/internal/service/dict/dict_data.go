@@ -180,7 +180,7 @@ type DataExportInput struct {
 }
 
 // DataExport generates an Excel file with dict data (max 10000 rows).
-func (s *Service) DataExport(ctx context.Context, in DataExportInput) ([]byte, error) {
+func (s *Service) DataExport(ctx context.Context, in DataExportInput) (data []byte, err error) {
 	cols := dao.SysDictData.Columns()
 	m := dao.SysDictData.Ctx(ctx)
 
@@ -199,37 +199,54 @@ func (s *Service) DataExport(ctx context.Context, in DataExportInput) ([]byte, e
 	m = m.Limit(10000)
 
 	var list []*entity.SysDictData
-	err := m.Order(cols.Sort + " ASC").Scan(&list)
+	err = m.Order(cols.Sort + " ASC").Scan(&list)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create Excel file
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 	sheet := "Sheet1"
 
 	headers := []string{"字典标签", "字典值", "排序", "Tag样式", "CSS类", "状态", "备注", "创建时间"}
 	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err = setCellValue(f, sheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	for i, dd := range list {
 		row := i + 2
-		f.SetCellValue(sheet, cellName(1, row), dd.Label)
-		f.SetCellValue(sheet, cellName(2, row), dd.Value)
-		f.SetCellValue(sheet, cellName(3, row), dd.Sort)
-		f.SetCellValue(sheet, cellName(4, row), dd.TagStyle)
-		f.SetCellValue(sheet, cellName(5, row), dd.CssClass)
+		if err = setCellValueByName(f, sheet, cellName(1, row), dd.Label); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(2, row), dd.Value); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(3, row), dd.Sort); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(4, row), dd.TagStyle); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(5, row), dd.CssClass); err != nil {
+			return nil, err
+		}
 		statusText := "正常"
 		if dd.Status == 0 {
 			statusText = "停用"
 		}
-		f.SetCellValue(sheet, cellName(6, row), statusText)
-		f.SetCellValue(sheet, cellName(7, row), dd.Remark)
+		if err = setCellValueByName(f, sheet, cellName(6, row), statusText); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(7, row), dd.Remark); err != nil {
+			return nil, err
+		}
 		if dd.CreatedAt != nil {
-			f.SetCellValue(sheet, cellName(8, row), dd.CreatedAt.String())
+			if err = setCellValueByName(f, sheet, cellName(8, row), dd.CreatedAt.String()); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -237,7 +254,8 @@ func (s *Service) DataExport(ctx context.Context, in DataExportInput) ([]byte, e
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	data = buf.Bytes()
+	return data, nil
 }
 
 // DataByType returns all non-deleted dict data for a given dict type with status=1, ordered by sort ASC.

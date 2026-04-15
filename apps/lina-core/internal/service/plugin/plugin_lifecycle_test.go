@@ -38,7 +38,9 @@ func TestUpdateStatusEnablesBackendOnlyDynamicPluginWithoutFrontendAssets(t *tes
 	testutil.CleanupPluginGovernanceRowsHard(t, ctx, pluginID)
 	t.Cleanup(func() {
 		testutil.CleanupPluginGovernanceRowsHard(t, ctx, pluginID)
-		_ = os.Remove(artifactPath)
+		if cleanupErr := os.Remove(artifactPath); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+			t.Fatalf("failed to remove artifact %s: %v", artifactPath, cleanupErr)
+		}
 	})
 
 	manifest, err := service.loadRuntimePluginManifestFromArtifact(artifactPath)
@@ -109,7 +111,9 @@ func TestSyncAndListReportsPendingHostServiceAuthorization(t *testing.T) {
 	testutil.CleanupPluginGovernanceRowsHard(t, ctx, pluginID)
 	t.Cleanup(func() {
 		testutil.CleanupPluginGovernanceRowsHard(t, ctx, pluginID)
-		_ = os.Remove(artifactPath)
+		if cleanupErr := os.Remove(artifactPath); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+			t.Fatalf("failed to remove artifact %s: %v", artifactPath, cleanupErr)
+		}
 	})
 
 	out, err := service.SyncAndList(ctx)
@@ -195,7 +199,9 @@ func TestEnableWithAuthorizationAppliesConfirmedHostServiceSnapshot(t *testing.T
 	testutil.CleanupPluginGovernanceRowsHard(t, ctx, pluginID)
 	t.Cleanup(func() {
 		testutil.CleanupPluginGovernanceRowsHard(t, ctx, pluginID)
-		_ = os.Remove(artifactPath)
+		if cleanupErr := os.Remove(artifactPath); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+			t.Fatalf("failed to remove artifact %s: %v", artifactPath, cleanupErr)
+		}
 	})
 
 	authorization := &HostServiceAuthorizationInput{

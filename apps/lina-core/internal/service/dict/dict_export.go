@@ -18,7 +18,7 @@ type CombinedExportInput struct {
 }
 
 // CombinedExport generates an Excel file with both dict types and dict data (max 10000 rows each).
-func (s *Service) CombinedExport(ctx context.Context, in CombinedExportInput) ([]byte, error) {
+func (s *Service) CombinedExport(ctx context.Context, in CombinedExportInput) (data []byte, err error) {
 	// Query dict types
 	typeCols := dao.SysDictType.Columns()
 	typeM := dao.SysDictType.Ctx(ctx)
@@ -37,7 +37,7 @@ func (s *Service) CombinedExport(ctx context.Context, in CombinedExportInput) ([
 	typeM = typeM.Limit(10000)
 
 	var typeList []*entity.SysDictType
-	err := typeM.Order(typeCols.Id + " ASC").Scan(&typeList)
+	err = typeM.Order(typeCols.Id + " ASC").Scan(&typeList)
 	if err != nil {
 		return nil, err
 	}
@@ -64,59 +64,93 @@ func (s *Service) CombinedExport(ctx context.Context, in CombinedExportInput) ([
 
 	// Create Excel file with two sheets
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 
 	// Sheet 1: 字典类型
 	typeSheet := "字典类型"
-	f.SetSheetName("Sheet1", typeSheet)
+	if err = setSheetName(f, "Sheet1", typeSheet); err != nil {
+		return nil, err
+	}
 
 	typeHeaders := []string{"字典名称", "字典类型", "状态", "备注", "创建时间"}
 	for i, h := range typeHeaders {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(typeSheet, cell, h)
+		if err = setCellValue(f, typeSheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	for i, dt := range typeList {
 		row := i + 2
-		f.SetCellValue(typeSheet, cellName(1, row), dt.Name)
-		f.SetCellValue(typeSheet, cellName(2, row), dt.Type)
+		if err = setCellValueByName(f, typeSheet, cellName(1, row), dt.Name); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, typeSheet, cellName(2, row), dt.Type); err != nil {
+			return nil, err
+		}
 		statusText := "正常"
 		if dt.Status == 0 {
 			statusText = "停用"
 		}
-		f.SetCellValue(typeSheet, cellName(3, row), statusText)
-		f.SetCellValue(typeSheet, cellName(4, row), dt.Remark)
+		if err = setCellValueByName(f, typeSheet, cellName(3, row), statusText); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, typeSheet, cellName(4, row), dt.Remark); err != nil {
+			return nil, err
+		}
 		if dt.CreatedAt != nil {
-			f.SetCellValue(typeSheet, cellName(5, row), dt.CreatedAt.String())
+			if err = setCellValueByName(f, typeSheet, cellName(5, row), dt.CreatedAt.String()); err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	// Sheet 2: 字典数据
 	dataSheet := "字典数据"
-	f.NewSheet(dataSheet)
+	if err = newSheet(f, dataSheet); err != nil {
+		return nil, err
+	}
 
 	dataHeaders := []string{"所属类型", "字典标签", "字典值", "排序", "Tag样式", "CSS类", "状态", "备注", "创建时间"}
 	for i, h := range dataHeaders {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(dataSheet, cell, h)
+		if err = setCellValue(f, dataSheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	for i, dd := range dataList {
 		row := i + 2
-		f.SetCellValue(dataSheet, cellName(1, row), dd.DictType)
-		f.SetCellValue(dataSheet, cellName(2, row), dd.Label)
-		f.SetCellValue(dataSheet, cellName(3, row), dd.Value)
-		f.SetCellValue(dataSheet, cellName(4, row), dd.Sort)
-		f.SetCellValue(dataSheet, cellName(5, row), dd.TagStyle)
-		f.SetCellValue(dataSheet, cellName(6, row), dd.CssClass)
+		if err = setCellValueByName(f, dataSheet, cellName(1, row), dd.DictType); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, dataSheet, cellName(2, row), dd.Label); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, dataSheet, cellName(3, row), dd.Value); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, dataSheet, cellName(4, row), dd.Sort); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, dataSheet, cellName(5, row), dd.TagStyle); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, dataSheet, cellName(6, row), dd.CssClass); err != nil {
+			return nil, err
+		}
 		statusText := "正常"
 		if dd.Status == 0 {
 			statusText = "停用"
 		}
-		f.SetCellValue(dataSheet, cellName(7, row), statusText)
-		f.SetCellValue(dataSheet, cellName(8, row), dd.Remark)
+		if err = setCellValueByName(f, dataSheet, cellName(7, row), statusText); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, dataSheet, cellName(8, row), dd.Remark); err != nil {
+			return nil, err
+		}
 		if dd.CreatedAt != nil {
-			f.SetCellValue(dataSheet, cellName(9, row), dd.CreatedAt.String())
+			if err = setCellValueByName(f, dataSheet, cellName(9, row), dd.CreatedAt.String()); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -124,5 +158,6 @@ func (s *Service) CombinedExport(ctx context.Context, in CombinedExportInput) ([
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	data = buf.Bytes()
+	return data, nil
 }

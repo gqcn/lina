@@ -57,5 +57,7 @@ func TestServiceEnabledStartsPrimaryElection(t *testing.T) {
 func cleanupElectionLock(t *testing.T) {
 	t.Helper()
 
-	_, _ = g.DB().Model("sys_locker").Where("name", "leader-election").Delete()
+	if _, err := g.DB().Model("sys_locker").Where("name", "leader-election").Delete(); err != nil {
+		t.Fatalf("failed to cleanup leader-election lock: %v", err)
+	}
 }

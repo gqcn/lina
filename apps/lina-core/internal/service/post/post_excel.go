@@ -19,7 +19,7 @@ type ExportInput struct {
 }
 
 // Export generates an Excel file with post data based on filters.
-func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
+func (s *Service) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
 	cols := dao.SysPost.Columns()
 	m := dao.SysPost.Ctx(ctx)
 
@@ -46,35 +46,48 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	}
 
 	var list []*entity.SysPost
-	err := m.Order(cols.Sort + " ASC").Scan(&list)
+	err = m.Order(cols.Sort + " ASC").Scan(&list)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create Excel file
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 	sheet := "Sheet1"
 
 	headers := []string{"岗位编码", "岗位名称", "排序", "状态", "备注", "创建时间"}
 	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err = setCellValue(f, sheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	for i, p := range list {
 		row := i + 2
-		f.SetCellValue(sheet, cellName(1, row), p.Code)
-		f.SetCellValue(sheet, cellName(2, row), p.Name)
-		f.SetCellValue(sheet, cellName(3, row), p.Sort)
+		if err = setCellValueByName(f, sheet, cellName(1, row), p.Code); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(2, row), p.Name); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(3, row), p.Sort); err != nil {
+			return nil, err
+		}
 		statusText := "正常"
 		if p.Status == 0 {
 			statusText = "停用"
 		}
-		f.SetCellValue(sheet, cellName(4, row), statusText)
-		f.SetCellValue(sheet, cellName(5, row), p.Remark)
+		if err = setCellValueByName(f, sheet, cellName(4, row), statusText); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(5, row), p.Remark); err != nil {
+			return nil, err
+		}
 		if p.CreatedAt != nil {
-			f.SetCellValue(sheet, cellName(6, row), p.CreatedAt.String())
+			if err = setCellValueByName(f, sheet, cellName(6, row), p.CreatedAt.String()); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -82,10 +95,6 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
-}
-
-func cellName(col, row int) string {
-	name, _ := excelize.CoordinatesToCellName(col, row)
-	return name
+	data = buf.Bytes()
+	return data, nil
 }

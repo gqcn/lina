@@ -51,7 +51,9 @@ func TestLeaseManager_StartAndStop(t *testing.T) {
 		lm.Stop()
 	})
 
-	_ = instance.Unlock(ctx)
+	if err = instance.Unlock(ctx); err != nil {
+		t.Fatal(err)
+	}
 	cleanupLock(name)
 }
 
@@ -96,7 +98,9 @@ func TestLeaseManager_StopChan(t *testing.T) {
 		}
 	})
 
-	_ = instance.Unlock(ctx)
+	if err = instance.Unlock(ctx); err != nil {
+		t.Fatal(err)
+	}
 	cleanupLock(name)
 }
 

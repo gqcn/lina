@@ -174,9 +174,11 @@ func invokeDataHostService(
 
 func cleanupWasmTestNodeStates(t *testing.T, ctx context.Context, pluginID string) {
 	t.Helper()
-	_, _ = dao.SysPluginNodeState.Ctx(ctx).
+	if _, err := dao.SysPluginNodeState.Ctx(ctx).
 		Where(do.SysPluginNodeState{PluginId: pluginID}).
-		Delete()
+		Delete(); err != nil {
+		t.Fatalf("failed to cleanup wasm test node states for %s: %v", pluginID, err)
+	}
 }
 
 func mustMarshalWasmJSON(t *testing.T, value any) []byte {

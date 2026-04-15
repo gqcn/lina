@@ -8,6 +8,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 
 	v1 "lina-core/api/file/v1"
+	"lina-core/internal/util/closeutil"
 )
 
 // Download downloads a file
@@ -23,7 +24,7 @@ func (c *ControllerV1) Download(ctx context.Context, req *v1.DownloadReq) (res *
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer closeutil.Close(reader, &err, "关闭下载文件流失败")
 
 	r.Response.Header().Set("Content-Disposition", "attachment; filename=\""+fileInfo.Original+"\"")
 	r.Response.Header().Set("Content-Type", "application/octet-stream")
@@ -32,7 +33,9 @@ func (c *ControllerV1) Download(ctx context.Context, req *v1.DownloadReq) (res *
 		r.Response.Header().Set("Content-Type", contentType)
 	}
 
-	io.Copy(r.Response.RawWriter(), reader)
+	if _, err = io.Copy(r.Response.RawWriter(), reader); err != nil {
+		return nil, err
+	}
 	r.ExitAll()
 	return nil, nil
 }

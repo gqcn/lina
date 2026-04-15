@@ -12,6 +12,7 @@ import (
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 
+	"lina-core/pkg/logger"
 	"lina-core/pkg/pluginbridge"
 )
 
@@ -60,7 +61,9 @@ func InvalidateCache(artifactPath string) {
 	wasmModuleCacheMu.Lock()
 	defer wasmModuleCacheMu.Unlock()
 	if entry, ok := wasmModuleCache[artifactPath]; ok {
-		entry.runtime.Close(context.Background())
+		if err := entry.runtime.Close(context.Background()); err != nil {
+			logger.Warningf(context.Background(), "close cached wasm runtime failed artifactPath=%s err=%v", artifactPath, err)
+		}
 		delete(wasmModuleCache, artifactPath)
 	}
 }
@@ -71,7 +74,9 @@ func InvalidateAllCache() {
 	wasmModuleCacheMu.Lock()
 	defer wasmModuleCacheMu.Unlock()
 	for path, entry := range wasmModuleCache {
-		entry.runtime.Close(context.Background())
+		if err := entry.runtime.Close(context.Background()); err != nil {
+			logger.Warningf(context.Background(), "close cached wasm runtime failed artifactPath=%s err=%v", path, err)
+		}
 		delete(wasmModuleCache, path)
 	}
 }
@@ -83,7 +88,7 @@ func ExecuteBridge(
 	ctx context.Context,
 	input ExecutionInput,
 	requestContent []byte,
-) (*pluginbridge.BridgeResponseEnvelopeV1, error) {
+) (response *pluginbridge.BridgeResponseEnvelopeV1, err error) {
 	if input.BridgeSpec == nil {
 		return nil, gerror.New("动态插件缺少 Wasm bridge 元数据")
 	}
@@ -99,7 +104,11 @@ func ExecuteBridge(
 	if err != nil {
 		return nil, gerror.Wrap(err, "实例化动态插件 Wasm 失败")
 	}
-	defer module.Close(ctx)
+	defer func() {
+		if closeErr := module.Close(ctx); closeErr != nil && err == nil {
+			err = gerror.Wrap(closeErr, "关闭动态插件 Wasm 模块失败")
+		}
+	}()
 
 	// Inject host call context so that host function callbacks can access
 	// plugin identity and capabilities.
@@ -158,7 +167,11 @@ func ExecuteBridge(
 	if !ok {
 		return nil, gerror.New("读取动态插件响应内存失败")
 	}
-	return pluginbridge.DecodeResponseEnvelope(responseContent)
+	response, err = pluginbridge.DecodeResponseEnvelope(responseContent)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 // getOrCompileWasmModule returns a cached compiled module or compiles a new one
@@ -181,24 +194,32 @@ func getOrCompileWasmModule(ctx context.Context, artifactPath string) (wazero.Ru
 
 	rt := wazero.NewRuntime(ctx)
 	if _, err := wasi_snapshot_preview1.Instantiate(ctx, rt); err != nil {
-		rt.Close(ctx)
+		if closeErr := rt.Close(ctx); closeErr != nil {
+			logger.Warningf(ctx, "close wasm runtime after WASI init failure failed err=%v", closeErr)
+		}
 		return nil, nil, gerror.Wrap(err, "初始化 WASI 失败")
 	}
 
 	// Register host call module so guest imports are satisfied at compile time.
 	if err := registerHostCallModule(ctx, rt); err != nil {
-		rt.Close(ctx)
+		if closeErr := rt.Close(ctx); closeErr != nil {
+			logger.Warningf(ctx, "close wasm runtime after host-call registration failure failed err=%v", closeErr)
+		}
 		return nil, nil, gerror.Wrap(err, "注册宿主调用模块失败")
 	}
 
 	wasmBytes, err := os.ReadFile(artifactPath)
 	if err != nil {
-		rt.Close(ctx)
+		if closeErr := rt.Close(ctx); closeErr != nil {
+			logger.Warningf(ctx, "close wasm runtime after artifact read failure failed err=%v", closeErr)
+		}
 		return nil, nil, gerror.Wrap(err, "读取动态插件 Wasm 产物失败")
 	}
 	compiled, err := rt.CompileModule(ctx, wasmBytes)
 	if err != nil {
-		rt.Close(ctx)
+		if closeErr := rt.Close(ctx); closeErr != nil {
+			logger.Warningf(ctx, "close wasm runtime after compile failure failed err=%v", closeErr)
+		}
 		return nil, nil, gerror.Wrap(err, "编译动态插件 Wasm 失败")
 	}
 

@@ -46,8 +46,8 @@ type ImportFailItem struct {
 
 // CombinedImport imports dictionary types and data from an Excel file.
 // If updateSupport is true, existing records will be updated; otherwise, they will be skipped.
-func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSupport bool) (*CombinedImportResult, error) {
-	result := &CombinedImportResult{
+func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSupport bool) (result *CombinedImportResult, err error) {
+	result = &CombinedImportResult{
 		FailList: make([]ImportFailItem, 0),
 	}
 
@@ -56,7 +56,7 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSup
 	if err != nil {
 		return nil, gerror.New("无法解析Excel文件")
 	}
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 
 	// Get existing dict types for validation (GoFrame auto-adds deleted_at IS NULL)
 	typeCols := dao.SysDictType.Columns()
@@ -356,60 +356,107 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSup
 }
 
 // CombinedImportTemplate generates an Excel template for dictionary import.
-func (s *Service) CombinedImportTemplate() ([]byte, error) {
+func (s *Service) CombinedImportTemplate() (data []byte, err error) {
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 
 	// Sheet 1: 字典类型
 	typeSheet := "字典类型"
-	f.SetSheetName("Sheet1", typeSheet)
+	if err = setSheetName(f, "Sheet1", typeSheet); err != nil {
+		return nil, err
+	}
 
 	typeHeaders := []string{"字典名称", "字典类型", "状态", "备注"}
 	for i, h := range typeHeaders {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(typeSheet, cell, h)
+		if err = setCellValue(f, typeSheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	// Add example row
-	f.SetCellValue(typeSheet, "A2", "用户性别")
-	f.SetCellValue(typeSheet, "B2", "sys_user_sex")
-	f.SetCellValue(typeSheet, "C2", "正常")
-	f.SetCellValue(typeSheet, "D2", "用户性别字典")
+	if err = setCellValueByName(f, typeSheet, "A2", "用户性别"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, typeSheet, "B2", "sys_user_sex"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, typeSheet, "C2", "正常"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, typeSheet, "D2", "用户性别字典"); err != nil {
+		return nil, err
+	}
 
 	// Sheet 2: 字典数据
 	dataSheet := "字典数据"
-	f.NewSheet(dataSheet)
+	if err = newSheet(f, dataSheet); err != nil {
+		return nil, err
+	}
 
 	dataHeaders := []string{"所属类型", "字典标签", "字典值", "排序", "Tag样式", "CSS类", "状态", "备注"}
 	for i, h := range dataHeaders {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(dataSheet, cell, h)
+		if err = setCellValue(f, dataSheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	// Add example rows
-	f.SetCellValue(dataSheet, "A2", "sys_user_sex")
-	f.SetCellValue(dataSheet, "B2", "男")
-	f.SetCellValue(dataSheet, "C2", "1")
-	f.SetCellValue(dataSheet, "D2", "1")
-	f.SetCellValue(dataSheet, "E2", "primary")
-	f.SetCellValue(dataSheet, "F2", "")
-	f.SetCellValue(dataSheet, "G2", "正常")
-	f.SetCellValue(dataSheet, "H2", "男性")
+	if err = setCellValueByName(f, dataSheet, "A2", "sys_user_sex"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "B2", "男"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "C2", "1"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "D2", "1"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "E2", "primary"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "F2", ""); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "G2", "正常"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "H2", "男性"); err != nil {
+		return nil, err
+	}
 
-	f.SetCellValue(dataSheet, "A3", "sys_user_sex")
-	f.SetCellValue(dataSheet, "B3", "女")
-	f.SetCellValue(dataSheet, "C3", "2")
-	f.SetCellValue(dataSheet, "D3", "2")
-	f.SetCellValue(dataSheet, "E3", "danger")
-	f.SetCellValue(dataSheet, "F3", "")
-	f.SetCellValue(dataSheet, "G3", "正常")
-	f.SetCellValue(dataSheet, "H3", "女性")
+	if err = setCellValueByName(f, dataSheet, "A3", "sys_user_sex"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "B3", "女"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "C3", "2"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "D3", "2"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "E3", "danger"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "F3", ""); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "G3", "正常"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, dataSheet, "H3", "女性"); err != nil {
+		return nil, err
+	}
 
 	var buf bytes.Buffer
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	data = buf.Bytes()
+	return data, nil
 }
 
 // ImportResult represents the result of import operation.
@@ -426,8 +473,8 @@ type ImportFailItemRecord struct {
 }
 
 // TypeImport imports dictionary types from an Excel file.
-func (s *Service) TypeImport(ctx context.Context, file io.Reader, updateSupport bool) (*ImportResult, error) {
-	result := &ImportResult{
+func (s *Service) TypeImport(ctx context.Context, file io.Reader, updateSupport bool) (result *ImportResult, err error) {
+	result = &ImportResult{
 		FailList: make([]ImportFailItemRecord, 0),
 	}
 
@@ -436,7 +483,7 @@ func (s *Service) TypeImport(ctx context.Context, file io.Reader, updateSupport 
 	if err != nil {
 		return nil, gerror.New("无法解析Excel文件")
 	}
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 
 	// Get existing dict types (dict types use hard delete, no deleted_at filter needed)
 	existingTypes := make(map[string]bool)
@@ -555,8 +602,8 @@ func (s *Service) TypeImport(ctx context.Context, file io.Reader, updateSupport 
 }
 
 // DataImport imports dictionary data from an Excel file.
-func (s *Service) DataImport(ctx context.Context, file io.Reader, updateSupport bool) (*ImportResult, error) {
-	result := &ImportResult{
+func (s *Service) DataImport(ctx context.Context, file io.Reader, updateSupport bool) (result *ImportResult, err error) {
+	result = &ImportResult{
 		FailList: make([]ImportFailItemRecord, 0),
 	}
 
@@ -565,7 +612,7 @@ func (s *Service) DataImport(ctx context.Context, file io.Reader, updateSupport 
 	if err != nil {
 		return nil, gerror.New("无法解析Excel文件")
 	}
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 
 	// Get existing dict types (dict types use hard delete, no deleted_at filter needed)
 	existingTypes := make(map[string]bool)
@@ -735,64 +782,108 @@ func (s *Service) DataImport(ctx context.Context, file io.Reader, updateSupport 
 }
 
 // GenerateTypeImportTemplate generates an Excel template for dictionary type import.
-func (s *Service) GenerateTypeImportTemplate() ([]byte, error) {
+func (s *Service) GenerateTypeImportTemplate() (data []byte, err error) {
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 
 	sheet := "Sheet1"
 	headers := []string{"字典名称", "字典类型", "状态", "备注"}
 	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err = setCellValue(f, sheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	// Add example row
-	f.SetCellValue(sheet, "A2", "用户性别")
-	f.SetCellValue(sheet, "B2", "sys_user_sex")
-	f.SetCellValue(sheet, "C2", "正常")
-	f.SetCellValue(sheet, "D2", "用户性别字典")
+	if err = setCellValueByName(f, sheet, "A2", "用户性别"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "B2", "sys_user_sex"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "C2", "正常"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "D2", "用户性别字典"); err != nil {
+		return nil, err
+	}
 
 	var buf bytes.Buffer
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	data = buf.Bytes()
+	return data, nil
 }
 
 // GenerateDataImportTemplate generates an Excel template for dictionary data import.
-func (s *Service) GenerateDataImportTemplate() ([]byte, error) {
+func (s *Service) GenerateDataImportTemplate() (data []byte, err error) {
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 
 	sheet := "Sheet1"
 	headers := []string{"所属类型", "字典标签", "字典值", "排序", "Tag样式", "CSS类", "状态", "备注"}
 	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err = setCellValue(f, sheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	// Add example rows
-	f.SetCellValue(sheet, "A2", "sys_user_sex")
-	f.SetCellValue(sheet, "B2", "男")
-	f.SetCellValue(sheet, "C2", "1")
-	f.SetCellValue(sheet, "D2", "1")
-	f.SetCellValue(sheet, "E2", "primary")
-	f.SetCellValue(sheet, "F2", "")
-	f.SetCellValue(sheet, "G2", "正常")
-	f.SetCellValue(sheet, "H2", "男性")
+	if err = setCellValueByName(f, sheet, "A2", "sys_user_sex"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "B2", "男"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "C2", "1"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "D2", "1"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "E2", "primary"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "F2", ""); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "G2", "正常"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "H2", "男性"); err != nil {
+		return nil, err
+	}
 
-	f.SetCellValue(sheet, "A3", "sys_user_sex")
-	f.SetCellValue(sheet, "B3", "女")
-	f.SetCellValue(sheet, "C3", "2")
-	f.SetCellValue(sheet, "D3", "2")
-	f.SetCellValue(sheet, "E3", "danger")
-	f.SetCellValue(sheet, "F3", "")
-	f.SetCellValue(sheet, "G3", "正常")
-	f.SetCellValue(sheet, "H3", "女性")
+	if err = setCellValueByName(f, sheet, "A3", "sys_user_sex"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "B3", "女"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "C3", "2"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "D3", "2"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "E3", "danger"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "F3", ""); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "G3", "正常"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, "H3", "女性"); err != nil {
+		return nil, err
+	}
 
 	var buf bytes.Buffer
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	data = buf.Bytes()
+	return data, nil
 }

@@ -56,6 +56,16 @@
 - [x] 6.9 实现`TC-72b`：低优先级宿主服务在未授权资源或超限场景下被宿主拒绝。
 - [x] 6.10 回归`TC0037`、`TC0038`、`TC0039`、`TC0041`、`TC0042`、`TC0043`，确认通知公告与消息中心在通知域重构后无回归。
 
+## 7. 合并自 `config-duration-unification`
+
+- [x] 7.1 更新 `lina-core` 默认配置与模板配置，使用新的 duration 字符串键 `jwt.expire`、`session.timeout`、`session.cleanupInterval`、`monitor.interval`。
+- [x] 7.2 重构 `internal/service/config` 的时长配置读取逻辑，统一返回 `time.Duration`。
+- [x] 7.3 调整认证与权限缓存逻辑，改为直接消费 JWT 与会话的 `time.Duration` 配置。
+- [x] 7.4 调整在线会话清理与服务监控采集/清理定时任务，统一基于 `time.Duration` 调度与计算阈值。
+- [x] 7.5 补充配置相关单元测试，覆盖默认值、新配置解析与非法 duration 输入行为。
+- [x] 7.6 将“后端时长统一使用 `time.Duration`”与“禁止忽略 `error` 返回值”的要求补充到项目规范，并完成相关实现审查。
+- [x] 7.7 将 `openspec/changes/config-duration-unification` 并入当前迭代，仅保留 `dynamic-plugin-host-service-extension` 作为活跃变更。
+
 ## Feedback
 
 - [x] **FB-1**: `data service` 必须通过宿主 DAO / `gdb` ORM 契约执行，禁止 guest 侧 raw SQL / 通用 SQL 执行设计。
@@ -116,3 +126,6 @@
 - [x] **FB-56**: 收敛`plugin`接口模块与控制器为单一维护入口，移除额外`public.go`/`PublicControllerV1`拆分，并在路由注册阶段仅将无需权限校验的`DynamicList`绑定到 public 分组。
 - [x] **FB-57**: 放宽权限拓扑 revision 的本地刷新轮询窗口，降低跨实例共享 `kvcache` 访问频率，同时保留本机权限变更后的即时失效语义。
 - [x] **FB-58**: 为权限校验关键路径补齐解释性注释，覆盖声明式权限中间件、access context 缓存/revision 同步与权限快照装配等私有辅助方法。
+- [x] **FB-59**: 移除旧配置键兼容逻辑，按全新项目方案仅保留新的 duration 配置实现。
+- [x] **FB-60**: 将后端时长统一使用 `time.Duration`、以及错误返回值禁止忽略的要求补充到项目规范。
+- [x] **FB-61**: 审查并修复后端代码中被忽略的 `error` 返回值。

@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -194,5 +195,7 @@ func TestElectionServiceNonLeaderRetry(t *testing.T) {
 }
 
 func cleanupLock() {
-	_, _ = g.DB().Model("sys_locker").Where("name", lockName).Delete()
+	if _, err := g.DB().Model("sys_locker").Where("name", lockName).Delete(); err != nil {
+		panic(fmt.Sprintf("cleanup leader-election lock failed: %v", err))
+	}
 }

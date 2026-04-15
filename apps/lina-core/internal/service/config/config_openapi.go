@@ -2,8 +2,6 @@ package config
 
 import (
 	"context"
-
-	"github.com/gogf/gf/v2/frame/g"
 )
 
 // OpenApiConfig holds OpenAPI documentation configuration.
@@ -22,6 +20,6 @@ func (s *Service) GetOpenApi(ctx context.Context) *OpenApiConfig {
 		Version:           "v1.0.0",
 		ServerDescription: "API Server",
 	}
-	_ = g.Cfg().MustGet(ctx, "openapi").Scan(cfg)
+	mustScanConfig(ctx, "openapi", cfg)
 	return cfg
 }

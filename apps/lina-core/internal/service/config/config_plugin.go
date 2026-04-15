@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync/atomic"
-
-	"github.com/gogf/gf/v2/frame/g"
 )
 
 var pluginDynamicStoragePathOverride atomic.Value
@@ -29,7 +27,7 @@ func (s *Service) GetPlugin(ctx context.Context) *PluginConfig {
 			StoragePath: "temp/output",
 		},
 	}
-	_ = g.Cfg().MustGet(ctx, "plugin").Scan(cfg)
+	mustScanConfig(ctx, "plugin", cfg)
 
 	cfg.Dynamic.StoragePath = strings.TrimSpace(cfg.Dynamic.StoragePath)
 	if cfg.Dynamic.StoragePath == "" {

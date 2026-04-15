@@ -74,7 +74,9 @@ func DB() (gdb.DB, error) {
 func registerPluginDataDrivers() {
 	pluginDataDriverRegisterOnce.Do(func() {
 		for _, baseType := range []string{"mysql", "mariadb", "tidb"} {
-			_ = gdb.Register(pluginDataDriverTypePrefix+baseType, &pluginDataDriver{baseType: baseType})
+			if err := gdb.Register(pluginDataDriverTypePrefix+baseType, &pluginDataDriver{baseType: baseType}); err != nil {
+				panic(gerror.Wrapf(err, "register plugin data driver failed baseType=%s", baseType))
+			}
 		}
 	})
 }

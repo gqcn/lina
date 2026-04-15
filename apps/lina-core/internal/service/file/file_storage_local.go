@@ -6,10 +6,13 @@ import (
 	"io"
 	"os"
 
+	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gfile"
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/grand"
+
+	"lina-core/internal/util/closeutil"
 )
 
 // LocalStorage implements Storage interface using local file system.
@@ -25,7 +28,7 @@ func NewLocalStorage(basePath string) *LocalStorage {
 
 // Put saves file data organized by year/month directory structure.
 // Returns the relative path from basePath, e.g. "2026/03/20260319_abc12345.png".
-func (s *LocalStorage) Put(ctx context.Context, filename string, data io.Reader) (string, error) {
+func (s *LocalStorage) Put(ctx context.Context, filename string, data io.Reader) (path string, err error) {
 	now := gtime.Now()
 	dir := fmt.Sprintf("%s/%s", now.Format("Y"), now.Format("m"))
 	fullDir := gfile.Join(s.basePath, dir)
@@ -44,10 +47,12 @@ func (s *LocalStorage) Put(ctx context.Context, filename string, data io.Reader)
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer closeutil.Close(f, &err, "关闭上传目标文件失败")
 
 	if _, err = io.Copy(f, data); err != nil {
-		os.Remove(fullPath)
+		if removeErr := os.Remove(fullPath); removeErr != nil && !os.IsNotExist(removeErr) {
+			return "", gerror.Wrapf(err, "写入文件失败，且清理临时文件失败: %v", removeErr)
+		}
 		return "", err
 	}
 

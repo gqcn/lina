@@ -15,6 +15,7 @@ import (
 	"github.com/gogf/gf/v2/os/gfile"
 
 	"lina-core/internal/service/plugin/internal/catalog"
+	"lina-core/internal/util/closeutil"
 )
 
 // DynamicUploadInput defines input for uploading a runtime wasm package.
@@ -47,7 +48,7 @@ type DynamicUploadOutput struct {
 
 // UploadDynamicPackage validates one runtime wasm package and writes it into the
 // configured plugin.dynamic.storagePath directory.
-func (s *Service) UploadDynamicPackage(ctx context.Context, in *DynamicUploadInput) (*DynamicUploadOutput, error) {
+func (s *Service) UploadDynamicPackage(ctx context.Context, in *DynamicUploadInput) (out *DynamicUploadOutput, err error) {
 	if in == nil || in.File == nil {
 		return nil, gerror.New("请上传动态插件文件")
 	}
@@ -56,7 +57,7 @@ func (s *Service) UploadDynamicPackage(ctx context.Context, in *DynamicUploadInp
 	if err != nil {
 		return nil, gerror.Wrap(err, "打开动态插件文件失败")
 	}
-	defer source.Close()
+	defer closeutil.Close(source, &err, "关闭动态插件上传文件失败")
 
 	content, err := io.ReadAll(source)
 	if err != nil {
@@ -168,14 +169,18 @@ func (s *Service) storeUploadedPackage(
 	}
 	reloadedManifest, err := s.catalogSvc.LoadManifestFromArtifactPath(targetPath)
 	if err != nil {
-		restoreArtifactBackup(targetPath, targetExisted, backupContent)
+		if restoreErr := restoreArtifactBackup(targetPath, targetExisted, backupContent); restoreErr != nil {
+			return nil, gerror.Wrapf(err, "解析上传后的动态插件失败，且恢复备份失败: %v", restoreErr)
+		}
 		return nil, err
 	}
 	s.invalidateFrontendBundle(ctx, reloadedManifest.ID, "runtime_package_uploaded")
 
 	syncedRegistry, err := s.catalogSvc.SyncManifest(ctx, reloadedManifest)
 	if err != nil {
-		restoreArtifactBackup(targetPath, targetExisted, backupContent)
+		if restoreErr := restoreArtifactBackup(targetPath, targetExisted, backupContent); restoreErr != nil {
+			return nil, gerror.Wrapf(err, "同步动态插件清单失败，且恢复备份失败: %v", restoreErr)
+		}
 		return nil, err
 	}
 
@@ -223,10 +228,15 @@ func (s *Service) findDuplicateArtifactPath(storageDir string, pluginID string, 
 }
 
 // restoreArtifactBackup reverts a failed upload by restoring the previous artifact file.
-func restoreArtifactBackup(targetPath string, targetExisted bool, backupContent []byte) {
+func restoreArtifactBackup(targetPath string, targetExisted bool, backupContent []byte) error {
 	if targetExisted {
-		_ = gfile.PutBytes(targetPath, backupContent)
-		return
+		if err := gfile.PutBytes(targetPath, backupContent); err != nil {
+			return gerror.Wrap(err, "恢复动态插件备份文件失败")
+		}
+		return nil
 	}
-	_ = gfile.Remove(targetPath)
+	if err := gfile.Remove(targetPath); err != nil {
+		return gerror.Wrap(err, "删除失败的动态插件产物失败")
+	}
+	return nil
 }

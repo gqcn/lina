@@ -12,12 +12,21 @@ func (c *ControllerV1) Get(ctx context.Context, req *v1.GetReq) (res *v1.GetRes,
 	if err != nil {
 		return nil, err
 	}
-	deptId, deptName, _ := c.userSvc.GetUserDeptInfo(ctx, req.Id)
-	postIds, _ := c.userSvc.GetUserPostIds(ctx, req.Id)
+	deptId, deptName, err := c.userSvc.GetUserDeptInfo(ctx, req.Id)
+	if err != nil {
+		return nil, err
+	}
+	postIds, err := c.userSvc.GetUserPostIds(ctx, req.Id)
+	if err != nil {
+		return nil, err
+	}
 	if postIds == nil {
 		postIds = []int{}
 	}
-	roleIds, _ := c.userSvc.GetUserRoleIds(ctx, req.Id)
+	roleIds, err := c.userSvc.GetUserRoleIds(ctx, req.Id)
+	if err != nil {
+		return nil, err
+	}
 	if roleIds == nil {
 		roleIds = []int{}
 	}

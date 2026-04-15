@@ -814,6 +814,27 @@ CREATE TABLE IF NOT EXISTS sys_notify_delivery (
 8. 在前四类核心能力稳定后，继续实现`cache`、`lock`、`notify`三类低优先级宿主服务，其中`cache`基于 MySQL `MEMORY` 表落地分布式 KV 缓存，`lock`复用现有宿主分布式锁，`notify`重构为统一通知域。
 9. 删除`sys_user_message`及其旧实现依赖，将`notice`发布链路与`/user/message` facade 统一迁移到新的通知域表，并回归通知公告与消息中心相关 E2E。
 
+## Merged Scope: `config-duration-unification`
+
+为保持当前仓库仅存在一个活跃 OpenSpec 变更，原 `config-duration-unification` 的设计决策并入本迭代统一维护。该并入范围与动态插件实现解耦，但属于同一轮交付和归档记录。
+
+### 背景
+
+`lina-core` 的时长配置原先同时存在两种表达方式：一类使用整数并将单位写入字段名（如 `expireHour`、`cleanupMinute`、`intervalSeconds`），另一类直接使用 duration 字符串（如 `30s`、`5m`）。这种混用方式迫使业务层重复做 `time.Hour`、`time.Minute`、`time.Second` 换算，也让配置含义不统一。
+
+### 并入后的统一决策
+
+1. 配置文件统一使用 duration 字符串，代码内部统一使用 `time.Duration`；相关键名固定为 `jwt.expire`、`session.timeout`、`session.cleanupInterval`、`monitor.interval`。
+2. 不保留任何旧键兼容逻辑；当前项目属于全新项目，错误配置应在启动期尽早暴露，而不是长期保留过渡分支。
+3. 由配置层显式解析 duration，而不是继续依赖通用 `Scan` 隐式换算，以便集中给出默认值、非法输入错误和最小粒度约束。
+4. 会话清理与监控采集统一基于解析后的 `time.Duration` 生成调度表达，优先采用 `@every <duration>` 风格，而不是再次将 duration 拆回分钟或秒去拼 cron 表达式。
+
+### 风险与迁移
+
+- duration 字符串若漏写单位或单位错误，会在启动期解析失败；通过默认值、明确报错和单元测试覆盖来缓解。
+- `@every` 调度与旧 cron 表达式的首轮触发时机存在差异；通过保留启动后的即时采集逻辑来控制行为变化。
+- 迁移顺序保持为：先更新默认配置与模板，再收敛配置服务解析，随后调整认证、在线会话和监控模块消费方式，最后补齐测试与规范文档。
+
 ## Open Questions
 
 - 第一阶段的`data` service 是否只支持结构化 CRUD 与事务编排，还是要同时支持命名查询模板？

@@ -21,6 +21,7 @@ import (
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/plugin/internal/catalog"
+	"lina-core/pkg/logger"
 	"lina-core/pkg/pluginbridge"
 	"lina-core/pkg/pluginhost"
 )
@@ -847,6 +848,8 @@ func (s *Service) writeDynamicRouteResponse(request *ghttp.Request, response *pl
 	// RawWriter preserves the exact status/body emitted by the bridge envelope.
 	request.Response.RawWriter().WriteHeader(statusCode)
 	if len(response.Body) > 0 {
-		_, _ = request.Response.RawWriter().Write(response.Body)
+		if _, err := request.Response.RawWriter().Write(response.Body); err != nil {
+			logger.Warningf(request.Context(), "write dynamic route response body failed err=%v", err)
+		}
 	}
 }

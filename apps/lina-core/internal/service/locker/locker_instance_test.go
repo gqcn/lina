@@ -85,7 +85,8 @@ func TestInstance_Renew(t *testing.T) {
 		t.AssertGE(locker.ExpireTime.Unix(), originalExpire.Unix())
 
 		// Clean up
-		_ = instance.Unlock(ctx)
+		err = instance.Unlock(ctx)
+		t.AssertNil(err)
 	})
 
 	cleanupLock(name)
@@ -164,7 +165,7 @@ func TestInstance_IsHeld(t *testing.T) {
 
 	gtest.C(t, func(t *gtest.T) {
 		// Create instance without acquiring lock
-		instance := &Instance{id: 99999, holder: testHolder, lease: 30*time.Second}
+		instance := &Instance{id: 99999, holder: testHolder, lease: 30 * time.Second}
 
 		// Should not be held
 		isHeld, err := instance.IsHeld(ctx)
@@ -182,7 +183,8 @@ func TestInstance_IsHeld(t *testing.T) {
 		t.Assert(isHeld, true)
 
 		// Clean up
-		_ = realInstance.Unlock(ctx)
+		err = realInstance.Unlock(ctx)
+		t.AssertNil(err)
 	})
 
 	cleanupLock(name)

@@ -17,6 +17,7 @@ import (
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/plugin/internal/catalog"
+	"lina-core/pkg/logger"
 	"lina-core/pkg/pluginbridge"
 )
 
@@ -84,6 +85,7 @@ func (s *Service) buildPluginItem(ctx context.Context, manifest *catalog.Manifes
 		updatedAt   string
 		release     *entity.SysPluginRelease
 		snapshot    *catalog.ManifestSnapshot
+		err         error
 	)
 
 	if manifest != nil {
@@ -118,14 +120,23 @@ func (s *Service) buildPluginItem(ctx context.Context, manifest *catalog.Manifes
 			updatedAt = registry.UpdatedAt.String()
 		}
 		if ctx != nil {
-			release, _ = s.catalogSvc.GetRegistryRelease(ctx, registry)
+			release, err = s.catalogSvc.GetRegistryRelease(ctx, registry)
+			if err != nil {
+				logger.Warningf(ctx, "load registry release failed plugin=%s err=%v", registry.PluginId, err)
+			}
 		}
 	}
 	if release == nil && manifest != nil && ctx != nil {
-		release, _ = s.catalogSvc.GetRelease(ctx, manifest.ID, manifest.Version)
+		release, err = s.catalogSvc.GetRelease(ctx, manifest.ID, manifest.Version)
+		if err != nil {
+			logger.Warningf(ctx, "load plugin release failed plugin=%s version=%s err=%v", manifest.ID, manifest.Version, err)
+		}
 	}
 	if release != nil {
-		snapshot, _ = s.catalogSvc.ParseManifestSnapshot(release.ManifestSnapshot)
+		snapshot, err = s.catalogSvc.ParseManifestSnapshot(release.ManifestSnapshot)
+		if err != nil {
+			logger.Warningf(ctx, "parse plugin release manifest snapshot failed plugin=%s releaseID=%d err=%v", id, release.Id, err)
+		}
 	}
 
 	var (

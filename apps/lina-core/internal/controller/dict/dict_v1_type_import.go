@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 
 	v1 "lina-core/api/dict/v1"
+	"lina-core/internal/util/closeutil"
 )
 
 // TypeImport imports dictionary types from an Excel file.
@@ -24,7 +25,7 @@ func (c *ControllerV1) TypeImport(ctx context.Context, req *v1.TypeImportReq) (r
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer closeutil.Close(f, &err, "关闭字典类型导入文件失败")
 
 	result, err := c.dictSvc.TypeImport(ctx, f, updateSupport)
 	if err != nil {

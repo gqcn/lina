@@ -178,11 +178,15 @@ ON DUPLICATE KEY UPDATE
 
 func cleanupPluginNotifyMessages(t *testing.T, ctx context.Context, pluginID string) {
 	t.Helper()
-	_, _ = g.DB().Exec(ctx, `
+	if _, err := g.DB().Exec(ctx, `
 DELETE FROM sys_notify_delivery
 WHERE message_id IN (SELECT id FROM sys_notify_message WHERE plugin_id = ?)
-`, pluginID)
-	_, _ = g.DB().Exec(ctx, `DELETE FROM sys_notify_message WHERE plugin_id = ?`, pluginID)
+`, pluginID); err != nil {
+		t.Fatalf("failed to delete notify deliveries for %s: %v", pluginID, err)
+	}
+	if _, err := g.DB().Exec(ctx, `DELETE FROM sys_notify_message WHERE plugin_id = ?`, pluginID); err != nil {
+		t.Fatalf("failed to delete notify messages for %s: %v", pluginID, err)
+	}
 }
 
 func newNotifyHostCallContext(pluginID string, channelKey string, userID int32) *hostCallContext {

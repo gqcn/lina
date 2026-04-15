@@ -12,6 +12,20 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
+func mustScanConfig(ctx context.Context, key string, target any) {
+	if target == nil {
+		panic(gerror.New("配置扫描目标不能为空"))
+	}
+
+	value := g.Cfg().MustGet(ctx, key)
+	if value == nil {
+		return
+	}
+	if err := value.Scan(target); err != nil {
+		panic(gerror.Wrapf(err, "读取配置 %s 失败", key))
+	}
+}
+
 func mustLoadDurationConfig(ctx context.Context, key string, defaultValue time.Duration) time.Duration {
 	if key == "" {
 		return defaultValue

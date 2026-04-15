@@ -7,9 +7,15 @@ import (
 )
 
 func generateNodeIdentifier() string {
-	hostname, _ := os.Hostname()
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = ""
+	}
 	if hostname == "" {
-		hostname, _ = gipv4.GetIntranetIp()
+		hostname, err = gipv4.GetIntranetIp()
+		if err != nil {
+			hostname = ""
+		}
 	}
 	if hostname == "" {
 		hostname = "local-node"

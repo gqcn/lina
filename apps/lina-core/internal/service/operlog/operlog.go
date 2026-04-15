@@ -9,9 +9,9 @@ import (
 	"github.com/xuri/excelize/v2"
 
 	"lina-core/internal/dao"
-	dictsvc "lina-core/internal/service/dict"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	dictsvc "lina-core/internal/service/dict"
 )
 
 const MaxExportRows = 10000 // Maximum rows for export
@@ -251,7 +251,10 @@ func (s *Service) Clean(ctx context.Context, in CleanInput) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	affected, _ := result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
 	return int(affected), nil
 }
 
@@ -264,7 +267,10 @@ func (s *Service) DeleteByIds(ctx context.Context, ids []int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	affected, _ := result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
 	return int(affected), nil
 }
 
@@ -282,7 +288,7 @@ type ExportInput struct {
 }
 
 // Export generates an Excel file with operation log data (max 10000 rows).
-func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
+func (s *Service) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
 	cols := dao.SysOperLog.Columns()
 	m := dao.SysOperLog.Ctx(ctx)
 
@@ -323,19 +329,20 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	}
 
 	var list []*entity.SysOperLog
-	err := m.Order(orderBy + " " + direction).Scan(&list)
+	err = m.Order(orderBy + " " + direction).Scan(&list)
 	if err != nil {
 		return nil, err
 	}
 
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 	sheet := "Sheet1"
 
 	headers := []string{"模块名称", "操作名称", "操作类型", "操作人", "请求方式", "请求URL", "操作IP", "请求参数", "响应结果", "状态", "错误信息", "耗时(ms)", "操作时间"}
 	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err = setCellValue(f, sheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	// Build label maps from dictionary for batch lookups
@@ -344,30 +351,56 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 
 	for i, log := range list {
 		row := i + 2
-		f.SetCellValue(sheet, cellName(1, row), log.Title)
-		f.SetCellValue(sheet, cellName(2, row), log.OperSummary)
+		if err = setCellValueByName(f, sheet, cellName(1, row), log.Title); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(2, row), log.OperSummary); err != nil {
+			return nil, err
+		}
 		// Use dictionary lookup for operation type
 		operTypeText, ok := operTypeMap[log.OperType]
 		if !ok {
 			operTypeText = s.dictSvc.GetLabelByIntValue(ctx, DictTypeOperType, 6) // fallback to "其他"
 		}
-		f.SetCellValue(sheet, cellName(3, row), operTypeText)
-		f.SetCellValue(sheet, cellName(4, row), log.OperName)
-		f.SetCellValue(sheet, cellName(5, row), log.RequestMethod)
-		f.SetCellValue(sheet, cellName(6, row), log.OperUrl)
-		f.SetCellValue(sheet, cellName(7, row), log.OperIp)
-		f.SetCellValue(sheet, cellName(8, row), log.OperParam)
-		f.SetCellValue(sheet, cellName(9, row), log.JsonResult)
+		if err = setCellValueByName(f, sheet, cellName(3, row), operTypeText); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(4, row), log.OperName); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(5, row), log.RequestMethod); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(6, row), log.OperUrl); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(7, row), log.OperIp); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(8, row), log.OperParam); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(9, row), log.JsonResult); err != nil {
+			return nil, err
+		}
 		// Use dictionary lookup for status
 		statusText, ok := statusMap[log.Status]
 		if !ok {
 			statusText = s.dictSvc.GetLabelByIntValue(ctx, DictTypeOperStatus, 0) // fallback to "成功"
 		}
-		f.SetCellValue(sheet, cellName(10, row), statusText)
-		f.SetCellValue(sheet, cellName(11, row), log.ErrorMsg)
-		f.SetCellValue(sheet, cellName(12, row), log.CostTime)
+		if err = setCellValueByName(f, sheet, cellName(10, row), statusText); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(11, row), log.ErrorMsg); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(12, row), log.CostTime); err != nil {
+			return nil, err
+		}
 		if log.OperTime != nil {
-			f.SetCellValue(sheet, cellName(13, row), log.OperTime.String())
+			if err = setCellValueByName(f, sheet, cellName(13, row), log.OperTime.String()); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -375,10 +408,6 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
-}
-
-func cellName(col, row int) string {
-	name, _ := excelize.CoordinatesToCellName(col, row)
-	return name
+	data = buf.Bytes()
+	return data, nil
 }

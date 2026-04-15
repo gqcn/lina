@@ -299,7 +299,9 @@ func CreateTestPluginDir(t *testing.T, pluginID string) string {
 	}
 
 	t.Cleanup(func() {
-		_ = os.RemoveAll(pluginDir)
+		if cleanupErr := os.RemoveAll(pluginDir); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+			t.Fatalf("failed to remove test plugin dir %s: %v", pluginDir, cleanupErr)
+		}
 	})
 
 	WriteTestFile(t, filepath.Join(pluginDir, "go.mod"), "module "+strings.ReplaceAll(pluginID, "-", "_")+"\n\ngo 1.25.0\n")
@@ -355,7 +357,9 @@ func CreateTestRuntimePluginDirWithFrontendAssets(
 	}
 
 	t.Cleanup(func() {
-		_ = os.RemoveAll(pluginDir)
+		if cleanupErr := os.RemoveAll(pluginDir); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+			t.Fatalf("failed to remove runtime test plugin dir %s: %v", pluginDir, cleanupErr)
+		}
 	})
 
 	WriteTestFile(
@@ -428,7 +432,9 @@ func CreateTestRuntimeStorageArtifactWithFilename(
 
 	artifactPath := filepath.Join(storageDir, fileName)
 	t.Cleanup(func() {
-		_ = os.Remove(artifactPath)
+		if cleanupErr := os.Remove(artifactPath); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+			t.Fatalf("failed to remove runtime storage artifact %s: %v", artifactPath, cleanupErr)
+		}
 	})
 
 	WriteRuntimeWasmArtifact(
@@ -513,7 +519,9 @@ func CreateTestRuntimeStorageArtifactWithMenus(
 
 	artifactPath := filepath.Join(storageDir, runtime.BuildArtifactFileName(pluginID))
 	t.Cleanup(func() {
-		_ = os.Remove(artifactPath)
+		if cleanupErr := os.Remove(artifactPath); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+			t.Fatalf("failed to remove runtime menu artifact %s: %v", artifactPath, cleanupErr)
+		}
 	})
 
 	WriteRuntimeWasmArtifact(
@@ -562,7 +570,9 @@ func CreateTestRuntimeStorageArtifactWithFrontendAssetsAndBackendContracts(
 
 	artifactPath := filepath.Join(storageDir, runtime.BuildArtifactFileName(pluginID))
 	t.Cleanup(func() {
-		_ = os.Remove(artifactPath)
+		if cleanupErr := os.Remove(artifactPath); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+			t.Fatalf("failed to remove runtime contract artifact %s: %v", artifactPath, cleanupErr)
+		}
 	})
 
 	WriteRuntimeWasmArtifact(
@@ -619,15 +629,21 @@ func WriteTestFile(t *testing.T, filePath string, content string) {
 	}
 	tempPath := tempFile.Name()
 	defer func() {
-		_ = os.Remove(tempPath)
+		if cleanupErr := os.Remove(tempPath); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+			t.Fatalf("failed to remove temp test file %s: %v", tempPath, cleanupErr)
+		}
 	}()
 
 	if _, err = tempFile.Write([]byte(content)); err != nil {
-		_ = tempFile.Close()
+		if closeErr := tempFile.Close(); closeErr != nil {
+			t.Fatalf("failed to close temp test file %s after write error: %v", filePath, closeErr)
+		}
 		t.Fatalf("failed to write temp test file %s: %v", filePath, err)
 	}
 	if err = tempFile.Chmod(0o644); err != nil {
-		_ = tempFile.Close()
+		if closeErr := tempFile.Close(); closeErr != nil {
+			t.Fatalf("failed to close temp test file %s after chmod error: %v", filePath, closeErr)
+		}
 		t.Fatalf("failed to chmod temp test file %s: %v", filePath, err)
 	}
 	if err = tempFile.Close(); err != nil {
@@ -671,15 +687,21 @@ func WriteRuntimeWasmArtifact(
 	}
 	tempPath := tempFile.Name()
 	defer func() {
-		_ = os.Remove(tempPath)
+		if cleanupErr := os.Remove(tempPath); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+			t.Fatalf("failed to remove temp runtime wasm artifact %s: %v", tempPath, cleanupErr)
+		}
 	}()
 
 	if _, err = tempFile.Write(wasm); err != nil {
-		_ = tempFile.Close()
+		if closeErr := tempFile.Close(); closeErr != nil {
+			t.Fatalf("failed to close temp runtime wasm artifact %s after write error: %v", filePath, closeErr)
+		}
 		t.Fatalf("failed to write temp runtime wasm artifact %s: %v", filePath, err)
 	}
 	if err = tempFile.Chmod(0o644); err != nil {
-		_ = tempFile.Close()
+		if closeErr := tempFile.Close(); closeErr != nil {
+			t.Fatalf("failed to close temp runtime wasm artifact %s after chmod error: %v", filePath, closeErr)
+		}
 		t.Fatalf("failed to chmod temp runtime wasm artifact %s: %v", filePath, err)
 	}
 	if err = tempFile.Close(); err != nil {
@@ -694,26 +716,36 @@ func WriteRuntimeWasmArtifact(
 func CleanupPluginGovernanceRowsHard(t *testing.T, ctx context.Context, pluginID string) {
 	t.Helper()
 
-	_, _ = dao.SysPluginNodeState.Ctx(ctx).
+	if _, err := dao.SysPluginNodeState.Ctx(ctx).
 		Unscoped().
 		Where(do.SysPluginNodeState{PluginId: pluginID}).
-		Delete()
-	_, _ = dao.SysPluginResourceRef.Ctx(ctx).
+		Delete(); err != nil {
+		t.Fatalf("failed to delete sys_plugin_node_state rows for %s: %v", pluginID, err)
+	}
+	if _, err := dao.SysPluginResourceRef.Ctx(ctx).
 		Unscoped().
 		Where(do.SysPluginResourceRef{PluginId: pluginID}).
-		Delete()
-	_, _ = dao.SysPluginMigration.Ctx(ctx).
+		Delete(); err != nil {
+		t.Fatalf("failed to delete sys_plugin_resource_ref rows for %s: %v", pluginID, err)
+	}
+	if _, err := dao.SysPluginMigration.Ctx(ctx).
 		Unscoped().
 		Where(do.SysPluginMigration{PluginId: pluginID}).
-		Delete()
-	_, _ = dao.SysPluginRelease.Ctx(ctx).
+		Delete(); err != nil {
+		t.Fatalf("failed to delete sys_plugin_migration rows for %s: %v", pluginID, err)
+	}
+	if _, err := dao.SysPluginRelease.Ctx(ctx).
 		Unscoped().
 		Where(do.SysPluginRelease{PluginId: pluginID}).
-		Delete()
-	_, _ = dao.SysPlugin.Ctx(ctx).
+		Delete(); err != nil {
+		t.Fatalf("failed to delete sys_plugin_release rows for %s: %v", pluginID, err)
+	}
+	if _, err := dao.SysPlugin.Ctx(ctx).
 		Unscoped().
 		Where(do.SysPlugin{PluginId: pluginID}).
-		Delete()
+		Delete(); err != nil {
+		t.Fatalf("failed to delete sys_plugin rows for %s: %v", pluginID, err)
+	}
 }
 
 // CleanupPluginMenuRowsHard removes plugin-owned menu rows and admin bindings created during tests.
@@ -740,15 +772,19 @@ func CleanupPluginMenuRowsHard(t *testing.T, ctx context.Context, pluginID strin
 	}
 
 	if len(menuIDs) > 0 {
-		_, _ = dao.SysRoleMenu.Ctx(ctx).
+		if _, err := dao.SysRoleMenu.Ctx(ctx).
 			WhereIn(dao.SysRoleMenu.Columns().MenuId, menuIDs).
-			Delete()
+			Delete(); err != nil {
+			t.Fatalf("failed to delete sys_role_menu rows for %s: %v", pluginID, err)
+		}
 	}
 	if len(menuKeys) > 0 {
-		_, _ = dao.SysMenu.Ctx(ctx).
+		if _, err := dao.SysMenu.Ctx(ctx).
 			Unscoped().
 			WhereIn(dao.SysMenu.Columns().MenuKey, menuKeys).
-			Delete()
+			Delete(); err != nil {
+			t.Fatalf("failed to delete sys_menu rows for %s: %v", pluginID, err)
+		}
 	}
 }
 

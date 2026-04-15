@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 
 	v1 "lina-core/api/config/v1"
+	"lina-core/internal/util/closeutil"
 )
 
 // ConfigImport imports configs from an Excel file.
@@ -24,7 +25,7 @@ func (c *ControllerV1) ConfigImport(ctx context.Context, req *v1.ConfigImportReq
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer closeutil.Close(f, &err, "关闭配置导入文件失败")
 
 	result, err := c.svc.Import(ctx, f, updateSupport)
 	if err != nil {

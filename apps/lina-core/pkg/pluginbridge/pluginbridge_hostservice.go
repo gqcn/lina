@@ -501,7 +501,9 @@ func NormalizeHostServiceSpecs(specs []*HostServiceSpec) []*HostServiceSpec {
 		}
 		cloned = append(cloned, next)
 	}
-	_ = ValidateHostServiceSpecs(cloned)
+	if err := ValidateHostServiceSpecs(cloned); err != nil {
+		panic(err)
+	}
 	return cloned
 }
 

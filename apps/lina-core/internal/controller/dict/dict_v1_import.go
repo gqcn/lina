@@ -8,6 +8,7 @@ import (
 
 	v1 "lina-core/api/dict/v1"
 	dictsvc "lina-core/internal/service/dict"
+	"lina-core/internal/util/closeutil"
 )
 
 // Import imports dictionary types and data together from an Excel file.
@@ -18,7 +19,7 @@ func (c *ControllerV1) Import(ctx context.Context, req *v1.ImportReq) (res *v1.I
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer closeutil.Close(file, &err, "关闭字典导入文件失败")
 
 	fileData, err := io.ReadAll(file)
 	if err != nil {

@@ -16,9 +16,9 @@ import (
 
 // ImportResult defines the result of config import operation.
 type ImportResult struct {
-	Success  int                 // Number of successful imports
-	Fail     int                 // Number of failed imports
-	FailList []ImportFailItem    // Failure list
+	Success  int              // Number of successful imports
+	Fail     int              // Number of failed imports
+	FailList []ImportFailItem // Failure list
 }
 
 // ImportFailItem defines a single import failure.
@@ -29,12 +29,12 @@ type ImportFailItem struct {
 
 // Import reads an Excel file and creates configs from it.
 // If updateSupport is true, existing records (matched by key) will be updated; otherwise, they will be skipped.
-func (s *Service) Import(ctx context.Context, fileReader io.Reader, updateSupport bool) (*ImportResult, error) {
+func (s *Service) Import(ctx context.Context, fileReader io.Reader, updateSupport bool) (result *ImportResult, err error) {
 	f, err := excelize.OpenReader(fileReader)
 	if err != nil {
 		return nil, gerror.New("无法解析 Excel 文件")
 	}
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 
 	rows, err := f.GetRows("Sheet1")
 	if err != nil {
@@ -45,7 +45,7 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader, updateSuppor
 		return &ImportResult{}, nil
 	}
 
-	result := &ImportResult{}
+	result = &ImportResult{}
 
 	for i, row := range rows[1:] { // Skip header
 		rowNum := i + 2
@@ -143,26 +143,36 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader, updateSuppor
 }
 
 // GenerateImportTemplate creates an Excel template for config import.
-func (s *Service) GenerateImportTemplate() ([]byte, error) {
+func (s *Service) GenerateImportTemplate() (data []byte, err error) {
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 	sheet := "Sheet1"
 
 	headers := []string{"参数名称", "参数键名", "参数键值", "备注"}
 	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err = setCellValue(f, sheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	// Example row
-	f.SetCellValue(sheet, cellName(1, 2), "系统名称")
-	f.SetCellValue(sheet, cellName(2, 2), "sys.app.name")
-	f.SetCellValue(sheet, cellName(3, 2), "Lina")
-	f.SetCellValue(sheet, cellName(4, 2), "系统显示名称")
+	if err = setCellValueByName(f, sheet, cellName(1, 2), "系统名称"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, cellName(2, 2), "sys.app.name"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, cellName(3, 2), "Lina"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, cellName(4, 2), "系统显示名称"); err != nil {
+		return nil, err
+	}
 
 	var buf bytes.Buffer
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	data = buf.Bytes()
+	return data, nil
 }

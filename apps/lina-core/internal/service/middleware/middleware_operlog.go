@@ -99,15 +99,12 @@ func (s *Service) OperLog(r *ghttp.Request) {
 		}
 	}
 
-	costTime := int(time.Since(startTime).Milliseconds())
-	urlPath := r.URL.Path
-	urlString := r.URL.String()
-	clientIp := r.GetClientIp()
-
-	// Async write using grpool (goroutine pool) with NeverDoneCtx
-	ctx := r.GetNeverDoneCtx()
-	_ = grpool.AddWithRecover(ctx, func(ctx context.Context) {
-		_ = s.operLogSvc.Create(ctx, operlog.CreateInput{
+	var (
+		costTime  = int(time.Since(startTime).Milliseconds())
+		urlPath   = r.URL.Path
+		urlString = r.URL.String()
+		clientIp  = r.GetClientIp()
+		input     = operlog.CreateInput{
 			Title:         title,
 			OperSummary:   operSummary,
 			OperType:      operType,
@@ -121,10 +118,23 @@ func (s *Service) OperLog(r *ghttp.Request) {
 			Status:        status,
 			ErrorMsg:      errorMsg,
 			CostTime:      costTime,
-		})
+		}
+	)
+
+	// Async write using grpool (goroutine pool) with NeverDoneCtx
+	ctx := r.GetNeverDoneCtx()
+	if err := grpool.AddWithRecover(ctx, func(ctx context.Context) {
+		if createErr := s.operLogSvc.Create(ctx, input); createErr != nil {
+			logger.Warningf(ctx, "create operation log failed err=%v", createErr)
+		}
 	}, func(ctx context.Context, err error) {
 		logger.Errorf(ctx, "operlog middleware panic: %v", err)
-	})
+	}); err != nil {
+		logger.Warningf(ctx, "schedule operation log task failed err=%v", err)
+		if createErr := s.operLogSvc.Create(ctx, input); createErr != nil {
+			logger.Warningf(ctx, "fallback create operation log failed err=%v", createErr)
+		}
+	}
 }
 
 // inferOperType determines operation type from HTTP method and path.
@@ -159,7 +169,10 @@ func getRequestParam(r *ghttp.Request) string {
 	}
 	params := r.GetQueryMap()
 	if len(params) > 0 {
-		b, _ := json.Marshal(params)
+		b, err := json.Marshal(params)
+		if err != nil {
+			return ""
+		}
 		return string(b)
 	}
 	return ""
@@ -185,7 +198,10 @@ func maskPassword(param string) string {
 	if !masked {
 		return param
 	}
-	b, _ := json.Marshal(data)
+	b, err := json.Marshal(data)
+	if err != nil {
+		return param
+	}
 	return string(b)
 }
 

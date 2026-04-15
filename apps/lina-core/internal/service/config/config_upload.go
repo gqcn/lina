@@ -2,8 +2,6 @@ package config
 
 import (
 	"context"
-
-	"github.com/gogf/gf/v2/frame/g"
 )
 
 // UploadConfig holds file upload configuration.
@@ -18,6 +16,6 @@ func (s *Service) GetUpload(ctx context.Context) *UploadConfig {
 		Path:    "temp/upload",
 		MaxSize: 10,
 	}
-	_ = g.Cfg().MustGet(ctx, "upload").Scan(cfg)
+	mustScanConfig(ctx, "upload", cfg)
 	return cfg
 }

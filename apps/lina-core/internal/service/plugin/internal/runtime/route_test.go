@@ -23,13 +23,17 @@ func TestTouchDynamicRouteSessionKeepsExistingSessionWhenTimestampDoesNotChange(
 		tokenID = fmt.Sprintf("plugin-dynamic-route-session-%d", time.Now().UnixNano())
 	)
 
-	_, _ = dao.SysOnlineSession.Ctx(ctx).
+	if _, err := dao.SysOnlineSession.Ctx(ctx).
 		Where(do.SysOnlineSession{TokenId: tokenID}).
-		Delete()
+		Delete(); err != nil {
+		t.Fatalf("failed to delete stale online session %s: %v", tokenID, err)
+	}
 	defer func() {
-		_, _ = dao.SysOnlineSession.Ctx(ctx).
+		if _, err := dao.SysOnlineSession.Ctx(ctx).
 			Where(do.SysOnlineSession{TokenId: tokenID}).
-			Delete()
+			Delete(); err != nil {
+			t.Fatalf("failed to cleanup online session %s: %v", tokenID, err)
+		}
 	}()
 
 	currentSecond := waitForFreshSecond(t)

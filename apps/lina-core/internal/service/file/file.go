@@ -23,6 +23,8 @@ import (
 	"lina-core/internal/service/bizctx"
 	"lina-core/internal/service/config"
 	dictsvc "lina-core/internal/service/dict"
+	"lina-core/internal/util/closeutil"
+	"lina-core/pkg/logger"
 )
 
 const (
@@ -74,7 +76,7 @@ type UploadOutput struct {
 
 // Upload handles file upload: computes SHA-256 hash, checks for duplicates, saves file via storage backend and records metadata in DB.
 // If a file with the same hash already exists, a new record is still created (with different scene), reusing the physical file.
-func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, error) {
+func (s *Service) Upload(ctx context.Context, in *UploadInput) (output *UploadOutput, err error) {
 	file := in.File
 	if file == nil {
 		return nil, gerror.New("请上传文件")
@@ -94,7 +96,7 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 	if err != nil {
 		return nil, gerror.Wrap(err, "打开上传文件失败")
 	}
-	defer src.Close()
+	defer closeutil.Close(src, &err, "关闭上传文件失败")
 
 	// Compute SHA-256 hash
 	hasher := sha256.New()
@@ -114,8 +116,6 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 		scene = "other"
 	}
 	suffix := gstr.ToLower(gfile.ExtName(sanitizedFilename))
-
-	var output *UploadOutput
 
 	// Use transaction for database operations
 	err = dao.SysFile.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
@@ -145,7 +145,10 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 			if err != nil {
 				return gerror.Wrap(err, "保存文件记录失败")
 			}
-			id, _ := result.LastInsertId()
+			id, err := result.LastInsertId()
+			if err != nil {
+				return gerror.Wrap(err, "读取新建文件记录ID失败")
+			}
 			fullUrl := s.getBaseUrl(ctx) + existing.Url
 			output = &UploadOutput{
 				Id:       id,
@@ -188,11 +191,16 @@ func (s *Service) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, e
 		}).Insert()
 		if err != nil {
 			// Clean up stored file on DB error
-			s.storage.Delete(ctx, storagePath)
+			if cleanupErr := s.storage.Delete(ctx, storagePath); cleanupErr != nil {
+				return gerror.Wrapf(err, "保存文件记录失败，且清理存储文件失败: %v", cleanupErr)
+			}
 			return gerror.Wrap(err, "保存文件记录失败")
 		}
 
-		id, _ := result.LastInsertId()
+		id, err := result.LastInsertId()
+		if err != nil {
+			return gerror.Wrap(err, "读取新建文件记录ID失败")
+		}
 		// Return full URL with base URL prefix
 		fullUrl := s.getBaseUrl(ctx) + url
 		output = &UploadOutput{
@@ -419,7 +427,9 @@ func (s *Service) Delete(ctx context.Context, idsStr string) error {
 
 	// Delete physical files (best effort, don't fail on cleanup errors)
 	for _, f := range files {
-		s.storage.Delete(ctx, f.Path)
+		if deleteErr := s.storage.Delete(ctx, f.Path); deleteErr != nil {
+			logger.Warningf(ctx, "delete storage file failed path=%s err=%v", f.Path, deleteErr)
+		}
 	}
 
 	return nil

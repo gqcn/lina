@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 
 	v1 "lina-core/api/user/v1"
+	"lina-core/internal/util/closeutil"
 )
 
 // Import imports users
@@ -21,7 +22,7 @@ func (c *ControllerV1) Import(ctx context.Context, req *v1.ImportReq) (res *v1.I
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer closeutil.Close(f, &err, "关闭用户导入文件失败")
 
 	result, err := c.userSvc.Import(ctx, f)
 	if err != nil {

@@ -87,14 +87,16 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 	}
 
 	recordLoginLog := func(username string, status int, msg string) {
-		_ = s.loginLogSvc.Create(ctx, loginlog.CreateInput{
+		if err := s.loginLogSvc.Create(ctx, loginlog.CreateInput{
 			UserName: username,
 			Status:   status,
 			Ip:       ip,
 			Browser:  browser,
 			Os:       osName,
 			Msg:      msg,
-		})
+		}); err != nil {
+			logger.Warningf(ctx, "record login log failed username=%s err=%v", username, err)
+		}
 	}
 
 	dispatchLoginFailed := func(username string, msg string) {
@@ -146,10 +148,12 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 	}
 
 	// Record login time
-	_, _ = dao.SysUser.Ctx(ctx).
+	if _, err = dao.SysUser.Ctx(ctx).
 		Where(do.SysUser{Id: user.Id}).
 		Data(do.SysUser{LoginDate: gtime.Now()}).
-		Update()
+		Update(); err != nil {
+		return nil, gerror.Wrap(err, "更新最后登录时间失败")
+	}
 
 	// Create online session
 	deptName := s.getUserDeptName(ctx, user.Id)
@@ -219,16 +223,20 @@ func (s *Service) Logout(ctx context.Context, username string, tokenId string) {
 	}
 	// Delete session
 	if tokenId != "" {
-		_ = s.RevokeSession(ctx, tokenId)
+		if err := s.RevokeSession(ctx, tokenId); err != nil {
+			logger.Warningf(ctx, "revoke session during logout failed tokenId=%s err=%v", tokenId, err)
+		}
 	}
-	_ = s.loginLogSvc.Create(ctx, loginlog.CreateInput{
+	if err := s.loginLogSvc.Create(ctx, loginlog.CreateInput{
 		UserName: username,
 		Status:   loginlog.LoginStatusSuccess,
 		Ip:       ip,
 		Browser:  browser,
 		Os:       osName,
 		Msg:      "登出成功",
-	})
+	}); err != nil {
+		logger.Warningf(ctx, "record logout log failed username=%s err=%v", username, err)
+	}
 	if err := s.pluginSvc.HandleAuthLogoutSucceeded(ctx, pluginsvc.AuthLoginSucceededInput{
 		UserName:   username,
 		Status:     loginlog.LoginStatusSuccess,

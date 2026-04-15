@@ -95,7 +95,14 @@ func (s *Service) ReconcileRuntimePlugins(ctx context.Context) error {
 					firstErr = err
 				}
 			}
-			registry, _ = s.catalogSvc.GetRegistry(ctx, registry.PluginId)
+			refreshedRegistry, getErr := s.catalogSvc.GetRegistry(ctx, registry.PluginId)
+			if getErr != nil {
+				logger.Warningf(ctx, "reload dynamic plugin registry failed plugin=%s err=%v", registry.PluginId, getErr)
+				if firstErr == nil {
+					firstErr = getErr
+				}
+			}
+			registry = refreshedRegistry
 		}
 		if registry == nil {
 			continue
@@ -553,7 +560,9 @@ func (s *Service) rollbackInstallOrUpgrade(
 		if rollbackErr := s.lifecycleSvc.ExecuteManifestSQLFiles(ctx, failedManifest, catalog.MigrationDirectionRollback); rollbackErr != nil {
 			logger.Warningf(ctx, "rollback dynamic plugin SQL failed plugin=%s err=%v", failedManifest.ID, rollbackErr)
 		}
-		_ = s.deletePluginMenusByManifest(ctx, failedManifest)
+		if menuErr := s.deletePluginMenusByManifest(ctx, failedManifest); menuErr != nil {
+			logger.Warningf(ctx, "delete dynamic plugin menus during rollback failed plugin=%s err=%v", failedManifest.ID, menuErr)
+		}
 	}
 	if restoreManifest != nil {
 		if restoreErr := s.syncPluginMenusAndPermissions(ctx, restoreManifest); restoreErr != nil {
@@ -571,20 +580,24 @@ func (s *Service) rollbackReleaseFailure(
 ) error {
 	restoredRegistry := registry
 	if releaseID > 0 {
-		_ = s.catalogSvc.UpdateReleaseState(ctx, releaseID, catalog.ReleaseStatusFailed, "")
+		if updateErr := s.catalogSvc.UpdateReleaseState(ctx, releaseID, catalog.ReleaseStatusFailed, ""); updateErr != nil {
+			logger.Warningf(ctx, "mark dynamic plugin release failed failed plugin=%s releaseID=%d err=%v", registry.PluginId, releaseID, updateErr)
+		}
 	}
 	if restored, err := s.restoreStableState(ctx, registry); err == nil && restored != nil {
 		restoredRegistry = restored
 	}
 	if restoredRegistry != nil {
-		_ = s.syncNodeProjection(ctx, nodeProjectionInput{
+		if syncErr := s.syncNodeProjection(ctx, nodeProjectionInput{
 			PluginID:     restoredRegistry.PluginId,
 			ReleaseID:    restoredRegistry.ReleaseId,
 			DesiredState: restoredRegistry.DesiredState,
 			CurrentState: catalog.NodeStateFailed.String(),
 			Generation:   restoredRegistry.Generation,
 			Message:      reconcileErr.Error(),
-		})
+		}); syncErr != nil {
+			logger.Warningf(ctx, "sync failed-node projection failed plugin=%s err=%v", restoredRegistry.PluginId, syncErr)
+		}
 	}
 	return reconcileErr
 }

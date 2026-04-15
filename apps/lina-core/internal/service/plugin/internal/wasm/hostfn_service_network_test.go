@@ -30,7 +30,9 @@ func TestHandleHostServiceInvokeNetworkRequestSuccess(t *testing.T) {
 
 		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 		writer.Header().Set("X-Upstream", "crm")
-		_, _ = writer.Write([]byte(`{"ok":true}`))
+		if _, err := writer.Write([]byte(`{"ok":true}`)); err != nil {
+			t.Fatalf("write success response failed: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -88,7 +90,9 @@ func TestHandleHostServiceInvokeNetworkRejectsUnauthorizedURL(t *testing.T) {
 
 func TestHandleHostServiceInvokeNetworkRejectsProtectedHeader(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		_, _ = writer.Write([]byte("ok"))
+		if _, err := writer.Write([]byte("ok")); err != nil {
+			t.Fatalf("write protected-header response failed: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -114,7 +118,9 @@ func TestHandleHostServiceInvokeNetworkRejectsProtectedHeader(t *testing.T) {
 func TestHandleHostServiceInvokeNetworkRejectsOversizedBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
-		_, _ = writer.Write(make([]byte, defaultNetworkMaxBodyBytes+1))
+		if _, err := writer.Write(make([]byte, defaultNetworkMaxBodyBytes+1)); err != nil {
+			t.Fatalf("write oversized response failed: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -135,7 +141,9 @@ func TestHandleHostServiceInvokeNetworkRejectsOversizedBody(t *testing.T) {
 func TestHandleHostServiceInvokeNetworkTimeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		time.Sleep(50 * time.Millisecond)
-		_, _ = writer.Write([]byte("slow"))
+		if _, err := writer.Write([]byte("slow")); err != nil {
+			t.Fatalf("write slow response failed: %v", err)
+		}
 	}))
 	defer server.Close()
 

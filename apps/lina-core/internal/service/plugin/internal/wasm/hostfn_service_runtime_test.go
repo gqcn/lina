@@ -152,8 +152,10 @@ func invokeRuntimeHostService(
 
 func cleanupRuntimeStateKey(t *testing.T, ctx context.Context, pluginID string, key string) {
 	t.Helper()
-	_, _ = g.DB().Model(pluginStateTable).Ctx(ctx).
+	if _, err := g.DB().Model(pluginStateTable).Ctx(ctx).
 		Where("plugin_id", pluginID).
 		Where("state_key", key).
-		Delete()
+		Delete(); err != nil {
+		t.Fatalf("failed to cleanup runtime state key %s/%s: %v", pluginID, key, err)
+	}
 }

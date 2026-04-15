@@ -130,11 +130,11 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 
 // UpdateInput defines input for Update function.
 type UpdateInput struct {
-	Id     int      // Parameter ID
-	Name   *string  // Parameter name
-	Key    *string  // Parameter key
-	Value  *string  // Parameter value
-	Remark *string  // Remark
+	Id     int     // Parameter ID
+	Name   *string // Parameter name
+	Key    *string // Parameter key
+	Value  *string // Parameter value
+	Remark *string // Remark
 }
 
 // Update updates config information.
@@ -216,7 +216,7 @@ type ExportInput struct {
 }
 
 // Export generates an Excel file with config data.
-func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
+func (s *Service) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
 	cols := dao.SysConfig.Columns()
 	m := dao.SysConfig.Ctx(ctx)
 
@@ -238,33 +238,46 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	}
 
 	var list []*entity.SysConfig
-	err := m.Order(cols.Id + " ASC").Scan(&list)
+	err = m.Order(cols.Id + " ASC").Scan(&list)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create Excel file
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 	sheet := "Sheet1"
 
 	headers := []string{"参数名称", "参数键名", "参数键值", "备注", "创建时间", "修改时间"}
 	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err = setCellValue(f, sheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	for i, c := range list {
 		row := i + 2
-		f.SetCellValue(sheet, cellName(1, row), c.Name)
-		f.SetCellValue(sheet, cellName(2, row), c.Key)
-		f.SetCellValue(sheet, cellName(3, row), c.Value)
-		f.SetCellValue(sheet, cellName(4, row), c.Remark)
+		if err = setCellValueByName(f, sheet, cellName(1, row), c.Name); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(2, row), c.Key); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(3, row), c.Value); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(4, row), c.Remark); err != nil {
+			return nil, err
+		}
 		if c.CreatedAt != nil {
-			f.SetCellValue(sheet, cellName(5, row), c.CreatedAt.String())
+			if err = setCellValueByName(f, sheet, cellName(5, row), c.CreatedAt.String()); err != nil {
+				return nil, err
+			}
 		}
 		if c.UpdatedAt != nil {
-			f.SetCellValue(sheet, cellName(6, row), c.UpdatedAt.String())
+			if err = setCellValueByName(f, sheet, cellName(6, row), c.UpdatedAt.String()); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -272,10 +285,6 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
-}
-
-func cellName(col, row int) string {
-	name, _ := excelize.CoordinatesToCellName(col, row)
-	return name
+	data = buf.Bytes()
+	return data, nil
 }

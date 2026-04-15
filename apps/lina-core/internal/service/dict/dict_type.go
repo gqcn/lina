@@ -122,11 +122,11 @@ func (s *Service) GetById(ctx context.Context, id int) (*entity.SysDictType, err
 
 // UpdateInput defines input for Update function.
 type UpdateInput struct {
-	Id     int      // Dictionary type ID
-	Name   *string  // Dictionary name
-	Type   *string  // Dictionary type
-	Status *int     // Status: 1=Normal 0=Disabled
-	Remark *string  // Remark
+	Id     int     // Dictionary type ID
+	Name   *string // Dictionary name
+	Type   *string // Dictionary type
+	Status *int    // Status: 1=Normal 0=Disabled
+	Remark *string // Remark
 }
 
 // Update updates dict type information.
@@ -199,7 +199,7 @@ type ExportInput struct {
 }
 
 // Export generates an Excel file with dict type data (max 10000 rows).
-func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
+func (s *Service) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
 	cols := dao.SysDictType.Columns()
 	m := dao.SysDictType.Ctx(ctx)
 
@@ -218,34 +218,45 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	m = m.Limit(10000)
 
 	var list []*entity.SysDictType
-	err := m.Order(cols.Id + " ASC").Scan(&list)
+	err = m.Order(cols.Id + " ASC").Scan(&list)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create Excel file
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 	sheet := "Sheet1"
 
 	headers := []string{"字典名称", "字典类型", "状态", "备注", "创建时间"}
 	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err = setCellValue(f, sheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	for i, dt := range list {
 		row := i + 2
-		f.SetCellValue(sheet, cellName(1, row), dt.Name)
-		f.SetCellValue(sheet, cellName(2, row), dt.Type)
+		if err = setCellValueByName(f, sheet, cellName(1, row), dt.Name); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(2, row), dt.Type); err != nil {
+			return nil, err
+		}
 		statusText := "正常"
 		if dt.Status == 0 {
 			statusText = "停用"
 		}
-		f.SetCellValue(sheet, cellName(3, row), statusText)
-		f.SetCellValue(sheet, cellName(4, row), dt.Remark)
+		if err = setCellValueByName(f, sheet, cellName(3, row), statusText); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(4, row), dt.Remark); err != nil {
+			return nil, err
+		}
 		if dt.CreatedAt != nil {
-			f.SetCellValue(sheet, cellName(5, row), dt.CreatedAt.String())
+			if err = setCellValueByName(f, sheet, cellName(5, row), dt.CreatedAt.String()); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -253,7 +264,8 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	data = buf.Bytes()
+	return data, nil
 }
 
 // OptionItem defines a single option item.
@@ -284,9 +296,4 @@ func (s *Service) Options(ctx context.Context) ([]*OptionItem, error) {
 		})
 	}
 	return options, nil
-}
-
-func cellName(col, row int) string {
-	name, _ := excelize.CoordinatesToCellName(col, row)
-	return name
 }

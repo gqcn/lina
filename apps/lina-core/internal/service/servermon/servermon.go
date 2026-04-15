@@ -123,7 +123,12 @@ func (s *Service) CollectAndStore(ctx context.Context) {
 		return
 	}
 
-	nodeName, _ := os.Hostname()
+	nodeName := ""
+	if hostname, hostnameErr := os.Hostname(); hostnameErr == nil {
+		nodeName = hostname
+	} else {
+		logger.Warningf(ctx, "resolve monitor node hostname failed: %v", hostnameErr)
+	}
 	nodeIp := getLocalIP()
 
 	// Use Save() with unique key (node_name, node_ip) to upsert.
@@ -143,7 +148,7 @@ func (s *Service) CollectAndStore(ctx context.Context) {
 // Collect gathers all server metrics.
 func (s *Service) Collect(ctx context.Context) *MonitorData {
 	data := &MonitorData{}
-	data.Server = s.collectServer()
+	data.Server = s.collectServer(ctx)
 	data.CPU = s.collectCPU()
 	data.Memory = s.collectMemory()
 	data.Disks = s.collectDisks()
@@ -152,9 +157,18 @@ func (s *Service) Collect(ctx context.Context) *MonitorData {
 	return data
 }
 
-func (s *Service) collectServer() *ServerInfo {
-	hostname, _ := os.Hostname()
-	info, _ := host.Info()
+func (s *Service) collectServer(ctx context.Context) *ServerInfo {
+	hostname := ""
+	if resolvedHostname, err := os.Hostname(); err == nil {
+		hostname = resolvedHostname
+	} else {
+		logger.Warningf(ctx, "resolve hostname failed: %v", err)
+	}
+	info, err := host.Info()
+	if err != nil {
+		logger.Warningf(ctx, "collect host info failed: %v", err)
+		info = nil
+	}
 	bootTime := ""
 	var uptime uint64
 	if info != nil {
@@ -416,6 +430,9 @@ func (s *Service) CleanupStale(ctx context.Context, threshold time.Duration) (in
 		return 0, err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
 	return rowsAffected, nil
 }

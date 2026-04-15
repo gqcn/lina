@@ -29,6 +29,9 @@
 
 - `plugin-runtime-loading`：动态插件运行时产物需要携带宿主服务声明、资源授权和协议版本信息，宿主装载时需恢复这些治理快照。
 - `plugin-manifest-lifecycle`：`plugin.yaml`需要支持结构化宿主服务声明和资源申请快照（含`resourceRef`与`data.resources.tables`），并以`hostServices`作为唯一作者侧宿主能力声明入口，以便安装、升级、卸载和审计时统一治理。
+- `user-auth`：JWT Token 有效期配置并入当前迭代，统一改为使用 `jwt.expire` duration 字符串配置。
+- `online-user`：在线会话超时阈值与清理周期并入当前迭代，统一改为使用 `session.timeout`、`session.cleanupInterval` duration 字符串配置。
+- `server-monitor`：服务监控采集周期并入当前迭代，统一改为使用 `monitor.interval` duration 字符串配置。
 
 ## Impact
 
@@ -37,3 +40,14 @@
 - 构建链路：`hack/build-wasm`及相关动态插件打包工具
 - 插件样例与文档：动态插件样例、插件开发文档、宿主服务使用说明
 - 测试：插件运行时单测、集成测试，以及`hack/tests/e2e/plugin/`下的插件治理回归用例
+- 配置与通用规范：`apps/lina-core/manifest/config/config.yaml`、`apps/lina-core/manifest/config/config.template.yaml`、`apps/lina-core/internal/service/config/`、`apps/lina-core/internal/service/auth/`、`apps/lina-core/internal/service/role/`、`apps/lina-core/internal/service/cron/`以及相关项目规范文档
+
+## Merged Scope: `config-duration-unification`
+
+为满足项目“单一活跃迭代统一管理”的约束，原 `config-duration-unification` 变更并入当前 `dynamic-plugin-host-service-extension` 迭代，不再保留独立活跃目录。并入范围如下：
+
+- 将 `jwt`、`session`、`monitor` 下的时长配置统一为带单位的 duration 字符串。
+- 将整数加单位后缀的配置键调整为统一语义命名：`jwt.expire`、`session.timeout`、`session.cleanupInterval`、`monitor.interval`。
+- 配置服务统一将这些配置解析为 `time.Duration`，业务层直接消费解析结果，不再自行做小时、分钟、秒换算。
+- 旧整数配置键不保留兼容逻辑，配置文件、实现代码和规范文档仅保留新的 duration 写法。
+- 同步保留该子范围内已完成的测试、规范和项目约束更新，包括“后端时长使用 `time.Duration`”与“禁止忽略 `error` 返回值”两项规范。

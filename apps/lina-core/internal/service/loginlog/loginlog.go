@@ -9,9 +9,9 @@ import (
 	"github.com/xuri/excelize/v2"
 
 	"lina-core/internal/dao"
-	dictsvc "lina-core/internal/service/dict"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	dictsvc "lina-core/internal/service/dict"
 )
 
 const MaxExportRows = 10000 // Maximum rows for export
@@ -187,7 +187,10 @@ func (s *Service) Clean(ctx context.Context, in CleanInput) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	affected, _ := result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
 	return int(affected), nil
 }
 
@@ -200,7 +203,10 @@ func (s *Service) DeleteByIds(ctx context.Context, ids []int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	affected, _ := result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
 	return int(affected), nil
 }
 
@@ -217,7 +223,7 @@ type ExportInput struct {
 }
 
 // Export generates an Excel file with login log data (max 10000 rows).
-func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
+func (s *Service) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
 	cols := dao.SysLoginLog.Columns()
 	m := dao.SysLoginLog.Ctx(ctx)
 
@@ -255,19 +261,20 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	}
 
 	var list []*entity.SysLoginLog
-	err := m.Order(orderBy + " " + direction).Scan(&list)
+	err = m.Order(orderBy + " " + direction).Scan(&list)
 	if err != nil {
 		return nil, err
 	}
 
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 	sheet := "Sheet1"
 
 	headers := []string{"用户名", "状态", "IP地址", "浏览器", "操作系统", "提示消息", "登录时间"}
 	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err = setCellValue(f, sheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	// Build label map from dictionary for batch lookups
@@ -275,19 +282,33 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 
 	for i, log := range list {
 		row := i + 2
-		f.SetCellValue(sheet, cellName(1, row), log.UserName)
+		if err = setCellValueByName(f, sheet, cellName(1, row), log.UserName); err != nil {
+			return nil, err
+		}
 		// Use dictionary lookup for status
 		statusText, ok := statusMap[log.Status]
 		if !ok {
 			statusText = s.dictSvc.GetLabelByIntValue(ctx, DictTypeLoginStatus, 0) // fallback to "成功"
 		}
-		f.SetCellValue(sheet, cellName(2, row), statusText)
-		f.SetCellValue(sheet, cellName(3, row), log.Ip)
-		f.SetCellValue(sheet, cellName(4, row), log.Browser)
-		f.SetCellValue(sheet, cellName(5, row), log.Os)
-		f.SetCellValue(sheet, cellName(6, row), log.Msg)
+		if err = setCellValueByName(f, sheet, cellName(2, row), statusText); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(3, row), log.Ip); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(4, row), log.Browser); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(5, row), log.Os); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(6, row), log.Msg); err != nil {
+			return nil, err
+		}
 		if log.LoginTime != nil {
-			f.SetCellValue(sheet, cellName(7, row), log.LoginTime.String())
+			if err = setCellValueByName(f, sheet, cellName(7, row), log.LoginTime.String()); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -295,10 +316,6 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
-}
-
-func cellName(col, row int) string {
-	name, _ := excelize.CoordinatesToCellName(col, row)
-	return name
+	data = buf.Bytes()
+	return data, nil
 }

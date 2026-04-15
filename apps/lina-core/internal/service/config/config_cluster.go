@@ -3,8 +3,6 @@ package config
 import (
 	"context"
 	"time"
-
-	"github.com/gogf/gf/v2/frame/g"
 )
 
 // ClusterConfig holds cluster topology configuration.
@@ -32,9 +30,6 @@ func (s *Service) GetCluster(ctx context.Context) *ClusterConfig {
 		Enabled:  false,
 		Election: *defaultElectionConfig(),
 	}
-	if clusterVar := g.Cfg().MustGet(ctx, "cluster"); clusterVar != nil {
-		_ = clusterVar.Scan(cfg)
-	}
-
+	mustScanConfig(ctx, "cluster", cfg)
 	return cfg
 }

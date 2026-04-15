@@ -180,7 +180,10 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	// =============================================================================================
 
 	// Serve embedded frontend static files
-	subFS, _ := fs.Sub(packed.Files, "public")
+	subFS, err := fs.Sub(packed.Files, "public")
+	if err != nil {
+		logger.Panicf(ctx, "load embedded frontend assets failed: %v", err)
+	}
 	fileServer := http.FileServer(http.FS(subFS))
 	s.BindHandler("/*", func(r *ghttp.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/")
@@ -212,7 +215,9 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		}
 		f, err := subFS.Open(path)
 		if err == nil {
-			f.Close()
+			if closeErr := f.Close(); closeErr != nil {
+				logger.Warningf(r.Context(), "close embedded frontend asset failed path=%s err=%v", path, closeErr)
+			}
 			fileServer.ServeHTTP(r.Response.RawWriter(), r.Request)
 			r.ExitAll()
 			return

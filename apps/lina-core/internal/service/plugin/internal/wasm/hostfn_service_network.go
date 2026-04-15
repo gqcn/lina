@@ -16,6 +16,7 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 
+	"lina-core/pkg/logger"
 	"lina-core/pkg/pluginbridge"
 )
 
@@ -112,7 +113,11 @@ func handleNetworkRequest(
 	if err != nil {
 		return pluginbridge.NewHostCallErrorResponse(pluginbridge.HostCallStatusInternalError, err.Error())
 	}
-	defer httpResponse.Body.Close()
+	defer func() {
+		if closeErr := httpResponse.Body.Close(); closeErr != nil {
+			logger.Warningf(ctx, "close network response body failed err=%v", closeErr)
+		}
+	}()
 
 	body, err := readNetworkResponseBody(httpResponse.Body, defaultNetworkMaxBodyBytes)
 	if err != nil {

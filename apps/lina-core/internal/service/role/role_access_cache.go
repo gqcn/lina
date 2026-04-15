@@ -63,7 +63,9 @@ func (s *Service) InvalidateTokenAccessContext(ctx context.Context, tokenID stri
 		return
 	}
 
-	_, _ = gcache.Remove(ctx, accessCacheKey(tokenID))
+	if _, err := gcache.Remove(ctx, accessCacheKey(tokenID)); err != nil {
+		logger.Warningf(ctx, "remove token access cache failed tokenID=%s err=%v", tokenID, err)
+	}
 	s.removeIndexedToken(tokenID)
 }
 
@@ -93,7 +95,9 @@ func (s *Service) InvalidateUserAccessContexts(ctx context.Context, userID int) 
 	for _, tokenID := range tokenIDs {
 		keys = append(keys, accessCacheKey(tokenID))
 	}
-	_ = gcache.Removes(ctx, keys)
+	if err := gcache.Removes(ctx, keys); err != nil {
+		logger.Warningf(ctx, "remove user access caches failed userID=%d err=%v", userID, err)
+	}
 }
 
 // MarkAccessTopologyChanged bumps the shared permission topology revision and clears local token caches.
@@ -191,7 +195,9 @@ func (s *Service) cacheTokenAccessContext(
 		Revision: revision,
 		Access:   cloneUserAccessContext(access),
 	}
-	_ = gcache.Set(ctx, accessCacheKey(tokenID), cached, s.resolveAccessCacheTTL(ctx))
+	if err := gcache.Set(ctx, accessCacheKey(tokenID), cached, s.resolveAccessCacheTTL(ctx)); err != nil {
+		logger.Warningf(ctx, "set token access cache failed tokenID=%s err=%v", tokenID, err)
+	}
 
 	accessCacheState.Lock()
 	accessCacheState.tokenUsers[tokenID] = userID
@@ -224,7 +230,9 @@ func (s *Service) clearLocalAccessCache(ctx context.Context) {
 	for _, tokenID := range tokenIDs {
 		keys = append(keys, accessCacheKey(tokenID))
 	}
-	_ = gcache.Removes(ctx, keys)
+	if err := gcache.Removes(ctx, keys); err != nil {
+		logger.Warningf(ctx, "clear local access cache failed err=%v", err)
+	}
 }
 
 // removeIndexedToken removes one token from the local reverse indexes that map

@@ -2,6 +2,7 @@ package locker
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -21,7 +22,9 @@ func newTestService() *Service {
 
 // cleanupLock removes the lock by name after test.
 func cleanupLock(name string) {
-	_, _ = g.DB().Model("sys_locker").Where("name", name).Delete()
+	if _, err := g.DB().Model("sys_locker").Where("name", name).Delete(); err != nil {
+		panic(fmt.Sprintf("cleanup locker row failed name=%s err=%v", name, err))
+	}
 }
 
 func TestService_New(t *testing.T) {
@@ -51,7 +54,8 @@ func TestService_Lock_NewLock(t *testing.T) {
 		t.AssertNil(err)
 		t.Assert(count, 1)
 
-		_ = instance.Unlock(ctx)
+		err = instance.Unlock(ctx)
+		t.AssertNil(err)
 	})
 
 	cleanupLock(name)
@@ -92,7 +96,8 @@ func TestService_Lock_ExistingExpiredLock(t *testing.T) {
 		t.Assert(row.Holder, testHolder)
 		t.Assert(row.Reason, reason)
 
-		_ = instance.Unlock(ctx)
+		err = instance.Unlock(ctx)
+		t.AssertNil(err)
 	})
 
 	cleanupLock(name)
@@ -147,8 +152,10 @@ func TestService_Lock_SameHolder(t *testing.T) {
 		t.AssertNil(err2)
 		t.Assert(ok2, true)
 
-		_ = instance1.Unlock(ctx)
-		_ = instance2.Unlock(ctx)
+		unlockErr := instance1.Unlock(ctx)
+		t.AssertNil(unlockErr)
+		unlockErr = instance2.Unlock(ctx)
+		t.AssertNil(unlockErr)
 	})
 
 	cleanupLock(name)
@@ -174,8 +181,9 @@ func TestService_LockFunc(t *testing.T) {
 		t.Assert(ok, true)
 		t.Assert(executed, true)
 
-		count, _ := g.DB().Model("sys_locker").Where("name", name).
+		count, err := g.DB().Model("sys_locker").Where("name", name).
 			WhereGTE("expire_time", gtime.Now()).Count()
+		t.AssertNil(err)
 		t.Assert(count, 0)
 	})
 

@@ -20,7 +20,7 @@ type ExportInput struct {
 }
 
 // Export generates an Excel file with user data based on IDs.
-func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
+func (s *Service) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
 	cols := dao.SysUser.Columns()
 	m := dao.SysUser.Ctx(ctx)
 
@@ -29,7 +29,7 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	}
 
 	var list []*entity.SysUser
-	err := m.FieldsEx(cols.Password).
+	err = m.FieldsEx(cols.Password).
 		Order(cols.Id + " ASC").
 		Scan(&list)
 	if err != nil {
@@ -38,21 +38,30 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 
 	// Create Excel file
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 	sheet := "Sheet1"
 
 	headers := []string{"用户名", "昵称", "手机号码", "邮箱", "性别", "状态", "备注", "创建时间"}
 	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err = setCellValue(f, sheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	for i, u := range list {
 		row := i + 2
-		f.SetCellValue(sheet, cellName(1, row), u.Username)
-		f.SetCellValue(sheet, cellName(2, row), u.Nickname)
-		f.SetCellValue(sheet, cellName(3, row), u.Phone)
-		f.SetCellValue(sheet, cellName(4, row), u.Email)
+		if err = setCellValueByName(f, sheet, cellName(1, row), u.Username); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(2, row), u.Nickname); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(3, row), u.Phone); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(4, row), u.Email); err != nil {
+			return nil, err
+		}
 		sexText := "未知"
 		switch u.Sex {
 		case 1:
@@ -60,15 +69,23 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 		case 2:
 			sexText = "女"
 		}
-		f.SetCellValue(sheet, cellName(5, row), sexText)
+		if err = setCellValueByName(f, sheet, cellName(5, row), sexText); err != nil {
+			return nil, err
+		}
 		statusText := "正常"
 		if u.Status == int(StatusDisabled) {
 			statusText = "停用"
 		}
-		f.SetCellValue(sheet, cellName(6, row), statusText)
-		f.SetCellValue(sheet, cellName(7, row), u.Remark)
+		if err = setCellValueByName(f, sheet, cellName(6, row), statusText); err != nil {
+			return nil, err
+		}
+		if err = setCellValueByName(f, sheet, cellName(7, row), u.Remark); err != nil {
+			return nil, err
+		}
 		if u.CreatedAt != nil {
-			f.SetCellValue(sheet, cellName(8, row), u.CreatedAt.String())
+			if err = setCellValueByName(f, sheet, cellName(8, row), u.CreatedAt.String()); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -76,7 +93,8 @@ func (s *Service) Export(ctx context.Context, in ExportInput) ([]byte, error) {
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	data = buf.Bytes()
+	return data, nil
 }
 
 // ImportResult defines the result of import operation.
@@ -93,12 +111,12 @@ type ImportFailItem struct {
 }
 
 // Import reads an Excel file and creates users from it.
-func (s *Service) Import(ctx context.Context, fileReader io.Reader) (*ImportResult, error) {
+func (s *Service) Import(ctx context.Context, fileReader io.Reader) (result *ImportResult, err error) {
 	f, err := excelize.OpenReader(fileReader)
 	if err != nil {
 		return nil, gerror.New("无法解析 Excel 文件")
 	}
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 
 	rows, err := f.GetRows("Sheet1")
 	if err != nil {
@@ -109,7 +127,7 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader) (*ImportResu
 		return &ImportResult{}, nil
 	}
 
-	result := &ImportResult{}
+	result = &ImportResult{}
 
 	for i, row := range rows[1:] { // Skip header
 		rowNum := i + 2
@@ -216,35 +234,48 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader) (*ImportResu
 }
 
 // GenerateImportTemplate creates an Excel template for user import.
-func (s *Service) GenerateImportTemplate() ([]byte, error) {
+func (s *Service) GenerateImportTemplate() (data []byte, err error) {
 	f := excelize.NewFile()
-	defer f.Close()
+	defer closeExcelFile(f, &err)
 	sheet := "Sheet1"
 
 	headers := []string{"用户名", "密码", "昵称", "手机号码", "邮箱", "性别", "状态", "备注"}
 	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err = setCellValue(f, sheet, i+1, 1, h); err != nil {
+			return nil, err
+		}
 	}
 
 	// Example row
-	f.SetCellValue(sheet, cellName(1, 2), "zhangsan")
-	f.SetCellValue(sheet, cellName(2, 2), "123456")
-	f.SetCellValue(sheet, cellName(3, 2), "张三")
-	f.SetCellValue(sheet, cellName(4, 2), "13800138000")
-	f.SetCellValue(sheet, cellName(5, 2), "zhangsan@example.com")
-	f.SetCellValue(sheet, cellName(6, 2), "男")
-	f.SetCellValue(sheet, cellName(7, 2), "正常")
-	f.SetCellValue(sheet, cellName(8, 2), "示例用户")
+	if err = setCellValueByName(f, sheet, cellName(1, 2), "zhangsan"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, cellName(2, 2), "123456"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, cellName(3, 2), "张三"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, cellName(4, 2), "13800138000"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, cellName(5, 2), "zhangsan@example.com"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, cellName(6, 2), "男"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, cellName(7, 2), "正常"); err != nil {
+		return nil, err
+	}
+	if err = setCellValueByName(f, sheet, cellName(8, 2), "示例用户"); err != nil {
+		return nil, err
+	}
 
 	var buf bytes.Buffer
 	if err := f.Write(&buf); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
-}
-
-func cellName(col, row int) string {
-	name, _ := excelize.CoordinatesToCellName(col, row)
-	return name
+	data = buf.Bytes()
+	return data, nil
 }
