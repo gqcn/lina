@@ -57,6 +57,12 @@ func handleHostServiceInvoke(
 		return dispatchNetworkHostService(ctx, hcc, request.ResourceRef, request.Method, request.Payload)
 	case pluginbridge.HostServiceData:
 		return dispatchDataHostService(ctx, hcc, request.Table, request.Method, request.Payload)
+	case pluginbridge.HostServiceCache:
+		return dispatchCacheHostService(ctx, hcc, request.ResourceRef, request.Method, request.Payload)
+	case pluginbridge.HostServiceLock:
+		return dispatchLockHostService(ctx, hcc, request.ResourceRef, request.Method, request.Payload)
+	case pluginbridge.HostServiceNotify:
+		return dispatchNotifyHostService(ctx, hcc, request.ResourceRef, request.Method, request.Payload)
 	default:
 		return pluginbridge.NewHostCallErrorResponse(
 			pluginbridge.HostCallStatusNotFound,

@@ -59,7 +59,6 @@ func invokeHostCall(opcode uint32, reqBytes []byte) ([]byte, error) {
 
 	var (
 		packed  = linaHostCall(opcode, reqPtr, reqLen)
-		respPtr = uint32(packed >> 32)
 		respLen = uint32(packed & 0xffffffff)
 	)
 
@@ -71,8 +70,6 @@ func invokeHostCall(opcode uint32, reqBytes []byte) ([]byte, error) {
 	if uint32(len(buf)) < respLen {
 		return nil, gerror.Newf("host call response buffer underflow: have %d, need %d", len(buf), respLen)
 	}
-	_ = respPtr
-
 	envelope, err := UnmarshalHostCallResponse(buf[:respLen])
 	if err != nil {
 		return nil, gerror.Wrap(err, "host call response decode failed")
@@ -227,16 +224,11 @@ type HostDBQueryResult struct {
 }
 
 // HostDBQuery is no longer part of the public host service protocol.
-func HostDBQuery(sql string, args []string, maxRows int) (*HostDBQueryResult, error) {
-	_ = sql
-	_ = args
-	_ = maxRows
+func HostDBQuery(_ string, _ []string, _ int) (*HostDBQueryResult, error) {
 	return nil, gerror.New("HostDBQuery 已移除，请改用 pluginbridge.Data() 结构化数据服务")
 }
 
 // HostDBExecute is no longer part of the public host service protocol.
-func HostDBExecute(sql string, args []string) (int64, int64, error) {
-	_ = sql
-	_ = args
+func HostDBExecute(_ string, _ []string) (int64, int64, error) {
 	return 0, 0, gerror.New("HostDBExecute 已移除，请改用 pluginbridge.Data() 结构化数据服务")
 }

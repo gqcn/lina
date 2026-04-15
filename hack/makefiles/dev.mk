@@ -44,7 +44,7 @@ dev: stop
 	./hack/scripts/prepare-packed-assets.sh; \
 	(cd "$$root_dir/$(BACKEND_DIR)" && go build -o temp/bin/lina .) || { echo "后端编译失败"; exit 1; }; \
 	nohup sh -c 'cd "'"$$root_dir"'/$(BACKEND_DIR)" && exec ./temp/bin/lina' >> /tmp/lina-core.log 2>&1 < /dev/null & echo $$! > $(BACKEND_PID); \
-	nohup sh -c 'cd "'"$$root_dir"'/$(FRONTEND_DIR)" && exec npx turbo run dev --filter=@lina/web-antd' >> /tmp/lina-vben.log 2>&1 < /dev/null & echo $$! > $(FRONTEND_PID); \
+	nohup sh -c 'cd "'"$$root_dir"'/$(FRONTEND_DIR)" && exec pnpm --filter @lina/web-antd run dev' >> /tmp/lina-vben.log 2>&1 < /dev/null & echo $$! > $(FRONTEND_PID); \
 	_wait_http "后端" "$(BACKEND_PID)" "http://127.0.0.1:$(BACKEND_PORT)/" 60 "/tmp/lina-core.log"; \
 	_wait_http "前端" "$(FRONTEND_PID)" "http://127.0.0.1:$(FRONTEND_PORT)/" 60 "/tmp/lina-vben.log"; \
 	cd "$$root_dir"; \

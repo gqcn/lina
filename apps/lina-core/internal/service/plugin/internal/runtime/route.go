@@ -376,8 +376,6 @@ func (s *Service) executePreparedDynamicRoute(
 	}
 
 	requestEnvelope, err := s.buildDynamicRouteRequestEnvelopeWithIdentity(
-		ctx,
-		runtimeState.Manifest,
 		runtimeState.Match,
 		request,
 		identity,
@@ -396,14 +394,10 @@ func (s *Service) executePreparedDynamicRoute(
 }
 
 func (s *Service) buildDynamicRouteRequestEnvelopeWithIdentity(
-	ctx context.Context,
-	manifest *catalog.Manifest,
 	match *dynamicRouteMatch,
 	request *ghttp.Request,
 	identity *pluginbridge.IdentitySnapshotV1,
 ) (*pluginbridge.BridgeRequestEnvelopeV1, error) {
-	_ = ctx
-	_ = manifest
 	body := request.GetBody()
 	queryValues := request.URL.Query()
 	return &pluginbridge.BridgeRequestEnvelopeV1{

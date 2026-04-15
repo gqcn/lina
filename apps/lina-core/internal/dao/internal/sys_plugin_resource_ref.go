@@ -26,7 +26,7 @@ type SysPluginResourceRefColumns struct {
 	ReleaseId    string // 所属插件 release ID
 	ResourceType string // 资源类型（manifest/sql/frontend/menu/permission 等）
 	ResourceKey  string // 资源唯一键
-	ResourcePath string // 资源路径或宿主标识
+	ResourcePath string // 资源定位补充信息（默认留空，不保存具体前端/SQL 路径）
 	OwnerType    string // 宿主对象类型（file/menu/route/slot 等）
 	OwnerKey     string // 宿主对象稳定标识
 	Remark       string // 备注

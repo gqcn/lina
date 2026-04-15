@@ -161,7 +161,16 @@ pnpm report            # 查看 HTML 报告
 - **禁止在后端实现源码中硬编码具有枚举语义的字符串值**：凡是状态、类型、阶段、动作、执行模式、排序方向、过滤操作符等枚举语义值，必须使用 Go 命名类型与常量统一管理，禁止在业务分支、比较、赋值和持久化逻辑中直接写字符串字面量
 - **禁止在后端业务代码中直接调用`g.Log()`**：后端宿主代码以及插件后端代码统一使用项目封装的`logger`组件进行日志输出，组件路径为`apps/lina-core/pkg/logger`。除`pkg/logger`封装实现自身外，其他代码不得直接依赖`g.Log()`
 - **禁止为已导入包的导出常量或变量创建包内别名**：当需要使用其他包导出的常量或变量时，必须直接通过`pkg.ExportedConst`方式引用，禁止在本包内通过`const localName = pkg.ExportedConst`或`var localName = pkg.ExportedVar`创建无意义的别名。这种别名增加了间接层且不提供任何类型安全或语义收益，只会降低可读性和可维护性
-- **文件顶部注释规范**：所有`Go`源码文件都必须在文件顶部增加文件用途注释说明。组件说明应写在该组件的主文件中，即与组件同名的主文件（如`plugin.go`、`config.go`、`file.go`）；主文件中的组件注释必须紧贴`package xxx`声明，中间不得有空行。其余实现文件必须只保留针对当前文件职责的文件注释（如`plugin_xxx.go`、`config_xxx.go`），文件注释与`package xxx`之间必须保留一个空行，禁止在非主文件中重复编写组件级说明
+- **禁止使用`_ = var`这类单独赋值语句掩盖未使用的参数或局部变量**：这类占位写法没有业务语义，只会制造“变量是否本应参与逻辑”的误导。应优先删除无用变量；若为满足接口签名或回调约束必须保留参数，应直接在函数签名中使用空白标识符（如`func(ctx context.Context, _ gdb.TX) error`）或省略不需要的接收者名称，而不是在函数体内追加`_ = tx`、`_ = req`、`_ = ctx`之类的单行语句
+- **文件顶部注释规范**：
+  - 所有`Go`源码文件都必须在文件顶部增加文件用途注释说明。组件说明应写在该组件的主文件中，即与组件同名的主文件（如`plugin.go`、`config.go`、`file.go`）。
+  - 主文件中的组件注释必须紧贴`package xxx`声明，中间不得有空行。例如：
+  ```go
+  // Package plugin implements plugin manifest discovery, lifecycle orchestration,
+  // governance metadata synchronization, and host integration for Lina plugins.
+  package plugin
+  ```
+  - 其余实现文件必须只保留针对当前文件职责的文件注释（如`plugin_xxx.go`、`config_xxx.go`），文件注释与`package xxx`之间必须保留一个空行，禁止在非主文件中重复编写组件级说明。
 - **优先使用GoFrame框架提供的组件和方法**：所有`Go`方法调用优先使用`GoFrame`框架已有的方法，避免重复造轮子。例如：
   - 错误处理：使用`GoFrame`的 `gerror` 包进行结构化错误处理
   - 日志记录：统一使用项目封装的 `logger` 组件并传入上下文进行日志记录

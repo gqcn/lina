@@ -233,13 +233,13 @@ hostServices:
 | `host-storage` | `storage` | `reports/` | 宿主为插件隔离出的逻辑存储路径空间 | 路径边界、目录前缀、默认大小与平台保护 |
 | `host-upstream` | `network` | `https://*.example.com/api` | URL 模式命中的 HTTP 地址集合 | URL 模式本身；安装/启用时由宿主确认授权 |
 | `host-data-table` | `data` | `sys_plugin_node_state` | 宿主确认授权的数据表 | 可执行操作、表级审计、数据范围、事务边界 |
-| `host-cache` | `cache` | `ticket-cache` | Redis namespace 或宿主缓存空间 | TTL、key 前缀、容量限制、淘汰策略 |
-| `host-lock` | `lock` | `ticket-lock` | 分布式锁命名空间 | 租期、续租上限、持有者约束、竞争策略 |
-| `host-notify-channel` | `notify` | `ops-mail` | 站内信通道、邮件通道、Webhook 目标 | 模板约束、速率限制、接收者范围 |
+| `host-cache` | `cache` | `ticket-cache` | 基于 MySQL `MEMORY` 表的分布式 KV 缓存空间 | TTL、key 前缀、值长度上限、淘汰与清理策略 |
+| `host-lock` | `lock` | `ticket-lock` | 按插件隔离的分布式锁命名空间 | 租期、续租上限、持有者票据约束、竞争策略 |
+| `host-notify-channel` | `notify` | `ops-mail` | 统一通知域中的站内信、邮件、Webhook 通道 | 模板约束、速率限制、接收者范围 |
 
 统一绑定流程如下：
 
-1. 插件在`plugin.yaml`中声明自己依赖哪些受治理目标；对`storage`是逻辑`path`，对`network`是`URL pattern`，对`data`是`table`，对`cache`、`lock`、`notify`等低优先级服务仍是逻辑`resourceRef`，这些声明统一表示权限申请；
+1. 插件在`plugin.yaml`中声明自己依赖哪些受治理目标；对`storage`是逻辑`path`，对`network`是`URL pattern`，对`data`是`table`，对`cache`、`lock`、`notify`等低优先级服务仍是逻辑`resourceRef`，但其语义在本期进一步明确为：`cache.resourceRef = 缓存命名空间`、`lock.resourceRef = 逻辑锁名`、`notify.resourceRef = 通知通道标识`；这些声明统一表示权限申请；
 2. 构建器只校验声明是否合法，不在 guest 侧固化真实物理资源地址，也不把声明视为已授权；
 3. 宿主在安装或启用插件时向管理员展示申请的 service／method／目标标识（`path`、`URL pattern`、`resourceRef`或`table`）及治理参数，并允许批准、收窄或拒绝；
 4. 宿主把最终确认结果绑定到真实受治理资源，并形成当前 release 的授权快照；
@@ -585,6 +585,145 @@ query plan 的核心收益是：
 3. 将宿主 Driver / DB wrapper 治理能力上提到`pkg/plugindb/host`；
 4. 更新 demo、文档和测试，将`plugindb.Open()`作为主路径。
 
+#### 4. `cache` service
+
+`cache` service 负责为动态插件提供宿主统一治理的分布式 KV 缓存能力，但本期明确不提供节点内本机缓存封装。若只是单节点进程内缓存，插件完全可以自行实现；宿主需要提供的是“多节点共享、受治理、可审计”的缓存平面。
+
+本期对 `cache` service 的明确约束如下：
+
+- 宿主缓存底座使用 MySQL `MEMORY` 引擎数据表，而不是宿主进程内 map 或插件本地内存；
+- `host-cache` 资源标识继续沿用低优先级服务的逻辑`resourceRef`模型，其语义正式定义为“缓存命名空间”；
+- 运行时对动态插件的实际缓存隔离键使用 `pluginId + namespace + cacheKey` 组合，而不是只靠插件提交的原始 key；
+- 由于 `MEMORY` 表字段长度与单行容量受限，宿主必须在写入前严格校验命名空间、key 和 value 的字节长度，超限直接报错，不得截断写入；
+- `MEMORY` 表在数据库重启后内容丢失，这一语义与“缓存”本身一致，因此可接受；它不承担持久化状态职责。
+
+本期建议的首版表结构如下；该表同时遵循项目 SQL 规范：使用自增整型 `id` 作为主键，且所有字段都必须显式带 `COMMENT`。
+
+```sql
+CREATE TABLE IF NOT EXISTS sys_kv_cache (
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    owner_type  VARCHAR(16) NOT NULL DEFAULT '' COMMENT '所属类型：plugin=动态插件 module=宿主模块',
+    owner_key   VARCHAR(64) NOT NULL DEFAULT '' COMMENT '所属标识：pluginId 或模块名',
+    namespace   VARCHAR(64) NOT NULL DEFAULT '' COMMENT '缓存命名空间，对应 host-cache 资源标识',
+    cache_key   VARCHAR(128) NOT NULL DEFAULT '' COMMENT '缓存键',
+    value_kind  TINYINT NOT NULL DEFAULT 1 COMMENT '值类型：1=字节串 2=整数',
+    value_bytes VARBINARY(4096) NOT NULL COMMENT '缓存字节值，供 get/set 使用',
+    value_int   BIGINT NOT NULL DEFAULT 0 COMMENT '缓存整数值，供 incr 使用',
+    expire_at   DATETIME NULL DEFAULT NULL COMMENT '过期时间，NULL 表示永不过期',
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_owner_namespace_key (owner_type, owner_key, namespace, cache_key),
+    KEY idx_expire_at (expire_at)
+) ENGINE=MEMORY DEFAULT CHARSET=utf8mb4 COMMENT='宿主分布式KV缓存表';
+```
+
+选择该结构的原因：
+
+- `value_kind + value_bytes + value_int` 可以把普通 `set/get` 与 `incr` 的并发语义显式分开，避免把数值缓存退化为字符串读改写；
+- `namespace` 继续复用宿主当前授权模型，不需要为 `cache` 额外发明一套不同于低优先级服务的资源声明外形；
+- `owner_type + owner_key` 允许未来在动态插件之外复用同一宿主缓存组件，而不把表设计锁死在插件场景。
+
+本期建议的默认长度上限为：
+
+- `namespace <= 64 bytes`
+- `cache_key <= 128 bytes`
+- `value_bytes <= 4096 bytes`
+
+宿主对超限写入统一返回显式错误，且不写入任何部分数据。`expire` 与周期性过期清理由宿主侧 `internal/service/kvcache` 组件统一处理。
+
+#### 5. `lock` service
+
+`lock` service 不再重新发明一套独立分布式锁实现，而是直接复用宿主现有 `sys_locker` 与 `locker.Service` 能力，再在动态插件运行时外层补一层票据化适配。
+
+本期对 `lock` service 的明确约束如下：
+
+- 不新增独立锁表，直接复用现有宿主分布式锁表与续租逻辑；
+- `host-lock` 的 `resourceRef` 正式定义为“逻辑锁名”；
+- 宿主落库时自动将逻辑锁名命名空间化为 `plugin:<pluginId>:<resourceRef>`，避免插件之间、插件与宿主内部锁之间互相冲突；
+- 动态插件不会直接拿到宿主内存中的锁实例对象，而是拿到宿主签发的锁票据（ticket）；
+- `renew` 与 `release` 都必须校验 ticket 与锁名、插件身份的匹配关系，不能只凭锁名操作。
+
+这样做的原因是：当前宿主已经具备可用的分布式锁能力，本期真正新增的是“把它安全地暴露给动态插件”的治理层，而不是再维护第二套锁实现。
+
+#### 6. `notify` service
+
+`notify` service 必须与当前 `sys_notice` 的“通知公告内容管理”语义彻底解耦。`sys_notice` 继续负责公告内容的创建、编辑、草稿和发布，而统一通知域负责真实的消息分发、投递审计和用户收件箱呈现。
+
+本项目是全新项目，没有历史债务，因此本期不保留 `sys_user_message` 兼容层，直接做结构重构：
+
+- `sys_notice` 保留，继续作为公告内容表；
+- `sys_user_message` 删除，不再作为长期消息中心表；
+- 新增统一通知域表，承载消息主记录、投递记录和通知通道；
+- `/user/message` 这套外部 API 与前端页面暂时保持不变，但其底层改为查询新的通知域表；
+- 当前消息中心依赖的 `sourceType/sourceId` 语义必须保留，以便继续打开通知公告预览。
+
+本期建议的首版通知域表如下；同样遵循“自增整型 `id` 主键 + 全字段注释”的项目 SQL 规范。
+
+```sql
+CREATE TABLE IF NOT EXISTS sys_notify_channel (
+    id           BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    channel_key  VARCHAR(64) NOT NULL DEFAULT '' COMMENT '通道标识',
+    name         VARCHAR(128) NOT NULL DEFAULT '' COMMENT '通道名称',
+    channel_type VARCHAR(32) NOT NULL DEFAULT '' COMMENT '通道类型：inbox=email=webhook',
+    status       TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1=启用 0=停用',
+    config_json  LONGTEXT NOT NULL COMMENT '通道配置JSON',
+    remark       VARCHAR(500) NOT NULL DEFAULT '' COMMENT '备注',
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted_at   DATETIME NULL DEFAULT NULL COMMENT '删除时间',
+    UNIQUE KEY uk_channel_key (channel_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通知通道表';
+
+CREATE TABLE IF NOT EXISTS sys_notify_message (
+    id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    plugin_id      VARCHAR(64) NOT NULL DEFAULT '' COMMENT '来源插件ID，宿主内建流程为空',
+    source_type    VARCHAR(32) NOT NULL DEFAULT '' COMMENT '来源类型：notice=公告 plugin=插件 system=系统',
+    source_id      VARCHAR(64) NOT NULL DEFAULT '' COMMENT '来源业务ID',
+    category_code  VARCHAR(32) NOT NULL DEFAULT '' COMMENT '消息分类：notice=通知 announcement=公告 other=其他',
+    title          VARCHAR(255) NOT NULL DEFAULT '' COMMENT '消息标题',
+    content        LONGTEXT NOT NULL COMMENT '消息正文',
+    payload_json   LONGTEXT NOT NULL COMMENT '扩展载荷JSON',
+    sender_user_id BIGINT NOT NULL DEFAULT 0 COMMENT '发送者用户ID',
+    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通知消息主表';
+
+CREATE TABLE IF NOT EXISTS sys_notify_delivery (
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    message_id      BIGINT NOT NULL DEFAULT 0 COMMENT '通知消息ID',
+    channel_key     VARCHAR(64) NOT NULL DEFAULT '' COMMENT '投递通道标识',
+    channel_type    VARCHAR(32) NOT NULL DEFAULT '' COMMENT '投递通道类型',
+    recipient_type  VARCHAR(32) NOT NULL DEFAULT '' COMMENT '接收者类型：user=email=webhook',
+    recipient_key   VARCHAR(128) NOT NULL DEFAULT '' COMMENT '接收者标识，如用户ID邮箱地址或Webhook标识',
+    user_id         BIGINT NOT NULL DEFAULT 0 COMMENT '站内信用户ID，非站内信时为0',
+    delivery_status TINYINT NOT NULL DEFAULT 0 COMMENT '投递状态：0=待发送 1=成功 2=失败',
+    is_read         TINYINT NOT NULL DEFAULT 0 COMMENT '是否已读：0=未读 1=已读',
+    read_at         DATETIME NULL DEFAULT NULL COMMENT '已读时间',
+    error_message   VARCHAR(1000) NOT NULL DEFAULT '' COMMENT '失败原因',
+    sent_at         DATETIME NULL DEFAULT NULL COMMENT '发送完成时间',
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted_at      DATETIME NULL DEFAULT NULL COMMENT '删除时间',
+    KEY idx_message_id (message_id),
+    KEY idx_user_inbox (user_id, channel_type, is_read),
+    KEY idx_channel_status (channel_key, delivery_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通知投递记录表';
+```
+
+本期的通知域职责划分明确如下：
+
+- `sys_notice`：公告内容管理；
+- `notify.Service`：通知发送编排与通道治理；
+- `sys_notify_message`：消息主记录；
+- `sys_notify_delivery`：投递记录与用户 inbox；
+- `usermsg.Service`：对现有 `/user/message` API 的兼容 facade。
+
+这意味着：
+
+- `notice` 发布时不再直接写 `sys_user_message`，而是调用 `notify.Service.Send(...)`；
+- `notify` 首个真实落地的通道是 `inbox`，`email/webhook` 先保留通道与 sender 扩展位；
+- 当前消息中心展示、未读计数、已读、删除、清空等能力都迁移到 `sys_notify_delivery`；
+- 通知公告预览仍通过 `sourceType=notice` 与 `sourceId=<noticeId>` 串联前端行为，避免重构后破坏既有 UI 交互。
+
 ### 决策六：运行时产物和清单都要携带宿主服务治理快照
 
 为了让宿主在装载、切换、审计和回滚时拥有完整真相源，本次不把宿主服务治理信息只留在源码目录或运行时内存里，而是要求：
@@ -593,7 +732,7 @@ query plan 的核心收益是：
 - 构建器对声明做归一化和静态校验；
 - 运行时产物把归一化结果嵌入专用自定义节；
 - 宿主装载产物时恢复为 active release 的宿主服务治理快照；
-- 宿主将服务相关`resourceRef`同步到`sys_plugin_resource_ref`。
+- 宿主将服务相关的路径、URL 模式、表名与低优先级服务 `resourceRef` 同步到`sys_plugin_resource_ref`。
 
 建议新增一个专用产物区段，例如：
 
@@ -603,7 +742,10 @@ query plan 的核心收益是：
 
 - service 名称
 - methods
-- resource refs
+- `storage.resources.paths`
+- `network` URL pattern
+- `data.resources.tables`
+- `cache/lock/notify` 的逻辑 `resourceRef`
 - 策略参数
 - 协议版本与治理参数
 
@@ -654,7 +796,9 @@ query plan 的核心收益是：
 
 - [风险] 一次性把七类宿主能力全部纳入迭代，可能导致交付顺序失控。→ Mitigation：明确分成高优先级四类和低优先级三类，任务顺序和验收顺序都以前四类为前置。
 - [风险] 数据服务若设计得过于理想化，落地时可能与真实插件诉求脱节。→ Mitigation：首批样例直接走结构化`data` service，必要时补充命名查询和命令模型，但不回退到 raw SQL 协议。
-- [风险] 文件和网络能力天然敏感，容易越权。→ Mitigation：必须同时做“由`hostServices`推导出的 capability 校验”、`hostServices`策略校验、`resourceRef`/`table`/URL pattern 授权校验和上下文校验，任何一层不满足都拒绝执行。
+- [风险] 文件和网络能力天然敏感，容易越权。→ Mitigation：必须同时做“由`hostServices`推导出的 capability 校验”、`hostServices`策略校验、`resourceRef`/`path`/`table`/URL pattern 授权校验和上下文校验，任何一层不满足都拒绝执行。
+- [风险] 统一通知域重构会影响当前通知公告发布与消息中心链路。→ Mitigation：保留`sys_notice`作为内容表，删除`sys_user_message`后将`/user/message`收敛为 facade，并对通知公告与消息中心相关 E2E 用例做完整回归。
+- [风险] `MEMORY` 缓存表若不做长度控制，运行时容易出现写入失败或隐式截断风险。→ Mitigation：宿主在 `cache` service 与 `kvcache` 组件双层执行字节长度校验，超限直接返回显式错误，禁止截断写入。
 - [风险] 宿主服务元数据如果只存在清单或只存在数据库，会形成双真相。→ Mitigation：以运行时产物内嵌快照作为 release 真相源，数据库只保存治理投影和审计记录。
 - [风险] 现有探索性实现已经编码到若干包内，重构时可能出现局部返工。→ Mitigation：明确本项目是绿地项目，直接以目标模型重构，不为旧协议额外保留分支。
 
@@ -667,7 +811,8 @@ query plan 的核心收益是：
 5. 在`data`能力上新增`pkg/plugindb/shared`强类型枚举与 query plan 模型，以及`pkg/plugindb`受限 ORM 风格 guest SDK。
 6. 将`data service`当前自定义 Driver / DB wrapper 与审计上下文能力上提到`pkg/plugindb/host`，形成宿主可复用治理层。
 7. 更新动态插件样例、开发文档和自动化测试，将`plugindb.Open()`作为主路径，并验证授权成功、授权拒绝、事务边界和资源限制场景。
-8. 在前四类核心能力稳定后，继续实现`cache`、`lock`、`notify`三类低优先级宿主服务。
+8. 在前四类核心能力稳定后，继续实现`cache`、`lock`、`notify`三类低优先级宿主服务，其中`cache`基于 MySQL `MEMORY` 表落地分布式 KV 缓存，`lock`复用现有宿主分布式锁，`notify`重构为统一通知域。
+9. 删除`sys_user_message`及其旧实现依赖，将`notice`发布链路与`/user/message` facade 统一迁移到新的通知域表，并回归通知公告与消息中心相关 E2E。
 
 ## Open Questions
 

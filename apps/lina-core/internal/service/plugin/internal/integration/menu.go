@@ -35,8 +35,7 @@ func (s *Service) SyncPluginMenusAndPermissions(ctx context.Context, manifest *c
 	if manifest == nil {
 		return nil
 	}
-	return dao.SysMenu.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		_ = tx
+	return dao.SysMenu.Ctx(ctx).Transaction(ctx, func(ctx context.Context, _ gdb.TX) error {
 		if err := s.syncPluginMenusInTx(ctx, manifest); err != nil {
 			return err
 		}
@@ -51,8 +50,7 @@ func (s *Service) SyncPluginMenus(ctx context.Context, manifest *catalog.Manifes
 	if manifest == nil {
 		return nil
 	}
-	return dao.SysMenu.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		_ = tx
+	return dao.SysMenu.Ctx(ctx).Transaction(ctx, func(ctx context.Context, _ gdb.TX) error {
 		return s.syncPluginMenusInTx(ctx, manifest)
 	})
 }

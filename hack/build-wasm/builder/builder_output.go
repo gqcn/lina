@@ -28,7 +28,7 @@ func buildRuntimeBuildOutputRelativePath(pluginID string) string {
 func resolveRuntimeArtifactOutputDir(pluginDir string, outputDir string) (string, error) {
 	normalizedOutputDir := strings.TrimSpace(outputDir)
 	if normalizedOutputDir != "" {
-		return filepath.Clean(normalizedOutputDir), nil
+		return resolveCustomOutputDir(normalizedOutputDir)
 	}
 
 	if repoRoot, ok := findRuntimeBuildRepoRoot(pluginDir); ok {
@@ -81,8 +81,12 @@ func runtimeBuildRepoRootMatches(dir string) bool {
 func resolveGuestRuntimeOutputPath(pluginDir string, pluginID string, outputDir string) (string, error) {
 	normalizedOutputDir := strings.TrimSpace(outputDir)
 	if normalizedOutputDir != "" {
+		resolvedOutputDir, err := resolveCustomOutputDir(normalizedOutputDir)
+		if err != nil {
+			return "", err
+		}
 		return filepath.Join(
-			filepath.Clean(normalizedOutputDir),
+			resolvedOutputDir,
 			runtimeWorkspaceDirName,
 			buildRuntimeWorkspaceKey(pluginID),
 			"runtime-plugin.wasm",
@@ -123,4 +127,12 @@ func buildRuntimeWorkspaceKey(pluginID string) string {
 		return "plugin"
 	}
 	return normalizedID
+}
+
+func resolveCustomOutputDir(outputDir string) (string, error) {
+	resolvedOutputDir, err := filepath.Abs(filepath.Clean(outputDir))
+	if err != nil {
+		return "", err
+	}
+	return resolvedOutputDir, nil
 }

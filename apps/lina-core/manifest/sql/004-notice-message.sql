@@ -1,4 +1,4 @@
--- 004: Notice Management, User Message
+-- 004: Notice Management
 
 -- ============================================================
 -- 通知公告表
@@ -16,22 +16,6 @@ CREATE TABLE IF NOT EXISTS sys_notice (
     updated_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
     deleted_at  DATETIME      NULL     DEFAULT NULL COMMENT '删除时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='通知公告表';
-
--- ============================================================
--- 用户消息表
--- ============================================================
-CREATE TABLE IF NOT EXISTS sys_user_message (
-    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '消息ID',
-    user_id     BIGINT        NOT NULL DEFAULT 0  COMMENT '接收用户ID',
-    title       VARCHAR(255)  NOT NULL DEFAULT '' COMMENT '消息标题',
-    type        TINYINT       NOT NULL DEFAULT 1  COMMENT '消息类型（1通知 2公告）',
-    source_type VARCHAR(50)   NOT NULL DEFAULT '' COMMENT '来源类型',
-    source_id   BIGINT        NOT NULL DEFAULT 0  COMMENT '来源ID',
-    is_read     TINYINT       NOT NULL DEFAULT 0  COMMENT '是否已读（0未读 1已读）',
-    read_at     DATETIME      NULL     DEFAULT NULL COMMENT '阅读时间',
-    created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    INDEX idx_user_read (user_id, is_read)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='用户消息表';
 
 -- ============================================================
 -- 字典初始化数据：通知类型

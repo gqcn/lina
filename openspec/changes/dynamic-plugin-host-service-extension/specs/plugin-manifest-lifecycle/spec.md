@@ -24,7 +24,7 @@
 - **THEN** 对`storage`服务，插件只声明稳定的逻辑路径或路径前缀`resources.paths`
 - **AND** 对`network`服务，插件只声明 URL 模式列表
 - **AND** 对`data`服务，插件在`resources`节点下声明需要访问的表名列表`tables`
-- **AND** 对`cache`、`lock`和`notify`等低优先级服务，当前仍可继续使用逻辑`resourceRef`规划
+- **AND** 对`cache`、`lock`和`notify`等低优先级服务，当前仍可继续使用逻辑`resourceRef`规划，其中分别表示缓存命名空间、逻辑锁名和通知通道标识
 - **AND** 插件清单不得固化数据库连接、宿主文件绝对路径、缓存地址或密钥明文
 - **AND** 真实资源绑定由宿主安装流程或管理员配置完成
 
@@ -43,7 +43,7 @@
 
 - **WHEN** 宿主卸载一个动态插件或将其回滚到旧 release
 - **THEN** 宿主同步更新对应的宿主服务资源申请记录
-- **AND** 当前 release 不再使用的逻辑路径、URL 模式、`resourceRef`或数据表声明不得继续保留为生效态
+- **AND** 当前 release 不再使用的逻辑路径、URL 模式、低优先级服务逻辑`resourceRef`或数据表声明不得继续保留为生效态
 
 #### Scenario: 激活 release 时恢复逻辑引用绑定
 

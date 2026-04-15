@@ -11,72 +11,66 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// SysUserMessageDao is the data access object for the table sys_user_message.
-type SysUserMessageDao struct {
+// SysPluginStateDao is the data access object for the table sys_plugin_state.
+type SysPluginStateDao struct {
 	table    string                // table is the underlying table name of the DAO.
 	group    string                // group is the database configuration group name of the current DAO.
-	columns  SysUserMessageColumns // columns contains all the column names of Table for convenient usage.
+	columns  SysPluginStateColumns // columns contains all the column names of Table for convenient usage.
 	handlers []gdb.ModelHandler    // handlers for customized model modification.
 }
 
-// SysUserMessageColumns defines and stores column names for the table sys_user_message.
-type SysUserMessageColumns struct {
-	Id         string // 消息ID
-	UserId     string // 接收用户ID
-	Title      string // 消息标题
-	Type       string // 消息类型（1通知 2公告）
-	SourceType string // 来源类型
-	SourceId   string // 来源ID
-	IsRead     string // 是否已读（0未读 1已读）
-	ReadAt     string // 阅读时间
+// SysPluginStateColumns defines and stores column names for the table sys_plugin_state.
+type SysPluginStateColumns struct {
+	Id         string // 主键ID
+	PluginId   string // 插件唯一标识（kebab-case）
+	StateKey   string // 状态键
+	StateValue string // 状态值（支持JSON）
 	CreatedAt  string // 创建时间
+	UpdatedAt  string // 更新时间
 }
 
-// sysUserMessageColumns holds the columns for the table sys_user_message.
-var sysUserMessageColumns = SysUserMessageColumns{
+// sysPluginStateColumns holds the columns for the table sys_plugin_state.
+var sysPluginStateColumns = SysPluginStateColumns{
 	Id:         "id",
-	UserId:     "user_id",
-	Title:      "title",
-	Type:       "type",
-	SourceType: "source_type",
-	SourceId:   "source_id",
-	IsRead:     "is_read",
-	ReadAt:     "read_at",
+	PluginId:   "plugin_id",
+	StateKey:   "state_key",
+	StateValue: "state_value",
 	CreatedAt:  "created_at",
+	UpdatedAt:  "updated_at",
 }
 
-// NewSysUserMessageDao creates and returns a new DAO object for table data access.
-func NewSysUserMessageDao(handlers ...gdb.ModelHandler) *SysUserMessageDao {
-	return &SysUserMessageDao{
+// NewSysPluginStateDao creates and returns a new DAO object for table data access.
+func NewSysPluginStateDao(handlers ...gdb.ModelHandler) *SysPluginStateDao {
+	return &SysPluginStateDao{
 		group:    "default",
-		table:    "sys_user_message",
-		columns:  sysUserMessageColumns,
+		table:    "sys_plugin_state",
+		columns:  sysPluginStateColumns,
 		handlers: handlers,
 	}
 }
 
 // DB retrieves and returns the underlying raw database management object of the current DAO.
-func (dao *SysUserMessageDao) DB() gdb.DB {
+func (dao *SysPluginStateDao) DB() gdb.DB {
 	return g.DB(dao.group)
 }
 
 // Table returns the table name of the current DAO.
-func (dao *SysUserMessageDao) Table() string {
+func (dao *SysPluginStateDao) Table() string {
 	return dao.table
 }
 
 // Columns returns all column names of the current DAO.
-func (dao *SysUserMessageDao) Columns() SysUserMessageColumns {
+func (dao *SysPluginStateDao) Columns() SysPluginStateColumns {
 	return dao.columns
 }
 
 // Group returns the database configuration group name of the current DAO.
-func (dao *SysUserMessageDao) Group() string {
+func (dao *SysPluginStateDao) Group() string {
 	return dao.group
 }
 
 // Ctx creates and returns a Model for the current DAO. It automatically sets the context for the current operation.
-func (dao *SysUserMessageDao) Ctx(ctx context.Context) *gdb.Model {
+func (dao *SysPluginStateDao) Ctx(ctx context.Context) *gdb.Model {
 	model := dao.DB().Model(dao.table)
 	for _, handler := range dao.handlers {
 		model = handler(model)
@@ -90,6 +84,6 @@ func (dao *SysUserMessageDao) Ctx(ctx context.Context) *gdb.Model {
 //
 // Note: Do not commit or roll back the transaction in function f,
 // as it is automatically handled by this function.
-func (dao *SysUserMessageDao) Transaction(ctx context.Context, f func(ctx context.Context, tx gdb.TX) error) (err error) {
+func (dao *SysPluginStateDao) Transaction(ctx context.Context, f func(ctx context.Context, tx gdb.TX) error) (err error) {
 	return dao.Ctx(ctx).Transaction(ctx, f)
 }

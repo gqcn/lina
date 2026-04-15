@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SystemPlugin } from '#/api/system/plugin/model';
 
+import { useAccess } from '@vben/access';
 import { Page } from '@vben/common-ui';
 import { useVbenModal } from '@vben/common-ui';
 
@@ -31,6 +32,15 @@ const typeColorMap: Record<string, string> = {
   dynamic: 'green',
   source: 'blue',
 };
+
+const pluginAccessCodes = {
+  disable: 'plugin:disable',
+  enable: 'plugin:enable',
+  install: 'plugin:install',
+  uninstall: 'plugin:uninstall',
+} as const;
+
+const { hasAccessByCodes } = useAccess();
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -159,9 +169,31 @@ function isSourcePlugin(row: SystemPlugin) {
   return row.type === 'source';
 }
 
+function canInstallPlugin() {
+  return hasAccessByCodes([pluginAccessCodes.install]);
+}
+
+function canSyncPlugins() {
+  return hasAccessByCodes([pluginAccessCodes.install]);
+}
+
+function canUninstallPlugin() {
+  return hasAccessByCodes([pluginAccessCodes.uninstall]);
+}
+
+function canTogglePluginStatus(row: SystemPlugin) {
+  return row.enabled === 1
+    ? hasAccessByCodes([pluginAccessCodes.disable])
+    : hasAccessByCodes([pluginAccessCodes.enable]);
+}
+
 async function handleStatusChange(row: SystemPlugin, checked: boolean) {
   if (row.installed !== 1) {
     message.warning('请先完成插件接入');
+    return;
+  }
+  if (!canTogglePluginStatus(row)) {
+    message.warning('当前账号缺少插件状态管理权限');
     return;
   }
   if (checked && row.authorizationRequired === 1) {
@@ -176,6 +208,10 @@ async function handleStatusChange(row: SystemPlugin, checked: boolean) {
 }
 
 async function handleInstall(row: SystemPlugin) {
+  if (!canInstallPlugin()) {
+    message.warning('当前账号缺少插件安装权限');
+    return;
+  }
   if (row.authorizationRequired === 1) {
     hostServiceAuthModalApi.setData({ mode: 'install', row });
     hostServiceAuthModalApi.open();
@@ -190,6 +226,10 @@ async function handleInstall(row: SystemPlugin) {
 }
 
 async function handleUninstall(row: SystemPlugin) {
+  if (!canUninstallPlugin()) {
+    message.warning('当前账号缺少插件卸载权限');
+    return;
+  }
   await pluginUninstall(row.id);
   row.installed = 0;
   row.enabled = 0;
@@ -199,6 +239,10 @@ async function handleUninstall(row: SystemPlugin) {
 }
 
 async function handleSync() {
+  if (!canSyncPlugins()) {
+    message.warning('当前账号缺少插件安装权限');
+    return;
+  }
   const res = await pluginSync();
   await notifyPluginRegistryChanged();
   const total = typeof res?.total === 'number' ? res.total : 0;
@@ -207,6 +251,10 @@ async function handleSync() {
 }
 
 function handleOpenDynamicUpload() {
+  if (!canInstallPlugin()) {
+    message.warning('当前账号缺少插件安装权限');
+    return;
+  }
   dynamicUploadModalApi.open();
 }
 
@@ -229,11 +277,18 @@ async function handleHostServiceAuthReload() {
           <a-button
             data-testid="plugin-dynamic-upload-trigger"
             type="primary"
+            v-access:code="pluginAccessCodes.install"
             @click="handleOpenDynamicUpload"
           >
             上传插件
           </a-button>
-          <a-button type="primary" @click="handleSync">同步插件</a-button>
+          <a-button
+            v-access:code="pluginAccessCodes.install"
+            type="primary"
+            @click="handleSync"
+          >
+            同步插件
+          </a-button>
         </Space>
       </template>
 
@@ -258,7 +313,7 @@ async function handleHostServiceAuthReload() {
       <template #enabled="{ row }">
         <Switch
           :checked="row.enabled === 1"
-          :disabled="row.installed !== 1"
+          :disabled="row.installed !== 1 || !canTogglePluginStatus(row)"
           checked-children="启用"
           un-checked-children="禁用"
           @change="(checked) => handleStatusChange(row, !!checked)"
@@ -268,6 +323,7 @@ async function handleHostServiceAuthReload() {
       <template #action="{ row }">
         <Space v-if="isSourcePlugin(row)">
           <ghost-button
+            v-if="canUninstallPlugin()"
             :data-testid="`plugin-source-uninstall-disabled-${row.id}`"
             danger
             disabled
@@ -279,14 +335,14 @@ async function handleHostServiceAuthReload() {
         </Space>
         <Space v-else>
           <Popconfirm
-            v-if="row.installed !== 1"
+            v-if="row.installed !== 1 && canInstallPlugin()"
             title="确认安装该插件？"
             @confirm="handleInstall(row)"
           >
             <ghost-button @click.stop="">安装</ghost-button>
           </Popconfirm>
           <Popconfirm
-            v-else
+            v-else-if="canUninstallPlugin()"
             title="确认卸载该插件？"
             @confirm="handleUninstall(row)"
           >

@@ -30,7 +30,7 @@
 #### Scenario: 插件声明宿主服务策略
 
 - **WHEN** 开发者在动态插件清单中声明`hostServices`
-- **THEN** 构建器校验 service、method、资源声明（如`resourceRef`或`resources.tables`）和策略参数是否合法
+- **THEN** 构建器校验 service、method、资源声明（如低优先级服务的逻辑`resourceRef`、`storage.resources.paths`、URL 模式或`resources.tables`）和策略参数是否合法
 - **AND** 宿主根据这些 methods 自动推导内部 capability 分类快照
 - **AND** 将归一化后的宿主服务策略写入运行时产物
 - **AND** 宿主装载产物后恢复为当前 release 的服务授权快照
@@ -43,7 +43,7 @@
 
 ### Requirement: 资源型宿主服务声明属于权限申请而非自动授权
 
-系统 SHALL 将所有资源型 hostServices 声明解释为权限申请清单，而不是插件在运行时自动拥有的资源访问权；其中`storage`当前使用`resources.paths`，`network`使用 URL 模式，`data`当前使用`resources.tables`，其余低优先级服务（`cache`、`lock`、`notify`）继续沿用逻辑`resourceRef`规划。
+系统 SHALL 将所有资源型 hostServices 声明解释为权限申请清单，而不是插件在运行时自动拥有的资源访问权；其中`storage`当前使用`resources.paths`，`network`使用 URL 模式，`data`当前使用`resources.tables`，其余低优先级服务（`cache`、`lock`、`notify`）继续沿用逻辑`resourceRef`规划，并分别表示缓存命名空间、逻辑锁名和通知通道标识。
 
 #### Scenario: 清单声明宿主服务资源申请
 

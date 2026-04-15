@@ -56,8 +56,7 @@ func (r *GuestRuntime) HandleEncodedRequest(content []byte) ([]byte, error) {
 }
 
 // Alloc reserves guest memory for the next incoming request.
-func (r *GuestRuntime) Alloc(size uint32) uint32 {
-	_ = r
+func (*GuestRuntime) Alloc(size uint32) uint32 {
 	if cap(guestRequestBuffer) < int(size) {
 		guestRequestBuffer = make([]byte, size)
 	} else {
@@ -70,8 +69,7 @@ func (r *GuestRuntime) Alloc(size uint32) uint32 {
 }
 
 // RequestBuffer returns the mutable request buffer currently exposed to the host.
-func (r *GuestRuntime) RequestBuffer() []byte {
-	_ = r
+func (*GuestRuntime) RequestBuffer() []byte {
 	return guestRequestBuffer
 }
 
@@ -88,15 +86,13 @@ func (r *GuestRuntime) Execute(length uint32) (uint32, uint32, error) {
 }
 
 // ResponseBuffer returns the current encoded response buffer.
-func (r *GuestRuntime) ResponseBuffer() []byte {
-	_ = r
+func (*GuestRuntime) ResponseBuffer() []byte {
 	return guestResponseBuffer
 }
 
 // ExposeResponseBuffer publishes one encoded response payload through the
 // shared guest response buffer and returns the stable pointer-length pair.
-func (r *GuestRuntime) ExposeResponseBuffer(content []byte) (uint32, uint32, error) {
-	_ = r
+func (*GuestRuntime) ExposeResponseBuffer(content []byte) (uint32, uint32, error) {
 	guestResponseBuffer = append(guestResponseBuffer[:0], content...)
 	if len(guestResponseBuffer) == 0 {
 		return 0, 0, nil
@@ -107,8 +103,7 @@ func (r *GuestRuntime) ExposeResponseBuffer(content []byte) (uint32, uint32, err
 // HostCallAlloc reserves guest memory for an incoming host call response.
 // This uses a separate buffer from Alloc to avoid overwriting the in-flight
 // request data during re-entrant host function calls.
-func (r *GuestRuntime) HostCallAlloc(size uint32) uint32 {
-	_ = r
+func (*GuestRuntime) HostCallAlloc(size uint32) uint32 {
 	if cap(guestHostCallResponseBuffer) < int(size) {
 		guestHostCallResponseBuffer = make([]byte, size)
 	} else {
@@ -121,7 +116,6 @@ func (r *GuestRuntime) HostCallAlloc(size uint32) uint32 {
 }
 
 // HostCallResponseBuffer returns the current host call response buffer.
-func (r *GuestRuntime) HostCallResponseBuffer() []byte {
-	_ = r
+func (*GuestRuntime) HostCallResponseBuffer() []byte {
 	return guestHostCallResponseBuffer
 }

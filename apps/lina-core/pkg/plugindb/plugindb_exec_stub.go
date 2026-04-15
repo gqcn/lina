@@ -41,8 +41,7 @@ func (q *Query) Delete() (*MutationResult, error) {
 }
 
 // Transaction is unavailable outside wasip1 builds.
-func (db *DB) Transaction(fn func(tx *Tx) error) error {
-	_ = fn
+func (db *DB) Transaction(_ func(tx *Tx) error) error {
 	return gerror.New("plugindb guest execution is only available for wasip1 builds")
 }
 

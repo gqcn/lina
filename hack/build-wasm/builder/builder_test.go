@@ -416,6 +416,47 @@ func TestWriteRuntimeWasmArtifactFromSourceSupportsExternalOutputDir(t *testing.
 	}
 }
 
+func TestWriteRuntimeWasmArtifactFromSourceSupportsRelativeOutputDir(t *testing.T) {
+	pluginDir := t.TempDir()
+	outputDir := filepath.Join(t.TempDir(), "output")
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "plugin.yaml"),
+		"id: plugin-dynamic-relative-output\nname: Dynamic Relative Output\nversion: v0.1.0\ntype: dynamic\n",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "main.go"),
+		"package main\n\nfunc main() {}\n",
+	)
+
+	workingDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("expected builder test to resolve current working directory, got error: %v", err)
+	}
+	relativeOutputDir, err := filepath.Rel(workingDir, outputDir)
+	if err != nil {
+		t.Fatalf("expected builder test to compute relative output dir, got error: %v", err)
+	}
+
+	out, err := WriteRuntimeWasmArtifactFromSource(pluginDir, relativeOutputDir)
+	if err != nil {
+		t.Fatalf("expected dynamic artifact write to relative dir to succeed, got error: %v", err)
+	}
+	if expected := filepath.Join(outputDir, "plugin-dynamic-relative-output.wasm"); out.ArtifactPath != expected {
+		t.Fatalf("expected generated dynamic artifact path %s, got %s", expected, out.ArtifactPath)
+	}
+	if expected := filepath.Join(outputDir, runtimeWorkspaceDirName, "plugin-dynamic-relative-output", "runtime-plugin.wasm"); out.RuntimePath != expected {
+		t.Fatalf("expected generated guest runtime path %s, got %s", expected, out.RuntimePath)
+	}
+	if _, err = os.Stat(out.ArtifactPath); err != nil {
+		t.Fatalf("expected generated dynamic artifact to exist in relative output dir, got error: %v", err)
+	}
+	if _, err = os.Stat(out.RuntimePath); err != nil {
+		t.Fatalf("expected generated guest runtime to exist in relative output dir, got error: %v", err)
+	}
+}
+
 func mustWriteFile(t *testing.T, filePath string, content string) {
 	t.Helper()
 

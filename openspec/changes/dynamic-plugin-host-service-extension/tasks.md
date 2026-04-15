@@ -36,10 +36,12 @@
 
 ## 5. 低优先级宿主服务实现
 
-- [ ] 5.1 实现`cache` service，支持命名缓存空间的`get`、`set`、`delete`、`incr`和`expire`能力。
-- [ ] 5.2 实现`lock` service，支持命名锁资源的`acquire`、`renew`和`release`能力。
-- [ ] 5.3 实现`notify` service，支持命名通知通道的`send`能力。
-- [ ] 5.4 为`cache`、`lock`、`notify`补充宿主授权、限额和审计测试。
+- [x] 5.1 实现`cache` service，基于 MySQL `MEMORY` 表新增宿主分布式 `KVCache` 组件，支持命名缓存空间的`get`、`set`、`delete`、`incr`和`expire`能力。
+- [x] 5.2 为`cache` service 接入命名空间 / key / value 严格字节长度校验，超出字段上限时显式报错，并补充过期清理逻辑。
+- [x] 5.3 实现`lock` service，复用现有宿主分布式锁能力，支持命名锁资源的`acquire`、`renew`和`release`能力，并通过 ticket 约束续租与释放。
+- [x] 5.4 实现`notify` service，新增统一通知域表，删除`sys_user_message`，支持命名通知通道的`send`能力。
+- [x] 5.5 将`notice`发布链路与`/user/message` facade 收敛到新的通知域实现，保留消息中心现有`sourceType/sourceId`预览语义。
+- [x] 5.6 为`cache`、`lock`、`notify`补充宿主授权、限额、票据校验和审计测试。
 
 ## 6. E2E 验证
 
@@ -49,9 +51,10 @@
 - [x] 6.4 实现`TC-71c`：插件尝试申请 raw SQL 或未授权宿主能力时被宿主拒绝。
 - [x] 6.5 创建`hack/tests/e2e/plugin/TC0073-plugin-host-service-authorization-review.ts`。
 - [x] 6.6 实现`TC-73a~c`：安装与启用弹窗展示申请权限，并持久化最终授权结果。
-- [ ] 6.7 创建`hack/tests/e2e/plugin/TC0072-runtime-wasm-host-services-low-priority.ts`。
-- [ ] 6.8 实现`TC-72a`：已授权的`cache`、`lock`、`notify`宿主服务调用成功。
-- [ ] 6.9 实现`TC-72b`：低优先级宿主服务在未授权资源或超限场景下被宿主拒绝。
+- [x] 6.7 创建`hack/tests/e2e/plugin/TC0072-runtime-wasm-host-services-low-priority.ts`。
+- [x] 6.8 实现`TC-72a`：已授权的`cache`、`lock`、`notify`宿主服务调用成功。
+- [x] 6.9 实现`TC-72b`：低优先级宿主服务在未授权资源或超限场景下被宿主拒绝。
+- [x] 6.10 回归`TC0037`、`TC0038`、`TC0039`、`TC0041`、`TC0042`、`TC0043`，确认通知公告与消息中心在通知域重构后无回归。
 
 ## Feedback
 
@@ -95,3 +98,11 @@
 - [x] **FB-38**: 收敛`apps/lina-core/internal/service/plugin/internal/integration/resource_ref.go`中散落的稳定治理标识与重复文案硬编码，统一为常量和辅助构造函数，降低后续维护成本。
 - [x] **FB-39**: 继续收敛插件治理与动态路由权限菜单相关实现中的稳定状态键前缀、节点同步消息和菜单类型/remark 标识硬编码，统一复用`catalog`共享常量与辅助方法。
 - [x] **FB-40**: 收缩当前 OpenSpec 迭代的低优先级 hostService 规划范围，移除`secret`、`event`、`queue`相关任务与规范文档。
+- [x] **FB-41**: 将`cache` service 明确收敛为基于 MySQL `MEMORY` 表的宿主分布式缓存，而不是节点内本机缓存；所有写入都必须在宿主侧执行严格长度校验，超限直接报错。
+- [x] **FB-42**: 将宿主通知域与`sys_notice`内容管理彻底解耦，删除`sys_user_message`并引入统一通知域表；保持`/user/message` facade 和通知公告预览链路可用，并完成受影响 E2E 回归。
+- [x] **FB-43**: 修复`hack/build-wasm`在传入相对`output-dir`时对 guest runtime wasm 输出路径的基准目录处理错误，恢复`make wasm`/`make dev`对`plugin-demo-dynamic`的默认构建链路，并补充相对输出目录回归测试。
+- [x] **FB-44**: 创建`hack/tests/e2e/plugin/TC0074-plugin-management-action-permissions.ts`，覆盖动态插件上传/安装/启用/禁用/卸载动作的权限校验、按钮可见性与接口拒绝行为。
+- [x] **FB-45**: 创建`hack/tests/e2e/plugin/TC0075-runtime-wasm-lifecycle-boundaries.ts`，覆盖动态插件卸载后的菜单/权限/治理资源清理以及运行时资源不可访问回归。
+- [x] **FB-46**: 在`TC0075`中补充动态插件版本兼容边界验证，覆盖不支持 ABI、同版本/低版本上传拒绝与已安装版本回退拒绝场景。
+- [x] **FB-47**: 澄清插件管理接口中显式`requirePermission`校验与鉴权中间件的职责边界，避免后续维护者误以为中间件已统一覆盖按钮级权限校验。
+- [x] **FB-48**: 审查后端实现中无语义价值的`_ = var`占位写法并完成收敛，将禁止规则写入项目规范文档，避免继续以空白标识符赋值掩盖未使用参数或局部变量。

@@ -16,5 +16,23 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListR
 	if err != nil {
 		return nil, err
 	}
-	return &v1.ListRes{List: out.List, Total: out.Total}, nil
+
+	items := make([]*v1.MessageItem, 0, len(out.List))
+	for _, item := range out.List {
+		if item == nil {
+			continue
+		}
+		items = append(items, &v1.MessageItem{
+			Id:         item.Id,
+			UserId:     item.UserId,
+			Title:      item.Title,
+			Type:       item.Type,
+			SourceType: item.SourceType,
+			SourceId:   item.SourceId,
+			IsRead:     item.IsRead,
+			ReadAt:     item.ReadAt,
+			CreatedAt:  item.CreatedAt,
+		})
+	}
+	return &v1.ListRes{List: items, Total: out.Total}, nil
 }

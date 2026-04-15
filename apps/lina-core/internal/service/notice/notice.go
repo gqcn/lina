@@ -10,6 +10,7 @@ import (
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/bizctx"
+	notifysvc "lina-core/internal/service/notify"
 	"lina-core/pkg/logger"
 )
 
@@ -33,13 +34,15 @@ const (
 
 // Service provides notice management operations.
 type Service struct {
-	bizCtxSvc *bizctx.Service // Business context service
+	bizCtxSvc *bizctx.Service    // Business context service
+	notifySvc *notifysvc.Service // Unified notify service
 }
 
 // New creates and returns a new Service instance.
 func New() *Service {
 	return &Service{
 		bizCtxSvc: bizctx.New(),
+		notifySvc: notifysvc.New(),
 	}
 }
 
@@ -207,10 +210,10 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int64, error) {
 		return 0, err
 	}
 
-	// If published, fan-out messages to all active users
+	// If published, dispatch inbox notifications through the unified notify domain.
 	if in.Status == NoticeStatusPublished {
-		if err := s.fanOutMessages(ctx, id, in.Title, in.Type, createdBy); err != nil {
-			logger.Errorf(ctx, "fanOutMessages failed for notice %d: %v", id, err)
+		if err := s.dispatchPublishedNotice(ctx, id, in.Title, in.Content, in.Type, createdBy); err != nil {
+			logger.Errorf(ctx, "dispatch published notice failed for notice %d: %v", id, err)
 		}
 	}
 
@@ -275,25 +278,29 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 		return err
 	}
 
-	// If status changed from draft(0) to published(1), fan-out messages
+	// If status changed from draft(0) to published(1), dispatch inbox notifications.
 	if in.Status != nil && *in.Status == NoticeStatusPublished && oldNotice.Status == NoticeStatusDraft {
 		title := oldNotice.Title
 		if in.Title != nil {
 			title = *in.Title
 		}
+		content := oldNotice.Content
+		if in.Content != nil {
+			content = *in.Content
+		}
 		noticeType := oldNotice.Type
 		if in.Type != nil {
 			noticeType = *in.Type
 		}
-		if err := s.fanOutMessages(ctx, in.Id, title, noticeType, int64(oldNotice.CreatedBy)); err != nil {
-			logger.Errorf(ctx, "fanOutMessages failed for notice %d: %v", in.Id, err)
+		if err := s.dispatchPublishedNotice(ctx, in.Id, title, content, noticeType, int64(oldNotice.CreatedBy)); err != nil {
+			logger.Errorf(ctx, "dispatch published notice failed for notice %d: %v", in.Id, err)
 		}
 	}
 
 	return nil
 }
 
-// Delete soft-deletes notices by IDs and cascades to user messages.
+// Delete soft-deletes notices by IDs and cascades to notify deliveries.
 func (s *Service) Delete(ctx context.Context, ids string) error {
 	idList := strings.Split(ids, ",")
 	if len(idList) == 0 {
@@ -308,42 +315,35 @@ func (s *Service) Delete(ctx context.Context, ids string) error {
 		return err
 	}
 
-	// Cascade delete corresponding user messages
-	msgCols := dao.SysUserMessage.Columns()
-	_, err = dao.SysUserMessage.Ctx(ctx).
-		Where(msgCols.SourceType, "notice").
-		WhereIn(msgCols.SourceId, idList).
-		Delete()
-	if err != nil {
-		logger.Errorf(ctx, "cascade delete user messages failed for notice ids %s: %v", ids, err)
+	if err = s.notifySvc.DeleteBySource(ctx, notifysvc.SourceTypeNotice, idList); err != nil {
+		logger.Errorf(ctx, "cascade delete notify deliveries failed for notice ids %s: %v", ids, err)
 	}
 	return nil
 }
 
-// fanOutMessages creates user_message records for all active users.
-func (s *Service) fanOutMessages(ctx context.Context, noticeId int64, title string, noticeType int, createdBy int64) error {
-	var users []*entity.SysUser
-	err := dao.SysUser.Ctx(ctx).
-		Where(do.SysUser{Status: 1}).
-		WhereNot(dao.SysUser.Columns().Id, createdBy).
-		Scan(&users)
-	if err != nil {
-		return err
-	}
+func (s *Service) dispatchPublishedNotice(
+	ctx context.Context,
+	noticeID int64,
+	title string,
+	content string,
+	noticeType int,
+	senderUserID int64,
+) error {
+	_, err := s.notifySvc.SendNoticePublication(ctx, notifysvc.NoticePublishInput{
+		NoticeID:     noticeID,
+		Title:        title,
+		Content:      content,
+		CategoryCode: s.noticeTypeToCategoryCode(noticeType),
+		SenderUserID: senderUserID,
+	})
+	return err
+}
 
-	for _, user := range users {
-		_, err = dao.SysUserMessage.Ctx(ctx).Data(do.SysUserMessage{
-			UserId:     user.Id,
-			Title:      title,
-			Type:       noticeType,
-			SourceType: "notice",
-			SourceId:   noticeId,
-			IsRead:     0,
-		}).Insert()
-		if err != nil {
-			logger.Errorf(ctx, "fanOutMessages insert failed for user %d notice %d: %v", user.Id, noticeId, err)
-		}
+func (s *Service) noticeTypeToCategoryCode(noticeType int) notifysvc.CategoryCode {
+	switch noticeType {
+	case NoticeTypeAnnouncement:
+		return notifysvc.CategoryCodeAnnouncement
+	default:
+		return notifysvc.CategoryCodeNotice
 	}
-	logger.Infof(ctx, "fanOutMessages: notice %d fanned out to %d users", noticeId, len(users))
-	return nil
 }

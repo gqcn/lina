@@ -116,6 +116,45 @@ func TestValidateHostServiceSpecsAcceptsNetworkURLPatterns(t *testing.T) {
 	}
 }
 
+func TestValidateHostServiceSpecsAcceptsCacheLockNotifyResources(t *testing.T) {
+	specs := []*HostServiceSpec{
+		{
+			Service: HostServiceCache,
+			Methods: []string{HostServiceMethodCacheGet, HostServiceMethodCacheSet},
+			Resources: []*HostServiceResourceSpec{
+				{Ref: " order-sync-cache "},
+			},
+		},
+		{
+			Service: HostServiceLock,
+			Methods: []string{HostServiceMethodLockAcquire, HostServiceMethodLockRelease},
+			Resources: []*HostServiceResourceSpec{
+				{Ref: " order-sync-lock "},
+			},
+		},
+		{
+			Service: HostServiceNotify,
+			Methods: []string{HostServiceMethodNotifySend},
+			Resources: []*HostServiceResourceSpec{
+				{Ref: " inbox "},
+			},
+		},
+	}
+
+	if err := ValidateHostServiceSpecs(specs); err != nil {
+		t.Fatalf("expected cache/lock/notify host service specs to validate, got %v", err)
+	}
+	if specs[0].Resources[0].Ref != "order-sync-cache" {
+		t.Fatalf("expected normalized cache resource ref, got %#v", specs[0].Resources[0])
+	}
+	if specs[1].Resources[0].Ref != "order-sync-lock" {
+		t.Fatalf("expected normalized lock resource ref, got %#v", specs[1].Resources[0])
+	}
+	if specs[2].Resources[0].Ref != "inbox" {
+		t.Fatalf("expected normalized notify resource ref, got %#v", specs[2].Resources[0])
+	}
+}
+
 func TestValidateHostServiceSpecsRejectsLegacyNetworkGovernanceFields(t *testing.T) {
 	err := ValidateHostServiceSpecs([]*HostServiceSpec{{
 		Service: HostServiceNetwork,
@@ -305,5 +344,38 @@ func TestCapabilitiesFromHostServicesDerivesCapabilitySet(t *testing.T) {
 	}
 	if capabilities[0] != CapabilityDataMutate || capabilities[1] != CapabilityDataRead || capabilities[2] != CapabilityRuntime {
 		t.Fatalf("unexpected derived capabilities ordering: %#v", capabilities)
+	}
+}
+
+func TestCapabilitiesFromHostServicesDerivesLowPriorityCapabilitySet(t *testing.T) {
+	capabilities := CapabilitiesFromHostServices([]*HostServiceSpec{
+		{
+			Service: HostServiceCache,
+			Methods: []string{HostServiceMethodCacheGet, HostServiceMethodCacheSet},
+			Resources: []*HostServiceResourceSpec{
+				{Ref: "order-sync-cache"},
+			},
+		},
+		{
+			Service: HostServiceLock,
+			Methods: []string{HostServiceMethodLockAcquire},
+			Resources: []*HostServiceResourceSpec{
+				{Ref: "order-sync-lock"},
+			},
+		},
+		{
+			Service: HostServiceNotify,
+			Methods: []string{HostServiceMethodNotifySend},
+			Resources: []*HostServiceResourceSpec{
+				{Ref: "inbox"},
+			},
+		},
+	})
+
+	if len(capabilities) != 3 {
+		t.Fatalf("expected 3 derived capabilities, got %#v", capabilities)
+	}
+	if capabilities[0] != CapabilityCache || capabilities[1] != CapabilityLock || capabilities[2] != CapabilityNotify {
+		t.Fatalf("unexpected derived low priority capabilities ordering: %#v", capabilities)
 	}
 }

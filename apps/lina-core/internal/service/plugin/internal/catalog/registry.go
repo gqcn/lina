@@ -156,6 +156,15 @@ func (s *Service) SyncManifest(ctx context.Context, manifest *Manifest) (*entity
 			return nil, err
 		}
 	}
+	// After a dynamic plugin has been uninstalled once, later workspace scans
+	// should keep its staged release snapshot up to date but must not restore
+	// active release bindings or governance projections until it is installed again.
+	if shouldDetachDynamicManifestGovernance(registry) {
+		if err = s.syncReleaseMetadata(ctx, manifest, registry); err != nil {
+			return nil, err
+		}
+		return registry, nil
+	}
 	if err = s.syncMetadata(ctx, manifest, registry, PluginNodeStateMessageManifestSynchronized); err != nil {
 		return nil, err
 	}
@@ -345,4 +354,17 @@ func shouldAutoEnableSourcePlugin(plugin *entity.SysPlugin) bool {
 		return false
 	}
 	return plugin.EnabledAt == nil && plugin.DisabledAt == nil
+}
+
+func shouldDetachDynamicManifestGovernance(plugin *entity.SysPlugin) bool {
+	if plugin == nil {
+		return false
+	}
+	if NormalizeType(plugin.Type) != TypeDynamic {
+		return false
+	}
+	if plugin.Installed == InstalledYes {
+		return false
+	}
+	return plugin.InstalledAt != nil
 }

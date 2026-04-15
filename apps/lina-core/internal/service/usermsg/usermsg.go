@@ -6,21 +6,21 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gtime"
 
-	"lina-core/internal/dao"
-	"lina-core/internal/model/do"
-	"lina-core/internal/model/entity"
 	"lina-core/internal/service/bizctx"
+	notifysvc "lina-core/internal/service/notify"
 )
 
 // Service provides user message operations.
 type Service struct {
-	bizCtxSvc *bizctx.Service // Business context service
+	bizCtxSvc *bizctx.Service    // Business context service
+	notifySvc *notifysvc.Service // Unified notify service
 }
 
 // New creates and returns a new Service instance.
 func New() *Service {
 	return &Service{
 		bizCtxSvc: bizctx.New(),
+		notifySvc: notifysvc.New(),
 	}
 }
 
@@ -39,16 +39,7 @@ func (s *Service) UnreadCount(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-
-	cols := dao.SysUserMessage.Columns()
-	count, err := dao.SysUserMessage.Ctx(ctx).
-		Where(cols.UserId, userId).
-		Where(cols.IsRead, 0).
-		Count()
-	if err != nil {
-		return 0, err
-	}
-	return count, nil
+	return s.notifySvc.InboxUnreadCount(ctx, userId)
 }
 
 // ListInput defines input for List function.
@@ -59,8 +50,21 @@ type ListInput struct {
 
 // ListOutput defines output for List function.
 type ListOutput struct {
-	List  []*entity.SysUserMessage // Message list
-	Total int                      // Total count
+	List  []*MessageItem // Message list
+	Total int            // Total count
+}
+
+// MessageItem defines one user message facade item.
+type MessageItem struct {
+	Id         int64       // Message ID
+	UserId     int64       // Recipient user ID
+	Title      string      // Message title
+	Type       int         // Message type: 1=Notice 2=Announcement
+	SourceType string      // Message source type
+	SourceId   int64       // Message source ID
+	IsRead     int         // Whether the message has been read
+	ReadAt     *gtime.Time // Read time
+	CreatedAt  *gtime.Time // Creation time
 }
 
 // List queries message list for current user with pagination.
@@ -70,23 +74,34 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 		return nil, err
 	}
 
-	cols := dao.SysUserMessage.Columns()
-	m := dao.SysUserMessage.Ctx(ctx).Where(do.SysUserMessage{UserId: userId})
-
-	total, err := m.Count()
+	out, err := s.notifySvc.InboxList(ctx, notifysvc.InboxListInput{
+		UserID:   userId,
+		PageNum:  in.PageNum,
+		PageSize: in.PageSize,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	var list []*entity.SysUserMessage
-	err = m.Page(in.PageNum, in.PageSize).
-		Order(cols.Id + " DESC").
-		Scan(&list)
-	if err != nil {
-		return nil, err
+	items := make([]*MessageItem, 0, len(out.List))
+	for _, item := range out.List {
+		if item == nil {
+			continue
+		}
+		items = append(items, &MessageItem{
+			Id:         item.Id,
+			UserId:     item.UserID,
+			Title:      item.Title,
+			Type:       item.Type,
+			SourceType: item.SourceType,
+			SourceId:   item.SourceID,
+			IsRead:     item.IsRead,
+			ReadAt:     item.ReadAt,
+			CreatedAt:  item.CreatedAt,
+		})
 	}
 
-	return &ListOutput{List: list, Total: total}, nil
+	return &ListOutput{List: items, Total: out.Total}, nil
 }
 
 // MarkRead marks a single message as read.
@@ -95,12 +110,7 @@ func (s *Service) MarkRead(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
-
-	_, err = dao.SysUserMessage.Ctx(ctx).
-		Where(do.SysUserMessage{Id: id, UserId: userId}).
-		Data(do.SysUserMessage{IsRead: 1, ReadAt: gtime.Now()}).
-		Update()
-	return err
+	return s.notifySvc.InboxMarkRead(ctx, userId, id)
 }
 
 // MarkReadAll marks all messages as read for current user.
@@ -109,38 +119,23 @@ func (s *Service) MarkReadAll(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	cols := dao.SysUserMessage.Columns()
-	_, err = dao.SysUserMessage.Ctx(ctx).
-		Where(cols.UserId, userId).
-		Where(cols.IsRead, 0).
-		Data(do.SysUserMessage{IsRead: 1, ReadAt: gtime.Now()}).
-		Update()
-	return err
+	return s.notifySvc.InboxMarkAllRead(ctx, userId)
 }
 
-// Delete physically deletes a single message.
+// Delete deletes a single message for current user.
 func (s *Service) Delete(ctx context.Context, id int64) error {
 	userId, err := s.getCurrentUserId(ctx)
 	if err != nil {
 		return err
 	}
-
-	_, err = dao.SysUserMessage.Ctx(ctx).
-		Where(do.SysUserMessage{Id: id, UserId: userId}).
-		Delete()
-	return err
+	return s.notifySvc.InboxDelete(ctx, userId, id)
 }
 
-// Clear physically deletes all messages for current user.
+// Clear deletes all messages for current user.
 func (s *Service) Clear(ctx context.Context) error {
 	userId, err := s.getCurrentUserId(ctx)
 	if err != nil {
 		return err
 	}
-
-	_, err = dao.SysUserMessage.Ctx(ctx).
-		Where(do.SysUserMessage{UserId: userId}).
-		Delete()
-	return err
+	return s.notifySvc.InboxClear(ctx, userId)
 }

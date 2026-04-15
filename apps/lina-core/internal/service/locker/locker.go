@@ -112,3 +112,20 @@ func (s *Service) LockFunc(ctx context.Context, name, holder, reason string, lea
 	}
 	return true, nil
 }
+
+// Unlock releases one distributed lock identified by lock ID and holder.
+func (s *Service) Unlock(ctx context.Context, lockID int64, holder string) error {
+	return (&Instance{
+		id:     lockID,
+		holder: holder,
+	}).Unlock(ctx)
+}
+
+// Renew extends one distributed lock identified by lock ID and holder.
+func (s *Service) Renew(ctx context.Context, lockID int64, holder string, lease time.Duration) error {
+	return (&Instance{
+		id:     lockID,
+		holder: holder,
+		lease:  lease,
+	}).Renew(ctx)
+}

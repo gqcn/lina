@@ -116,6 +116,33 @@ const (
 )
 
 const (
+	// HostServiceMethodCacheGet reads one governed cache value.
+	HostServiceMethodCacheGet = "get"
+	// HostServiceMethodCacheSet writes one governed cache value.
+	HostServiceMethodCacheSet = "set"
+	// HostServiceMethodCacheDelete removes one governed cache value.
+	HostServiceMethodCacheDelete = "delete"
+	// HostServiceMethodCacheIncr increments one governed cache integer value.
+	HostServiceMethodCacheIncr = "incr"
+	// HostServiceMethodCacheExpire updates one governed cache expiration policy.
+	HostServiceMethodCacheExpire = "expire"
+)
+
+const (
+	// HostServiceMethodLockAcquire acquires one governed distributed lock.
+	HostServiceMethodLockAcquire = "acquire"
+	// HostServiceMethodLockRenew renews one governed distributed lock.
+	HostServiceMethodLockRenew = "renew"
+	// HostServiceMethodLockRelease releases one governed distributed lock.
+	HostServiceMethodLockRelease = "release"
+)
+
+const (
+	// HostServiceMethodNotifySend sends one governed notification message.
+	HostServiceMethodNotifySend = "send"
+)
+
+const (
 	// HostServiceStorageVisibilityPrivate keeps storage objects internal to host-call access only.
 	HostServiceStorageVisibilityPrivate = "private"
 	// HostServiceStorageVisibilityPublic marks storage objects as eligible for future public serving.
@@ -184,16 +211,16 @@ var (
 			HostServiceMethodDataTransaction: CapabilityDataMutate,
 		},
 		HostServiceCache: {
-			"get":    CapabilityCache,
-			"set":    CapabilityCache,
-			"delete": CapabilityCache,
-			"incr":   CapabilityCache,
-			"expire": CapabilityCache,
+			HostServiceMethodCacheGet:    CapabilityCache,
+			HostServiceMethodCacheSet:    CapabilityCache,
+			HostServiceMethodCacheDelete: CapabilityCache,
+			HostServiceMethodCacheIncr:   CapabilityCache,
+			HostServiceMethodCacheExpire: CapabilityCache,
 		},
 		HostServiceLock: {
-			"acquire": CapabilityLock,
-			"renew":   CapabilityLock,
-			"release": CapabilityLock,
+			HostServiceMethodLockAcquire: CapabilityLock,
+			HostServiceMethodLockRenew:   CapabilityLock,
+			HostServiceMethodLockRelease: CapabilityLock,
 		},
 		HostServiceSecret: {
 			"resolve": CapabilitySecret,
@@ -205,7 +232,7 @@ var (
 			"enqueue": CapabilityQueueEnqueue,
 		},
 		HostServiceNotify: {
-			"send": CapabilityNotify,
+			HostServiceMethodNotifySend: CapabilityNotify,
 		},
 	}
 

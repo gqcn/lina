@@ -8,15 +8,15 @@ import (
 	"lina-core/internal/dao/internal"
 )
 
-// sysUserMessageDao is the data access object for the table sys_user_message.
+// sysNotifyMessageDao is the data access object for the table sys_notify_message.
 // You can define custom methods on it to extend its functionality as needed.
-type sysUserMessageDao struct {
-	*internal.SysUserMessageDao
+type sysNotifyMessageDao struct {
+	*internal.SysNotifyMessageDao
 }
 
 var (
-	// SysUserMessage is a globally accessible object for table sys_user_message operations.
-	SysUserMessage = sysUserMessageDao{internal.NewSysUserMessageDao()}
+	// SysNotifyMessage is a globally accessible object for table sys_notify_message operations.
+	SysNotifyMessage = sysNotifyMessageDao{internal.NewSysNotifyMessageDao()}
 )
 
 // Add your custom methods and functionality below.

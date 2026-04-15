@@ -16,7 +16,7 @@ type SysPluginMigration struct {
 	PluginId       any         // 插件唯一标识（kebab-case）
 	ReleaseId      any         // 所属插件 release ID
 	Phase          any         // 迁移阶段（install/uninstall/upgrade/rollback）
-	MigrationKey   any         // 迁移资源键（通常为相对路径）
+	MigrationKey   any         // 迁移执行键（如 install-step-001，不保存具体 SQL 路径）
 	Checksum       any         // 迁移文件校验值
 	ExecutionOrder any         // 执行顺序（从1开始）
 	Status         any         // 执行状态（pending/succeeded/failed/skipped）

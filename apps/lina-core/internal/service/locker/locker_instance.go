@@ -19,6 +19,16 @@ type Instance struct {
 	lease  time.Duration // Lease duration used when this lock was acquired
 }
 
+// ID returns the persistent lock record ID.
+func (i *Instance) ID() int64 {
+	return i.id
+}
+
+// Holder returns the current lock holder token.
+func (i *Instance) Holder() string {
+	return i.holder
+}
+
 // Unlock releases the lock by setting its expire_time to the past.
 // This effectively releases the lock for other nodes to acquire.
 func (i *Instance) Unlock(ctx context.Context) error {

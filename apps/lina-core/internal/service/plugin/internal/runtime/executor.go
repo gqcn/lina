@@ -22,13 +22,10 @@ type dynamicRouteExecutor interface {
 type dynamicPlaceholderExecutor struct{}
 
 func (e *dynamicPlaceholderExecutor) Execute(
-	ctx context.Context,
-	manifest *catalog.Manifest,
-	request *pluginbridge.BridgeRequestEnvelopeV1,
+	_ context.Context,
+	_ *catalog.Manifest,
+	_ *pluginbridge.BridgeRequestEnvelopeV1,
 ) (*pluginbridge.BridgeResponseEnvelopeV1, error) {
-	_ = ctx
-	_ = manifest
-	_ = request
 	return pluginbridge.NewFailureResponse(
 		http.StatusNotImplemented,
 		"BRIDGE_NOT_IMPLEMENTED",
