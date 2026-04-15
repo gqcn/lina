@@ -86,26 +86,28 @@ func (d *GuestControllerRouteDispatcher) RegisterController(controller any) erro
 			return gerror.Newf("guest route internal path already registered: %s", internalPath)
 		}
 
-		methodFunc := method.Func
-		methodControllerValue := controllerValue
-		handler := func(request *BridgeRequestEnvelopeV1) (*BridgeResponseEnvelopeV1, error) {
-			requestValue := reflect.Zero(bridgeRequestEnvelopeType)
-			if request != nil {
-				requestValue = reflect.ValueOf(request)
-			}
-			outputs := methodFunc.Call([]reflect.Value{methodControllerValue, requestValue})
+		var (
+			methodFunc            = method.Func
+			methodControllerValue = controllerValue
+			handler               = func(request *BridgeRequestEnvelopeV1) (*BridgeResponseEnvelopeV1, error) {
+				requestValue := reflect.Zero(bridgeRequestEnvelopeType)
+				if request != nil {
+					requestValue = reflect.ValueOf(request)
+				}
+				outputs := methodFunc.Call([]reflect.Value{methodControllerValue, requestValue})
 
-			var response *BridgeResponseEnvelopeV1
-			if !outputs[0].IsNil() {
-				response, _ = outputs[0].Interface().(*BridgeResponseEnvelopeV1)
-			}
+				var response *BridgeResponseEnvelopeV1
+				if !outputs[0].IsNil() {
+					response, _ = outputs[0].Interface().(*BridgeResponseEnvelopeV1)
+				}
 
-			var err error
-			if !outputs[1].IsNil() {
-				err, _ = outputs[1].Interface().(error)
+				var err error
+				if !outputs[1].IsNil() {
+					err, _ = outputs[1].Interface().(error)
+				}
+				return response, err
 			}
-			return response, err
-		}
+		)
 		d.handlersByRequestType[requestType] = handler
 		d.handlersByPath[internalPath] = handler
 		registeredCount++

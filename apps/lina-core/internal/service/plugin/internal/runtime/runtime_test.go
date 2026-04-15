@@ -41,9 +41,23 @@ func TestBuildRuntimeWasmArtifactEmbedsBackendContracts(t *testing.T) {
 			"fields:",
 			"  - name: id",
 			"    column: id",
+			"  - name: status",
+			"    column: status",
+			"filters:",
+			"  - param: status",
+			"    column: status",
+			"    operator: eq",
 			"orderBy:",
 			"  column: id",
 			"  direction: asc",
+			"operations:",
+			"  - query",
+			"  - get",
+			"  - update",
+			"keyField: id",
+			"writableFields:",
+			"  - status",
+			"access: both",
 			"dataScope:",
 			"  userColumn: owner_user_id",
 		}, "\n"),
@@ -66,6 +80,12 @@ func TestBuildRuntimeWasmArtifactEmbedsBackendContracts(t *testing.T) {
 	}
 	if artifact.ResourceSpecs[0].DataScope == nil || artifact.ResourceSpecs[0].DataScope.UserColumn != "owner_user_id" {
 		t.Fatalf("expected embedded resource data scope userColumn owner_user_id, got %#v", artifact.ResourceSpecs[0].DataScope)
+	}
+	if artifact.ResourceSpecs[0].KeyField != "id" || artifact.ResourceSpecs[0].Access != "both" {
+		t.Fatalf("expected embedded resource governance fields, got %#v", artifact.ResourceSpecs[0])
+	}
+	if len(artifact.ResourceSpecs[0].WritableFields) != 1 || artifact.ResourceSpecs[0].WritableFields[0] != "status" {
+		t.Fatalf("expected embedded writableFields to contain status, got %#v", artifact.ResourceSpecs[0].WritableFields)
 	}
 }
 
@@ -98,9 +118,16 @@ func TestLoadRuntimePluginManifestFromArtifactHydratesBackendContracts(t *testin
 			"fields:",
 			"  - name: id",
 			"    column: id",
+			"  - name: status",
+			"    column: status",
 			"orderBy:",
 			"  column: id",
 			"  direction: asc",
+			"operations:",
+			"  - query",
+			"  - get",
+			"keyField: id",
+			"access: request",
 		}, "\n"),
 	)
 
@@ -124,5 +151,8 @@ func TestLoadRuntimePluginManifestFromArtifactHydratesBackendContracts(t *testin
 	}
 	if _, ok := manifest.BackendResources["records"]; !ok {
 		t.Fatalf("expected runtime manifest to expose resource key records, got %#v", manifest.BackendResources)
+	}
+	if manifest.BackendResources["records"].KeyField != "id" || len(manifest.BackendResources["records"].Operations) != 2 {
+		t.Fatalf("expected runtime manifest to expose resource governance fields, got %#v", manifest.BackendResources["records"])
 	}
 }

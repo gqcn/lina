@@ -15,6 +15,7 @@ import (
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	"lina-core/pkg/pluginbridge"
 )
 
 // LoadReleaseManifest loads the dynamic plugin manifest from a persisted release artifact.
@@ -31,7 +32,14 @@ func (s *Service) LoadReleaseManifest(ctx context.Context, release *entity.SysPl
 	if err != nil {
 		return nil, err
 	}
-	return s.loadRuntimeManifestFromArtifact(absolutePath)
+	manifest, err := s.loadRuntimeManifestFromArtifact(absolutePath)
+	if err != nil {
+		return nil, err
+	}
+	if err = s.applyReleaseAuthorizedHostServices(manifest, release); err != nil {
+		return nil, err
+	}
+	return manifest, nil
 }
 
 // resolveReleasePackagePath converts a release package_path (possibly relative) to an
@@ -132,12 +140,11 @@ func (s *Service) syncReleaseMetadata(ctx context.Context, manifest *Manifest, r
 		return nil
 	}
 
-	snapshot, err := s.buildManifestSnapshot(manifest)
+	existing, err := s.GetRelease(ctx, manifest.ID, manifest.Version)
 	if err != nil {
 		return err
 	}
-
-	existing, err := s.GetRelease(ctx, manifest.ID, manifest.Version)
+	snapshot, err := s.buildManifestSnapshot(manifest, existing)
 	if err != nil {
 		return err
 	}
@@ -177,13 +184,35 @@ func (s *Service) SyncReleaseMetadata(ctx context.Context, manifest *Manifest, r
 
 // BuildManifestSnapshot is the exported form of buildManifestSnapshot for cross-package access.
 func (s *Service) BuildManifestSnapshot(manifest *Manifest) (string, error) {
-	return s.buildManifestSnapshot(manifest)
+	return s.buildManifestSnapshot(manifest, nil)
 }
 
 // buildManifestSnapshot marshals the review-oriented manifest fields into a YAML string.
-func (s *Service) buildManifestSnapshot(manifest *Manifest) (string, error) {
-	if manifest == nil {
+func (s *Service) buildManifestSnapshot(manifest *Manifest, existing *entity.SysPluginRelease) (string, error) {
+	snapshot := s.buildManifestSnapshotModel(manifest)
+	if snapshot == nil {
 		return "", gerror.New("plugin manifest cannot be nil")
+	}
+	if existing != nil {
+		existingSnapshot, err := s.ParseManifestSnapshot(existing.ManifestSnapshot)
+		if err != nil {
+			return "", err
+		}
+		if existingSnapshot != nil {
+			snapshot.AuthorizedHostServices = pluginbridge.NormalizeHostServiceSpecs(existingSnapshot.AuthorizedHostServices)
+			snapshot.HostServiceAuthConfirmed = existingSnapshot.HostServiceAuthConfirmed
+		}
+	}
+	content, err := yaml.Marshal(snapshot)
+	if err != nil {
+		return "", gerror.Wrap(err, "failed to build plugin manifest snapshot")
+	}
+	return string(content), nil
+}
+
+func (s *Service) buildManifestSnapshotModel(manifest *Manifest) *ManifestSnapshot {
+	if manifest == nil {
+		return nil
 	}
 
 	snapshot := &ManifestSnapshot{
@@ -211,13 +240,35 @@ func (s *Service) buildManifestSnapshot(manifest *Manifest) (string, error) {
 		RouteResponseCodec:        buildDynamicRouteResponseCodec(manifest),
 		RuntimeFrontendAssetCount: buildDynamicFrontendAssetCount(manifest),
 		RuntimeSQLAssetCount:      buildDynamicSQLAssetCount(manifest),
+		RequestedHostServices:     pluginbridge.NormalizeHostServiceSpecs(manifest.HostServices),
+		HostServiceAuthRequired:   HasResourceScopedHostServices(manifest.HostServices),
 	}
+	if !snapshot.HostServiceAuthRequired {
+		snapshot.AuthorizedHostServices = pluginbridge.NormalizeHostServiceSpecs(snapshot.RequestedHostServices)
+	}
+	return snapshot
+}
 
-	content, err := yaml.Marshal(snapshot)
-	if err != nil {
-		return "", gerror.Wrap(err, "failed to build plugin manifest snapshot")
+func (s *Service) applyReleaseAuthorizedHostServices(manifest *Manifest, release *entity.SysPluginRelease) error {
+	if manifest == nil || release == nil {
+		return nil
 	}
-	return string(content), nil
+	snapshot, err := s.ParseManifestSnapshot(release.ManifestSnapshot)
+	if err != nil {
+		return err
+	}
+	if snapshot == nil {
+		return nil
+	}
+	if !snapshot.HostServiceAuthRequired && len(snapshot.AuthorizedHostServices) == 0 {
+		return nil
+	}
+	if !snapshot.HostServiceAuthConfirmed && snapshot.HostServiceAuthRequired {
+		return nil
+	}
+	manifest.HostServices = pluginbridge.NormalizeHostServiceSpecs(snapshot.AuthorizedHostServices)
+	manifest.HostCapabilities = BuildCapabilityMapFromHostServices(manifest.HostServices)
+	return nil
 }
 
 // BuildPackagePath returns the canonical package path for a manifest used in release rows.

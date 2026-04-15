@@ -73,8 +73,8 @@ watchEffect(() => {
 function getEventPageX(e: MouseEvent | TouchEvent): number {
   if ('pageX' in e) {
     return e.pageX;
-  } else if ('touches' in e && e.touches[0]) {
-    return e.touches[0].pageX;
+  } else if ('touches' in e) {
+    return e.touches[0]?.pageX ?? 0;
   }
   return 0;
 }
@@ -85,13 +85,11 @@ function handleDragStart(e: MouseEvent | TouchEvent) {
   }
   if (!actionRef.value) return;
   emit('start', e);
+  const actionStyle = actionRef.value.getStyle();
 
   state.moveDistance =
     getEventPageX(e) -
-    Number.parseInt(
-      actionRef.value.getStyle().left.replace('px', '') || '0',
-      10,
-    );
+    Number.parseInt(actionStyle?.left?.replace('px', '') || '0', 10);
   state.startTime = Date.now();
   state.isMoving = true;
 }
@@ -109,7 +107,9 @@ function handleDragMoving(e: MouseEvent | TouchEvent) {
     const actionEl = unref(actionRef);
     const barEl = unref(barRef);
     if (!actionEl || !barEl) return;
-    const { actionWidth, offset, wrapperWidth } = getOffset(actionEl.getEl());
+    const actionDom = actionEl.getEl();
+    if (!actionDom) return;
+    const { actionWidth, offset, wrapperWidth } = getOffset(actionDom);
     const moveX = getEventPageX(e) - moveDistance;
 
     emit('move', {
@@ -138,14 +138,18 @@ function handleDragOver(e: MouseEvent | TouchEvent) {
     const barEl = unref(barRef);
     if (!actionEl || !barEl) return;
     const moveX = getEventPageX(e) - moveDistance;
-    const { actionWidth, offset, wrapperWidth } = getOffset(actionEl.getEl());
+    const actionDom = actionEl.getEl();
+    if (!actionDom) return;
+    const { actionWidth, offset, wrapperWidth } = getOffset(actionDom);
     if (moveX < offset) {
       if (props.isSlot) {
         setTimeout(() => {
           if (modelValue.value) {
             const contentEl = unref(contentRef);
-            if (contentEl) {
-              contentEl.getEl().style.width = `${Number.parseInt(barEl.getEl().style.width)}px`;
+            const contentDom = contentEl?.getEl();
+            const barDom = barEl.getEl();
+            if (contentDom && barDom) {
+              contentDom.style.width = `${Number.parseInt(barDom.style.width)}px`;
             }
           } else {
             resume();
@@ -184,8 +188,10 @@ function resume() {
   const barEl = unref(barRef);
   const contentEl = unref(contentRef);
   if (!actionEl || !barEl || !contentEl) return;
+  const contentDom = contentEl.getEl();
+  if (!contentDom) return;
 
-  contentEl.getEl().style.width = '100%';
+  contentDom.style.width = '100%';
   state.toLeft = true;
   useTimeoutFn(() => {
     state.toLeft = false;

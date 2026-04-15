@@ -141,6 +141,16 @@ func TestParseRuntimeArtifactLoadsRoutesAndBridgeSpec(t *testing.T) {
 			ABIVersion:         pluginbridge.SupportedABIVersion,
 			FrontendAssetCount: len(testutil.DefaultTestRuntimeFrontendAssets()),
 			RouteCount:         1,
+			Capabilities:       []string{pluginbridge.CapabilityRuntime},
+			HostServices: []*pluginbridge.HostServiceSpec{
+				{
+					Service: pluginbridge.HostServiceRuntime,
+					Methods: []string{
+						pluginbridge.HostServiceMethodRuntimeLogWrite,
+						pluginbridge.HostServiceMethodRuntimeStateGet,
+					},
+				},
+			},
 		},
 		testutil.DefaultTestRuntimeFrontendAssets(),
 		nil,
@@ -169,5 +179,11 @@ func TestParseRuntimeArtifactLoadsRoutesAndBridgeSpec(t *testing.T) {
 	}
 	if len(manifest.Routes) != 1 || manifest.BridgeSpec == nil || !manifest.BridgeSpec.RouteExecution {
 		t.Fatalf("expected runtime artifact to expose routes and executable bridge, got routes=%d bridge=%#v", len(manifest.Routes), manifest.BridgeSpec)
+	}
+	if _, ok := manifest.HostCapabilities[pluginbridge.CapabilityRuntime]; !ok {
+		t.Fatalf("expected runtime capability to be restored, got %#v", manifest.HostCapabilities)
+	}
+	if len(manifest.HostServices) != 1 || manifest.HostServices[0].Service != pluginbridge.HostServiceRuntime {
+		t.Fatalf("expected runtime host service snapshot to be restored, got %#v", manifest.HostServices)
 	}
 }

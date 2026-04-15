@@ -90,6 +90,14 @@ const gridOptions: VxeGridProps = {
 
 const checkedNum = ref(0);
 
+function getTableRecords() {
+  return tableApi.grid.getData() as MenuPermissionOption[];
+}
+
+function getCheckedRecords() {
+  return (tableApi?.grid?.getCheckboxRecords?.(true) ?? []) as MenuPermissionOption[];
+}
+
 function updateCheckedNumber() {
   checkedNum.value = getCheckedKeys().length;
 }
@@ -167,7 +175,7 @@ onMounted(() => {
     () => props.checkedKeys,
     (value) => {
       const allCheckedKeys = uniq([...value]);
-      const records = tableApi.grid.getData();
+      const records = getTableRecords();
       setCheckedByKeys(records, allCheckedKeys, association.value);
       updateCheckedNumber();
       setTimeout(openGuide, 1000);
@@ -178,7 +186,7 @@ onMounted(() => {
 const lastCheckedKeys = shallowRef<(number | string)[]>([]);
 async function handleAssociationChange(e: RadioChangeEvent) {
   lastCheckedKeys.value = getCheckedKeys();
-  const records = tableApi.grid.getData();
+  const records = getTableRecords();
   records.forEach((item: any) => {
     rowAndChildrenChecked(item, false);
   });
@@ -228,15 +236,15 @@ function getKeys(records: MenuPermissionOption[], addCurrent: boolean) {
 
 function getCheckedKeys() {
   if (association.value) {
-    const records = tableApi?.grid?.getCheckboxRecords?.(true) ?? [];
+    const records = getCheckedRecords();
     const nodeKeys = getKeys(records, true);
     const parentIds = findGroupParentIds(props.menus, nodeKeys as number[]);
     const realKeys = uniq([...parentIds, ...nodeKeys]);
     return realKeys;
   }
 
-  const records = tableApi?.grid?.getCheckboxRecords?.(true) ?? [];
-  const allRecords = tableApi?.grid?.getData?.() ?? [];
+  const records = getCheckedRecords();
+  const allRecords = getTableRecords();
   const checkedIds = records.map((item: any) => item.id);
   const permissionIds = getKeys(allRecords, false);
   const allIds = uniq([...checkedIds, ...permissionIds]);

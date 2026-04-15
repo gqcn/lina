@@ -32,13 +32,85 @@ homepage: https://example.com/lina/plugins/plugin-demo-dynamic
 license: Apache-2.0
 
 # 插件宿主调用能力声明。
-# 声明该插件需要使用的宿主 Host Function 能力。
-# 宿主在运行时校验每次 Host Call 的 opcode 是否在声明范围内。
-# 支持的能力标识：host:log、host:state、host:db:query、host:db:execute。
+# 声明该插件需要使用的宿主 Host Service 能力分类。
+# 宿主在运行时同时校验 capability 和 hostServices 声明。
+# 当前动态插件新增的 data 能力拆分为：
+# - `host:data:read`：对应 `list` 和 `get`
+# - `host:data:mutate`：对应 `create`、`update`、`delete` 和 `transaction`
 capabilities:
-  - host:log
-  - host:state
-  - host:db:query
+  # 允许调用 runtime 宿主服务，读取宿主基础信息并写入插件日志/状态。
+  - host:runtime
+  # 允许调用 storage 宿主服务，在宿主确认授权的逻辑路径下读写对象。
+  - host:storage
+  # 允许调用 network 宿主服务，在宿主确认授权的 URL pattern 下发起 HTTP 请求。
+  - host:http:request
+  # 允许调用 data 读取类方法（`list` / `get`）。
+  - host:data:read
+  # 允许调用 data 变更类方法（`create` / `update` / `delete` / `transaction`）。
+  - host:data:mutate
+
+# 插件宿主服务声明。
+# 结构化声明当前插件允许调用的宿主 service 与 method。
+# 每个 service 块的常用字段说明：
+# - `service`：宿主服务名，例如 `runtime`、`storage`、`network`、`data`
+# - `methods`：当前服务申请的具体方法集合
+# - `resources`：该服务的资源治理边界；不同服务的资源结构不同
+hostServices:
+  # runtime 服务不依赖额外资源对象，只声明所需 methods。
+  - service: runtime
+    methods:
+      # 写入宿主结构化日志。
+      - log.write
+      # 读取插件隔离状态。
+      - state.get
+      # 写入插件隔离状态。
+      - state.set
+      # 删除插件隔离状态。
+      - state.delete
+      # 读取宿主当前时间。
+      - info.now
+      # 生成宿主侧 UUID。
+      - info.uuid
+      # 读取当前宿主节点标识。
+      - info.node
+  # storage 服务通过 `resources.paths` 声明已授权逻辑路径或路径前缀。
+  - service: storage
+    methods:
+      - put
+      - get
+      - delete
+      - list
+      - stat
+    resources:
+      paths:
+        # 允许在 `host-call-demo/` 前缀下读写样例对象。
+        - host-call-demo/
+  # network 服务通过 `resources[].url` 声明允许访问的 URL 或 URL pattern。
+  - service: network
+    methods:
+      - request
+    resources:
+      # 当前样例只申请访问 `https://example.com`。
+      - url: https://example.com
+  # data 服务通过 `resources.tables` 声明可访问的数据表名单。
+  - service: data
+    methods:
+      # 分页查询多条记录。
+      - list
+      # 按主键读取单条记录。
+      - get
+      # 新增记录。
+      - create
+      # 更新记录。
+      - update
+      # 删除记录。
+      - delete
+      # 执行单表结构化事务。
+      - transaction
+    resources:
+      tables:
+        # 当前样例只申请访问宿主确认授权的 `sys_plugin_node_state` 表。
+        - sys_plugin_node_state
 
 # 插件菜单元数据。
 # 宿主会在动态插件安装时按这些声明写入 `sys_menu`，卸载时再按同一份声明删除菜单与角色关联。

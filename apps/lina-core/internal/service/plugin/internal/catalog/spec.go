@@ -53,6 +53,40 @@ func NormalizeResourceOrderDirection(value string) ResourceOrderDirection {
 	}
 }
 
+// NormalizeResourceOperation maps a raw string to the canonical ResourceOperation constant.
+func NormalizeResourceOperation(value string) ResourceOperation {
+	switch strings.TrimSpace(strings.ToLower(value)) {
+	case ResourceOperationQuery.String():
+		return ResourceOperationQuery
+	case ResourceOperationGet.String():
+		return ResourceOperationGet
+	case ResourceOperationCreate.String():
+		return ResourceOperationCreate
+	case ResourceOperationUpdate.String():
+		return ResourceOperationUpdate
+	case ResourceOperationDelete.String():
+		return ResourceOperationDelete
+	case ResourceOperationTransaction.String():
+		return ResourceOperationTransaction
+	default:
+		return ResourceOperation("")
+	}
+}
+
+// NormalizeResourceAccessMode maps a raw string to the canonical ResourceAccessMode constant.
+func NormalizeResourceAccessMode(value string) ResourceAccessMode {
+	switch strings.TrimSpace(strings.ToLower(value)) {
+	case "", ResourceAccessModeRequest.String():
+		return ResourceAccessModeRequest
+	case ResourceAccessModeSystem.String():
+		return ResourceAccessModeSystem
+	case ResourceAccessModeBoth.String():
+		return ResourceAccessModeBoth
+	default:
+		return ResourceAccessMode("")
+	}
+}
+
 // ValidateHookSpec validates a plugin-declared hook handler specification.
 func ValidateHookSpec(pluginID string, spec *HookSpec, filePath string) error {
 	if spec == nil {
@@ -173,6 +207,61 @@ func ValidateResourceSpec(pluginID string, spec *ResourceSpec, filePath string) 
 			return gerror.Newf("插件资源 dataScope 至少需要声明 userColumn 或 deptColumn: %s", filePath)
 		}
 	}
+	if len(spec.Operations) == 0 {
+		spec.Operations = []string{ResourceOperationQuery.String()}
+	}
+	operationSeen := make(map[string]struct{}, len(spec.Operations))
+	for _, operation := range spec.Operations {
+		normalizedOperation := NormalizeResourceOperation(operation)
+		if normalizedOperation == "" {
+			return gerror.Newf("插件资源操作不受支持: %s", filePath)
+		}
+		operationSeen[normalizedOperation.String()] = struct{}{}
+	}
+	spec.Operations = normalizeEnumStringSliceForResourceSpec(spec.Operations)
+
+	if spec.KeyField != "" {
+		if err := validatePluginIdentifier(spec.KeyField); err != nil {
+			return gerror.Wrapf(err, "插件%s资源 keyField 非法: %s", pluginID, filePath)
+		}
+		if !resourceHasField(spec, spec.KeyField) {
+			return gerror.Newf("插件资源 keyField 未出现在 fields 中: %s", filePath)
+		}
+	}
+	if _, needsKeyField := operationSeen[ResourceOperationGet.String()]; needsKeyField && spec.KeyField == "" {
+		return gerror.Newf("插件资源 get 操作要求声明 keyField: %s", filePath)
+	}
+	if _, needsKeyField := operationSeen[ResourceOperationUpdate.String()]; needsKeyField && spec.KeyField == "" {
+		return gerror.Newf("插件资源 update 操作要求声明 keyField: %s", filePath)
+	}
+	if _, needsKeyField := operationSeen[ResourceOperationDelete.String()]; needsKeyField && spec.KeyField == "" {
+		return gerror.Newf("插件资源 delete 操作要求声明 keyField: %s", filePath)
+	}
+
+	if len(spec.WritableFields) > 0 {
+		spec.WritableFields = normalizeFieldNameSliceForResourceSpec(spec.WritableFields)
+		for _, writableField := range spec.WritableFields {
+			if err := validatePluginIdentifier(writableField); err != nil {
+				return gerror.Wrapf(err, "插件%s资源 writableField 非法: %s", pluginID, filePath)
+			}
+			if !resourceHasField(spec, writableField) {
+				return gerror.Newf("插件资源 writableField 未出现在 fields 中: %s", filePath)
+			}
+		}
+	}
+	if _, needsWritableFields := operationSeen[ResourceOperationCreate.String()]; needsWritableFields && len(spec.WritableFields) == 0 {
+		return gerror.Newf("插件资源 create 操作要求声明 writableFields: %s", filePath)
+	}
+	if _, needsWritableFields := operationSeen[ResourceOperationUpdate.String()]; needsWritableFields && len(spec.WritableFields) == 0 {
+		return gerror.Newf("插件资源 update 操作要求声明 writableFields: %s", filePath)
+	}
+
+	if spec.Access == "" {
+		spec.Access = ResourceAccessModeRequest.String()
+	}
+	if NormalizeResourceAccessMode(spec.Access) == "" {
+		return gerror.Newf("插件资源 access 仅支持 request/system/both: %s", filePath)
+	}
 	return nil
 }
 
@@ -255,5 +344,62 @@ func CloneResourceSpec(item *ResourceSpec) *ResourceSpec {
 		dataScopeCopy := *item.DataScope
 		next.DataScope = &dataScopeCopy
 	}
+	if len(item.Operations) > 0 {
+		next.Operations = append([]string(nil), item.Operations...)
+	}
+	if len(item.WritableFields) > 0 {
+		next.WritableFields = append([]string(nil), item.WritableFields...)
+	}
 	return &next
+}
+
+func resourceHasField(spec *ResourceSpec, fieldName string) bool {
+	if spec == nil {
+		return false
+	}
+	targetFieldName := strings.TrimSpace(fieldName)
+	if targetFieldName == "" {
+		return false
+	}
+	for _, field := range spec.Fields {
+		if field != nil && field.Name == targetFieldName {
+			return true
+		}
+	}
+	return false
+}
+
+func normalizeEnumStringSliceForResourceSpec(items []string) []string {
+	seen := make(map[string]struct{}, len(items))
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		normalized := strings.TrimSpace(strings.ToLower(item))
+		if normalized == "" {
+			continue
+		}
+		if _, ok := seen[normalized]; ok {
+			continue
+		}
+		seen[normalized] = struct{}{}
+		result = append(result, normalized)
+	}
+	return result
+}
+
+func normalizeFieldNameSliceForResourceSpec(items []string) []string {
+	seen := make(map[string]struct{}, len(items))
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		trimmed := strings.TrimSpace(item)
+		if trimmed == "" {
+			continue
+		}
+		lookupKey := strings.ToLower(trimmed)
+		if _, ok := seen[lookupKey]; ok {
+			continue
+		}
+		seen[lookupKey] = struct{}{}
+		result = append(result, trimmed)
+	}
+	return result
 }

@@ -25,6 +25,16 @@ type ExecutionInput struct {
 	BridgeSpec *pluginbridge.BridgeSpec
 	// Capabilities is the set of host capabilities granted to this plugin.
 	Capabilities map[string]struct{}
+	// HostServices is the structured host service authorization snapshot for this plugin.
+	HostServices []*pluginbridge.HostServiceSpec
+	// ExecutionSource identifies what triggered this bridge execution.
+	ExecutionSource pluginbridge.ExecutionSource
+	// RoutePath is the matched dynamic route path when execution is route-bound.
+	RoutePath string
+	// RequestID is the host-generated request identifier for this execution.
+	RequestID string
+	// Identity carries the sanitized user identity snapshot when available.
+	Identity *pluginbridge.IdentitySnapshotV1
 }
 
 // wasmCacheEntry holds a pre-compiled Wasm module bound to its wazero runtime.
@@ -94,13 +104,20 @@ func ExecuteBridge(
 	// Inject host call context so that host function callbacks can access
 	// plugin identity and capabilities.
 	ctx = withHostCallContext(ctx, &hostCallContext{
-		pluginID:     input.PluginID,
-		capabilities: input.Capabilities,
+		pluginID:        input.PluginID,
+		capabilities:    input.Capabilities,
+		hostServices:    input.HostServices,
+		executionSource: input.ExecutionSource,
+		routePath:       input.RoutePath,
+		requestID:       input.RequestID,
+		identity:        input.Identity,
 	})
 
-	allocFn := module.ExportedFunction(input.BridgeSpec.AllocExport)
-	executeFn := module.ExportedFunction(input.BridgeSpec.ExecuteExport)
-	initializeFn := module.ExportedFunction("_initialize")
+	var (
+		allocFn      = module.ExportedFunction(input.BridgeSpec.AllocExport)
+		executeFn    = module.ExportedFunction(input.BridgeSpec.ExecuteExport)
+		initializeFn = module.ExportedFunction("_initialize")
+	)
 	if allocFn == nil || executeFn == nil {
 		return nil, gerror.New("动态插件 Wasm bridge 缺少必需导出函数")
 	}

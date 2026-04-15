@@ -3,6 +3,8 @@
 
 package catalog
 
+import "lina-core/pkg/pluginbridge"
+
 // MigrationDirection defines the install or uninstall phase persisted in migration records.
 type MigrationDirection string
 
@@ -39,6 +41,12 @@ type ResourceFilterOperator string
 // ResourceOrderDirection defines supported ordering directions in resource specs.
 type ResourceOrderDirection string
 
+// ResourceOperation defines the supported structured data operations for one resource.
+type ResourceOperation string
+
+// ResourceAccessMode defines which execution contexts may invoke one resource.
+type ResourceAccessMode string
+
 const (
 	// MigrationDirection values.
 	MigrationDirectionInstall   MigrationDirection = "install"
@@ -71,6 +79,15 @@ const (
 	ResourceKindMenu            ResourceKind = "menu"
 	ResourceKindInstallSQL      ResourceKind = "install_sql"
 	ResourceKindUninstallSQL    ResourceKind = "uninstall_sql"
+	ResourceKindHostStorage     ResourceKind = "host_storage"
+	ResourceKindHostUpstream    ResourceKind = "host_upstream"
+	ResourceKindHostData        ResourceKind = "host_data_table"
+	ResourceKindHostCache       ResourceKind = "host_cache"
+	ResourceKindHostLock        ResourceKind = "host_lock"
+	ResourceKindHostSecret      ResourceKind = "host_secret"
+	ResourceKindHostEventTopic  ResourceKind = "host_event_topic"
+	ResourceKindHostQueue       ResourceKind = "host_queue"
+	ResourceKindHostNotify      ResourceKind = "host_notify_channel"
 
 	// ResourceOwnerType values.
 	ResourceOwnerTypeFile                ResourceOwnerType = "file"
@@ -82,6 +99,7 @@ const (
 	ResourceOwnerTypeFrontendPageEntry   ResourceOwnerType = "frontend-page-entry"
 	ResourceOwnerTypeFrontendSlotEntry   ResourceOwnerType = "frontend-slot-entry"
 	ResourceOwnerTypeMenuEntry           ResourceOwnerType = "menu-entry"
+	ResourceOwnerTypeHostServiceResource ResourceOwnerType = "host-service-resource"
 
 	// NodeState values.
 	NodeStateReconciling NodeState = "reconciling"
@@ -121,6 +139,19 @@ const (
 	// ResourceOrderDirection values.
 	ResourceOrderDirectionASC  ResourceOrderDirection = "asc"
 	ResourceOrderDirectionDESC ResourceOrderDirection = "desc"
+
+	// ResourceOperation values.
+	ResourceOperationQuery       ResourceOperation = "query"
+	ResourceOperationGet         ResourceOperation = "get"
+	ResourceOperationCreate      ResourceOperation = "create"
+	ResourceOperationUpdate      ResourceOperation = "update"
+	ResourceOperationDelete      ResourceOperation = "delete"
+	ResourceOperationTransaction ResourceOperation = "transaction"
+
+	// ResourceAccessMode values.
+	ResourceAccessModeRequest ResourceAccessMode = "request"
+	ResourceAccessModeSystem  ResourceAccessMode = "system"
+	ResourceAccessModeBoth    ResourceAccessMode = "both"
 )
 
 // String returns the canonical migration direction value.
@@ -159,32 +190,42 @@ func (value ResourceFilterOperator) String() string { return string(value) }
 // String returns the canonical resource order-direction value.
 func (value ResourceOrderDirection) String() string { return string(value) }
 
+// String returns the canonical resource operation value.
+func (value ResourceOperation) String() string { return string(value) }
+
+// String returns the canonical resource access-mode value.
+func (value ResourceAccessMode) String() string { return string(value) }
+
 // ManifestSnapshot stores the review-friendly manifest snapshot persisted in sys_plugin_release.
 type ManifestSnapshot struct {
-	ID                        string `yaml:"id"`
-	Name                      string `yaml:"name"`
-	Version                   string `yaml:"version"`
-	Type                      string `yaml:"type"`
-	Description               string `yaml:"description,omitempty"`
-	Author                    string `yaml:"author,omitempty"`
-	Homepage                  string `yaml:"homepage,omitempty"`
-	License                   string `yaml:"license,omitempty"`
-	RuntimeKind               string `yaml:"runtimeKind,omitempty"`
-	RuntimeABIVersion         string `yaml:"runtimeAbiVersion,omitempty"`
-	ManifestDeclared          bool   `yaml:"manifestDeclared"`
-	InstallSQLCount           int    `yaml:"installSqlCount,omitempty"`
-	UninstallSQLCount         int    `yaml:"uninstallSqlCount,omitempty"`
-	FrontendPageCount         int    `yaml:"frontendPageCount,omitempty"`
-	FrontendSlotCount         int    `yaml:"frontendSlotCount,omitempty"`
-	MenuCount                 int    `yaml:"menuCount,omitempty"`
-	BackendHookCount          int    `yaml:"backendHookCount,omitempty"`
-	ResourceSpecCount         int    `yaml:"resourceSpecCount,omitempty"`
-	RouteCount                int    `yaml:"routeCount,omitempty"`
-	RouteExecutionEnabled     bool   `yaml:"routeExecutionEnabled,omitempty"`
-	RouteRequestCodec         string `yaml:"routeRequestCodec,omitempty"`
-	RouteResponseCodec        string `yaml:"routeResponseCodec,omitempty"`
-	RuntimeFrontendAssetCount int    `yaml:"runtimeFrontendAssetCount,omitempty"`
-	RuntimeSQLAssetCount      int    `yaml:"runtimeSqlAssetCount,omitempty"`
+	ID                        string                          `yaml:"id"`
+	Name                      string                          `yaml:"name"`
+	Version                   string                          `yaml:"version"`
+	Type                      string                          `yaml:"type"`
+	Description               string                          `yaml:"description,omitempty"`
+	Author                    string                          `yaml:"author,omitempty"`
+	Homepage                  string                          `yaml:"homepage,omitempty"`
+	License                   string                          `yaml:"license,omitempty"`
+	RuntimeKind               string                          `yaml:"runtimeKind,omitempty"`
+	RuntimeABIVersion         string                          `yaml:"runtimeAbiVersion,omitempty"`
+	ManifestDeclared          bool                            `yaml:"manifestDeclared"`
+	InstallSQLCount           int                             `yaml:"installSqlCount,omitempty"`
+	UninstallSQLCount         int                             `yaml:"uninstallSqlCount,omitempty"`
+	FrontendPageCount         int                             `yaml:"frontendPageCount,omitempty"`
+	FrontendSlotCount         int                             `yaml:"frontendSlotCount,omitempty"`
+	MenuCount                 int                             `yaml:"menuCount,omitempty"`
+	BackendHookCount          int                             `yaml:"backendHookCount,omitempty"`
+	ResourceSpecCount         int                             `yaml:"resourceSpecCount,omitempty"`
+	RouteCount                int                             `yaml:"routeCount,omitempty"`
+	RouteExecutionEnabled     bool                            `yaml:"routeExecutionEnabled,omitempty"`
+	RouteRequestCodec         string                          `yaml:"routeRequestCodec,omitempty"`
+	RouteResponseCodec        string                          `yaml:"routeResponseCodec,omitempty"`
+	RuntimeFrontendAssetCount int                             `yaml:"runtimeFrontendAssetCount,omitempty"`
+	RuntimeSQLAssetCount      int                             `yaml:"runtimeSqlAssetCount,omitempty"`
+	RequestedHostServices     []*pluginbridge.HostServiceSpec `yaml:"requestedHostServices,omitempty"`
+	AuthorizedHostServices    []*pluginbridge.HostServiceSpec `yaml:"authorizedHostServices,omitempty"`
+	HostServiceAuthRequired   bool                            `yaml:"hostServiceAuthRequired,omitempty"`
+	HostServiceAuthConfirmed  bool                            `yaml:"hostServiceAuthConfirmed,omitempty"`
 }
 
 // ResourceRefDescriptor represents one discovered plugin asset recorded for later review.

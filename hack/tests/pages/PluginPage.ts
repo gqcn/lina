@@ -144,6 +144,28 @@ export class PluginPage {
       .first();
   }
 
+  hostServiceAuthModal(): Locator {
+    return this.page.getByTestId("plugin-host-service-auth-modal").last();
+  }
+
+  hostServiceAuthDialog(): Locator {
+    return this.page
+      .getByRole("dialog", { name: /安装插件并确认权限|启用插件并确认权限/ })
+      .last();
+  }
+
+  hostServiceAuthCheckbox(
+    pluginId: string,
+    service: string,
+    resourceRef: string,
+  ): Locator {
+    void pluginId;
+    void service;
+    return this.hostServiceAuthModal()
+      .getByRole("checkbox", { name: resourceRef })
+      .first();
+  }
+
   pluginSourceDisabledUninstallTrigger(pluginId: string): Locator {
     return this.page.getByTestId(
       `plugin-source-uninstall-disabled-${pluginId}`,
@@ -205,6 +227,14 @@ export class PluginPage {
   async gotoManage() {
     await this.page.goto("/system/plugin");
     await expect(this.tableTitle).toBeVisible();
+  }
+
+  async searchByPluginId(pluginId: string) {
+    const input = this.page.getByRole("textbox", { name: "插件标识" }).first();
+    await expect(input).toBeVisible();
+    await input.fill(pluginId);
+    await this.page.getByRole("button", { name: "搜 索" }).click();
+    await expect(this.pluginRow(pluginId)).toBeVisible();
   }
 
   async syncPlugins() {
@@ -274,25 +304,37 @@ export class PluginPage {
   async installPlugin(pluginId: string) {
     const row = this.pluginRow(pluginId);
     await expect(row).toBeVisible();
-    await this.pluginInstallButton(pluginId).click();
+    await this.page.getByRole("button", { name: /安\s*装/ }).last().click();
     const confirmPopover = this.page.locator(".ant-popover:visible").last();
     await expect(confirmPopover).toBeVisible();
     await confirmPopover
       .getByRole("button", { name: /确\s*定|确\s*认/i })
       .click();
-    await expect(this.pluginUninstallButton(pluginId)).toBeVisible();
+    await expect(await this.pluginActionButton(pluginId, /卸\s*载/)).toBeVisible();
+  }
+
+  async openInstallAuthorization(pluginId: string) {
+    const row = this.pluginRow(pluginId);
+    await expect(row).toBeVisible();
+    await this.page.getByRole("button", { name: /安\s*装/ }).last().click();
+    const confirmPopover = this.page.locator(".ant-popover:visible").last();
+    await expect(confirmPopover).toBeVisible();
+    await confirmPopover
+      .getByRole("button", { name: /确\s*定|确\s*认/i })
+      .click();
+    await expect(this.hostServiceAuthModal()).toBeVisible();
   }
 
   async uninstallPlugin(pluginId: string) {
     const row = this.pluginRow(pluginId);
     await expect(row).toBeVisible();
-    await this.pluginUninstallButton(pluginId).click();
+    await this.page.getByRole("button", { name: /卸\s*载/ }).last().click();
     const confirmPopover = this.page.locator(".ant-popover:visible").last();
     await expect(confirmPopover).toBeVisible();
     await confirmPopover
       .getByRole("button", { name: /确\s*定|确\s*认/i })
       .click();
-    await expect(this.pluginInstallButton(pluginId)).toBeVisible();
+    await expect(await this.pluginActionButton(pluginId, /安\s*装/)).toBeVisible();
   }
 
   async setPluginEnabled(pluginId: string, enabled: boolean) {
@@ -302,6 +344,14 @@ export class PluginPage {
     const isChecked = (await switcher.getAttribute("aria-checked")) === "true";
     if (isChecked !== enabled) {
       await switcher.click();
+      if (enabled) {
+        const authDialogVisible = await this.hostServiceAuthDialog()
+          .isVisible({ timeout: 1500 })
+          .catch(() => false);
+        if (authDialogVisible) {
+          await this.confirmHostServiceAuthorization();
+        }
+      }
       await expect(switcher).toHaveAttribute(
         "aria-checked",
         enabled ? "true" : "false",
@@ -310,6 +360,57 @@ export class PluginPage {
         this.page.getByText(enabled ? "插件已启用" : "插件已禁用").last(),
       ).toBeVisible();
     }
+  }
+
+  async openEnableAuthorization(pluginId: string) {
+    const switcher = this.pluginEnabledSwitch(pluginId);
+    await expect(switcher).toBeVisible();
+    await switcher.click();
+    await expect(this.hostServiceAuthModal()).toBeVisible();
+  }
+
+  async setHostServiceAuthorization(
+    pluginId: string,
+    service: string,
+    resourceRef: string,
+    checked: boolean,
+  ) {
+    const checkbox = this.hostServiceAuthCheckbox(pluginId, service, resourceRef);
+    await expect(checkbox).toBeVisible();
+    const isChecked = await checkbox.isChecked();
+    if (isChecked !== checked) {
+      await checkbox.click();
+    }
+  }
+
+  async confirmHostServiceAuthorization() {
+    await this.hostServiceAuthDialog()
+      .getByRole("button", { name: /确\s*认|确\s*定/i })
+      .last()
+      .click();
+    await expect(this.hostServiceAuthDialog()).toHaveCount(0);
+  }
+
+  private async pluginActionButton(pluginId: string, name: RegExp) {
+    const rows = this.page.locator(".vxe-table--main-wrapper .vxe-body--row");
+    const rowCount = await rows.count();
+    let rowIndex = -1;
+
+    for (let index = 0; index < rowCount; index++) {
+      const row = rows.nth(index);
+      const text = (await row.textContent()) ?? "";
+      if (text.includes(pluginId)) {
+        rowIndex = index;
+        break;
+      }
+    }
+
+    expect(rowIndex, `未找到插件行: ${pluginId}`).toBeGreaterThanOrEqual(0);
+    return this.page
+      .locator(".vxe-table--fixed-right-wrapper .vxe-body--row")
+      .nth(rowIndex)
+      .getByRole("button", { name })
+      .first();
   }
 
   async expectSidebarMenuVisible(menuName: string) {

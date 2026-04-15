@@ -41,6 +41,10 @@ func validateRuntimeBuildManifest(manifest *pluginManifest, manifestPath string)
 		return fmt.Errorf("dynamic plugin capabilities invalid: %w", err)
 	}
 	manifest.Capabilities = pluginbridge.NormalizeCapabilities(manifest.Capabilities)
+	if err := pluginbridge.ValidateHostServiceAuthorizations(manifest.Capabilities, manifest.HostServices); err != nil {
+		return fmt.Errorf("dynamic plugin hostServices invalid: %w", err)
+	}
+	manifest.HostServices = pluginbridge.NormalizeHostServiceSpecs(manifest.HostServices)
 	return nil
 }
 

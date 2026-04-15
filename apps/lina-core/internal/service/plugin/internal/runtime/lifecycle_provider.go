@@ -38,8 +38,8 @@ func (s *Service) ShouldRefreshInstalledDynamicRelease(
 
 // BuildPluginItem returns a PluginItem projection for one manifest + registry pair.
 // Used by the plugin facade SyncAndList coordination method.
-func (s *Service) BuildPluginItem(manifest *catalog.Manifest, registry *entity.SysPlugin) *PluginItem {
-	return s.buildPluginItem(manifest, registry)
+func (s *Service) BuildPluginItem(ctx context.Context, manifest *catalog.Manifest, registry *entity.SysPlugin) *PluginItem {
+	return s.buildPluginItem(ctx, manifest, registry)
 }
 
 // BuildRuntimeItems returns PluginItems for dynamic plugins present in the registry
@@ -61,7 +61,7 @@ func (s *Service) BuildRuntimeItems(ctx context.Context, covered map[string]stru
 		if err != nil {
 			return nil, err
 		}
-		if item := s.buildPluginItem(nil, registry); item != nil {
+		if item := s.buildPluginItem(ctx, nil, registry); item != nil {
 			items = append(items, item)
 		}
 	}

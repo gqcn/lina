@@ -76,15 +76,15 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
   gridEvents: {
     checkboxChange: () => {
-      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+      checkedRows.value = (gridApi.grid?.getCheckboxRecords() || []) as Notice[];
     },
     checkboxAll: () => {
-      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+      checkedRows.value = (gridApi.grid?.getCheckboxRecords() || []) as Notice[];
     },
   },
 });
 
-const checkedRows = ref<any[]>([]);
+const checkedRows = ref<Notice[]>([]);
 const hasChecked = computed(() => checkedRows.value.length > 0);
 
 function handleAdd() {
@@ -109,8 +109,8 @@ async function handleDelete(row: Notice) {
 }
 
 function handleMultiDelete() {
-  const rows = gridApi.grid.getCheckboxRecords();
-  const ids = rows.map((row: Notice) => row.id);
+  const rows = gridApi.grid.getCheckboxRecords() as Notice[];
+  const ids = rows.map((row) => row.id);
   Modal.confirm({
     title: '提示',
     okType: 'danger',

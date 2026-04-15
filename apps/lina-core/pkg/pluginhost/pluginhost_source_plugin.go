@@ -16,7 +16,6 @@ type SourcePlugin struct {
 	ID string
 
 	embeddedFiles     fs.FS
-	resources         []*ResourceSpec
 	hookHandlers      []*HookHandlerRegistration
 	routeRegistrars   []*RouteHandlerRegistration
 	afterAuthHandlers []*AfterAuthHandlerRegistration
@@ -195,53 +194,10 @@ type permissionDescriptor struct {
 // PermissionFilterHandler defines one callback that decides whether a permission should stay effective.
 type PermissionFilterHandler func(ctx context.Context, permission PermissionDescriptor) (bool, error)
 
-// ResourceSpec defines one backend resource declaration contributed by a source plugin.
-type ResourceSpec struct {
-	// Key is the stable resource key used by the host API path.
-	Key string
-	// Type is the resource type. Current host supports `table-list`.
-	Type string
-	// Table is the queried table name.
-	Table string
-	// Fields defines selected output fields.
-	Fields []*ResourceField
-	// Filters defines supported query filters.
-	Filters []*ResourceFilter
-	// OrderBy defines the default ordering.
-	OrderBy *OrderBySpec
-}
-
-// ResourceField defines one backend resource output field.
-type ResourceField struct {
-	// Name is the response field name.
-	Name string
-	// Column is the underlying database column name.
-	Column string
-}
-
-// ResourceFilter defines one backend resource query filter.
-type ResourceFilter struct {
-	// Param is the incoming query parameter name.
-	Param string
-	// Column is the underlying database column name.
-	Column string
-	// Operator is the supported filter operator.
-	Operator string
-}
-
-// OrderBySpec defines one backend resource order-by declaration.
-type OrderBySpec struct {
-	// Column is the ordered database column.
-	Column string
-	// Direction is the order direction, for example `asc` or `desc`.
-	Direction string
-}
-
 // NewSourcePlugin creates and returns a new source plugin definition.
 func NewSourcePlugin(id string) *SourcePlugin {
 	return &SourcePlugin{
 		ID:                id,
-		resources:         make([]*ResourceSpec, 0),
 		hookHandlers:      make([]*HookHandlerRegistration, 0),
 		routeRegistrars:   make([]*RouteHandlerRegistration, 0),
 		afterAuthHandlers: make([]*AfterAuthHandlerRegistration, 0),
@@ -453,17 +409,6 @@ func (p *SourcePlugin) RegisterPermissionFilter(
 	})
 }
 
-// RegisterResource registers one plugin-owned backend resource declaration.
-func (p *SourcePlugin) RegisterResource(spec *ResourceSpec) {
-	if p == nil {
-		panic("pluginhost: source plugin is nil")
-	}
-	if spec == nil {
-		panic("pluginhost: resource spec is nil")
-	}
-	p.resources = append(p.resources, spec)
-}
-
 // GetHookHandlers returns the registered callback-style hook handlers.
 func (p *SourcePlugin) GetHookHandlers() []*HookHandlerRegistration {
 	if p == nil {
@@ -521,16 +466,6 @@ func (p *SourcePlugin) GetPermissionFilters() []*PermissionFilterHandlerRegistra
 	}
 	items := make([]*PermissionFilterHandlerRegistration, len(p.permissionFilters))
 	copy(items, p.permissionFilters)
-	return items
-}
-
-// GetResources returns the registered backend resource declarations.
-func (p *SourcePlugin) GetResources() []*ResourceSpec {
-	if p == nil {
-		return []*ResourceSpec{}
-	}
-	items := make([]*ResourceSpec, len(p.resources))
-	copy(items, p.resources)
 	return items
 }
 

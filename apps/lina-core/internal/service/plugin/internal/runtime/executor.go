@@ -51,11 +51,20 @@ func (e *dynamicWasmExecutor) Execute(
 	if err != nil {
 		return nil, err
 	}
+	routePath := ""
+	if request != nil && request.Route != nil {
+		routePath = request.Route.RoutePath
+	}
 	return wasm.ExecuteBridge(ctx, wasm.ExecutionInput{
-		PluginID:     manifest.ID,
-		ArtifactPath: manifest.RuntimeArtifact.Path,
-		BridgeSpec:   manifest.BridgeSpec,
-		Capabilities: manifest.HostCapabilities,
+		PluginID:        manifest.ID,
+		ArtifactPath:    manifest.RuntimeArtifact.Path,
+		BridgeSpec:      manifest.BridgeSpec,
+		Capabilities:    manifest.HostCapabilities,
+		HostServices:    manifest.HostServices,
+		ExecutionSource: pluginbridge.ExecutionSourceRoute,
+		RoutePath:       routePath,
+		RequestID:       request.RequestID,
+		Identity:        request.Identity,
 	}, requestContent)
 }
 

@@ -78,15 +78,15 @@ const [BasicTable, tableApi] = useVbenVxeGrid({
       lastDictType.value = row.type;
     },
     checkboxChange: () => {
-      checkedRows.value = tableApi.grid?.getCheckboxRecords() || [];
+      checkedRows.value = (tableApi.grid?.getCheckboxRecords() || []) as DictType[];
     },
     checkboxAll: () => {
-      checkedRows.value = tableApi.grid?.getCheckboxRecords() || [];
+      checkedRows.value = (tableApi.grid?.getCheckboxRecords() || []) as DictType[];
     },
   },
 });
 
-const checkedRows = ref<any[]>([]);
+const checkedRows = ref<DictType[]>([]);
 const hasChecked = computed(() => checkedRows.value.length > 0);
 
 function handleAdd() {
@@ -123,8 +123,8 @@ async function handleDelete(row: DictType) {
 }
 
 function handleMultiDelete() {
-  const rows = tableApi.grid.getCheckboxRecords();
-  const ids = rows.map((row: DictType) => row.id);
+  const rows = tableApi.grid.getCheckboxRecords() as DictType[];
+  const ids = rows.map((row) => row.id);
   Modal.confirm({
     title: '提示',
     okType: 'danger',
@@ -166,7 +166,7 @@ async function handleExport() {
         const formValues = tableApi.formApi.form.values;
         const params: Record<string, any> = { ...formValues };
         if (checkedRows.value.length > 0) {
-          params.ids = checkedRows.value.map((row: DictType) => row.id);
+          params.ids = checkedRows.value.map((row) => row.id);
         }
         const data = await dictExport(params);
         downloadBlob(data, '字典管理导出.xlsx');

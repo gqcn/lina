@@ -1,6 +1,6 @@
 //go:build wasip1
 
-// This file provides high-level guest-side helpers for invoking host functions
+// This file provides guest-side helpers for invoking structured host services
 // through the lina_env.host_call import. It is only compiled for wasip1 targets.
 
 package pluginbridge
@@ -12,14 +12,19 @@ import (
 )
 
 // linaHostCall is the imported host function provided by the lina_env module.
-// It dispatches a host call identified by opcode and returns a packed
-// (pointer << 32 | length) pair pointing to the response in guest memory.
 //
 //go:wasmimport lina_env host_call
 func linaHostCall(opcode uint32, reqPtr uint32, reqLen uint32) uint64
 
-// invokeHostCall sends one host call and returns the decoded response payload.
-// On non-success status it returns an error describing the failure.
+// RuntimeHostService exposes guest-side helpers for the runtime host service.
+type RuntimeHostService struct{}
+
+// Runtime returns the runtime host service guest client.
+func Runtime() *RuntimeHostService {
+	return &RuntimeHostService{}
+}
+
+// invokeHostCall sends one host call request and returns the decoded payload.
 func invokeHostCall(opcode uint32, reqBytes []byte) ([]byte, error) {
 	var reqPtr uint32
 	var reqLen uint32
@@ -28,144 +33,186 @@ func invokeHostCall(opcode uint32, reqBytes []byte) ([]byte, error) {
 		reqLen = uint32(len(reqBytes))
 	}
 
-	packed := linaHostCall(opcode, reqPtr, reqLen)
-	respPtr := uint32(packed >> 32)
-	respLen := uint32(packed & 0xffffffff)
+	var (
+		packed  = linaHostCall(opcode, reqPtr, reqLen)
+		respPtr = uint32(packed >> 32)
+		respLen = uint32(packed & 0xffffffff)
+	)
 
 	if respLen == 0 {
 		return nil, nil
 	}
 
-	// The host wrote the response into guestHostCallResponseBuffer via the
-	// lina_host_call_alloc export. Read it from there.
 	buf := guestHostCallResponseBuffer
 	if uint32(len(buf)) < respLen {
 		return nil, fmt.Errorf("host call response buffer underflow: have %d, need %d", len(buf), respLen)
 	}
-	_ = respPtr // pointer is the start of guestHostCallResponseBuffer
+	_ = respPtr
 
-	// Decode the generic response envelope.
 	envelope, err := UnmarshalHostCallResponse(buf[:respLen])
 	if err != nil {
 		return nil, fmt.Errorf("host call response decode failed: %w", err)
 	}
 	if envelope.Status != HostCallStatusSuccess {
-		msg := string(envelope.Payload)
-		if msg == "" {
-			msg = fmt.Sprintf("host call failed with status %d", envelope.Status)
+		message := string(envelope.Payload)
+		if message == "" {
+			message = fmt.Sprintf("host call failed with status %d", envelope.Status)
 		}
-		return nil, fmt.Errorf("host call error (status=%d): %s", envelope.Status, msg)
+		return nil, fmt.Errorf("host call error (status=%d): %s", envelope.Status, message)
 	}
 	return envelope.Payload, nil
 }
 
-// HostLog sends a structured log entry through the host logger.
-func HostLog(level int, message string, fields map[string]string) error {
-	req := &HostCallLogRequest{
+func invokeHostService(service string, method string, resourceRef string, table string, payload []byte) ([]byte, error) {
+	request := &HostServiceRequestEnvelope{
+		Service:     service,
+		Method:      method,
+		ResourceRef: resourceRef,
+		Table:       table,
+		Payload:     payload,
+	}
+	return invokeHostCall(OpcodeServiceInvoke, MarshalHostServiceRequestEnvelope(request))
+}
+
+// Log writes one structured runtime log entry through the host.
+func (s *RuntimeHostService) Log(level int, message string, fields map[string]string) error {
+	request := &HostCallLogRequest{
 		Level:   int32(level),
 		Message: message,
 		Fields:  fields,
 	}
-	_, err := invokeHostCall(OpcodeLog, MarshalHostCallLogRequest(req))
+	_, err := invokeHostService(HostServiceRuntime, HostServiceMethodRuntimeLogWrite, "", "", MarshalHostCallLogRequest(request))
 	return err
 }
 
-// HostStateGet reads a plugin-scoped state value by key.
-// Returns the value, whether it was found, and any error.
-func HostStateGet(key string) (string, bool, error) {
-	req := &HostCallStateGetRequest{Key: key}
-	payload, err := invokeHostCall(OpcodeStateGet, MarshalHostCallStateGetRequest(req))
+// StateGet reads one plugin-scoped runtime state value by key.
+func (s *RuntimeHostService) StateGet(key string) (string, bool, error) {
+	request := &HostCallStateGetRequest{Key: key}
+	payload, err := invokeHostService(HostServiceRuntime, HostServiceMethodRuntimeStateGet, "", "", MarshalHostCallStateGetRequest(request))
 	if err != nil {
 		return "", false, err
 	}
 	if len(payload) == 0 {
 		return "", false, nil
 	}
-	resp, err := UnmarshalHostCallStateGetResponse(payload)
+	response, err := UnmarshalHostCallStateGetResponse(payload)
 	if err != nil {
 		return "", false, err
 	}
-	return resp.Value, resp.Found, nil
+	return response.Value, response.Found, nil
 }
 
-// HostStateSet writes a plugin-scoped state value.
-func HostStateSet(key, value string) error {
-	req := &HostCallStateSetRequest{Key: key, Value: value}
-	_, err := invokeHostCall(OpcodeStateSet, MarshalHostCallStateSetRequest(req))
+// StateSet writes one plugin-scoped runtime state value.
+func (s *RuntimeHostService) StateSet(key string, value string) error {
+	request := &HostCallStateSetRequest{Key: key, Value: value}
+	_, err := invokeHostService(HostServiceRuntime, HostServiceMethodRuntimeStateSet, "", "", MarshalHostCallStateSetRequest(request))
 	return err
 }
 
-// HostStateDelete removes a plugin-scoped state value.
+// StateDelete removes one plugin-scoped runtime state value.
+func (s *RuntimeHostService) StateDelete(key string) error {
+	request := &HostCallStateDeleteRequest{Key: key}
+	_, err := invokeHostService(HostServiceRuntime, HostServiceMethodRuntimeStateDelete, "", "", MarshalHostCallStateDeleteRequest(request))
+	return err
+}
+
+// StateGetInt reads one integer runtime state value.
+func (s *RuntimeHostService) StateGetInt(key string) (int, bool, error) {
+	value, found, err := s.StateGet(key)
+	if err != nil || !found {
+		return 0, found, err
+	}
+	number, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, true, fmt.Errorf("state value for %q is not an integer: %s", key, value)
+	}
+	return number, true, nil
+}
+
+// StateSetInt writes one integer runtime state value.
+func (s *RuntimeHostService) StateSetInt(key string, value int) error {
+	return s.StateSet(key, strconv.Itoa(value))
+}
+
+// Now returns the current host time string.
+func (s *RuntimeHostService) Now() (string, error) {
+	return s.runtimeInfoValue(HostServiceMethodRuntimeInfoNow)
+}
+
+// UUID returns one host-generated unique identifier string.
+func (s *RuntimeHostService) UUID() (string, error) {
+	return s.runtimeInfoValue(HostServiceMethodRuntimeInfoUUID)
+}
+
+// Node returns the current host node identity string.
+func (s *RuntimeHostService) Node() (string, error) {
+	return s.runtimeInfoValue(HostServiceMethodRuntimeInfoNode)
+}
+
+func (s *RuntimeHostService) runtimeInfoValue(method string) (string, error) {
+	payload, err := invokeHostService(HostServiceRuntime, method, "", "", nil)
+	if err != nil {
+		return "", err
+	}
+	if len(payload) == 0 {
+		return "", nil
+	}
+	response, err := UnmarshalHostServiceValueResponse(payload)
+	if err != nil {
+		return "", err
+	}
+	return response.Value, nil
+}
+
+// HostLog writes one runtime log entry through the host.
+func HostLog(level int, message string, fields map[string]string) error {
+	return Runtime().Log(level, message, fields)
+}
+
+// HostStateGet reads one plugin-scoped runtime state value.
+func HostStateGet(key string) (string, bool, error) {
+	return Runtime().StateGet(key)
+}
+
+// HostStateSet writes one plugin-scoped runtime state value.
+func HostStateSet(key string, value string) error {
+	return Runtime().StateSet(key, value)
+}
+
+// HostStateDelete removes one plugin-scoped runtime state value.
 func HostStateDelete(key string) error {
-	req := &HostCallStateDeleteRequest{Key: key}
-	_, err := invokeHostCall(OpcodeStateDelete, MarshalHostCallStateDeleteRequest(req))
-	return err
+	return Runtime().StateDelete(key)
 }
 
-// HostDBQueryResult holds the result of a read-only SQL query.
+// HostStateGetInt reads one integer plugin-scoped runtime state value.
+func HostStateGetInt(key string) (int, bool, error) {
+	return Runtime().StateGetInt(key)
+}
+
+// HostStateSetInt writes one integer plugin-scoped runtime state value.
+func HostStateSetInt(key string, value int) error {
+	return Runtime().StateSetInt(key, value)
+}
+
+// HostDBQueryResult preserves the previous guest-side result shape for callers
+// that have not yet migrated to the structured data service SDK.
 type HostDBQueryResult struct {
 	Columns  []string
 	Rows     [][]string
 	RowCount int
 }
 
-// HostDBQuery executes a read-only SQL query and returns the result.
-// maxRows limits the number of rows returned (capped at 1000 by the host).
+// HostDBQuery is no longer part of the public host service protocol.
 func HostDBQuery(sql string, args []string, maxRows int) (*HostDBQueryResult, error) {
-	req := &HostCallDBQueryRequest{
-		SQL:     sql,
-		Args:    args,
-		MaxRows: int32(maxRows),
-	}
-	payload, err := invokeHostCall(OpcodeDBQuery, MarshalHostCallDBQueryRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if len(payload) == 0 {
-		return &HostDBQueryResult{}, nil
-	}
-	resp, err := UnmarshalHostCallDBQueryResponse(payload)
-	if err != nil {
-		return nil, err
-	}
-	return &HostDBQueryResult{
-		Columns:  resp.Columns,
-		Rows:     resp.Rows,
-		RowCount: int(resp.RowCount),
-	}, nil
+	_ = sql
+	_ = args
+	_ = maxRows
+	return nil, fmt.Errorf("HostDBQuery 已移除，请改用 pluginbridge.Data() 结构化数据服务")
 }
 
-// HostDBExecute executes a write SQL statement and returns rows affected and last insert ID.
-func HostDBExecute(sql string, args []string) (rowsAffected int64, lastInsertID int64, err error) {
-	req := &HostCallDBExecuteRequest{SQL: sql, Args: args}
-	payload, err := invokeHostCall(OpcodeDBExecute, MarshalHostCallDBExecuteRequest(req))
-	if err != nil {
-		return 0, 0, err
-	}
-	if len(payload) == 0 {
-		return 0, 0, nil
-	}
-	resp, err := UnmarshalHostCallDBExecuteResponse(payload)
-	if err != nil {
-		return 0, 0, err
-	}
-	return resp.RowsAffected, resp.LastInsertID, nil
-}
-
-// HostStateGetInt reads a plugin-scoped integer state value.
-func HostStateGetInt(key string) (int, bool, error) {
-	value, found, err := HostStateGet(key)
-	if err != nil || !found {
-		return 0, found, err
-	}
-	n, err := strconv.Atoi(value)
-	if err != nil {
-		return 0, true, fmt.Errorf("state value for %q is not an integer: %s", key, value)
-	}
-	return n, true, nil
-}
-
-// HostStateSetInt writes a plugin-scoped integer state value.
-func HostStateSetInt(key string, value int) error {
-	return HostStateSet(key, strconv.Itoa(value))
+// HostDBExecute is no longer part of the public host service protocol.
+func HostDBExecute(sql string, args []string) (int64, int64, error) {
+	_ = sql
+	_ = args
+	return 0, 0, fmt.Errorf("HostDBExecute 已移除，请改用 pluginbridge.Data() 结构化数据服务")
 }

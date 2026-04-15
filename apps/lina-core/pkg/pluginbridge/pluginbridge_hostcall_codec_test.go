@@ -9,7 +9,7 @@ import (
 func TestHostCallResponseEnvelopeRoundTrip(t *testing.T) {
 	original := &HostCallResponseEnvelope{
 		Status:  HostCallStatusCapabilityDenied,
-		Payload: []byte("missing host:log capability"),
+		Payload: []byte("missing host:runtime capability"),
 	}
 	data := MarshalHostCallResponse(original)
 	decoded, err := UnmarshalHostCallResponse(data)
@@ -55,6 +55,46 @@ func TestHostCallLogRequestRoundTrip(t *testing.T) {
 	}
 	if len(decoded.Fields) != 2 || decoded.Fields["key1"] != "val1" {
 		t.Errorf("fields: got %v, want %v", decoded.Fields, original.Fields)
+	}
+}
+
+func TestHostServiceRequestEnvelopeRoundTrip(t *testing.T) {
+	original := &HostServiceRequestEnvelope{
+		Service: HostServiceData,
+		Method:  HostServiceMethodDataGet,
+		Table:   "sys_plugin_node_state",
+		Payload: MarshalHostServiceDataGetRequest(&HostServiceDataGetRequest{
+			KeyJSON: []byte("1"),
+		}),
+	}
+	data := MarshalHostServiceRequestEnvelope(original)
+	decoded, err := UnmarshalHostServiceRequestEnvelope(data)
+	if err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if decoded.Service != original.Service {
+		t.Errorf("service: got %q, want %q", decoded.Service, original.Service)
+	}
+	if decoded.Method != original.Method {
+		t.Errorf("method: got %q, want %q", decoded.Method, original.Method)
+	}
+	if decoded.Table != original.Table {
+		t.Errorf("table: got %q, want %q", decoded.Table, original.Table)
+	}
+	if string(decoded.Payload) != string(original.Payload) {
+		t.Errorf("payload: got %v, want %v", decoded.Payload, original.Payload)
+	}
+}
+
+func TestHostServiceValueResponseRoundTrip(t *testing.T) {
+	original := &HostServiceValueResponse{Value: "node-a"}
+	data := MarshalHostServiceValueResponse(original)
+	decoded, err := UnmarshalHostServiceValueResponse(data)
+	if err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if decoded.Value != original.Value {
+		t.Errorf("value: got %q, want %q", decoded.Value, original.Value)
 	}
 }
 
@@ -109,88 +149,5 @@ func TestHostCallStateDeleteRequestRoundTrip(t *testing.T) {
 	}
 	if decoded.Key != original.Key {
 		t.Errorf("key: got %q, want %q", decoded.Key, original.Key)
-	}
-}
-
-func TestHostCallDBQueryRequestRoundTrip(t *testing.T) {
-	original := &HostCallDBQueryRequest{
-		SQL:     "SELECT id, name FROM sys_user WHERE status = ?",
-		Args:    []string{"1"},
-		MaxRows: 100,
-	}
-	data := MarshalHostCallDBQueryRequest(original)
-	decoded, err := UnmarshalHostCallDBQueryRequest(data)
-	if err != nil {
-		t.Fatalf("unmarshal failed: %v", err)
-	}
-	if decoded.SQL != original.SQL {
-		t.Errorf("sql: got %q, want %q", decoded.SQL, original.SQL)
-	}
-	if len(decoded.Args) != 1 || decoded.Args[0] != "1" {
-		t.Errorf("args: got %v, want %v", decoded.Args, original.Args)
-	}
-	if decoded.MaxRows != original.MaxRows {
-		t.Errorf("maxRows: got %d, want %d", decoded.MaxRows, original.MaxRows)
-	}
-}
-
-func TestHostCallDBQueryResponseRoundTrip(t *testing.T) {
-	original := &HostCallDBQueryResponse{
-		Columns:  []string{"id", "name"},
-		Rows:     [][]string{{"1", "admin"}, {"2", "user1"}},
-		RowCount: 2,
-	}
-	data := MarshalHostCallDBQueryResponse(original)
-	decoded, err := UnmarshalHostCallDBQueryResponse(data)
-	if err != nil {
-		t.Fatalf("unmarshal failed: %v", err)
-	}
-	if len(decoded.Columns) != 2 || decoded.Columns[0] != "id" || decoded.Columns[1] != "name" {
-		t.Errorf("columns: got %v, want %v", decoded.Columns, original.Columns)
-	}
-	if len(decoded.Rows) != 2 {
-		t.Fatalf("rows: got %d, want 2", len(decoded.Rows))
-	}
-	if decoded.Rows[0][0] != "1" || decoded.Rows[0][1] != "admin" {
-		t.Errorf("row[0]: got %v, want %v", decoded.Rows[0], original.Rows[0])
-	}
-	if decoded.RowCount != 2 {
-		t.Errorf("rowCount: got %d, want 2", decoded.RowCount)
-	}
-}
-
-func TestHostCallDBExecuteRequestRoundTrip(t *testing.T) {
-	original := &HostCallDBExecuteRequest{
-		SQL:  "INSERT INTO plg_demo_items (name) VALUES (?)",
-		Args: []string{"item1"},
-	}
-	data := MarshalHostCallDBExecuteRequest(original)
-	decoded, err := UnmarshalHostCallDBExecuteRequest(data)
-	if err != nil {
-		t.Fatalf("unmarshal failed: %v", err)
-	}
-	if decoded.SQL != original.SQL {
-		t.Errorf("sql: got %q, want %q", decoded.SQL, original.SQL)
-	}
-	if len(decoded.Args) != 1 || decoded.Args[0] != "item1" {
-		t.Errorf("args: got %v, want %v", decoded.Args, original.Args)
-	}
-}
-
-func TestHostCallDBExecuteResponseRoundTrip(t *testing.T) {
-	original := &HostCallDBExecuteResponse{
-		RowsAffected: 3,
-		LastInsertID: 42,
-	}
-	data := MarshalHostCallDBExecuteResponse(original)
-	decoded, err := UnmarshalHostCallDBExecuteResponse(data)
-	if err != nil {
-		t.Fatalf("unmarshal failed: %v", err)
-	}
-	if decoded.RowsAffected != original.RowsAffected {
-		t.Errorf("rowsAffected: got %d, want %d", decoded.RowsAffected, original.RowsAffected)
-	}
-	if decoded.LastInsertID != original.LastInsertID {
-		t.Errorf("lastInsertId: got %d, want %d", decoded.LastInsertID, original.LastInsertID)
 	}
 }

@@ -42,6 +42,8 @@ type Manifest struct {
 	BridgeSpec *pluginbridge.BridgeSpec
 	// HostCapabilities is the set of granted host call capabilities.
 	HostCapabilities map[string]struct{}
+	// HostServices holds the structured host service declarations restored from release metadata.
+	HostServices []*pluginbridge.HostServiceSpec
 	// RuntimeArtifact holds the validated WASM artifact for dynamic plugins.
 	RuntimeArtifact *ArtifactSpec
 	// SourcePlugin is the embedded source-plugin registration for source plugins.
@@ -118,6 +120,14 @@ type ResourceSpec struct {
 	Filters []*ResourceQuery `json:"filters" yaml:"filters"`
 	// OrderBy defines default result ordering.
 	OrderBy ResourceOrderBySpec `json:"orderBy" yaml:"orderBy"`
+	// Operations lists the structured data methods that may operate on this resource.
+	Operations []string `json:"operations,omitempty" yaml:"operations,omitempty"`
+	// KeyField declares the API field name used as the primary identity for get/update/delete operations.
+	KeyField string `json:"keyField,omitempty" yaml:"keyField,omitempty"`
+	// WritableFields lists the API field names the guest may submit for create/update operations.
+	WritableFields []string `json:"writableFields,omitempty" yaml:"writableFields,omitempty"`
+	// Access limits which execution contexts may invoke this resource.
+	Access string `json:"access,omitempty" yaml:"access,omitempty"`
 	// DataScope optionally restricts results by role data scope.
 	DataScope *ResourceDataScopeSpec `json:"dataScope,omitempty" yaml:"dataScope,omitempty"`
 }
@@ -190,6 +200,8 @@ type ArtifactSpec struct {
 	BridgeSpec *pluginbridge.BridgeSpec
 	// Capabilities lists the host capability identifiers declared by the plugin.
 	Capabilities []string
+	// HostServices lists the structured host service declarations embedded in the artifact.
+	HostServices []*pluginbridge.HostServiceSpec
 }
 
 // ArtifactManifest stores the plugin identity embedded in WASM custom sections.

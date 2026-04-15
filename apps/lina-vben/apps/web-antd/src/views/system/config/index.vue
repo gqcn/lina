@@ -68,15 +68,15 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
   gridEvents: {
     checkboxChange: () => {
-      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+      checkedRows.value = (gridApi.grid?.getCheckboxRecords() || []) as SysConfig[];
     },
     checkboxAll: () => {
-      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+      checkedRows.value = (gridApi.grid?.getCheckboxRecords() || []) as SysConfig[];
     },
   },
 });
 
-const checkedRows = ref<any[]>([]);
+const checkedRows = ref<SysConfig[]>([]);
 const hasChecked = computed(() => checkedRows.value.length > 0);
 
 function handleAdd() {
@@ -96,8 +96,8 @@ async function handleDelete(row: SysConfig) {
 }
 
 function handleMultiDelete() {
-  const rows = gridApi.grid.getCheckboxRecords();
-  const ids = rows.map((row: SysConfig) => row.id);
+  const rows = gridApi.grid.getCheckboxRecords() as SysConfig[];
+  const ids = rows.map((row) => row.id);
   Modal.confirm({
     title: '提示',
     okType: 'danger',
@@ -131,7 +131,7 @@ async function handleExport() {
           delete params.createTime;
         }
         if (checkedRows.value.length > 0) {
-          params.ids = checkedRows.value.map((row: SysConfig) => row.id);
+          params.ids = checkedRows.value.map((row) => row.id);
         }
         const data = await configExport(params);
         downloadBlob(data, '参数设置导出.xlsx');

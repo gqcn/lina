@@ -40,7 +40,6 @@ function generateMenus(
       badgeVariants,
       hideChildrenInMenu = false,
       icon,
-      link,
       order,
       title = '',
     } = meta;

@@ -1,4 +1,5 @@
 import type {
+  PluginAuthorizationPayload,
   PluginListParams,
   PluginDynamicState,
   PluginUploadDynamicResult,
@@ -30,8 +31,11 @@ export function pluginSync() {
 }
 
 /** 安装插件 */
-export function pluginInstall(pluginId: string) {
-  return requestClient.post(`/plugins/${pluginId}/install`);
+export function pluginInstall(
+  pluginId: string,
+  payload?: PluginAuthorizationPayload,
+) {
+  return requestClient.post(`/plugins/${pluginId}/install`, payload);
 }
 
 /** 上传动态插件 */
@@ -55,8 +59,11 @@ export function pluginDynamicUpload(file: File, overwriteSupport?: boolean) {
 }
 
 /** 启用插件 */
-export function pluginEnable(pluginId: string) {
-  return requestClient.put(`/plugins/${pluginId}/enable`);
+export function pluginEnable(
+  pluginId: string,
+  payload?: PluginAuthorizationPayload,
+) {
+  return requestClient.put(`/plugins/${pluginId}/enable`, payload);
 }
 
 /** 禁用插件 */

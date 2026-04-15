@@ -4,8 +4,6 @@ import type { PropType } from 'vue';
 
 import type { DictFallback } from './type';
 
-import type { DictData } from '#/api/system/dict/dict-data-model';
-
 import { computed, defineComponent, h, isVNode } from 'vue';
 
 import { Spin, Tag } from 'ant-design-vue';
@@ -24,7 +22,7 @@ export default defineComponent({
      */
     dicts: {
       required: false,
-      type: Array as PropType<DictData[]>,
+      type: Array as PropType<DictTagOption[]>,
       default: () => [],
     },
     /**
@@ -137,4 +135,11 @@ export default defineComponent({
     );
   },
 });
+
+interface DictTagOption {
+  cssClass?: string;
+  label: string;
+  tagStyle?: string;
+  value: number | string;
+}
 </script>

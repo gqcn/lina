@@ -2,7 +2,7 @@
 import type { SysUser } from '#/api/system/user';
 import type { VbenFormSchema } from '#/adapter/form';
 
-import { computed, onMounted } from 'vue';
+import { onMounted } from 'vue';
 
 import { useVbenForm, z } from '#/adapter/form';
 import { updateProfile } from '#/api/system/user';
@@ -13,56 +13,54 @@ const props = defineProps<{ profile: SysUser }>();
 
 const emit = defineEmits<{ updated: [] }>();
 
-const formSchema = computed((): VbenFormSchema[] => {
-  return [
-    {
-      fieldName: 'nickname',
-      component: 'Input',
-      label: '昵称',
-      rules: 'required',
-      componentProps: {
-        placeholder: '请输入昵称',
-      },
+const formSchema: VbenFormSchema[] = [
+  {
+    fieldName: 'nickname',
+    component: 'Input',
+    label: '昵称',
+    rules: 'required',
+    componentProps: {
+      placeholder: '请输入昵称',
     },
-    {
-      fieldName: 'email',
-      component: 'Input',
-      label: '邮箱',
-      rules: z.string().email('请输入正确的邮箱').optional().or(z.literal('')),
-      componentProps: {
-        placeholder: '请输入邮箱',
-      },
+  },
+  {
+    fieldName: 'email',
+    component: 'Input',
+    label: '邮箱',
+    rules: z.string().email('请输入正确的邮箱').optional().or(z.literal('')),
+    componentProps: {
+      placeholder: '请输入邮箱',
     },
-    {
-      fieldName: 'phone',
-      component: 'Input',
-      label: '手机号码',
-      rules: z
-        .string()
-        .regex(/^1[3-9]\d{9}$/, '请输入正确的手机号')
-        .optional()
-        .or(z.literal('')),
-      componentProps: {
-        placeholder: '请输入手机号码',
-      },
+  },
+  {
+    fieldName: 'phone',
+    component: 'Input',
+    label: '手机号码',
+    rules: z
+      .string()
+      .regex(/^1[3-9]\d{9}$/, '请输入正确的手机号')
+      .optional()
+      .or(z.literal('')),
+    componentProps: {
+      placeholder: '请输入手机号码',
     },
-    {
-      fieldName: 'sex',
-      component: 'RadioGroup',
-      label: '性别',
-      defaultValue: 0,
-      componentProps: {
-        buttonStyle: 'solid',
-        optionType: 'button',
-        options: [
-          { label: '未知', value: 0 },
-          { label: '男', value: 1 },
-          { label: '女', value: 2 },
-        ],
-      },
+  },
+  {
+    fieldName: 'sex',
+    component: 'RadioGroup',
+    label: '性别',
+    defaultValue: 0,
+    componentProps: {
+      buttonStyle: 'solid',
+      optionType: 'button',
+      options: [
+        { label: '未知', value: 0 },
+        { label: '男', value: 1 },
+        { label: '女', value: 2 },
+      ],
     },
-  ];
-});
+  },
+];
 
 function buttonLoading(loading: boolean) {
   formApi.setState({ submitButtonOptions: { loading } });

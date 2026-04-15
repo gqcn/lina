@@ -166,6 +166,13 @@ func (s *Service) ParseRuntimeWasmArtifactContent(filePath string, content []byt
 	if err != nil {
 		return nil, err
 	}
+	hostServices, err := parseRuntimeArtifactHostServices(filePath, sections)
+	if err != nil {
+		return nil, err
+	}
+	if err = pluginbridge.ValidateHostServiceAuthorizations(capabilities, hostServices); err != nil {
+		return nil, gerror.Wrapf(err, "校验动态插件宿主服务声明失败: %s", filePath)
+	}
 
 	runtimeKind := strings.TrimSpace(strings.ToLower(runtimeMetadata.RuntimeKind))
 	if runtimeKind == "" {
@@ -232,6 +239,7 @@ func (s *Service) ParseRuntimeWasmArtifactContent(filePath string, content []byt
 		RouteContracts:     routeContracts,
 		BridgeSpec:         bridgeSpec,
 		Capabilities:       capabilities,
+		HostServices:       hostServices,
 	}, nil
 }
 
@@ -550,6 +558,25 @@ func parseRuntimeArtifactCapabilities(
 		return nil, gerror.Wrapf(err, "校验动态插件能力声明失败: %s", filePath)
 	}
 	return pluginbridge.NormalizeCapabilities(items), nil
+}
+
+func parseRuntimeArtifactHostServices(
+	filePath string,
+	sections map[string][]byte,
+) ([]*pluginbridge.HostServiceSpec, error) {
+	content, ok := sections[pluginbridge.WasmSectionBackendHostServices]
+	if !ok {
+		return []*pluginbridge.HostServiceSpec{}, nil
+	}
+
+	items := make([]*pluginbridge.HostServiceSpec, 0)
+	if err := json.Unmarshal(content, &items); err != nil {
+		return nil, gerror.Wrapf(err, "解析动态插件宿主服务声明失败: %s", filePath)
+	}
+	if err := pluginbridge.ValidateHostServiceSpecs(items); err != nil {
+		return nil, gerror.Wrapf(err, "校验动态插件宿主服务声明失败: %s", filePath)
+	}
+	return pluginbridge.NormalizeHostServiceSpecs(items), nil
 }
 
 func parseRuntimeArtifactFrontendAssets(

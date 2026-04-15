@@ -3,7 +3,7 @@ import type { OperLog } from '#/api/monitor/operlog/model';
 
 import { computed, onMounted, ref } from 'vue';
 
-import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
+import { Page, useVbenDrawer } from '@vben/common-ui';
 
 import { message, Modal, Space } from 'ant-design-vue';
 
@@ -122,15 +122,15 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
   gridEvents: {
     checkboxChange: () => {
-      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+      checkedRows.value = (gridApi.grid?.getCheckboxRecords() || []) as OperLog[];
     },
     checkboxAll: () => {
-      checkedRows.value = gridApi.grid?.getCheckboxRecords() || [];
+      checkedRows.value = (gridApi.grid?.getCheckboxRecords() || []) as OperLog[];
     },
   },
 });
 
-const checkedRows = ref<any[]>([]);
+const checkedRows = ref<OperLog[]>([]);
 const hasChecked = computed(() => checkedRows.value.length > 0);
 
 function handlePreview(row: OperLog) {
@@ -152,8 +152,8 @@ function handleClean() {
 }
 
 function handleDelete() {
-  const rows = gridApi.grid.getCheckboxRecords();
-  const ids = rows.map((row: OperLog) => row.id);
+  const rows = gridApi.grid.getCheckboxRecords() as OperLog[];
+  const ids = rows.map((row) => row.id);
   Modal.confirm({
     title: '提示',
     okType: 'danger',
@@ -189,7 +189,7 @@ async function handleExport() {
         }
 
         if (checkedRows.value.length > 0) {
-          params.ids = checkedRows.value.map((row: OperLog) => row.id);
+          params.ids = checkedRows.value.map((row) => row.id);
         }
 
         const data = await operLogExport(params);

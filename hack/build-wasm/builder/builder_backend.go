@@ -353,6 +353,62 @@ func validateResourceSpec(pluginID string, spec *resourceSpec, filePath string) 
 			return fmt.Errorf("plugin resource dataScope requires userColumn or deptColumn: %s", filePath)
 		}
 	}
+	if len(spec.Operations) == 0 {
+		spec.Operations = []string{string(resourceOperationQuery)}
+	}
+	operationSeen := make(map[string]struct{}, len(spec.Operations))
+	for _, operation := range spec.Operations {
+		normalizedOperation := normalizeResourceOperation(operation)
+		if normalizedOperation == "" {
+			return fmt.Errorf("plugin resource operation is not supported: %s", filePath)
+		}
+		operationSeen[string(normalizedOperation)] = struct{}{}
+	}
+	spec.Operations = normalizeResourceEnumStringSlice(spec.Operations)
+
+	if spec.KeyField != "" {
+		if err := validateIdentifier(spec.KeyField); err != nil {
+			return fmt.Errorf("plugin %s resource keyField is invalid: %s: %w", pluginID, filePath, err)
+		}
+		if !resourceSpecHasField(spec, spec.KeyField) {
+			return fmt.Errorf("plugin resource keyField is not declared in fields: %s", filePath)
+		}
+	}
+	if _, ok := operationSeen[string(resourceOperationGet)]; ok && strings.TrimSpace(spec.KeyField) == "" {
+		return fmt.Errorf("plugin resource get operation requires keyField: %s", filePath)
+	}
+	if _, ok := operationSeen[string(resourceOperationUpdate)]; ok && strings.TrimSpace(spec.KeyField) == "" {
+		return fmt.Errorf("plugin resource update operation requires keyField: %s", filePath)
+	}
+	if _, ok := operationSeen[string(resourceOperationDelete)]; ok && strings.TrimSpace(spec.KeyField) == "" {
+		return fmt.Errorf("plugin resource delete operation requires keyField: %s", filePath)
+	}
+
+	if len(spec.WritableFields) > 0 {
+		spec.WritableFields = normalizeResourceFieldNameSlice(spec.WritableFields)
+		for _, writableField := range spec.WritableFields {
+			if err := validateIdentifier(writableField); err != nil {
+				return fmt.Errorf("plugin %s resource writableField is invalid: %s: %w", pluginID, filePath, err)
+			}
+			if !resourceSpecHasField(spec, writableField) {
+				return fmt.Errorf("plugin resource writableField is not declared in fields: %s", filePath)
+			}
+		}
+	}
+	if _, ok := operationSeen[string(resourceOperationCreate)]; ok && len(spec.WritableFields) == 0 {
+		return fmt.Errorf("plugin resource create operation requires writableFields: %s", filePath)
+	}
+	if _, ok := operationSeen[string(resourceOperationUpdate)]; ok && len(spec.WritableFields) == 0 {
+		return fmt.Errorf("plugin resource update operation requires writableFields: %s", filePath)
+	}
+
+	if spec.Access == "" {
+		spec.Access = string(resourceAccessModeRequest)
+	}
+	if normalizeResourceAccessMode(spec.Access) == "" {
+		return fmt.Errorf("plugin resource access is not supported: %s", filePath)
+	}
+	spec.Access = strings.ToLower(strings.TrimSpace(spec.Access))
 	return nil
 }
 
@@ -426,6 +482,91 @@ func normalizeResourceOrderDirection(value string) resourceOrderDirection {
 	default:
 		return ""
 	}
+}
+
+func normalizeResourceOperation(value string) resourceOperation {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case string(resourceOperationQuery):
+		return resourceOperationQuery
+	case string(resourceOperationGet):
+		return resourceOperationGet
+	case string(resourceOperationCreate):
+		return resourceOperationCreate
+	case string(resourceOperationUpdate):
+		return resourceOperationUpdate
+	case string(resourceOperationDelete):
+		return resourceOperationDelete
+	case string(resourceOperationTransaction):
+		return resourceOperationTransaction
+	default:
+		return ""
+	}
+}
+
+func normalizeResourceAccessMode(value string) resourceAccessMode {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", string(resourceAccessModeRequest):
+		return resourceAccessModeRequest
+	case string(resourceAccessModeSystem):
+		return resourceAccessModeSystem
+	case string(resourceAccessModeBoth):
+		return resourceAccessModeBoth
+	default:
+		return ""
+	}
+}
+
+func resourceSpecHasField(spec *resourceSpec, fieldName string) bool {
+	if spec == nil {
+		return false
+	}
+	targetFieldName := strings.TrimSpace(fieldName)
+	if targetFieldName == "" {
+		return false
+	}
+	for _, field := range spec.Fields {
+		if field != nil && field.Name == targetFieldName {
+			return true
+		}
+	}
+	return false
+}
+
+func normalizeResourceEnumStringSlice(items []string) []string {
+	seen := make(map[string]struct{}, len(items))
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		normalized := strings.ToLower(strings.TrimSpace(item))
+		if normalized == "" {
+			continue
+		}
+		if _, ok := seen[normalized]; ok {
+			continue
+		}
+		seen[normalized] = struct{}{}
+		result = append(result, normalized)
+	}
+	sort.Strings(result)
+	return result
+}
+
+func normalizeResourceFieldNameSlice(items []string) []string {
+	seen := make(map[string]struct{}, len(items))
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		trimmed := strings.TrimSpace(item)
+		if trimmed == "" {
+			continue
+		}
+		lookupKey := strings.ToLower(trimmed)
+		if _, ok := seen[lookupKey]; ok {
+			continue
+		}
+		seen[lookupKey] = struct{}{}
+		result = append(result, trimmed)
+	}
+	sort.Strings(result)
+	return result
 }
 
 func sortStrings(items []string) {

@@ -63,15 +63,15 @@ const [BasicTable, tableApi] = useVbenVxeGrid({
   },
   gridEvents: {
     checkboxChange: () => {
-      checkedRows.value = tableApi.grid?.getCheckboxRecords() || [];
+      checkedRows.value = (tableApi.grid?.getCheckboxRecords() || []) as DictData[];
     },
     checkboxAll: () => {
-      checkedRows.value = tableApi.grid?.getCheckboxRecords() || [];
+      checkedRows.value = (tableApi.grid?.getCheckboxRecords() || []) as DictData[];
     },
   },
 });
 
-const checkedRows = ref<any[]>([]);
+const checkedRows = ref<DictData[]>([]);
 const hasChecked = computed(() => checkedRows.value.length > 0);
 
 const [DictDataDrawer, drawerApi] = useVbenDrawer({
@@ -96,8 +96,8 @@ async function handleDelete(row: DictData) {
 }
 
 function handleMultiDelete() {
-  const rows = tableApi.grid.getCheckboxRecords();
-  const ids = rows.map((row: DictData) => row.id);
+  const rows = tableApi.grid.getCheckboxRecords() as DictData[];
+  const ids = rows.map((row) => row.id);
   Modal.confirm({
     title: '提示',
     okType: 'danger',

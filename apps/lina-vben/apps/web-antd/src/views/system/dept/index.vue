@@ -22,7 +22,7 @@ const dictStore = useDictStore();
 
 onMounted(async () => {
   const statusOptions = await dictStore.getDictOptionsAsync('sys_normal_disable');
-  gridApi.formApi.updateSchema([
+  tableApi.formApi.updateSchema([
     {
       fieldName: 'status',
       componentProps: {

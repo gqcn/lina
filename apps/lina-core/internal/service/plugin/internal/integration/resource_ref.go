@@ -12,6 +12,7 @@ import (
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/plugin/internal/catalog"
+	"lina-core/pkg/pluginbridge"
 )
 
 // SyncPluginResourceReferences keeps sys_plugin_resource_ref aligned with the current
@@ -225,6 +226,8 @@ func (s *Service) buildPluginResourceRefDescriptors(manifest *catalog.Manifest) 
 		})
 	}
 
+	descriptors = appendHostServiceResourceDescriptors(descriptors, manifest.HostServices)
+
 	return descriptors
 }
 
@@ -288,6 +291,161 @@ func buildPluginMenuResourceRemark(menu *catalog.MenuSpec) string {
 		"The host discovered one manifest-declared plugin menu named %q with type %s.",
 		strings.TrimSpace(menu.Name),
 		normalizeMenuType(menu.Type),
+	)
+}
+
+func appendHostServiceResourceDescriptors(
+	descriptors []*catalog.ResourceRefDescriptor,
+	hostServices []*pluginbridge.HostServiceSpec,
+) []*catalog.ResourceRefDescriptor {
+	if len(hostServices) == 0 {
+		return descriptors
+	}
+
+	seen := make(map[string]struct{}, len(descriptors))
+	for _, descriptor := range descriptors {
+		if descriptor == nil {
+			continue
+		}
+		seen[buildPluginResourceIdentity(descriptor.Kind.String(), descriptor.Key)] = struct{}{}
+	}
+
+	for _, service := range hostServices {
+		if service == nil {
+			continue
+		}
+		kind := mapHostServiceResourceKind(service.Service)
+		if kind == "" {
+			continue
+		}
+		if len(service.Tables) > 0 {
+			for _, table := range service.Tables {
+				normalizedTable := strings.TrimSpace(table)
+				if normalizedTable == "" {
+					continue
+				}
+				identity := buildPluginResourceIdentity(kind.String(), normalizedTable)
+				if _, ok := seen[identity]; ok {
+					continue
+				}
+				seen[identity] = struct{}{}
+				descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
+					Kind:      kind,
+					Key:       normalizedTable,
+					OwnerType: catalog.ResourceOwnerTypeHostServiceResource,
+					OwnerKey:  service.Service,
+					Remark:    buildHostServiceTableRemark(service.Service, normalizedTable, service.Methods),
+				})
+			}
+			continue
+		}
+		if len(service.Paths) > 0 {
+			for _, item := range service.Paths {
+				normalizedPath := strings.TrimSpace(item)
+				if normalizedPath == "" {
+					continue
+				}
+				identity := buildPluginResourceIdentity(kind.String(), normalizedPath)
+				if _, ok := seen[identity]; ok {
+					continue
+				}
+				seen[identity] = struct{}{}
+				descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
+					Kind:      kind,
+					Key:       normalizedPath,
+					OwnerType: catalog.ResourceOwnerTypeHostServiceResource,
+					OwnerKey:  service.Service,
+					Remark:    buildHostServicePathRemark(service.Service, normalizedPath, service.Methods),
+				})
+			}
+			continue
+		}
+		if len(service.Resources) == 0 {
+			continue
+		}
+		for _, resource := range service.Resources {
+			if resource == nil || strings.TrimSpace(resource.Ref) == "" {
+				continue
+			}
+			identity := buildPluginResourceIdentity(kind.String(), strings.TrimSpace(resource.Ref))
+			if _, ok := seen[identity]; ok {
+				continue
+			}
+			seen[identity] = struct{}{}
+			descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
+				Kind:      kind,
+				Key:       strings.TrimSpace(resource.Ref),
+				OwnerType: catalog.ResourceOwnerTypeHostServiceResource,
+				OwnerKey:  service.Service,
+				Remark:    buildHostServiceResourceRemark(service.Service, resource.Ref, service.Methods),
+			})
+		}
+	}
+
+	return descriptors
+}
+
+func mapHostServiceResourceKind(service string) catalog.ResourceKind {
+	switch strings.TrimSpace(service) {
+	case pluginbridge.HostServiceStorage:
+		return catalog.ResourceKindHostStorage
+	case pluginbridge.HostServiceNetwork:
+		return catalog.ResourceKindHostUpstream
+	case pluginbridge.HostServiceData:
+		return catalog.ResourceKindHostData
+	case pluginbridge.HostServiceCache:
+		return catalog.ResourceKindHostCache
+	case pluginbridge.HostServiceLock:
+		return catalog.ResourceKindHostLock
+	case pluginbridge.HostServiceSecret:
+		return catalog.ResourceKindHostSecret
+	case pluginbridge.HostServiceEvent:
+		return catalog.ResourceKindHostEventTopic
+	case pluginbridge.HostServiceQueue:
+		return catalog.ResourceKindHostQueue
+	case pluginbridge.HostServiceNotify:
+		return catalog.ResourceKindHostNotify
+	default:
+		return ""
+	}
+}
+
+func buildHostServiceResourceRemark(service string, ref string, methods []string) string {
+	methodSummary := "no methods"
+	if len(methods) > 0 {
+		methodSummary = strings.Join(methods, ", ")
+	}
+	return fmt.Sprintf(
+		"The host discovered one governed host service resource ref %q for service %s with methods [%s].",
+		strings.TrimSpace(ref),
+		strings.TrimSpace(service),
+		methodSummary,
+	)
+}
+
+func buildHostServicePathRemark(service string, storagePath string, methods []string) string {
+	methodSummary := "no methods"
+	if len(methods) > 0 {
+		methodSummary = strings.Join(methods, ", ")
+	}
+	return fmt.Sprintf(
+		"The host discovered one governed host service path %q for service %s with methods [%s].",
+		strings.TrimSpace(storagePath),
+		strings.TrimSpace(service),
+		methodSummary,
+	)
+}
+
+func buildHostServiceTableRemark(service string, table string, methods []string) string {
+	methodSummary := "no methods"
+	if len(methods) > 0 {
+		methodSummary = strings.Join(methods, ", ")
+	}
+	return fmt.Sprintf(
+		"The host discovered one governed host service table %q for service %s with methods [%s].",
+		strings.TrimSpace(table),
+		strings.TrimSpace(service),
+		methodSummary,
 	)
 }
 

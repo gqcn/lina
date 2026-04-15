@@ -14,11 +14,11 @@ import { useDictStore } from '#/store/dict';
 const notice = ref<Notice | null>(null);
 const dictStore = useDictStore();
 const noticeTypeDicts = ref<any[]>([]);
+const title = computed(() => notice.value?.title ?? '预览通知公告');
 
 const [Modal, modalApi] = useVbenModal({
   class: 'w-[800px]',
   fullscreenButton: true,
-  title: computed(() => notice.value?.title ?? '预览通知公告'),
   footer: false,
   onOpenChange: async (isOpen: boolean) => {
     if (!isOpen) return;
@@ -38,7 +38,7 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal>
+  <Modal :title="title">
     <div v-if="notice" class="p-2">
       <Descriptions :column="3" size="small" bordered class="mb-4">
         <DescriptionsItem label="公告类型">

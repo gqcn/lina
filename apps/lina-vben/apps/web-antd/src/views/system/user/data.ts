@@ -1,13 +1,6 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
-import { h } from 'vue';
-
-import { DictTag } from '#/components/dict';
-import { useDictStore } from '#/store/dict';
-
-const dictStore = useDictStore();
-
 /** 查询表单schema */
 export const querySchema: VbenFormSchema[] = [
   {

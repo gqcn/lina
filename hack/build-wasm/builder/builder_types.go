@@ -26,6 +26,7 @@ const (
 	pluginDynamicWasmSectionBackendRoutes       = pluginbridge.WasmSectionBackendRoutes
 	pluginDynamicWasmSectionBackendBridge       = pluginbridge.WasmSectionBackendBridge
 	pluginDynamicWasmSectionBackendCapabilities = pluginbridge.WasmSectionBackendCapabilities
+	pluginDynamicWasmSectionBackendHostServices = pluginbridge.WasmSectionBackendHostServices
 )
 
 var (
@@ -42,13 +43,14 @@ type RuntimeBuildOutput struct {
 }
 
 type pluginManifest struct {
-	ID           string      `yaml:"id"`
-	Name         string      `yaml:"name"`
-	Version      string      `yaml:"version"`
-	Type         string      `yaml:"type"`
-	Description  string      `yaml:"description"`
-	Menus        []*menuSpec `yaml:"menus"`
-	Capabilities []string    `yaml:"capabilities"`
+	ID           string                          `yaml:"id"`
+	Name         string                          `yaml:"name"`
+	Version      string                          `yaml:"version"`
+	Type         string                          `yaml:"type"`
+	Description  string                          `yaml:"description"`
+	Menus        []*menuSpec                     `yaml:"menus"`
+	Capabilities []string                        `yaml:"capabilities"`
+	HostServices []*pluginbridge.HostServiceSpec `yaml:"hostServices"`
 }
 
 type dynamicArtifactManifest struct {
@@ -102,6 +104,8 @@ type callbackExecutionMode string
 type resourceSpecType string
 type resourceFilterOperator string
 type resourceOrderDirection string
+type resourceOperation string
+type resourceAccessMode string
 
 const (
 	callbackExecutionModeBlocking callbackExecutionMode = "blocking"
@@ -120,6 +124,17 @@ const (
 
 	resourceOrderDirectionASC  resourceOrderDirection = "asc"
 	resourceOrderDirectionDESC resourceOrderDirection = "desc"
+
+	resourceOperationQuery       resourceOperation = "query"
+	resourceOperationGet         resourceOperation = "get"
+	resourceOperationCreate      resourceOperation = "create"
+	resourceOperationUpdate      resourceOperation = "update"
+	resourceOperationDelete      resourceOperation = "delete"
+	resourceOperationTransaction resourceOperation = "transaction"
+
+	resourceAccessModeRequest resourceAccessMode = "request"
+	resourceAccessModeSystem  resourceAccessMode = "system"
+	resourceAccessModeBoth    resourceAccessMode = "both"
 
 	extensionPointAuthLoginSucceeded  hookExtensionPoint = "auth.login.succeeded"
 	extensionPointAuthLoginFailed     hookExtensionPoint = "auth.login.failed"
@@ -143,13 +158,17 @@ type hookSpec struct {
 }
 
 type resourceSpec struct {
-	Key       string                 `json:"key" yaml:"key"`
-	Type      string                 `json:"type" yaml:"type"`
-	Table     string                 `json:"table" yaml:"table"`
-	Fields    []*resourceField       `json:"fields" yaml:"fields"`
-	Filters   []*resourceQuery       `json:"filters" yaml:"filters"`
-	OrderBy   resourceOrderBySpec    `json:"orderBy" yaml:"orderBy"`
-	DataScope *resourceDataScopeSpec `json:"dataScope,omitempty" yaml:"dataScope,omitempty"`
+	Key            string                 `json:"key" yaml:"key"`
+	Type           string                 `json:"type" yaml:"type"`
+	Table          string                 `json:"table" yaml:"table"`
+	Fields         []*resourceField       `json:"fields" yaml:"fields"`
+	Filters        []*resourceQuery       `json:"filters" yaml:"filters"`
+	OrderBy        resourceOrderBySpec    `json:"orderBy" yaml:"orderBy"`
+	Operations     []string               `json:"operations,omitempty" yaml:"operations,omitempty"`
+	KeyField       string                 `json:"keyField,omitempty" yaml:"keyField,omitempty"`
+	WritableFields []string               `json:"writableFields,omitempty" yaml:"writableFields,omitempty"`
+	Access         string                 `json:"access,omitempty" yaml:"access,omitempty"`
+	DataScope      *resourceDataScopeSpec `json:"dataScope,omitempty" yaml:"dataScope,omitempty"`
 }
 
 type resourceField struct {

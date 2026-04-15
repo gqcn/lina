@@ -1,4 +1,6 @@
-import type { Recordable, UserInfo } from '@vben/types';
+import type { Recordable } from '@vben/types';
+
+import type { AppUserInfo } from '#/api/core/user';
 
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -30,7 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
     onSuccess?: () => Promise<void> | void,
   ) {
     // 异步处理用户登录操作并获取 accessToken
-    let userInfo: null | UserInfo = null;
+    let userInfo: AppUserInfo | null = null;
     try {
       loginLoading.value = true;
       const { accessToken } = await loginApi(params);

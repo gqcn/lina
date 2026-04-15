@@ -8,6 +8,7 @@
 - 菜单在宿主主内容区打开一页简要说明；
 - 页面提供 1 个“打开独立页面”按钮；
 - 按钮会打开一个不依赖`Vben`前端框架的独立静态页面。
+- 后端示例路由通过统一宿主服务模型演示`runtime`、`storage`、`network`和`data`四类核心能力。
 
 ## 目录结构
 
@@ -20,7 +21,8 @@ plugin-demo-dynamic/
   plugin.yaml
   backend/
     api/                  # route contract definitions (g.Meta extracted by build system)
-    internal/controller/  # sample route handlers
+    internal/controller/  # thin bridge controllers that delegate business logic
+    internal/service/     # backend business logic components
     plugin.go             # guest route entry that auto-dispatches by RequestType
   frontend/
     pages/
@@ -44,6 +46,14 @@ plugin-demo-dynamic/
 - 点击按钮后，会在浏览器新标签页中打开`standalone.html`；
 - `standalone.html`是纯静态页面，刻意不依赖`Vben`。
 
+后端侧还额外提供 2 个演示路由：
+
+- `GET /api/v1/extensions/plugin-demo-dynamic/backend-summary`
+  返回动态插件桥接执行摘要，用于验证动态路由与用户上下文注入。
+- `GET /api/v1/extensions/plugin-demo-dynamic/host-call-demo`
+  返回统一宿主服务调用摘要，串联演示`runtime`、`storage`、`network`和`data`四类核心能力。
+  在离线环境或自动化测试中，可以追加`?skipNetwork=1`跳过外部网络请求，仅验证其余三类能力。
+
 ## 单一真相源
 
 当前样例的单一真相源就是插件目录内的明文源码本身：
@@ -53,6 +63,7 @@ plugin-demo-dynamic/
 - `backend/`保存 1 份演示用后端示例代码；
 - `frontend/pages/`保存宿主内嵌挂载入口和独立静态页；
 - `plugin.yaml`保存插件基础信息和菜单元数据；
+- `plugin.yaml`中的新增宿主能力字段（如`capabilities`、`hostServices`、`resources.paths`、`resources.tables`）都应带有就地注释，保证清单本身即可作为作者侧模板；
 - `manifest/sql/`仅在需要业务迁移时保存安装与卸载`SQL`。
 
 动态元数据不再通过额外的`JSON`边车文件维护。执行`make wasm`时，构建器会基于当前源码树自动生成：
@@ -100,22 +111,55 @@ make wasm p=plugin-demo-dynamic
 - `plugin-demo-dynamic/main.go`是`Wasm bridge` guest runtime 入口，负责导出宿主约定的`Wasm ABI`；
 - `backend/api/`声明路由合同（`g.Meta`），构建器在`make wasm`时从中提取路由元数据并嵌入运行时产物；
 - `backend/plugin.go`实现受限`Wasm bridge`请求分发入口，并通过反射式 guest 路由分发器按`RequestType`自动转发到控制器方法；宿主通过固定前缀`/api/v1/extensions/{pluginId}/...`把治理后的请求快照桥接到该入口。
+- `backend/internal/controller/`只保留轻量桥接逻辑，实际业务负载统一下沉到`backend/internal/service/`对应组件，便于后续扩展和维护。
 
 当前边界如下：
 
 - 动态插件**不支持**源码插件式路由注册（即不通过`pluginhost.SourcePlugin`直接注册宿主`ghttp`路由树）；
 - 动态插件的公开路由只允许位于固定前缀`/api/v1/extensions/{pluginId}/...`下，宿主统一掌握治理权；
-- 如果动态插件需要可执行后端能力，应通过根目录`main.go`和`backend/plugin.go`实现受限 bridge 运行时入口，并在`backend/api/`下声明路由合同，在`backend/hooks/`和`backend/resources/`下声明扩展契约，这些内容会在`make wasm`时一并编译进产物。
+- 如果动态插件需要可执行后端能力，应通过根目录`main.go`和`backend/plugin.go`实现受限 bridge 运行时入口，并在`backend/api/`下声明路由合同，在`backend/hooks/`下声明扩展契约，这些内容会在`make wasm`时一并编译进产物。
+
+## 宿主服务示例
+
+当前样例已经把四类核心宿主服务都纳入到`plugin.yaml`声明：
+
+- `runtime`
+  演示结构化日志、插件隔离状态和宿主基础信息读取。
+- `storage`
+  通过`host-call-demo/`逻辑路径前缀演示对象写入、读取、列举、状态查询和删除。
+- `network`
+  通过`https://example.com`这个授权 URL 演示受治理的 HTTP 请求；安装/启用授权后，插件可直接访问命中的 URL。
+- `data`
+  通过`sys_plugin_node_state`表演示受控数据访问；插件在`resources.tables`中声明数据表申请，运行时直接按表名调用，最终是否允许访问由宿主安装/启用时确认授权。当前读取能力统一归类到`host:data:read`，并拆分为`list`（多条分页查询）和`get`（单条读取）；写入能力归类到`host:data:mutate`，对应`create`、`update`、`delete`和`transaction`。样例代码已切换到`plugindb.Open()`推荐路径，演示了受限 ORM 风格的`Fields`、`WhereEq`、`WhereLike`、`WhereIn`、`OrderDesc`、`Count`、`WhereKey`和`Transaction`用法。
+
+这个样例刻意不向 guest 暴露 raw SQL、宿主数据库连接或宿主绝对文件路径。所有敏感能力都只能通过结构化宿主服务获取；对 data hostService 而言，也只允许基于宿主确认授权的数据表执行表级结构化访问。
+
+data 访问推荐写法示例：
+
+```go
+db := plugindb.Open()
+
+records, total, err := db.Table("sys_plugin_node_state").
+    Fields("id", "nodeKey", "currentState").
+    WhereEq("pluginId", pluginID).
+    WhereLike("nodeKey", demoKey).
+    WhereIn("currentState", []string{"pending", "running"}).
+    OrderDesc("id").
+    Page(1, 10).
+    All()
+```
 
 ## 验收关注点
 
 验收或使用这个样例时，建议重点确认：
 
 - `plugin.yaml`是否清晰标识该插件属于独立动态插件；
+- `plugin.yaml`中的`capabilities`和`hostServices`是否只声明了通过统一宿主服务模型暴露的能力；
 - `frontend/pages/mount.js`是否只依赖文档已发布的宿主`ESM`契约；
 - `frontend/pages/standalone.html`是否保持框架无关；
 - `plugin.yaml`里的`menus`是否只声明 1 个属于该插件的左侧菜单；
 - 执行`make wasm p=plugin-demo-dynamic`后，是否会生成`temp/output/plugin-demo-dynamic.wasm`；
 - 执行`make wasm p=plugin-demo-dynamic`后，生成的 guest 运行时是否能够通过固定前缀`/api/v1/extensions/plugin-demo-dynamic/backend-summary`返回真实 bridge 响应；
+- 执行`make wasm p=plugin-demo-dynamic`后，生成的 guest 运行时是否能够通过固定前缀`/api/v1/extensions/plugin-demo-dynamic/host-call-demo`返回统一宿主服务调用摘要；
 - 动态契约测试是否仍能证明生成出的`wasm`与明文源码树保持一致；
-- 未来新增的`backend/hooks/*.yaml`或`backend/resources/*.yaml`是否仍严格遵守已发布的声明式动态`ABI`，而不是假设宿主会执行任意`Go`代码。
+- 未来新增的`backend/hooks/*.yaml`是否仍严格遵守已发布的声明式动态`ABI`，而不是假设宿主会执行任意`Go`代码。

@@ -26,6 +26,8 @@ const (
 	WasmSectionBackendBridge = "lina.plugin.backend.bridge"
 	// WasmSectionBackendCapabilities stores declared host call capabilities.
 	WasmSectionBackendCapabilities = "lina.plugin.backend.capabilities"
+	// WasmSectionBackendHostServices stores structured host service declarations.
+	WasmSectionBackendHostServices = "lina.plugin.backend.host-services"
 )
 
 // RuntimeArtifactMetadata stores the host-owned runtime metadata section.

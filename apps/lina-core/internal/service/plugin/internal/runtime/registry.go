@@ -17,6 +17,7 @@ import (
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	"lina-core/internal/service/plugin/internal/catalog"
+	"lina-core/pkg/pluginbridge"
 )
 
 // PluginItem is a flattened, display-ready projection of one plugin entry combining
@@ -42,6 +43,14 @@ type PluginItem struct {
 	StatusKey string
 	// UpdatedAt is the ISO timestamp of the last registry update.
 	UpdatedAt string
+	// AuthorizationRequired reports whether any resource-scoped host services need confirmation.
+	AuthorizationRequired bool
+	// AuthorizationStatus identifies whether host-service authorization is pending or already confirmed.
+	AuthorizationStatus AuthorizationStatus
+	// RequestedHostServices is the current requested host service snapshot.
+	RequestedHostServices []*pluginbridge.HostServiceSpec
+	// AuthorizedHostServices is the host-confirmed host service snapshot.
+	AuthorizedHostServices []*pluginbridge.HostServiceSpec
 }
 
 // listRuntimeRegistries returns all dynamic-type plugin registry rows.
@@ -58,7 +67,7 @@ func (s *Service) listRuntimeRegistries(ctx context.Context) ([]*entity.SysPlugi
 }
 
 // buildPluginItem returns a PluginItem projection combining manifest and registry data.
-func (s *Service) buildPluginItem(manifest *catalog.Manifest, registry *entity.SysPlugin) *PluginItem {
+func (s *Service) buildPluginItem(ctx context.Context, manifest *catalog.Manifest, registry *entity.SysPlugin) *PluginItem {
 	if manifest == nil && registry == nil {
 		return nil
 	}
@@ -73,6 +82,8 @@ func (s *Service) buildPluginItem(manifest *catalog.Manifest, registry *entity.S
 		enabled     int
 		installedAt string
 		updatedAt   string
+		release     *entity.SysPluginRelease
+		snapshot    *catalog.ManifestSnapshot
 	)
 
 	if manifest != nil {
@@ -106,19 +117,54 @@ func (s *Service) buildPluginItem(manifest *catalog.Manifest, registry *entity.S
 		if registry.UpdatedAt != nil {
 			updatedAt = registry.UpdatedAt.String()
 		}
+		if ctx != nil {
+			release, _ = s.catalogSvc.GetRegistryRelease(ctx, registry)
+		}
+	}
+	if release == nil && manifest != nil && ctx != nil {
+		release, _ = s.catalogSvc.GetRelease(ctx, manifest.ID, manifest.Version)
+	}
+	if release != nil {
+		snapshot, _ = s.catalogSvc.ParseManifestSnapshot(release.ManifestSnapshot)
+	}
+
+	var (
+		requestedHostServices  = pluginbridge.NormalizeHostServiceSpecs(nil)
+		authorizedHostServices = pluginbridge.NormalizeHostServiceSpecs(nil)
+		authorizationRequired  bool
+		authorizationStatus    = AuthorizationStatusNotRequired
+	)
+
+	if snapshot != nil {
+		requestedHostServices = pluginbridge.NormalizeHostServiceSpecs(snapshot.RequestedHostServices)
+		authorizedHostServices = pluginbridge.NormalizeHostServiceSpecs(snapshot.AuthorizedHostServices)
+		authorizationRequired = snapshot.HostServiceAuthRequired
+		authorizationStatus = buildAuthorizationStatus(snapshot.HostServiceAuthRequired, snapshot.HostServiceAuthConfirmed)
+	} else if manifest != nil {
+		requestedHostServices = pluginbridge.NormalizeHostServiceSpecs(manifest.HostServices)
+		authorizationRequired = catalog.HasResourceScopedHostServices(manifest.HostServices)
+		if authorizationRequired {
+			authorizationStatus = AuthorizationStatusPending
+		} else {
+			authorizedHostServices = pluginbridge.NormalizeHostServiceSpecs(manifest.HostServices)
+		}
 	}
 
 	return &PluginItem{
-		Id:          id,
-		Name:        name,
-		Version:     version,
-		Type:        pluginType,
-		Description: description,
-		Installed:   installed,
-		InstalledAt: installedAt,
-		Enabled:     enabled,
-		StatusKey:   s.catalogSvc.BuildPluginStatusKey(id),
-		UpdatedAt:   updatedAt,
+		Id:                     id,
+		Name:                   name,
+		Version:                version,
+		Type:                   pluginType,
+		Description:            description,
+		Installed:              installed,
+		InstalledAt:            installedAt,
+		Enabled:                enabled,
+		StatusKey:              s.catalogSvc.BuildPluginStatusKey(id),
+		UpdatedAt:              updatedAt,
+		AuthorizationRequired:  authorizationRequired,
+		AuthorizationStatus:    authorizationStatus,
+		RequestedHostServices:  requestedHostServices,
+		AuthorizedHostServices: authorizedHostServices,
 	}
 }
 
@@ -223,4 +269,14 @@ func SortPluginItems(items []*PluginItem) {
 		}
 		return items[i].Id < items[j].Id
 	})
+}
+
+func buildAuthorizationStatus(required bool, confirmed bool) AuthorizationStatus {
+	if !required {
+		return AuthorizationStatusNotRequired
+	}
+	if confirmed {
+		return AuthorizationStatusConfirmed
+	}
+	return AuthorizationStatusPending
 }

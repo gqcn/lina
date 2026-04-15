@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { VbenFormSchema } from '#/adapter/form';
 
-import { computed } from 'vue';
-
 import { z } from '@vben/common-ui';
 
 import { message } from 'ant-design-vue';
@@ -12,53 +10,51 @@ import { updateProfile } from '#/api/system/user';
 
 const emit = defineEmits<{ updated: [] }>();
 
-const formSchema = computed((): VbenFormSchema[] => {
-  return [
-    {
-      fieldName: 'oldPassword',
-      label: '旧密码',
-      component: 'VbenInputPassword',
-      componentProps: {
-        placeholder: '请输入旧密码',
-      },
-      rules: z
-        .string({ required_error: '请输入旧密码' })
-        .min(1, { message: '请输入旧密码' }),
+const formSchema: VbenFormSchema[] = [
+  {
+    fieldName: 'oldPassword',
+    label: '旧密码',
+    component: 'VbenInputPassword',
+    componentProps: {
+      placeholder: '请输入旧密码',
     },
-    {
-      fieldName: 'newPassword',
-      label: '新密码',
-      component: 'VbenInputPassword',
-      componentProps: {
-        passwordStrength: true,
-        placeholder: '请输入新密码',
-      },
-      rules: z
-        .string({ required_error: '请输入新密码' })
-        .min(5, { message: '密码长度至少5个字符' }),
+    rules: z
+      .string({ required_error: '请输入旧密码' })
+      .min(1, { message: '请输入旧密码' }),
+  },
+  {
+    fieldName: 'newPassword',
+    label: '新密码',
+    component: 'VbenInputPassword',
+    componentProps: {
+      passwordStrength: true,
+      placeholder: '请输入新密码',
     },
-    {
-      fieldName: 'confirmPassword',
-      label: '确认密码',
-      component: 'VbenInputPassword',
-      componentProps: {
-        placeholder: '请再次输入新密码',
-      },
-      dependencies: {
-        rules(values) {
-          const { newPassword } = values;
-          return z
-            .string({ required_error: '请再次输入新密码' })
-            .min(1, { message: '请再次输入新密码' })
-            .refine((value) => value === newPassword, {
-              message: '两次输入的密码不一致',
-            });
-        },
-        triggerFields: ['newPassword'],
-      },
+    rules: z
+      .string({ required_error: '请输入新密码' })
+      .min(5, { message: '密码长度至少5个字符' }),
+  },
+  {
+    fieldName: 'confirmPassword',
+    label: '确认密码',
+    component: 'VbenInputPassword',
+    componentProps: {
+      placeholder: '请再次输入新密码',
     },
-  ];
-});
+    dependencies: {
+      rules(values) {
+        const { newPassword } = values;
+        return z
+          .string({ required_error: '请再次输入新密码' })
+          .min(1, { message: '请再次输入新密码' })
+          .refine((value) => value === newPassword, {
+            message: '两次输入的密码不一致',
+          });
+      },
+      triggerFields: ['newPassword'],
+    },
+  },
+];
 
 function buttonLoading(loading: boolean) {
   formApi.setState({ submitButtonOptions: { loading } });

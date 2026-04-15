@@ -1,6 +1,5 @@
 // This file registers the lina_env host module on the wazero runtime and
-// implements the single host_call dispatch function that routes opcodes to
-// capability-specific handlers.
+// implements the single host_call dispatch function for structured host services.
 
 package wasm
 
@@ -37,9 +36,11 @@ func registerHostCallModule(ctx context.Context, rt wazero.Runtime) error {
 // guest memory via the lina_host_call_alloc export, and returns the packed
 // (pointer << 32 | length) result.
 func hostCallHandler(ctx context.Context, mod api.Module, stack []uint64) {
-	opcode := uint32(stack[0])
-	reqPtr := uint32(stack[1])
-	reqLen := uint32(stack[2])
+	var (
+		opcode = uint32(stack[0])
+		reqPtr = uint32(stack[1])
+		reqLen = uint32(stack[2])
+	)
 
 	// Extract per-request context.
 	hcc := hostCallContextFrom(ctx)
@@ -63,20 +64,13 @@ func hostCallHandler(ctx context.Context, mod api.Module, stack []uint64) {
 		reqBytes = copied
 	}
 
-	// Validate capability.
-	requiredCap := pluginbridge.OpcodeToCapability(opcode)
-	if requiredCap == "" {
+	if opcode != pluginbridge.OpcodeServiceInvoke {
 		stack[0] = writeHostCallError(ctx, mod, pluginbridge.HostCallStatusNotFound,
 			fmt.Sprintf("unknown host call opcode: 0x%04x", opcode))
 		return
 	}
-	if !hcc.hasCapability(requiredCap) {
-		stack[0] = writeHostCallError(ctx, mod, pluginbridge.HostCallStatusCapabilityDenied,
-			fmt.Sprintf("plugin %s lacks capability %s", hcc.pluginID, requiredCap))
-		return
-	}
 
-	// Dispatch to capability handler.
+	// Dispatch to structured host service handler.
 	respEnvelope := dispatchHostCall(ctx, hcc, opcode, reqBytes)
 
 	// Encode and write response to guest memory.
@@ -84,21 +78,11 @@ func hostCallHandler(ctx context.Context, mod api.Module, stack []uint64) {
 	stack[0] = writeHostCallResponse(ctx, mod, respBytes)
 }
 
-// dispatchHostCall routes the opcode to the correct capability handler.
+// dispatchHostCall routes the opcode to the correct structured host service handler.
 func dispatchHostCall(ctx context.Context, hcc *hostCallContext, opcode uint32, reqBytes []byte) *pluginbridge.HostCallResponseEnvelope {
 	switch opcode {
-	case pluginbridge.OpcodeLog:
-		return handleHostLog(ctx, hcc, reqBytes)
-	case pluginbridge.OpcodeStateGet:
-		return handleHostStateGet(ctx, hcc, reqBytes)
-	case pluginbridge.OpcodeStateSet:
-		return handleHostStateSet(ctx, hcc, reqBytes)
-	case pluginbridge.OpcodeStateDelete:
-		return handleHostStateDelete(ctx, hcc, reqBytes)
-	case pluginbridge.OpcodeDBQuery:
-		return handleHostDBQuery(ctx, hcc, reqBytes)
-	case pluginbridge.OpcodeDBExecute:
-		return handleHostDBExecute(ctx, hcc, reqBytes)
+	case pluginbridge.OpcodeServiceInvoke:
+		return handleHostServiceInvoke(ctx, hcc, reqBytes)
 	default:
 		return pluginbridge.NewHostCallErrorResponse(pluginbridge.HostCallStatusNotFound,
 			fmt.Sprintf("unhandled host call opcode: 0x%04x", opcode))

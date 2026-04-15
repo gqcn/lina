@@ -1,5 +1,5 @@
-// This file loads plugin backend declarations, converts published pluginhost
-// resource contracts, and dispatches generic plugin resource queries.
+// This file loads plugin backend declarations and dispatches generic plugin
+// resource queries.
 
 package integration
 
@@ -17,7 +17,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"lina-core/internal/service/plugin/internal/catalog"
-	"lina-core/pkg/pluginhost"
 )
 
 // pluginHookEventFieldExprPrefix is the prefix for event-field expressions in hook specs.
@@ -52,7 +51,6 @@ func (s *Service) LoadPluginBackendConfig(manifest *catalog.Manifest) error {
 	manifest.BackendResources = make(map[string]*catalog.ResourceSpec)
 
 	if manifest.SourcePlugin != nil {
-		manifest.BackendResources = s.convertSourcePluginResources(manifest.SourcePlugin.GetResources())
 		return nil
 	}
 
@@ -112,58 +110,8 @@ func loadPluginYAMLFile(filePath string, target interface{}) error {
 	return nil
 }
 
-// convertSourcePluginResources converts published pluginhost resource declarations to catalog specs.
-func (s *Service) convertSourcePluginResources(resources []*pluginhost.ResourceSpec) map[string]*catalog.ResourceSpec {
-	items := make(map[string]*catalog.ResourceSpec, len(resources))
-	for _, resource := range resources {
-		if resource == nil {
-			continue
-		}
-
-		fields := make([]*catalog.ResourceField, 0, len(resource.Fields))
-		for _, field := range resource.Fields {
-			if field == nil {
-				continue
-			}
-			fields = append(fields, &catalog.ResourceField{
-				Name:   field.Name,
-				Column: field.Column,
-			})
-		}
-
-		filters := make([]*catalog.ResourceQuery, 0, len(resource.Filters))
-		for _, filter := range resource.Filters {
-			if filter == nil {
-				continue
-			}
-			filters = append(filters, &catalog.ResourceQuery{
-				Param:    filter.Param,
-				Column:   filter.Column,
-				Operator: filter.Operator,
-			})
-		}
-
-		orderBy := catalog.ResourceOrderBySpec{}
-		if resource.OrderBy != nil {
-			orderBy = catalog.ResourceOrderBySpec{
-				Column:    resource.OrderBy.Column,
-				Direction: resource.OrderBy.Direction,
-			}
-		}
-
-		items[resource.Key] = &catalog.ResourceSpec{
-			Key:     resource.Key,
-			Type:    resource.Type,
-			Table:   resource.Table,
-			Fields:  fields,
-			Filters: filters,
-			OrderBy: orderBy,
-		}
-	}
-	return items
-}
-
-// ListResourceRecords queries plugin-owned backend resource rows using the generic source-plugin contract.
+// ListResourceRecords queries plugin-owned backend resource rows using the
+// generic plugin resource contract.
 func (s *Service) ListResourceRecords(ctx context.Context, in ResourceListInput) (*ResourceListOutput, error) {
 	manifest, err := s.catalogSvc.GetActiveManifest(ctx, in.PluginID)
 	if err != nil {

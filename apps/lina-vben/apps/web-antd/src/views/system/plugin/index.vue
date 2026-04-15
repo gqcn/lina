@@ -16,10 +16,15 @@ import {
   pluginUninstall,
 } from '#/api/system/plugin';
 import { notifyPluginRegistryChanged } from '#/plugins/slot-registry';
+import PluginHostServiceAuthModal from './plugin-host-service-auth-modal.vue';
 import PluginDynamicUploadModal from './plugin-dynamic-upload-modal.vue';
 
 const [DynamicUploadModal, dynamicUploadModalApi] = useVbenModal({
   connectedComponent: PluginDynamicUploadModal,
+});
+
+const [HostServiceAuthModal, hostServiceAuthModalApi] = useVbenModal({
+  connectedComponent: PluginHostServiceAuthModal,
 });
 
 const typeColorMap: Record<string, string> = {
@@ -159,6 +164,11 @@ async function handleStatusChange(row: SystemPlugin, checked: boolean) {
     message.warning('请先完成插件接入');
     return;
   }
+  if (checked && row.authorizationRequired === 1) {
+    hostServiceAuthModalApi.setData({ mode: 'enable', row });
+    hostServiceAuthModalApi.open();
+    return;
+  }
   await (checked ? pluginEnable : pluginDisable)(row.id);
   row.enabled = checked ? 1 : 0;
   await notifyPluginRegistryChanged();
@@ -166,6 +176,11 @@ async function handleStatusChange(row: SystemPlugin, checked: boolean) {
 }
 
 async function handleInstall(row: SystemPlugin) {
+  if (row.authorizationRequired === 1) {
+    hostServiceAuthModalApi.setData({ mode: 'install', row });
+    hostServiceAuthModalApi.open();
+    return;
+  }
   await pluginInstall(row.id);
   row.installed = 1;
   row.enabled = 0;
@@ -196,6 +211,11 @@ function handleOpenDynamicUpload() {
 }
 
 async function handleDynamicUploadReload() {
+  await notifyPluginRegistryChanged();
+  await gridApi.query();
+}
+
+async function handleHostServiceAuthReload() {
   await notifyPluginRegistryChanged();
   await gridApi.query();
 }
@@ -276,5 +296,6 @@ async function handleDynamicUploadReload() {
       </template>
     </Grid>
     <DynamicUploadModal @reload="handleDynamicUploadReload" />
+    <HostServiceAuthModal @reload="handleHostServiceAuthReload" />
   </Page>
 </template>

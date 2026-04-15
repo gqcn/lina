@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"lina-core/internal/service/plugin/internal/catalog"
 	"lina-core/internal/service/plugin/internal/runtime"
 	"lina-core/internal/service/plugin/internal/testutil"
 	"lina-core/pkg/pluginbridge"
@@ -52,13 +53,7 @@ func TestExecuteDynamicWasmBridgeReturnsGuestResponse(t *testing.T) {
 	testutil.EnsureBundledRuntimeSampleArtifactForTests(t)
 
 	services := testutil.NewServices()
-	repoRoot, err := testutil.FindRepoRoot(".")
-	if err != nil {
-		t.Fatalf("failed to resolve repo root: %v", err)
-	}
-
-	artifactPath := filepath.Join(repoRoot, "temp", "output", runtime.BuildArtifactFileName("plugin-demo-dynamic"))
-	manifest, err := services.Catalog.LoadManifestFromArtifactPath(artifactPath)
+	manifest, err := loadBundledDynamicSampleManifest(t, services)
 	if err != nil {
 		t.Fatalf("expected bundled runtime artifact to load, got error: %v", err)
 	}
@@ -106,4 +101,102 @@ func TestExecuteDynamicWasmBridgeReturnsGuestResponse(t *testing.T) {
 	if payload["authenticated"] != true {
 		t.Fatalf("expected guest payload authenticated=true, got %#v", payload)
 	}
+}
+
+func TestExecuteDynamicWasmBridgeHostCallDemoUsesStructuredHostServices(t *testing.T) {
+	testutil.EnsureBundledRuntimeSampleArtifactForTests(t)
+
+	services := testutil.NewServices()
+	manifest, err := loadBundledDynamicSampleManifest(t, services)
+	if err != nil {
+		t.Fatalf("expected bundled runtime artifact to load, got error: %v", err)
+	}
+
+	response, err := services.Runtime.ExecuteDynamicRoute(context.Background(), manifest, &pluginbridge.BridgeRequestEnvelopeV1{
+		PluginID:  "plugin-demo-dynamic",
+		RequestID: "req-host-call-demo",
+		Route: &pluginbridge.RouteMatchSnapshotV1{
+			InternalPath: "/host-call-demo",
+			PublicPath:   "/api/v1/extensions/plugin-demo-dynamic/host-call-demo",
+			Access:       pluginbridge.AccessLogin,
+			Permission:   "plugin-demo-dynamic:backend:view",
+			RequestType:  "HostCallDemoReq",
+			QueryValues: map[string][]string{
+				"skipNetwork": {"1"},
+			},
+		},
+		Identity: &pluginbridge.IdentitySnapshotV1{
+			UserID:       1,
+			Username:     "admin",
+			IsSuperAdmin: true,
+		},
+		Request: &pluginbridge.HTTPRequestSnapshotV1{
+			Method: http.MethodGet,
+		},
+	})
+	if err != nil {
+		t.Fatalf("expected host call demo execution to succeed, got error: %v", err)
+	}
+	if response == nil || response.StatusCode != http.StatusOK {
+		t.Fatalf("expected host call demo response 200, got %#v", response)
+	}
+
+	payload := map[string]interface{}{}
+	if err = json.Unmarshal(response.Body, &payload); err != nil {
+		t.Fatalf("expected host call demo body to be valid json, got error: %v", err)
+	}
+	if payload["pluginId"] != "plugin-demo-dynamic" {
+		t.Fatalf("expected pluginId to be preserved, got %#v", payload)
+	}
+	if payload["visitCount"] == nil {
+		t.Fatalf("expected visitCount to be returned, got %#v", payload)
+	}
+
+	runtimePayload, ok := payload["runtime"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected runtime payload object, got %#v full payload=%#v body=%s", payload["runtime"], payload, string(response.Body))
+	}
+	if runtimePayload["uuid"] == "" || runtimePayload["node"] == "" {
+		t.Fatalf("expected runtime payload to include uuid and node, got %#v", runtimePayload)
+	}
+
+	storagePayload, ok := payload["storage"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected storage payload object, got %#v", payload["storage"])
+	}
+	if storagePayload["pathPrefix"] != "host-call-demo/" {
+		t.Fatalf("expected storage pathPrefix host-call-demo/, got %#v", storagePayload)
+	}
+	if storagePayload["stored"] != true || storagePayload["deleted"] != true {
+		t.Fatalf("expected storage payload to confirm store/delete lifecycle, got %#v", storagePayload)
+	}
+
+	dataPayload, ok := payload["data"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data payload object, got %#v", payload["data"])
+	}
+	if dataPayload["table"] != "sys_plugin_node_state" {
+		t.Fatalf("expected data table sys_plugin_node_state, got %#v", dataPayload)
+	}
+	if dataPayload["updated"] != true || dataPayload["deleted"] != true {
+		t.Fatalf("expected data payload to confirm update/delete lifecycle, got %#v", dataPayload)
+	}
+
+	networkPayload, ok := payload["network"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected network payload object, got %#v", payload["network"])
+	}
+	if networkPayload["url"] != "https://example.com" {
+		t.Fatalf("expected network url https://example.com, got %#v", networkPayload)
+	}
+	if networkPayload["skipped"] != true {
+		t.Fatalf("expected network payload skipped=true during offline-safe test run, got %#v", networkPayload)
+	}
+}
+
+func loadBundledDynamicSampleManifest(t *testing.T, services *testutil.Services) (*catalog.Manifest, error) {
+	t.Helper()
+
+	artifactPath := filepath.Join(testutil.TestDynamicStorageDir(), runtime.BuildArtifactFileName("plugin-demo-dynamic"))
+	return services.Catalog.LoadManifestFromArtifactPath(artifactPath)
 }

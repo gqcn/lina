@@ -100,12 +100,7 @@ func (s *Service) loadManifestFromRelease(ctx context.Context, release *entity.S
 	if release == nil {
 		return nil, gerror.New("插件 release 不能为空")
 	}
-
-	packagePath, err := s.resolveReleasePackagePath(ctx, release)
-	if err != nil {
-		return nil, err
-	}
-	return s.catalogSvc.LoadManifestFromArtifactPath(packagePath)
+	return s.catalogSvc.LoadReleaseManifest(ctx, release)
 }
 
 // LoadActiveDynamicPluginManifest implements catalog.DynamicManifestLoader.

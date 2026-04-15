@@ -32,7 +32,7 @@ func (s *Service) SyncAndList(ctx context.Context) (*ListOutput, error) {
 		if syncErr != nil {
 			return nil, syncErr
 		}
-		items = append(items, s.runtimeSvc.BuildPluginItem(manifest, registry))
+		items = append(items, s.runtimeSvc.BuildPluginItem(ctx, manifest, registry))
 	}
 
 	runtimeItems, err := s.runtimeSvc.BuildRuntimeItems(ctx, covered)

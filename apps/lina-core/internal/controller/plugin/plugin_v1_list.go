@@ -23,18 +23,29 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListR
 	items := make([]*v1.PluginItem, 0, len(out.List))
 	for _, item := range out.List {
 		items = append(items, &v1.PluginItem{
-			Id:          item.Id,
-			Name:        item.Name,
-			Version:     item.Version,
-			Type:        item.Type,
-			Description: item.Description,
-			Installed:   item.Installed,
-			InstalledAt: item.InstalledAt,
-			Enabled:     item.Enabled,
-			StatusKey:   item.StatusKey,
-			UpdatedAt:   item.UpdatedAt,
+			Id:                     item.Id,
+			Name:                   item.Name,
+			Version:                item.Version,
+			Type:                   item.Type,
+			Description:            item.Description,
+			Installed:              item.Installed,
+			InstalledAt:            item.InstalledAt,
+			Enabled:                item.Enabled,
+			StatusKey:              item.StatusKey,
+			UpdatedAt:              item.UpdatedAt,
+			AuthorizationRequired:  boolToInt(item.AuthorizationRequired),
+			AuthorizationStatus:    string(item.AuthorizationStatus),
+			RequestedHostServices:  buildHostServicePermissionItems(item.RequestedHostServices),
+			AuthorizedHostServices: buildHostServicePermissionItems(item.AuthorizedHostServices),
 		})
 	}
 
 	return &v1.ListRes{List: items, Total: out.Total}, nil
+}
+
+func boolToInt(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
 }

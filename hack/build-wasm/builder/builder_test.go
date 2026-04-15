@@ -17,7 +17,7 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	mustWriteFile(
 		t,
 		filepath.Join(pluginDir, "plugin.yaml"),
-		"id: plugin-dynamic-builder\nname: Dynamic Builder\nversion: v0.1.0\ntype: dynamic\ndescription: standalone builder test\n",
+		"id: plugin-dynamic-builder\nname: Dynamic Builder\nversion: v0.1.0\ntype: dynamic\ndescription: standalone builder test\ncapabilities:\n  - host:runtime\nhostServices:\n  - service: runtime\n    methods:\n      - log.write\n      - state.get\n      - state.set\n",
 	)
 	mustWriteFile(
 		t,
@@ -42,7 +42,7 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	mustWriteFile(
 		t,
 		filepath.Join(pluginDir, "backend", "resources", "001-records.yaml"),
-		"key: records\ntype: table-list\ntable: plugin_runtime_records\nfields:\n  - name: id\n    column: id\norderBy:\n  column: id\n  direction: asc\ndataScope:\n  userColumn: owner_user_id\n",
+		"key: records\ntype: table-list\ntable: plugin_runtime_records\nfields:\n  - name: id\n    column: id\n  - name: status\n    column: status\nfilters:\n  - param: status\n    column: status\n    operator: eq\norderBy:\n  column: id\n  direction: asc\noperations:\n  - query\n  - get\n  - update\nkeyField: id\nwritableFields:\n  - status\naccess: both\ndataScope:\n  userColumn: owner_user_id\n",
 	)
 	mustWriteFile(
 		t,
@@ -117,6 +117,12 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	if len(resources) != 1 || resources[0].DataScope == nil || resources[0].DataScope.UserColumn != "owner_user_id" {
 		t.Fatalf("unexpected embedded resource specs: %#v", resources)
 	}
+	if resources[0].KeyField != "id" || len(resources[0].WritableFields) != 1 || resources[0].WritableFields[0] != "status" {
+		t.Fatalf("unexpected embedded resource write contract: %#v", resources[0])
+	}
+	if resources[0].Access != "both" || len(resources[0].Operations) != 3 || resources[0].Operations[1] != "query" {
+		t.Fatalf("unexpected embedded resource governance fields: %#v", resources[0])
+	}
 
 	var routes []*pluginbridge.RouteContract
 	if err = json.Unmarshal(sections[pluginDynamicWasmSectionBackendRoutes], &routes); err != nil {
@@ -133,6 +139,23 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	if !bridgeSpec.RouteExecution || bridgeSpec.RequestCodec != pluginbridge.CodecProtobuf {
 		t.Fatalf("unexpected embedded bridge spec: %#v", bridgeSpec)
 	}
+
+	var capabilities []string
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionBackendCapabilities], &capabilities); err != nil {
+		t.Fatalf("expected capabilities section json to unmarshal, got error: %v", err)
+	}
+	if len(capabilities) != 1 || capabilities[0] != pluginbridge.CapabilityRuntime {
+		t.Fatalf("unexpected embedded capabilities: %#v", capabilities)
+	}
+
+	var hostServices []*pluginbridge.HostServiceSpec
+	if err = json.Unmarshal(sections[pluginDynamicWasmSectionBackendHostServices], &hostServices); err != nil {
+		t.Fatalf("expected host services section json to unmarshal, got error: %v", err)
+	}
+	if len(hostServices) != 1 || hostServices[0].Service != pluginbridge.HostServiceRuntime {
+		t.Fatalf("unexpected embedded host services: %#v", hostServices)
+	}
+
 	if out.RuntimePath == "" {
 		t.Fatal("expected executable guest runtime path to be generated")
 	}
@@ -173,6 +196,39 @@ func TestBuildRuntimeWasmArtifactFromSourceFailsWhenEmbeddedResourcesOmitManifes
 	}
 	if !strings.Contains(err.Error(), "missing plugin.yaml") {
 		t.Fatalf("expected missing embedded manifest error, got %v", err)
+	}
+}
+
+func TestBuildRuntimeWasmArtifactFromSourceRejectsLegacyRawSQLCapability(t *testing.T) {
+	pluginDir := t.TempDir()
+
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "plugin.yaml"),
+		"id: plugin-dynamic-legacy-db\nname: Dynamic Legacy DB\nversion: v0.1.0\ntype: dynamic\ncapabilities:\n  - host:runtime\n  - host:db:query\nhostServices:\n  - service: runtime\n    methods:\n      - info.uuid\n",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "frontend", "pages", "standalone.html"),
+		"<!doctype html><html><body>legacy capability</body></html>",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "main.go"),
+		"package main\n\nfunc main() {}\n",
+	)
+	mustWriteFile(
+		t,
+		filepath.Join(pluginDir, "plugin_embed.go"),
+		"package main\n\nimport \"embed\"\n\n//go:embed plugin.yaml frontend\nvar EmbeddedFiles embed.FS\n",
+	)
+
+	_, err := BuildRuntimeWasmArtifactFromSource(pluginDir)
+	if err == nil {
+		t.Fatal("expected legacy raw SQL capability to be rejected")
+	}
+	if !strings.Contains(err.Error(), "host:db:query") {
+		t.Fatalf("expected legacy raw SQL capability error, got %v", err)
 	}
 }
 

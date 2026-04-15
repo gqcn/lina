@@ -98,6 +98,50 @@
 
 为了让 reviewer 能看到一个“不是抽象 JSON，而是实际资源文件”的动态样例，仓库提供了独立的 [plugin-demo-dynamic](/Users/john/Workspace/github/gqcn/lina/apps/lina-plugins/plugin-demo-dynamic/README.md) 插件目录。该目录现在直接以插件源码树作为作者侧真相源：`plugin_embed.go` 通过 `go:embed` 统一声明 `plugin.yaml`、`frontend/`、`manifest/` 等静态资源，`hack/build-wasm` 再把这些资源转换为宿主可治理的 Wasm 自定义节快照；标准仓库构建流程会把最终产物统一输出到仓库根 `temp/output/`，自动化测试会验证生成产物与明文源码保持一致。
 
+对于当前已经落地的宿主服务命名，插件作者可以直接按下面的心智模型理解：
+
+- `runtime`：日志、运行时状态、宿主时间与节点信息。
+- `storage`：按逻辑路径或路径前缀授权的对象/文件读写。
+- `network`：按 URL pattern 授权的出站 HTTP 请求。
+- `data`：按宿主确认授权的数据表执行结构化数据访问，而不是直接连接数据库。
+
+其中 `data` service 的能力命名已经固定为“两类 capability + 六个 method”：
+
+- `host:data:read`：表示数据读取类能力，对应 `list` 和 `get`
+- `host:data:mutate`：表示数据变更类能力，对应 `create`、`update`、`delete` 和 `transaction`
+- `list`：按过滤条件分页查询多条记录
+- `get`：按主键或唯一键读取单条记录
+
+当前不再对动态插件暴露 `host:data:query`、raw SQL、通用 SQL 执行接口或数据库直连能力。插件若需要访问宿主数据，必须在 `plugin.yaml` 中通过 `hostServices` 声明 `service: data`、所需 `methods` 以及 `resources.tables`，再由宿主在安装/启用时确认最终授权。
+
+作者侧清单建议补充两条约束：
+
+- `plugin.yaml` 中本迭代新增的 `capabilities`、`hostServices`、`resources.paths`、`resources.tables`、URL pattern 等字段，应在样例里提供就地注释说明，避免 reviewers 需要跳回文档对照理解。
+- guest 后端的控制器应保持轻量，复杂业务逻辑统一放在 `backend/internal/service/<component>/` 中维护，控制器只负责桥接请求上下文与响应装配。
+
+对于 guest 侧的实际编码方式，当前推荐优先使用 `lina-core/pkg/plugindb` 提供的受限 ORM 风格 facade，而不是继续直接调用底层 `pluginbridge.Data()` helper。推荐心智模型如下：
+
+```go
+db := plugindb.Open()
+
+records, total, err := db.Table("sys_plugin_node_state").
+    Fields("id", "nodeKey", "currentState").
+    WhereEq("pluginId", pluginID).
+    WhereLike("nodeKey", "demo-").
+    WhereIn("currentState", []string{"pending", "running"}).
+    OrderDesc("id").
+    Page(1, 10).
+    All()
+```
+
+约束如下：
+
+- `plugindb` 只提供单表、受治理、结构化的数据访问体验；
+- 首期开放的高层过滤操作主要包括 `WhereEq`、`WhereIn`、`WhereLike`，排序包括 `OrderAsc`、`OrderDesc`；
+- `Update`、`Delete` 默认要求通过 `WhereKey(...)` 指定目标记录；
+- `Transaction(...)` 当前只支持单表结构化 mutation；
+- 底层仍然通过宿主 `data` hostService 执行，不会向插件暴露完整 `gdb.DB`、`gdb.Model` 或宿主 DAO。
+
 当前约定如下：
 
 - `apps/lina-plugins/<plugin-id>/` 仅作为动态样例插件的明文源码与构建输入目录，不再作为宿主运行时发现入口。

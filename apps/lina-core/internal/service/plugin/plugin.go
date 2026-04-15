@@ -41,6 +41,12 @@ type (
 
 	// PluginDynamicStateItem represents public runtime state of one plugin.
 	PluginDynamicStateItem = runtime.PluginDynamicStateItem
+
+	// HostServiceAuthorizationInput defines one install/enable authorization confirmation payload.
+	HostServiceAuthorizationInput = catalog.HostServiceAuthorizationInput
+
+	// HostServiceAuthorizationDecision narrows one authorized service snapshot.
+	HostServiceAuthorizationDecision = catalog.HostServiceAuthorizationDecision
 )
 
 // GetDynamicRouteOperLogMetadata returns dynamic-route operation-log metadata from the request.

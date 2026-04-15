@@ -21,6 +21,39 @@ export interface SystemPlugin {
   enabled: number;
   statusKey: string;
   updatedAt: string;
+  authorizationRequired: number;
+  authorizationStatus: 'confirmed' | 'not_required' | 'pending' | string;
+  requestedHostServices?: HostServicePermissionItem[];
+  authorizedHostServices?: HostServicePermissionItem[];
+}
+
+export interface HostServicePermissionItem {
+  service: string;
+  methods: string[];
+  paths?: string[];
+  tables?: string[];
+  resources?: HostServicePermissionResourceItem[];
+}
+
+export interface HostServicePermissionResourceItem {
+  ref: string;
+  allowMethods?: string[];
+  headerAllowList?: string[];
+  timeoutMs?: number;
+  maxBodyBytes?: number;
+  attributes?: Record<string, string>;
+}
+
+export interface PluginAuthorizationPayload {
+  authorization?: {
+    services: Array<{
+      methods?: string[];
+      paths?: string[];
+      resourceRefs?: string[];
+      tables?: string[];
+      service: string;
+    }>;
+  };
 }
 
 export interface PluginDynamicState {

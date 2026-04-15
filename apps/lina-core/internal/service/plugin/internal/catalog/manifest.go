@@ -192,6 +192,7 @@ func (s *Service) loadRuntimeManifestFromArtifact(artifactPath string) (*Manifes
 		Routes:           artifact.RouteContracts,
 		BridgeSpec:       artifact.BridgeSpec,
 		HostCapabilities: pluginbridge.CapabilitySliceToMap(artifact.Capabilities),
+		HostServices:     pluginbridge.NormalizeHostServiceSpecs(artifact.HostServices),
 		RuntimeArtifact:  artifact,
 	}
 	if err = s.ValidateUploadedRuntimeManifest(manifest); err != nil {

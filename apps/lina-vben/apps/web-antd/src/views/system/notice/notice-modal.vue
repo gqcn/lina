@@ -31,6 +31,7 @@ const defaultValues: FormData = {
 
 const isEdit = computed(() => !!formData.value.id);
 const formData = ref<FormData>({ ...defaultValues });
+const title = computed(() => (isEdit.value ? '编辑通知公告' : '新增通知公告'));
 
 const formRules = reactive({
   title: [{ message: '请输入公告标题', required: true }],
@@ -47,7 +48,6 @@ const { validate, validateInfos, resetFields } = Form.useForm(
 const [Modal, modalApi] = useVbenModal({
   class: 'w-[800px]',
   fullscreenButton: true,
-  title: computed(() => (isEdit.value ? '编辑通知公告' : '新增通知公告')),
   onConfirm: handleConfirm,
   onOpenChange: async (isOpen: boolean) => {
     if (!isOpen) return;
@@ -105,7 +105,7 @@ async function handleConfirm() {
 </script>
 
 <template>
-  <Modal>
+  <Modal :title="title">
     <Form layout="vertical">
       <FormItem label="公告标题" v-bind="validateInfos.title">
         <Input

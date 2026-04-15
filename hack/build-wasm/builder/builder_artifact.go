@@ -111,6 +111,13 @@ func buildRuntimeArtifactContent(
 		}
 		content = appendWasmCustomSection(content, pluginDynamicWasmSectionBackendCapabilities, payload)
 	}
+	if len(manifest.HostServices) > 0 {
+		payload, err := json.Marshal(manifest.HostServices)
+		if err != nil {
+			return nil, err
+		}
+		content = appendWasmCustomSection(content, pluginDynamicWasmSectionBackendHostServices, payload)
+	}
 	return content, nil
 }
 

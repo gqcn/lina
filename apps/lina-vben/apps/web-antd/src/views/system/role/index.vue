@@ -109,9 +109,9 @@ async function handleDelete(row: Role) {
 }
 
 function handleMultiDelete() {
-  const rows = tableApi.grid?.getCheckboxRecords?.() ?? [];
+  const rows = (tableApi.grid?.getCheckboxRecords?.() ?? []) as Role[];
   if (rows.length === 0) return;
-  const ids = rows.map((row: Role) => row.id);
+  const ids = rows.map((row) => row.id);
   Modal.confirm({
     title: '提示',
     okType: 'danger',

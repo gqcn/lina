@@ -12,6 +12,28 @@ import (
 
 // Install executes the install lifecycle for a discovered dynamic plugin.
 func (s *Service) Install(ctx context.Context, pluginID string) error {
+	return s.InstallWithAuthorization(ctx, pluginID, nil)
+}
+
+// InstallWithAuthorization executes the install lifecycle and persists the host-confirmed
+// host service authorization snapshot when the target is a dynamic plugin.
+func (s *Service) InstallWithAuthorization(
+	ctx context.Context,
+	pluginID string,
+	authorization *HostServiceAuthorizationInput,
+) error {
+	manifest, err := s.catalogSvc.GetDesiredManifest(pluginID)
+	if err != nil {
+		return err
+	}
+	if catalog.NormalizeType(manifest.Type) == catalog.TypeDynamic {
+		if _, err = s.catalogSvc.SyncManifest(ctx, manifest); err != nil {
+			return err
+		}
+		if _, err = s.catalogSvc.PersistReleaseHostServiceAuthorization(ctx, manifest, authorization); err != nil {
+			return err
+		}
+	}
 	return s.lifecycleSvc.Install(ctx, pluginID)
 }
 
@@ -22,6 +44,17 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 
 // UpdateStatus updates plugin status, where status is 1=enabled and 0=disabled.
 func (s *Service) UpdateStatus(ctx context.Context, pluginID string, status int) error {
+	return s.UpdateStatusWithAuthorization(ctx, pluginID, status, nil)
+}
+
+// UpdateStatusWithAuthorization updates plugin status and optionally persists one
+// host-confirmed host service authorization snapshot before enabling a dynamic plugin.
+func (s *Service) UpdateStatusWithAuthorization(
+	ctx context.Context,
+	pluginID string,
+	status int,
+	authorization *HostServiceAuthorizationInput,
+) error {
 	if status != catalog.StatusDisabled && status != catalog.StatusEnabled {
 		return gerror.New("插件状态仅支持0或1")
 	}
@@ -45,6 +78,14 @@ func (s *Service) UpdateStatus(ctx context.Context, pluginID string, status int)
 		return gerror.New("插件未安装")
 	}
 	if catalog.NormalizeType(manifest.Type) == catalog.TypeDynamic {
+		if status == catalog.StatusEnabled {
+			if _, err = s.catalogSvc.SyncManifest(ctx, manifest); err != nil {
+				return err
+			}
+			if _, err = s.catalogSvc.PersistReleaseHostServiceAuthorization(ctx, manifest, authorization); err != nil {
+				return err
+			}
+		}
 		targetState := catalog.HostStateInstalled.String()
 		if status == catalog.StatusEnabled {
 			targetState = catalog.HostStateEnabled.String()
@@ -56,7 +97,7 @@ func (s *Service) UpdateStatus(ctx context.Context, pluginID string, status int)
 
 // Enable enables the specified plugin.
 func (s *Service) Enable(ctx context.Context, pluginID string) error {
-	return s.UpdateStatus(ctx, pluginID, catalog.StatusEnabled)
+	return s.UpdateStatusWithAuthorization(ctx, pluginID, catalog.StatusEnabled, nil)
 }
 
 // Disable disables the specified plugin.
