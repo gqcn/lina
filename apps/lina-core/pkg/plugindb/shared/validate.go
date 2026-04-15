@@ -1,4 +1,5 @@
 // This file validates typed plugindb query plans and mutation payloads.
+
 package shared
 
 import (

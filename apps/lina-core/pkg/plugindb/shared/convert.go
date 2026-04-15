@@ -1,5 +1,6 @@
 // This file provides JSON conversion helpers used by plugindb plans and
 // builders.
+
 package shared
 
 import (

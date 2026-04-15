@@ -1,6 +1,7 @@
 //go:build !wasip1
 
 // This file provides non-wasm stubs for the plugindb guest facade.
+
 package plugindb
 
 import (

@@ -1,6 +1,7 @@
 //go:build wasip1
 
 // This file implements the governed plugindb execution path for wasm guests.
+
 package plugindb
 
 import (

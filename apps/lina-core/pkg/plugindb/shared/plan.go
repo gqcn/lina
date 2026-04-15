@@ -1,5 +1,6 @@
 // This file defines the typed plugindb query-plan model shared by guest and
 // host implementations.
+
 package shared
 
 // DataQueryPlan represents one governed single-table data request.

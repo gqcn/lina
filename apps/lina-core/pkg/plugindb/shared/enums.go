@@ -1,5 +1,6 @@
-// Package shared defines the typed query-plan model shared by plugindb guest
-// helpers and host-side execution components.
+// This file defines the typed plugindb enums shared by guest builders and
+// host-side execution components.
+
 package shared
 
 import (

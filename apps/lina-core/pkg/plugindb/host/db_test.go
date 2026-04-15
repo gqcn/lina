@@ -1,5 +1,6 @@
 // This file tests host-side plugindb DB wrapper and DoCommit governance
 // interception.
+
 package host
 
 import (

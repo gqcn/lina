@@ -90,3 +90,4 @@
 - [x] **FB-30**: 将动态插件作者侧 manifest 与 runtime artifact 收敛为仅声明`hostServices`，移除顶层`capabilities`作者输入与产物自定义节，宿主内部 capability 分类改为从`hostServices.methods`自动推导。
 - [x] **FB-31**: 将动态插件样例、guest SDK 与相关测试 fixture 中新增或维护的错误创建统一改为`gerror`，并为关键失败分支补充上下文包装说明。
 - [x] **FB-32**: 将插件生命周期 facade 的安装与状态切换公开 API 进一步收敛为单一入口（通过可空授权参数表达是否附带授权确认），并审查同类重复包装点，仅保留真正有语义价值的快捷方法。
+- [x] **FB-33**: 按项目 Go 文件注释规范修正`apps/lina-core/pkg/plugindb`及其子包源码文件头，确保主文件与非主文件的注释职责、空行位置和文件用途说明一致。

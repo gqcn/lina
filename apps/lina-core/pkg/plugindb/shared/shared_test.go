@@ -1,4 +1,5 @@
 // This file tests typed plugindb enum validation and plan helper behavior.
+
 package shared
 
 import "testing"

@@ -1,4 +1,5 @@
-// Package host provides reusable host-side plugindb governance helpers.
+// This file defines host-side plugindb audit context propagation helpers.
+
 package host
 
 import (

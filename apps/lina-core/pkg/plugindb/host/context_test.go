@@ -1,4 +1,5 @@
 // This file tests host-side plugindb audit context propagation helpers.
+
 package host
 
 import (
