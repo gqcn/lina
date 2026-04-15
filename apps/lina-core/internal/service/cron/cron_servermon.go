@@ -1,3 +1,5 @@
+// This file registers the periodic server monitor collector job.
+
 package cron
 
 import (
@@ -14,7 +16,7 @@ func (s *Service) startServerMonitor(ctx context.Context) {
 	s.serverMonSvc.CollectAndStore(ctx)
 
 	// Then collect periodically via gcron
-	cronPattern := fmt.Sprintf("*/%d * * * * *", s.monCfg.IntervalSeconds)
+	cronPattern := fmt.Sprintf("@every %dns", s.monCfg.Interval.Nanoseconds())
 	_, err := gcron.Add(ctx, cronPattern, func(ctx context.Context) {
 		s.serverMonSvc.CollectAndStore(ctx)
 	}, CronServerMonitorCollector)

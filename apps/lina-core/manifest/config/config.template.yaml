@@ -31,20 +31,20 @@ database:
 jwt:
   # JWT 签名密钥
   secret: "lina-jwt-secret-key-change-in-production"
-  # Token 有效期（小时）
-  expireHour: 24
+  # Token 有效期（duration 字符串）
+  expire: 24h
 
 # 在线会话配置
 session:
-  # 会话无活动超时时间（小时）
-  timeoutHour: 24
-  # 会话清理任务执行间隔（分钟）
-  cleanupMinute: 5
+  # 会话无活动超时时间（duration 字符串）
+  timeout: 24h
+  # 会话清理任务执行间隔（duration 字符串）
+  cleanupInterval: 5m
 
 # 服务监控配置
 monitor:
-  # 服务指标采集间隔（秒）
-  intervalSeconds: 30
+  # 服务指标采集间隔（duration 字符串）
+  interval: 30s
 
 # 集群部署配置
 cluster:

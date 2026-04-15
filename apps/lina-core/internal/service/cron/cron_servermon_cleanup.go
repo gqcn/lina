@@ -1,3 +1,5 @@
+// This file registers the stale server-monitor cleanup job.
+
 package cron
 
 import (
@@ -14,7 +16,7 @@ import (
 // This is a primary-only job, only executed on the primary node in clustered mode.
 func (s *Service) startServerMonitorCleanup(ctx context.Context) {
 	// Calculate stale threshold: interval * multiplier
-	staleThreshold := time.Duration(s.monCfg.IntervalSeconds*s.monCfg.RetentionMultiplier) * time.Second
+	staleThreshold := s.monCfg.Interval * time.Duration(s.monCfg.RetentionMultiplier)
 
 	_, err := gcron.Add(ctx, "# * * * * *", func(ctx context.Context) {
 		if !s.IsPrimary() {

@@ -1,3 +1,5 @@
+// This file implements the online-session storage abstraction backed by MySQL.
+
 package session
 
 import (
@@ -50,8 +52,8 @@ type Store interface {
 	// TouchOrValidate updates last_active_time for the given tokenId.
 	// Returns true if the session exists (affected rows > 0), false otherwise.
 	TouchOrValidate(ctx context.Context, tokenId string) (bool, error)
-	// CleanupInactive deletes sessions whose last_active_time exceeds the given timeout hours.
-	CleanupInactive(ctx context.Context, timeoutHours int) (int64, error)
+	// CleanupInactive deletes sessions whose last_active_time exceeds the given timeout duration.
+	CleanupInactive(ctx context.Context, timeout time.Duration) (int64, error)
 }
 
 // DBStore implements Store using MySQL MEMORY engine table.
@@ -235,8 +237,8 @@ func (s *DBStore) TouchOrValidate(ctx context.Context, tokenId string) (bool, er
 }
 
 // CleanupInactive removes sessions inactive longer than the configured threshold.
-func (s *DBStore) CleanupInactive(ctx context.Context, timeoutHours int) (int64, error) {
-	cutoff := gtime.Now().Add(-time.Duration(timeoutHours) * time.Hour)
+func (s *DBStore) CleanupInactive(ctx context.Context, timeout time.Duration) (int64, error) {
+	cutoff := gtime.Now().Add(-timeout)
 	result, err := dao.SysOnlineSession.Ctx(ctx).
 		WhereLT(dao.SysOnlineSession.Columns().LastActiveTime, cutoff).
 		Delete()

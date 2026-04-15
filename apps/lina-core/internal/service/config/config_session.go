@@ -1,23 +1,26 @@
+// This file defines online-session configuration loading and duration migration.
+
 package config
 
 import (
 	"context"
-
-	"github.com/gogf/gf/v2/frame/g"
+	"time"
 )
 
 // SessionConfig holds session management configuration.
 type SessionConfig struct {
-	TimeoutHour   int `json:"timeoutHour"`   // Session timeout (hours)
-	CleanupMinute int `json:"cleanupMinute"` // Cleanup interval (minutes)
+	Timeout         time.Duration `json:"timeout"`         // Timeout is the inactivity threshold for one session.
+	CleanupInterval time.Duration `json:"cleanupInterval"` // CleanupInterval is the cleanup job execution interval.
 }
 
 // GetSession reads session config from configuration file.
 func (s *Service) GetSession(ctx context.Context) *SessionConfig {
 	cfg := &SessionConfig{
-		TimeoutHour:   24,
-		CleanupMinute: 5,
+		Timeout:         24 * time.Hour,
+		CleanupInterval: 5 * time.Minute,
 	}
-	_ = g.Cfg().MustGet(ctx, "session").Scan(cfg)
+	cfg.Timeout = mustLoadDurationConfig(ctx, "session.timeout", cfg.Timeout)
+	cfg.CleanupInterval = mustLoadDurationConfig(ctx, "session.cleanupInterval", cfg.CleanupInterval)
+	cfg.CleanupInterval = mustValidateSecondAlignedDuration("session.cleanupInterval", cfg.CleanupInterval)
 	return cfg
 }

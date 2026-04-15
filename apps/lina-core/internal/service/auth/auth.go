@@ -263,7 +263,7 @@ func (s *Service) generateToken(ctx context.Context, user *entity.SysUser) (stri
 		Username: user.Username,
 		Status:   user.Status,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(jwtCfg.ExpireHour) * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(jwtCfg.Expire)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}

@@ -341,8 +341,8 @@ func (s *Service) resolveAccessCacheTTL(ctx context.Context) time.Duration {
 	}
 
 	var (
-		jwtTTL     = time.Duration(maxInt(s.configSvc.GetJwt(ctx).ExpireHour, 1)) * time.Hour
-		sessionTTL = time.Duration(maxInt(s.configSvc.GetSession(ctx).TimeoutHour, 1)) * time.Hour
+		jwtTTL     = s.configSvc.GetJwt(ctx).Expire
+		sessionTTL = s.configSvc.GetSession(ctx).Timeout
 	)
 	if sessionTTL < jwtTTL {
 		return sessionTTL
@@ -368,12 +368,4 @@ func cloneUserAccessContext(access *UserAccessContext) *UserAccessContext {
 		Permissions:  append([]string(nil), access.Permissions...),
 		IsSuperAdmin: access.IsSuperAdmin,
 	}
-}
-
-// maxInt returns the positive value or a fallback when configuration provides zero.
-func maxInt(value int, fallback int) int {
-	if value > 0 {
-		return value
-	}
-	return fallback
 }
