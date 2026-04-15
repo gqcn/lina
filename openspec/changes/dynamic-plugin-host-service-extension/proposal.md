@@ -8,8 +8,8 @@
 
 - 在现有`lina_env.host_call`基础上，引入“稳定 ABI ＋ 结构化宿主服务”的扩展模型，后续敏感能力统一走宿主服务注册表，而不是继续线性增加离散 opcode。
 - 为动态插件新增结构化的`hostServices`声明，用于描述插件要访问的宿主服务、方法、资源引用或数据表范围以及治理参数；宿主内部粗粒度 capability 分类由这些声明自动推导，不再要求作者重复维护顶层`capabilities`。
-- 对所有资源型 hostServices 采用“声明即申请，安装/启用时由宿主确认授权”的治理模型；其中`storage`服务直接声明逻辑路径或路径前缀`resources.paths`，`network`服务直接声明 URL 模式，`data`服务在`resources`节点下以`tables`声明数据表申请，其余低优先级服务继续沿用逻辑`resourceRef`规划；宿主在安装或启用阶段展示、确认并固化最终授权快照。
-- 本迭代按优先级分两层推进宿主服务：高优先级先完成`runtime`、存储／文件、出站网络、数据访问四类能力；低优先级继续纳入缓存、锁、密钥、事件、队列和通知能力。
+- 对所有资源型 hostServices 采用“声明即申请，安装/启用时由宿主确认授权”的治理模型；其中`storage`服务直接声明逻辑路径或路径前缀`resources.paths`，`network`服务直接声明 URL 模式，`data`服务在`resources`节点下以`tables`声明数据表申请，其余低优先级服务（`cache`、`lock`、`notify`）继续沿用逻辑`resourceRef`规划；宿主在安装或启用阶段展示、确认并固化最终授权快照。
+- 本迭代按优先级分两层推进宿主服务：高优先级先完成`runtime`、存储／文件、出站网络、数据访问四类能力；低优先级继续纳入缓存、锁和通知能力。
 - 当前已实现的`host:log`、`host:state`、`host:db:*`只作为现状参考，不构成兼容约束；宿主可以直接重构为统一宿主服务模型。
 - 将宿主服务调用的上下文透传、资源授权、限流／限额、审计记录和错误模型纳入动态插件运行时治理，并补齐 guest SDK、样例插件和自动化测试。
 
@@ -23,9 +23,6 @@
 - `plugin-data-service`：定义动态插件的数据访问能力、表级授权、数据范围注入与事务边界。
 - `plugin-cache-service`：定义动态插件的宿主缓存访问能力、命名缓存空间和 TTL 治理。
 - `plugin-lock-service`：定义动态插件的宿主锁能力、锁资源绑定和续租／释放约束。
-- `plugin-secret-service`：定义动态插件的宿主密钥解析能力、凭证引用和脱敏边界。
-- `plugin-event-service`：定义动态插件的宿主事件发布能力、主题绑定和投递约束。
-- `plugin-queue-service`：定义动态插件的宿主队列投递能力、队列绑定和异步任务边界。
 - `plugin-notify-service`：定义动态插件的宿主通知能力、通知通道绑定和模板治理。
 
 ### Modified Capabilities

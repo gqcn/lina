@@ -24,19 +24,19 @@
 - **THEN** 对`storage`服务，插件只声明稳定的逻辑路径或路径前缀`resources.paths`
 - **AND** 对`network`服务，插件只声明 URL 模式列表
 - **AND** 对`data`服务，插件在`resources`节点下声明需要访问的表名列表`tables`
-- **AND** 对`cache`、`lock`、`secret`、`event`、`queue`和`notify`等低优先级服务，当前仍可继续使用逻辑`resourceRef`规划
+- **AND** 对`cache`、`lock`和`notify`等低优先级服务，当前仍可继续使用逻辑`resourceRef`规划
 - **AND** 插件清单不得固化数据库连接、宿主文件绝对路径、缓存地址或密钥明文
 - **AND** 真实资源绑定由宿主安装流程或管理员配置完成
 
 ### Requirement: 宿主服务资源申请纳入插件治理资源索引
 
-系统 SHALL 将动态插件声明的宿主服务资源申请统一纳入`sys_plugin_resource_ref`治理资源索引；该表用于承载 release 级别的插件治理资源投影，而不只是镜像某个名为`resourceRef`的作者侧字段。对`storage`记录逻辑路径申请，对`network`记录 URL 模式申请，对`data`记录表名申请，对其他低优先级服务继续记录逻辑资源引用。
+系统 SHALL 将动态插件声明的宿主服务资源申请统一纳入`sys_plugin_resource_ref`治理资源索引；该表用于承载 release 级别的插件治理资源投影，而不只是镜像某个名为`resourceRef`的作者侧字段。对`storage`记录逻辑路径申请，对`network`记录 URL 模式申请，对`data`记录表名申请，对`cache`、`lock`、`notify`等低优先级服务继续记录逻辑资源引用。
 
 #### Scenario: 安装或升级动态插件同步治理资源索引
 
 - **WHEN** 宿主安装或升级一个声明了宿主服务资源的动态插件
 - **THEN** 宿主将这些资源申请同步为插件资源归属记录
-- **AND** 资源类型能够区分`host-storage`、`host-upstream`、`host-data-table`、`host-cache`、`host-lock`、`host-secret`、`host-event-topic`、`host-queue`和`host-notify-channel`
+- **AND** 资源类型能够区分`host-storage`、`host-upstream`、`host-data-table`、`host-cache`、`host-lock`和`host-notify-channel`
 - **AND** 这些记录可以参与审计、卸载和回滚治理
 
 #### Scenario: 卸载或回滚动态插件更新治理资源索引

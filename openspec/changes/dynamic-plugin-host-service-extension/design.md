@@ -174,7 +174,7 @@ hostServices:
 
 | 分层 | 交互方式 | 适用能力 | 说明 |
 | --- | --- | --- | --- |
-| 通用服务调用 | `service invoke`统一 envelope，同步请求／响应 | `runtime`、`storage`、`network`、`data`、`cache`、`lock`、`secret`、`event`、`queue`、`notify` | 所有宿主能力统一走这一层 |
+| 通用服务调用 | `service invoke`统一 envelope，同步请求／响应 | `runtime`、`storage`、`network`、`data`、`cache`、`lock`、`notify` | 所有宿主能力统一走这一层 |
 | 隐式上下文注入 | 不暴露独立 hostcall，由 bridge 或执行器注入 | 用户身份、数据范围、当前路由、Hook 元数据、deadline | 这些信息是运行时上下文，不应被建模成宿主资源操作 |
 
 其中：
@@ -210,9 +210,6 @@ hostServices:
 | --- | --- | --- | --- | --- | --- |
 | `cache` | `host:cache` | `get`、`set`、`delete`、`incr`、`expire` | `both` | `host-cache` | 很多插件需要短期缓存，但不应直接拿 Redis 客户端 |
 | `lock` | `host:lock` | `acquire`、`renew`、`release` | `system-bound`优先 | `host-lock` | 可复用宿主现有分布式锁能力，避免插件自行实现并发协调 |
-| `secret` | `host:secret` | `resolve` | `both` | `host-secret` | 插件需要访问上游凭证时，不应直接读取宿主配置文件 |
-| `event` | `host:event:publish` | `publish` | `both` | `host-event-topic` | 用于发布业务事件，而不是让插件自己做内部回调广播 |
-| `queue` | `host:queue:enqueue` | `enqueue` | `both` | `host-queue` | 适合长耗时任务异步化，避免在同步路由内阻塞 |
 | `notify` | `host:notify` | `send` | `both` | `host-notify-channel` | 为插件提供站内信、邮件、Webhook 等统一通知出口 |
 
 ##### D. 明确不提供的能力
@@ -229,7 +226,7 @@ hostServices:
 
 #### 4.3 宿主逻辑资源与绑定模型
 
-结构化宿主服务的治理对象，不是单独一个`service`名称，而是`service + method + governed target`的组合。对`storage`，governed target 是逻辑`path`；对`network`，governed target 是`URL pattern`；对`data`，governed target 是`table`；对`cache`、`lock`、`secret`、`event`、`queue`和`notify`等低优先级服务，governed target 仍暂按逻辑`resourceRef`规划。所有这些声明统一视为权限申请。真实资源绑定与最终授权由宿主管理员、安装流程或平台预置配置完成，并以当前 release 快照为准。
+结构化宿主服务的治理对象，不是单独一个`service`名称，而是`service + method + governed target`的组合。对`storage`，governed target 是逻辑`path`；对`network`，governed target 是`URL pattern`；对`data`，governed target 是`table`；对`cache`、`lock`和`notify`等低优先级服务，governed target 仍暂按逻辑`resourceRef`规划。所有这些声明统一视为权限申请。真实资源绑定与最终授权由宿主管理员、安装流程或平台预置配置完成，并以当前 release 快照为准。
 
 | 资源类型 | 对应 service | 插件侧逻辑引用示例 | 宿主实际绑定对象 | 核心治理字段 |
 | --- | --- | --- | --- | --- |
@@ -238,14 +235,11 @@ hostServices:
 | `host-data-table` | `data` | `sys_plugin_node_state` | 宿主确认授权的数据表 | 可执行操作、表级审计、数据范围、事务边界 |
 | `host-cache` | `cache` | `ticket-cache` | Redis namespace 或宿主缓存空间 | TTL、key 前缀、容量限制、淘汰策略 |
 | `host-lock` | `lock` | `ticket-lock` | 分布式锁命名空间 | 租期、续租上限、持有者约束、竞争策略 |
-| `host-secret` | `secret` | `crm-credential` | 密钥条目、派生令牌、临时凭证 | 可暴露字段、脱敏策略、有效期、审计等级 |
-| `host-event-topic` | `event` | `ticket-events` | 宿主事件主题 | 消息 schema、大小限制、投递策略 |
-| `host-queue` | `queue` | `ticket-jobs` | 宿主任务队列 | payload 限制、重试策略、并发度、死信策略 |
 | `host-notify-channel` | `notify` | `ops-mail` | 站内信通道、邮件通道、Webhook 目标 | 模板约束、速率限制、接收者范围 |
 
 统一绑定流程如下：
 
-1. 插件在`plugin.yaml`中声明自己依赖哪些受治理目标；对`storage`是逻辑`path`，对`network`是`URL pattern`，对`data`是`table`，对其他低优先级服务仍是逻辑`resourceRef`，这些声明统一表示权限申请；
+1. 插件在`plugin.yaml`中声明自己依赖哪些受治理目标；对`storage`是逻辑`path`，对`network`是`URL pattern`，对`data`是`table`，对`cache`、`lock`、`notify`等低优先级服务仍是逻辑`resourceRef`，这些声明统一表示权限申请；
 2. 构建器只校验声明是否合法，不在 guest 侧固化真实物理资源地址，也不把声明视为已授权；
 3. 宿主在安装或启用插件时向管理员展示申请的 service／method／目标标识（`path`、`URL pattern`、`resourceRef`或`table`）及治理参数，并允许批准、收窄或拒绝；
 4. 宿主把最终确认结果绑定到真实受治理资源，并形成当前 release 的授权快照；
@@ -276,7 +270,7 @@ hostServices:
 
 这一组能力必须同时具备以下特征：
 
-- 有清晰的`resourceRef`绑定；
+- 有清晰的受治理目标绑定；
 - 能被宿主审计；
 - 能根据请求型／系统型上下文做差异化校验；
 - 失败时不会污染宿主主流程。
@@ -287,9 +281,6 @@ hostServices:
 
 - `cache`
 - `lock`
-- `secret`
-- `event`
-- `queue`
 - `notify`
 
 这一组能力之所以在本迭代一并纳入规划，是因为很多复杂插件会直接提出这些需求。若只做“未来预留”而不进入本轮任务管理，后续很容易再次出现范围漂移和协议临时扩展。
@@ -308,15 +299,12 @@ hostServices:
 | `data` | `plugindb.Open().Table(...).WhereEq/WhereIn/WhereLike(...).Page(...).All/One/Count/Insert/Update/Delete/Transaction(...)` |
 | `cache` | `pluginbridge.Cache().Get/Set/Delete/Incr(...)` |
 | `lock` | `pluginbridge.Lock().Acquire/Renew/Release(...)` |
-| `secret` | `pluginbridge.Secret().Resolve(...)` |
-| `event` | `pluginbridge.Event().Publish(...)` |
-| `queue` | `pluginbridge.Queue().Enqueue(...)` |
 | `notify` | `pluginbridge.Notify().Send(...)` |
 
 其中：
 
 - 本迭代必须先实现`runtime`、`storage`、`network`、`data`四组高优先级 SDK；
-- `cache`、`lock`、`secret`、`event`、`queue`、`notify`六组 SDK 作为低优先级能力跟进实现。
+- `cache`、`lock`、`notify`三组 SDK 作为低优先级能力跟进实现。
 - `runtime`、`storage`和`network`首期继续由`pluginbridge`直接暴露高层 helper；`data`则新增`pkg/plugindb`作为推荐入口，通过更接近 GoFrame ORM 的链式 API 降低插件开发者的学习成本。
 
 ### 决策五：首批扩展能力分三组落地，且全部走逻辑资源而不是底层系统对象
@@ -400,7 +388,7 @@ hostServices:
 治理原则：
 
 - 插件只声明自己要访问的 URL 模式，例如`https://*.example.com/api`。
-- 所有`host-upstream`、`host-storage`、`host-data-table`、`host-cache`、`host-lock`、`host-secret`、`host-event-topic`、`host-queue`和`host-notify-channel`都遵循同一规则：插件声明的是权限申请，真正授权在安装／启用阶段确认。
+- 所有`host-upstream`、`host-storage`、`host-data-table`、`host-cache`、`host-lock`和`host-notify-channel`都遵循同一规则：插件声明的是权限申请，真正授权在安装／启用阶段确认。
 - 一旦宿主确认授权某个 URL 模式，插件即可直接对命中的 URL 发起 HTTP 请求，不需要再声明方法白名单、头白名单或独立的上游引用名。
 - 宿主仍保留平台级默认保护，例如受保护 hop-by-hop 头过滤、默认 timeout 与默认响应体限制，但这些不再作为插件声明参数。
 
@@ -634,9 +622,6 @@ query plan 的核心收益是：
 - `host-data-table`
 - `host-cache`
 - `host-lock`
-- `host-secret`
-- `host-event-topic`
-- `host-queue`
 - `host-notify-channel`
 
 这样做的好处：
@@ -667,7 +652,7 @@ query plan 的核心收益是：
 
 ## Risks / Trade-offs
 
-- [风险] 一次性把十类宿主能力全部纳入迭代，可能导致交付顺序失控。→ Mitigation：明确分成高优先级四类和低优先级六类，任务顺序和验收顺序都以前四类为前置。
+- [风险] 一次性把七类宿主能力全部纳入迭代，可能导致交付顺序失控。→ Mitigation：明确分成高优先级四类和低优先级三类，任务顺序和验收顺序都以前四类为前置。
 - [风险] 数据服务若设计得过于理想化，落地时可能与真实插件诉求脱节。→ Mitigation：首批样例直接走结构化`data` service，必要时补充命名查询和命令模型，但不回退到 raw SQL 协议。
 - [风险] 文件和网络能力天然敏感，容易越权。→ Mitigation：必须同时做“由`hostServices`推导出的 capability 校验”、`hostServices`策略校验、`resourceRef`/`table`/URL pattern 授权校验和上下文校验，任何一层不满足都拒绝执行。
 - [风险] 宿主服务元数据如果只存在清单或只存在数据库，会形成双真相。→ Mitigation：以运行时产物内嵌快照作为 release 真相源，数据库只保存治理投影和审计记录。
@@ -682,7 +667,7 @@ query plan 的核心收益是：
 5. 在`data`能力上新增`pkg/plugindb/shared`强类型枚举与 query plan 模型，以及`pkg/plugindb`受限 ORM 风格 guest SDK。
 6. 将`data service`当前自定义 Driver / DB wrapper 与审计上下文能力上提到`pkg/plugindb/host`，形成宿主可复用治理层。
 7. 更新动态插件样例、开发文档和自动化测试，将`plugindb.Open()`作为主路径，并验证授权成功、授权拒绝、事务边界和资源限制场景。
-8. 在前四类核心能力稳定后，继续实现`cache`、`lock`、`secret`、`event`、`queue`、`notify`六类低优先级宿主服务。
+8. 在前四类核心能力稳定后，继续实现`cache`、`lock`、`notify`三类低优先级宿主服务。
 
 ## Open Questions
 

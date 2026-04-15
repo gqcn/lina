@@ -9,7 +9,7 @@
 
 - [x] 2.1 扩展动态插件`plugin.yaml`与构建器，支持`hostServices`声明和静态校验。
 - [x] 2.2 将宿主服务治理快照写入`wasm`自定义节，并在运行时产物解析链路中恢复。
-- [x] 2.3 扩展`sys_plugin_resource_ref`同步逻辑，统一纳入存储、上游、数据表授权投影、缓存、锁、密钥、事件主题、队列和通知通道等治理目标。
+- [x] 2.3 扩展`sys_plugin_resource_ref`同步逻辑，统一纳入存储、上游、数据表授权投影、缓存、锁和通知通道等治理目标。
 - [x] 2.4 为 manifest／artifact 校验和资源归属同步补充治理测试。
 
 ## 3. 首批宿主服务实现
@@ -38,11 +38,8 @@
 
 - [ ] 5.1 实现`cache` service，支持命名缓存空间的`get`、`set`、`delete`、`incr`和`expire`能力。
 - [ ] 5.2 实现`lock` service，支持命名锁资源的`acquire`、`renew`和`release`能力。
-- [ ] 5.3 实现`secret` service，支持密钥引用解析和最小暴露控制。
-- [ ] 5.4 实现`event` service，支持命名事件主题的`publish`能力。
-- [ ] 5.5 实现`queue` service，支持命名队列的`enqueue`能力。
-- [ ] 5.6 实现`notify` service，支持命名通知通道的`send`能力。
-- [ ] 5.7 为`cache`、`lock`、`secret`、`event`、`queue`、`notify`补充宿主授权、限额和审计测试。
+- [ ] 5.3 实现`notify` service，支持命名通知通道的`send`能力。
+- [ ] 5.4 为`cache`、`lock`、`notify`补充宿主授权、限额和审计测试。
 
 ## 6. E2E 验证
 
@@ -53,7 +50,7 @@
 - [x] 6.5 创建`hack/tests/e2e/plugin/TC0073-plugin-host-service-authorization-review.ts`。
 - [x] 6.6 实现`TC-73a~c`：安装与启用弹窗展示申请权限，并持久化最终授权结果。
 - [ ] 6.7 创建`hack/tests/e2e/plugin/TC0072-runtime-wasm-host-services-low-priority.ts`。
-- [ ] 6.8 实现`TC-72a`：已授权的`cache`、`lock`、`secret`、`event`、`queue`、`notify`宿主服务调用成功。
+- [ ] 6.8 实现`TC-72a`：已授权的`cache`、`lock`、`notify`宿主服务调用成功。
 - [ ] 6.9 实现`TC-72b`：低优先级宿主服务在未授权资源或超限场景下被宿主拒绝。
 
 ## Feedback
@@ -97,3 +94,4 @@
 - [x] **FB-37**: 为 data hostService 授权展示补充数据表的人类可读说明（优先展示宿主表注释），同步更新安装/启用授权弹窗与`TC0073`回归覆盖。
 - [x] **FB-38**: 收敛`apps/lina-core/internal/service/plugin/internal/integration/resource_ref.go`中散落的稳定治理标识与重复文案硬编码，统一为常量和辅助构造函数，降低后续维护成本。
 - [x] **FB-39**: 继续收敛插件治理与动态路由权限菜单相关实现中的稳定状态键前缀、节点同步消息和菜单类型/remark 标识硬编码，统一复用`catalog`共享常量与辅助方法。
+- [x] **FB-40**: 收缩当前 OpenSpec 迭代的低优先级 hostService 规划范围，移除`secret`、`event`、`queue`相关任务与规范文档。

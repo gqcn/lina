@@ -43,11 +43,11 @@
 
 ### Requirement: 资源型宿主服务声明属于权限申请而非自动授权
 
-系统 SHALL 将所有资源型 hostServices 声明解释为权限申请清单，而不是插件在运行时自动拥有的资源访问权；其中`storage`当前使用`resources.paths`，`network`使用 URL 模式，`data`当前使用`resources.tables`，其余低优先级服务继续沿用逻辑`resourceRef`规划。
+系统 SHALL 将所有资源型 hostServices 声明解释为权限申请清单，而不是插件在运行时自动拥有的资源访问权；其中`storage`当前使用`resources.paths`，`network`使用 URL 模式，`data`当前使用`resources.tables`，其余低优先级服务（`cache`、`lock`、`notify`）继续沿用逻辑`resourceRef`规划。
 
 #### Scenario: 清单声明宿主服务资源申请
 
-- **WHEN** 开发者在动态插件清单中声明`storage.resources.paths`、`network`的 URL 模式、`data.resources.tables`，或声明其他低优先级服务的逻辑`resourceRef`
+- **WHEN** 开发者在动态插件清单中声明`storage.resources.paths`、`network`的 URL 模式、`data.resources.tables`，或声明`cache`、`lock`、`notify`等低优先级服务的逻辑`resourceRef`
 - **THEN** 这些声明表示插件申请对应宿主资源权限
 - **AND** 声明本身不得直接视为运行时已授权结果
 
