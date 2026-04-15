@@ -8,7 +8,7 @@ import (
 
 // DetailReq defines the request for querying file detail.
 type DetailReq struct {
-	g.Meta `path:"/file/detail/{id}" method:"get" tags:"文件管理" summary:"获取文件详情" dc:"根据文件ID查询文件完整详细信息，包括文件基本信息、上传者名称和使用场景"`
+	g.Meta `path:"/file/detail/{id}" method:"get" tags:"文件管理" summary:"获取文件详情" dc:"根据文件ID查询文件完整详细信息，包括文件基本信息、上传者名称和使用场景" permission:"system:file:query"`
 	Id     int64 `json:"id" v:"required" dc:"文件ID" eg:"1"`
 }
 

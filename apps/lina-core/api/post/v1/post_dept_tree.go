@@ -6,7 +6,7 @@ import (
 
 // DeptTreeReq defines the request for querying the post department tree.
 type DeptTreeReq struct {
-	g.Meta `path:"/post/dept-tree" method:"get" tags:"岗位管理" summary:"获取岗位筛选部门树" dc:"获取部门树结构数据，用于岗位列表页面按部门筛选岗位，每个节点包含部门下的岗位数量"`
+	g.Meta `path:"/post/dept-tree" method:"get" tags:"岗位管理" summary:"获取岗位筛选部门树" dc:"获取部门树结构数据，用于岗位列表页面按部门筛选岗位，每个节点包含部门下的岗位数量" permission:"system:post:query"`
 }
 
 // DeptTreeRes is the response for department tree

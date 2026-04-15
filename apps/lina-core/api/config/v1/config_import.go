@@ -8,7 +8,7 @@ import (
 
 // ConfigImportReq defines the request for importing configs.
 type ConfigImportReq struct {
-	g.Meta `path:"/config/import" method:"post" mime:"multipart/form-data" tags:"参数设置" summary:"导入参数设置" dc:"通过Excel文件批量导入参数设置数据，需使用系统提供的导入模板"`
+	g.Meta `path:"/config/import" method:"post" mime:"multipart/form-data" tags:"参数设置" summary:"导入参数设置" dc:"通过Excel文件批量导入参数设置数据，需使用系统提供的导入模板" permission:"system:config:add"`
 }
 
 // ConfigImportRes is the response structure for config import.
@@ -26,7 +26,7 @@ type ConfigImportFailItem struct {
 
 // ConfigImportTemplateReq defines the request for downloading import template.
 type ConfigImportTemplateReq struct {
-	g.Meta `path:"/config/import-template" method:"get" tags:"参数设置" summary:"下载参数设置导入模板" dc:"下载参数设置导入Excel模板文件，包含必填字段和数据格式说明"`
+	g.Meta `path:"/config/import-template" method:"get" tags:"参数设置" summary:"下载参数设置导入模板" dc:"下载参数设置导入Excel模板文件，包含必填字段和数据格式说明" permission:"system:config:add"`
 }
 
 // ConfigImportTemplateRes is the response for template download.

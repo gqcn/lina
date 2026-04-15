@@ -6,7 +6,7 @@ import (
 
 // UpdateReq defines the request for updating a user.
 type UpdateReq struct {
-	g.Meta   `path:"/user/{id}" method:"put" tags:"用户管理" summary:"更新用户" dc:"更新指定用户的信息，所有字段均为可选更新，仅传入需要修改的字段即可"`
+	g.Meta   `path:"/user/{id}" method:"put" tags:"用户管理" summary:"更新用户" dc:"更新指定用户的信息，所有字段均为可选更新，仅传入需要修改的字段即可" permission:"system:user:edit"`
 	Id       int     `json:"id" v:"required" dc:"用户ID" eg:"1"`
 	Username *string `json:"username" dc:"用户名" eg:"zhangsan"`
 	Password *string `json:"password" dc:"密码（为空则不修改）" eg:"newpass123"`

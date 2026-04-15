@@ -10,10 +10,6 @@ import (
 
 // List scans plugins and returns current synchronized status list.
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
-	if err = c.requirePermission(ctx, pluginManagementPermissionQuery); err != nil {
-		return nil, err
-	}
-
 	out, err := c.pluginSvc.List(ctx, pluginsvc.ListInput{
 		ID:        req.Id,
 		Name:      req.Name,

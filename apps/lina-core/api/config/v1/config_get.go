@@ -10,7 +10,7 @@ import (
 
 // GetReq defines the request for getting config detail by ID.
 type GetReq struct {
-	g.Meta `path:"/config/{id}" method:"get" tags:"参数设置" summary:"获取参数设置详情" dc:"根据参数ID获取参数设置的详细信息"`
+	g.Meta `path:"/config/{id}" method:"get" tags:"参数设置" summary:"获取参数设置详情" dc:"根据参数ID获取参数设置的详细信息" permission:"system:config:query"`
 	Id     int `json:"id" v:"required" dc:"参数ID" eg:"1"`
 }
 

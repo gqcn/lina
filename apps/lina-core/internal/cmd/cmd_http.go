@@ -1,3 +1,6 @@
+// This file wires the host HTTP server, static API route groups, dynamic plugin
+// routes, and frontend asset serving.
+
 package cmd
 
 import (
@@ -57,7 +60,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 	var (
 		middlewareSvc = middleware.New()
 		authCtrl      = auth.NewV1()
-		pluginPublic  = pluginctrl.NewPublicV1(clusterSvc)
+		pluginCtrl    = pluginctrl.NewV1(clusterSvc)
 	)
 
 	var (
@@ -107,7 +110,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 		group.Group("/", func(group *ghttp.RouterGroup) {
 			group.Bind(
 				authCtrl.Login,
-				pluginPublic,
+				pluginCtrl.DynamicList,
 			)
 		})
 
@@ -116,6 +119,7 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 			group.Middleware(
 				middlewareSvc.Auth,
 				middlewareSvc.OperLog,
+				middlewareSvc.Permission,
 			)
 			group.Bind(
 				authCtrl.Logout,
@@ -133,7 +137,14 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 				filectrl.NewV1(),
 				monitorctrl.NewV1(),
 				configctrl.NewV1(),
-				pluginctrl.NewV1(clusterSvc),
+				pluginCtrl.List,
+				pluginCtrl.Sync,
+				pluginCtrl.Install,
+				pluginCtrl.UploadDynamicPackage,
+				pluginCtrl.Enable,
+				pluginCtrl.Disable,
+				pluginCtrl.Uninstall,
+				pluginCtrl.ResourceList,
 			)
 		})
 

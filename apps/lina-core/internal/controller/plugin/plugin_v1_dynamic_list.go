@@ -1,3 +1,6 @@
+// This file exposes the public dynamic plugin runtime-state endpoint on the
+// shared plugin controller.
+
 package plugin
 
 import (
@@ -7,7 +10,7 @@ import (
 )
 
 // DynamicList returns public dynamic-plugin states for shell slot rendering.
-func (c *PublicControllerV1) DynamicList(ctx context.Context, req *v1.DynamicListReq) (res *v1.DynamicListRes, err error) {
+func (c *ControllerV1) DynamicList(ctx context.Context, req *v1.DynamicListReq) (res *v1.DynamicListRes, err error) {
 	out, err := c.pluginSvc.ListRuntimeStates(ctx)
 	if err != nil {
 		return nil, err

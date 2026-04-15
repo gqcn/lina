@@ -8,7 +8,7 @@ import (
 
 // OnlineForceLogout forces online user to logout
 func (c *ControllerV1) OnlineForceLogout(ctx context.Context, req *v1.OnlineForceLogoutReq) (res *v1.OnlineForceLogoutRes, err error) {
-	if err = c.sessionStore().Delete(ctx, req.TokenId); err != nil {
+	if err = c.authSvc.RevokeSession(ctx, req.TokenId); err != nil {
 		return nil, err
 	}
 	return &v1.OnlineForceLogoutRes{}, nil

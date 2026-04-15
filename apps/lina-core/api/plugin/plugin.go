@@ -1,3 +1,5 @@
+// Package plugin defines plugin API route contracts for plugin management and
+// public runtime state queries.
 package plugin
 
 import (
@@ -8,6 +10,8 @@ import (
 
 // IPluginV1 defines plugin management APIs.
 type IPluginV1 interface {
+	// DynamicList returns public dynamic-plugin states for slot rendering.
+	DynamicList(ctx context.Context, req *v1.DynamicListReq) (res *v1.DynamicListRes, err error)
 	// List returns discovered plugins and synchronized status.
 	List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error)
 	// Sync scans source plugin manifests and synchronizes registry metadata.

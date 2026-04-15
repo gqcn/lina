@@ -8,7 +8,7 @@ import (
 
 // UpdateReq defines the request for updating a notice.
 type UpdateReq struct {
-	g.Meta  `path:"/notice/{id}" method:"put" tags:"通知公告" summary:"更新通知公告" dc:"更新指定通知公告的信息，所有字段均为可选更新"`
+	g.Meta  `path:"/notice/{id}" method:"put" tags:"通知公告" summary:"更新通知公告" dc:"更新指定通知公告的信息，所有字段均为可选更新" permission:"system:notice:edit"`
 	Id      int64   `json:"id" v:"required" dc:"公告ID" eg:"1"`
 	Title   *string `json:"title" dc:"公告标题" eg:"系统维护通知（更新）"`
 	Type    *int    `json:"type" dc:"公告类型：1=通知 2=公告" eg:"1"`

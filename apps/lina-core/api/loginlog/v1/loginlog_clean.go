@@ -8,7 +8,7 @@ import (
 
 // CleanReq defines the request for clearing login logs.
 type CleanReq struct {
-	g.Meta    `path:"/loginlog/clean" method:"delete" tags:"登录日志" summary:"清空登录日志" dc:"清空指定时间范围内的登录日志，不传时间则清空全部"`
+	g.Meta    `path:"/loginlog/clean" method:"delete" tags:"登录日志" summary:"清空登录日志" dc:"清空指定时间范围内的登录日志，不传时间则清空全部" permission:"monitor:loginlog:clear"`
 	BeginTime string `json:"beginTime" dc:"清理起始时间" eg:"2025-01-01"`
 	EndTime   string `json:"endTime" dc:"清理截止时间" eg:"2025-06-30"`
 }

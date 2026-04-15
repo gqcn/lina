@@ -10,7 +10,7 @@ import (
 
 // ListReq defines the request for querying config list.
 type ListReq struct {
-	g.Meta    `path:"/config" method:"get" tags:"参数设置" summary:"获取参数设置列表" dc:"分页查询参数设置列表，支持按参数名称、参数键名模糊匹配，以及按创建时间范围筛选"`
+	g.Meta    `path:"/config" method:"get" tags:"参数设置" summary:"获取参数设置列表" dc:"分页查询参数设置列表，支持按参数名称、参数键名模糊匹配，以及按创建时间范围筛选" permission:"system:config:query"`
 	PageNum   int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`
 	PageSize  int    `json:"pageSize" d:"10" v:"min:1|max:100" dc:"每页条数" eg:"10"`
 	Name      string `json:"name" dc:"按参数名称筛选（模糊匹配），不传则查询全部" eg:"主框架页"`

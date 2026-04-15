@@ -46,6 +46,7 @@ func registerRoutes(ctx context.Context, registrar pluginhost.RouteRegistrar) er
 			group.Middleware(
 				middlewares.Auth(),
 				middlewares.OperLog(),
+				middlewares.Permission(),
 			)
 			group.Bind(demoController.Summary)
 		})

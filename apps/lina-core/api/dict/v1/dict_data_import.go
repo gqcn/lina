@@ -8,7 +8,7 @@ import (
 
 // DataImportReq defines the request for importing dictionary data.
 type DataImportReq struct {
-	g.Meta `path:"/dict/data/import" method:"post" mime:"multipart/form-data" tags:"字典管理" summary:"导入字典数据" dc:"通过Excel文件批量导入字典数据，需使用系统提供的导入模板"`
+	g.Meta `path:"/dict/data/import" method:"post" mime:"multipart/form-data" tags:"字典管理" summary:"导入字典数据" dc:"通过Excel文件批量导入字典数据，需使用系统提供的导入模板" permission:"system:dict:add"`
 }
 
 // DataImportRes is the response structure for dictionary data import.
@@ -26,7 +26,7 @@ type DataImportFailItem struct {
 
 // DataImportTemplateReq defines the request for downloading import template.
 type DataImportTemplateReq struct {
-	g.Meta `path:"/dict/data/import-template" method:"get" tags:"字典管理" summary:"下载字典数据导入模板" dc:"下载字典数据导入Excel模板文件，包含必填字段和数据格式说明"`
+	g.Meta `path:"/dict/data/import-template" method:"get" tags:"字典管理" summary:"下载字典数据导入模板" dc:"下载字典数据导入Excel模板文件，包含必填字段和数据格式说明" permission:"system:dict:add"`
 }
 
 // DataImportTemplateRes is the response for template download.

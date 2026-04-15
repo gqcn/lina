@@ -6,7 +6,7 @@ import (
 
 // CreateReq defines the request for creating a menu.
 type CreateReq struct {
-	g.Meta     `path:"/menu" method:"post" tags:"菜单管理" summary:"创建菜单" dc:"创建新菜单，支持目录、菜单、按钮三种类型。菜单名称在同一父级下不能重复"`
+	g.Meta     `path:"/menu" method:"post" tags:"菜单管理" summary:"创建菜单" dc:"创建新菜单，支持目录、菜单、按钮三种类型。菜单名称在同一父级下不能重复" permission:"system:menu:add"`
 	ParentId   int    `json:"parentId" d:"0" dc:"父菜单ID（0=根菜单）" eg:"0"`
 	Name       string `json:"name" v:"required" dc:"菜单名称（支持i18n格式如 menu.system.user）" eg:"用户管理"`
 	Path       string `json:"path" dc:"路由地址（目录和菜单类型必填）" eg:"user"`

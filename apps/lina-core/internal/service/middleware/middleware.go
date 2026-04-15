@@ -11,6 +11,7 @@ import (
 	"lina-core/internal/service/bizctx"
 	"lina-core/internal/service/operlog"
 	pluginsvc "lina-core/internal/service/plugin"
+	"lina-core/internal/service/role"
 	"lina-core/internal/service/session"
 	"lina-core/pkg/pluginhost"
 )
@@ -21,6 +22,7 @@ type Service struct {
 	bizCtxSvc  *bizctx.Service    // Business context service
 	operLogSvc *operlog.Service   // Operation log service
 	pluginSvc  *pluginsvc.Service // Plugin service
+	roleSvc    *role.Service      // Role and permission service
 }
 
 // New creates and returns a new Service instance.
@@ -30,6 +32,7 @@ func New() *Service {
 		bizCtxSvc:  bizctx.New(),
 		operLogSvc: operlog.New(),
 		pluginSvc:  pluginsvc.New(),
+		roleSvc:    role.New(),
 	}
 }
 
@@ -51,6 +54,7 @@ func (s *Service) PublishedRouteMiddlewares() pluginhost.RouteMiddlewares {
 		s.Ctx,
 		s.Auth,
 		s.OperLog,
+		s.Permission,
 	)
 }
 
@@ -90,6 +94,7 @@ func (s *Service) Auth(r *ghttp.Request) {
 	// Update last active time and validate session exists (supports forced logout and timeout cleanup)
 	exists, err := s.authSvc.SessionStore().TouchOrValidate(r.Context(), claims.TokenId)
 	if err != nil || !exists {
+		s.roleSvc.InvalidateTokenAccessContext(r.Context(), claims.TokenId)
 		r.Response.WriteStatus(http.StatusUnauthorized)
 		return
 	}

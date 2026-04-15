@@ -9,19 +9,28 @@ import (
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
+	"lina-core/internal/service/bizctx"
+	"lina-core/internal/service/config"
+	"lina-core/internal/service/kvcache"
 	pluginsvc "lina-core/internal/service/plugin"
 	"lina-core/pkg/logger"
 )
 
 // Service provides role management operations.
 type Service struct {
-	pluginSvc *pluginsvc.Service // plugin service
+	bizCtxSvc  *bizctx.Service    // Business context service
+	configSvc  *config.Service    // Configuration service
+	kvCacheSvc *kvcache.Service   // Distributed KV cache service
+	pluginSvc  *pluginsvc.Service // plugin service
 }
 
 // New creates and returns a new Service instance.
 func New() *Service {
 	return &Service{
-		pluginSvc: pluginsvc.New(),
+		bizCtxSvc:  bizctx.New(),
+		configSvc:  config.New(),
+		kvCacheSvc: kvcache.New(),
+		pluginSvc:  pluginsvc.New(),
 	}
 }
 
@@ -225,6 +234,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	s.NotifyAccessTopologyChanged(ctx)
 
 	return int(roleId), nil
 }
@@ -260,7 +270,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	}
 
 	// Use transaction
-	return dao.SysRole.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+	err = dao.SysRole.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		// Update role
 		data := do.SysRole{
 			Name: in.Name,
@@ -308,6 +318,11 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	s.NotifyAccessTopologyChanged(ctx)
+	return nil
 }
 
 // Delete deletes a role.
@@ -319,7 +334,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	}
 
 	// Use transaction
-	return dao.SysRole.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+	err = dao.SysRole.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		// Delete role-menu associations
 		rmCols := dao.SysRoleMenu.Columns()
 		_, err = dao.SysRoleMenu.Ctx(ctx).
@@ -348,6 +363,11 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	s.NotifyAccessTopologyChanged(ctx)
+	return nil
 }
 
 // UpdateStatus updates role status.
@@ -362,7 +382,11 @@ func (s *Service) UpdateStatus(ctx context.Context, id int, status int) error {
 		Where(do.SysRole{Id: id}).
 		Data(do.SysRole{Status: status}).
 		Update()
-	return err
+	if err != nil {
+		return err
+	}
+	s.NotifyAccessTopologyChanged(ctx)
+	return nil
 }
 
 // OptionItem represents a role option.
@@ -544,6 +568,7 @@ func (s *Service) AssignUsers(ctx context.Context, roleId int, userIds []int) er
 		}
 	}
 
+	s.NotifyAccessTopologyChanged(ctx)
 	return nil
 }
 
@@ -560,7 +585,11 @@ func (s *Service) UnassignUser(ctx context.Context, roleId int, userId int) erro
 		Where(urCols.RoleId, roleId).
 		Where(urCols.UserId, userId).
 		Delete()
-	return err
+	if err != nil {
+		return err
+	}
+	s.NotifyAccessTopologyChanged(ctx)
+	return nil
 }
 
 // UnassignUsers removes multiple users from a role.
@@ -576,7 +605,11 @@ func (s *Service) UnassignUsers(ctx context.Context, roleId int, userIds []int) 
 		Where(urCols.RoleId, roleId).
 		WhereIn(urCols.UserId, userIds).
 		Delete()
-	return err
+	if err != nil {
+		return err
+	}
+	s.NotifyAccessTopologyChanged(ctx)
+	return nil
 }
 
 // checkNameUnique checks if the role name is unique.
@@ -665,7 +698,7 @@ func (s *Service) GetUserMenuIds(ctx context.Context, userId int) ([]int, error)
 	return s.getUserMenuIdsByRoleIds(ctx, roleIds)
 }
 
-// GetUserPermissions returns permission strings for a user.
+// GetUserPermissions returns effective menu and button permission strings for a user.
 func (s *Service) GetUserPermissions(ctx context.Context, userId int) ([]string, error) {
 	menuIds, err := s.GetUserMenuIds(ctx, userId)
 	if err != nil {

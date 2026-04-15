@@ -19,7 +19,7 @@ type GetInfoRes struct {
 	Roles       []string    `json:"roles" dc:"用户角色标识列表" eg:"['admin','user']"`
 	HomePath    string      `json:"homePath" dc:"首页路径" eg:"/dashboard"`
 	Menus       []*MenuTree `json:"menus" dc:"用户菜单树，用于前端动态路由生成" eg:"[]"`
-	Permissions []string    `json:"permissions" dc:"用户权限标识列表，用于按钮级权限控制" eg:"['system:user:add','system:user:edit']"`
+	Permissions []string    `json:"permissions" dc:"用户有效权限标识列表，包含菜单权限与按钮权限，用于接口声明权限校验和按钮级权限控制" eg:"['system:user:list','system:user:add','system:user:edit']"`
 }
 
 // MenuTree represents a menu node in the user menu tree.

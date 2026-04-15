@@ -8,7 +8,7 @@ import (
 
 // ListReq defines the request for querying the file list.
 type ListReq struct {
-	g.Meta         `path:"/file" method:"get" tags:"文件管理" summary:"获取文件列表" dc:"分页查询文件列表，支持按文件名、原始名、后缀、上传时间范围筛选，支持按文件大小和上传时间排序"`
+	g.Meta         `path:"/file" method:"get" tags:"文件管理" summary:"获取文件列表" dc:"分页查询文件列表，支持按文件名、原始名、后缀、上传时间范围筛选，支持按文件大小和上传时间排序" permission:"system:file:query"`
 	PageNum        int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`
 	PageSize       int    `json:"pageSize" d:"10" v:"min:1|max:100" dc:"每页条数" eg:"10"`
 	Name           string `json:"name" dc:"按存储文件名筛选（模糊匹配）" eg:"20260319"`

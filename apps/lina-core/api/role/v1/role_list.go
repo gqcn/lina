@@ -6,7 +6,7 @@ import (
 
 // RoleListReq is the request structure for role list query.
 type RoleListReq struct {
-	g.Meta `path:"/role" method:"get" summary:"查询角色列表" tags:"角色管理" dc:"分页查询角色列表，支持按角色名称、权限字符、状态等条件筛选"`
+	g.Meta `path:"/role" method:"get" summary:"查询角色列表" tags:"角色管理" dc:"分页查询角色列表，支持按角色名称、权限字符、状态等条件筛选" permission:"system:role:query"`
 	Name   string `json:"name" dc:"角色名称，模糊查询" eg:"管理员"`
 	Key    string `json:"key" dc:"权限字符，模糊查询" eg:"admin"`
 	Status int    `json:"status" dc:"状态筛选：1=正常 0=停用，不传则查询全部" eg:"1"`

@@ -6,7 +6,7 @@ import "github.com/gogf/gf/v2/frame/g"
 
 // ServerMonitorReq defines the request for retrieving server metrics.
 type ServerMonitorReq struct {
-	g.Meta   `path:"/monitor/server" method:"get" tags:"系统监控" summary:"服务监控" dc:"查询服务器监控数据，返回各节点最新的CPU、内存、磁盘、网络、Go运行时等指标信息"`
+	g.Meta   `path:"/monitor/server" method:"get" tags:"系统监控" summary:"服务监控" dc:"查询服务器监控数据，返回各节点最新的CPU、内存、磁盘、网络、Go运行时等指标信息" permission:"monitor:server:list"`
 	NodeName string `json:"nodeName" dc:"按节点名称过滤，不传则返回所有节点" eg:"my-server"`
 }
 

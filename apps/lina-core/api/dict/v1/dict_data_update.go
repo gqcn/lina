@@ -6,7 +6,7 @@ import (
 
 // DataUpdateReq defines the request for updating dictionary data.
 type DataUpdateReq struct {
-	g.Meta   `path:"/dict/data/{id}" method:"put" tags:"字典管理" summary:"更新字典数据" dc:"更新指定字典数据项的信息"`
+	g.Meta   `path:"/dict/data/{id}" method:"put" tags:"字典管理" summary:"更新字典数据" dc:"更新指定字典数据项的信息" permission:"system:dict:edit"`
 	Id       int     `json:"id" v:"required" dc:"字典数据ID" eg:"1"`
 	DictType *string `json:"dictType" dc:"所属字典类型标识" eg:"sys_user_sex"`
 	Label    *string `json:"label" dc:"字典标签（显示名称）" eg:"男"`

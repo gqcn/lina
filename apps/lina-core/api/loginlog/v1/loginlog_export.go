@@ -8,7 +8,7 @@ import (
 
 // ExportReq defines the request for exporting login logs.
 type ExportReq struct {
-	g.Meta         `path:"/loginlog/export" method:"get" tags:"登录日志" summary:"导出登录日志" operLog:"export" dc:"导出登录日志数据为Excel文件，支持按条件筛选导出，也支持导出指定ID的记录"`
+	g.Meta         `path:"/loginlog/export" method:"get" tags:"登录日志" summary:"导出登录日志" operLog:"export" dc:"导出登录日志数据为Excel文件，支持按条件筛选导出，也支持导出指定ID的记录" permission:"monitor:loginlog:export"`
 	UserName       string `json:"userName" dc:"按用户名筛选（模糊匹配）" eg:"admin"`
 	Ip             string `json:"ip" dc:"按IP地址筛选（模糊匹配）" eg:"192.168"`
 	Status         *int   `json:"status" dc:"按状态筛选：1=成功 0=失败" eg:"1"`

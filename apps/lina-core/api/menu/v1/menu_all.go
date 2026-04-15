@@ -43,11 +43,3 @@ type MenuRouteMeta struct {
 type GetAllRes struct {
 	List []*MenuRouteItem `json:"list" dc:"用户菜单路由列表" eg:"[]"`
 }
-
-// GetAllResAlt defines the direct-array response for Vben compatibility.
-type GetAllResAlt struct {
-	g.Meta `path:"/menus/all" method:"get" tags:"菜单管理" summary:"获取用户菜单路由" dc:"获取当前登录用户的菜单列表，返回Vben框架所需的路由格式，用于前端动态路由生成"`
-}
-
-// MenuRouteList is a wrapper type for JSON array response
-type MenuRouteList []*MenuRouteItem

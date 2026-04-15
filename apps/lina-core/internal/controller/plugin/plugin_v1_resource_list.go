@@ -12,10 +12,6 @@ import (
 
 // ResourceList queries plugin-owned backend resources through the generic resource contract.
 func (c *ControllerV1) ResourceList(ctx context.Context, req *v1.ResourceListReq) (res *v1.ResourceListRes, err error) {
-	if err = c.requirePermission(ctx, pluginManagementPermissionQuery); err != nil {
-		return nil, err
-	}
-
 	filters := make(map[string]string)
 	if r := g.RequestFromCtx(ctx); r != nil {
 		for key, value := range r.GetQueryMap() {

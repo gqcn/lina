@@ -8,7 +8,7 @@ import (
 
 // CreateReq defines the request for creating a notice.
 type CreateReq struct {
-	g.Meta  `path:"/notice" method:"post" tags:"通知公告" summary:"创建通知公告" dc:"创建一条通知或公告，支持设置为草稿或直接发布，可附带附件文件"`
+	g.Meta  `path:"/notice" method:"post" tags:"通知公告" summary:"创建通知公告" dc:"创建一条通知或公告，支持设置为草稿或直接发布，可附带附件文件" permission:"system:notice:add"`
 	Title   string `json:"title" v:"required#请输入公告标题" dc:"公告标题" eg:"系统维护通知"`
 	Type    int    `json:"type" v:"required|in:1,2#请选择公告类型|公告类型不正确" dc:"公告类型：1=通知 2=公告" eg:"1"`
 	Content string `json:"content" v:"required#请输入公告内容" dc:"公告内容（支持富文本HTML）" eg:"<p>系统将于今晚进行维护升级</p>"`

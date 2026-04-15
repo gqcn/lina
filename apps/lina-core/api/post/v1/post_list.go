@@ -8,7 +8,7 @@ import (
 
 // ListReq defines the request for querying the post list.
 type ListReq struct {
-	g.Meta   `path:"/post" method:"get" tags:"岗位管理" summary:"获取岗位列表" dc:"分页查询岗位列表，支持按部门、编码、名称、状态等条件筛选"`
+	g.Meta   `path:"/post" method:"get" tags:"岗位管理" summary:"获取岗位列表" dc:"分页查询岗位列表，支持按部门、编码、名称、状态等条件筛选" permission:"system:post:query"`
 	PageNum  int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`
 	PageSize int    `json:"pageSize" d:"10" v:"min:1|max:100" dc:"每页条数" eg:"10"`
 	DeptId   *int   `json:"deptId" dc:"按部门ID筛选" eg:"100"`

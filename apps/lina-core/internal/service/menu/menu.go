@@ -10,18 +10,21 @@ import (
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	pluginsvc "lina-core/internal/service/plugin"
+	"lina-core/internal/service/role"
 	"lina-core/pkg/logger"
 )
 
 // Service provides menu management operations.
 type Service struct {
 	pluginSvc *pluginsvc.Service // plugin service
+	roleSvc   *role.Service      // role service
 }
 
 // New creates and returns a new Service instance.
 func New() *Service {
 	return &Service{
 		pluginSvc: pluginsvc.New(),
+		roleSvc:   role.New(),
 	}
 }
 
@@ -211,6 +214,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	s.roleSvc.NotifyAccessTopologyChanged(ctx)
 
 	return int(id), nil
 }
@@ -307,7 +311,11 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	}
 
 	_, err = dao.SysMenu.Ctx(ctx).Where(do.SysMenu{Id: in.Id}).Data(data).Update()
-	return err
+	if err != nil {
+		return err
+	}
+	s.roleSvc.NotifyAccessTopologyChanged(ctx)
+	return nil
 }
 
 // DeleteInput defines input for Delete function.
@@ -338,7 +346,7 @@ func (s *Service) Delete(ctx context.Context, in DeleteInput) error {
 	}
 
 	// Use transaction for cascade delete
-	return dao.SysMenu.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+	err = dao.SysMenu.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		// Collect menu IDs to delete
 		menuIds := []int{in.Id}
 		if in.CascadeDelete && childCount > 0 {
@@ -369,6 +377,11 @@ func (s *Service) Delete(ctx context.Context, in DeleteInput) error {
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	s.roleSvc.NotifyAccessTopologyChanged(ctx)
+	return nil
 }
 
 // MenuTreeNode represents a node in the tree select.

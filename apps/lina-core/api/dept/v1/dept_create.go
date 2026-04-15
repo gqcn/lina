@@ -6,7 +6,7 @@ import (
 
 // CreateReq defines the request for creating a department.
 type CreateReq struct {
-	g.Meta   `path:"/dept" method:"post" tags:"部门管理" summary:"创建部门" dc:"创建一个新部门，支持设置父级部门形成树形层级结构，部门编码在系统内须唯一"`
+	g.Meta   `path:"/dept" method:"post" tags:"部门管理" summary:"创建部门" dc:"创建一个新部门，支持设置父级部门形成树形层级结构，部门编码在系统内须唯一" permission:"system:dept:add"`
 	ParentId int    `json:"parentId" d:"0" dc:"父级部门ID，0表示顶级部门" eg:"100"`
 	Name     string `json:"name" v:"required#请输入部门名称" dc:"部门名称，同一父级下不可重复" eg:"技术部"`
 	Code     string `json:"code" dc:"部门编码，系统内唯一标识，用于与外部系统对接" eg:"TECH"`

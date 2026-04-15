@@ -6,7 +6,7 @@ import (
 
 // TreeSelectReq defines the request for querying the menu tree select data.
 type TreeSelectReq struct {
-	g.Meta `path:"/menu/treeselect" method:"get" tags:"菜单管理" summary:"获取菜单下拉树" dc:"获取菜单下拉树，用于角色分配菜单时选择。过滤掉按钮类型的菜单"`
+	g.Meta `path:"/menu/treeselect" method:"get" tags:"菜单管理" summary:"获取菜单下拉树" dc:"获取菜单下拉树，用于角色分配菜单时选择。过滤掉按钮类型的菜单" permission:"system:menu:query"`
 }
 
 // MenuTreeNode represents a node in the tree select

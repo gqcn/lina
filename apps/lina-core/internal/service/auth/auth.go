@@ -18,6 +18,7 @@ import (
 	"lina-core/internal/service/config"
 	"lina-core/internal/service/loginlog"
 	pluginsvc "lina-core/internal/service/plugin"
+	"lina-core/internal/service/role"
 	"lina-core/internal/service/session"
 	"lina-core/pkg/logger"
 )
@@ -33,6 +34,7 @@ type Service struct {
 	configSvc    *config.Service    // Configuration service
 	loginLogSvc  *loginlog.Service  // Login log service
 	pluginSvc    *pluginsvc.Service // Plugin service
+	roleSvc      *role.Service      // Role service
 	sessionStore session.Store      // Session store
 }
 
@@ -42,6 +44,7 @@ func New() *Service {
 		configSvc:    config.New(),
 		loginLogSvc:  loginlog.New(),
 		pluginSvc:    pluginsvc.New(),
+		roleSvc:      role.New(),
 		sessionStore: session.NewDBStore(),
 	}
 }
@@ -150,7 +153,7 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 
 	// Create online session
 	deptName := s.getUserDeptName(ctx, user.Id)
-	_ = s.sessionStore.Set(ctx, &session.Session{
+	if err = s.sessionStore.Set(ctx, &session.Session{
 		TokenId:   tokenId,
 		UserId:    user.Id,
 		Username:  user.Username,
@@ -159,7 +162,11 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 		Browser:   browser,
 		Os:        osName,
 		LoginTime: gtime.Now(),
-	})
+	}); err != nil {
+		logger.Warningf(ctx, "create online session failed tokenId=%s err=%v", tokenId, err)
+	} else if _, err = s.roleSvc.PrimeTokenAccessContext(ctx, tokenId, user.Id); err != nil {
+		logger.Warningf(ctx, "prime access context cache failed tokenId=%s err=%v", tokenId, err)
+	}
 
 	recordLoginLog(in.Username, loginlog.LoginStatusSuccess, "登录成功")
 	if err := s.pluginSvc.HandleAuthLoginSucceeded(ctx, pluginsvc.AuthLoginSucceededInput{
@@ -212,7 +219,7 @@ func (s *Service) Logout(ctx context.Context, username string, tokenId string) {
 	}
 	// Delete session
 	if tokenId != "" {
-		_ = s.sessionStore.Delete(ctx, tokenId)
+		_ = s.RevokeSession(ctx, tokenId)
 	}
 	_ = s.loginLogSvc.Create(ctx, loginlog.CreateInput{
 		UserName: username,
@@ -233,6 +240,15 @@ func (s *Service) Logout(ctx context.Context, username string, tokenId string) {
 	}); err != nil {
 		logger.Warningf(ctx, "plugin logout succeeded hook failed: %v", err)
 	}
+}
+
+// RevokeSession removes one online session and its cached access context.
+func (s *Service) RevokeSession(ctx context.Context, tokenId string) error {
+	if tokenId == "" {
+		return nil
+	}
+	s.roleSvc.InvalidateTokenAccessContext(ctx, tokenId)
+	return s.sessionStore.Delete(ctx, tokenId)
 }
 
 // generateToken generates JWT token for given user, returns token string and tokenId.

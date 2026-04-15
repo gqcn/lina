@@ -6,7 +6,7 @@ import (
 
 // RoleCreateReq is the request structure for role creation.
 type RoleCreateReq struct {
-	g.Meta    `path:"/role" method:"post" summary:"创建角色" tags:"角色管理" dc:"创建新角色，角色名称和权限字符必须唯一，可关联菜单"`
+	g.Meta    `path:"/role" method:"post" summary:"创建角色" tags:"角色管理" dc:"创建新角色，角色名称和权限字符必须唯一，可关联菜单" permission:"system:role:add"`
 	Name      string `json:"name" v:"required|length:2,30" dc:"角色名称，长度2-30字符" eg:"测试角色"`
 	Key       string `json:"key" v:"required|length:2,30" dc:"权限字符，长度2-30字符，用于权限标识" eg:"test_role"`
 	Sort      int    `json:"sort" d:"0" v:"min:0" dc:"显示排序，数字越小越靠前" eg:"0"`

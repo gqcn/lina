@@ -6,7 +6,7 @@ import (
 
 // ListReq defines the request for querying the menu tree list.
 type ListReq struct {
-	g.Meta  `path:"/menu" method:"get" tags:"菜单管理" summary:"获取菜单列表" dc:"获取菜单列表，返回树形结构。支持按菜单名称、状态进行筛选"`
+	g.Meta  `path:"/menu" method:"get" tags:"菜单管理" summary:"获取菜单列表" dc:"获取菜单列表，返回树形结构。支持按菜单名称、状态进行筛选" permission:"system:menu:query"`
 	Name    string `json:"name" dc:"按菜单名称筛选（模糊匹配）" eg:"用户"`
 	Status  *int   `json:"status" dc:"按状态筛选：1=正常 0=停用" eg:"1"`
 	Visible *int   `json:"visible" dc:"按显示状态筛选：1=显示 0=隐藏" eg:"1"`

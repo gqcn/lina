@@ -6,7 +6,7 @@ import (
 
 // RoleUsersReq is the request structure for role user list query.
 type RoleUsersReq struct {
-	g.Meta   `path:"/role/{id}/users" method:"get" summary:"查询角色用户列表" tags:"角色管理" dc:"分页查询已分配指定角色的用户列表，支持按用户名、手机号等条件筛选"`
+	g.Meta   `path:"/role/{id}/users" method:"get" summary:"查询角色用户列表" tags:"角色管理" dc:"分页查询已分配指定角色的用户列表，支持按用户名、手机号等条件筛选" permission:"system:role:auth"`
 	Id       int    `json:"id" v:"required|min:1" dc:"角色ID" eg:"1"`
 	Username string `json:"username" dc:"用户名，模糊查询" eg:"admin"`
 	Phone    string `json:"phone" dc:"手机号，模糊查询" eg:"138"`

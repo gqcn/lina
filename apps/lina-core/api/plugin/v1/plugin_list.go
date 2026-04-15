@@ -4,7 +4,7 @@ import "github.com/gogf/gf/v2/frame/g"
 
 // ListReq is the request for querying plugin list.
 type ListReq struct {
-	g.Meta    `path:"/plugins" method:"get" tags:"插件管理" summary:"查询插件列表" dc:"扫描源码插件目录并同步插件基础状态，返回插件清单与启用状态"`
+	g.Meta    `path:"/plugins" method:"get" tags:"插件管理" summary:"查询插件列表" permission:"plugin:query" dc:"扫描源码插件目录并同步插件基础状态，返回插件清单与启用状态"`
 	Id        string `json:"id" dc:"按插件唯一标识筛选，模糊匹配，不传则查询全部" eg:"plugin-demo-source"`
 	Name      string `json:"name" dc:"按插件名称筛选，模糊匹配，不传则查询全部" eg:"源码插件示例"`
 	Type      string `json:"type" dc:"按插件类型筛选：source=源码插件 dynamic=动态插件，不传则查询全部；当前动态插件实现仅支持WASM" eg:"dynamic"`

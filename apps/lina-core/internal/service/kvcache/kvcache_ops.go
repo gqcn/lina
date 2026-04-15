@@ -17,7 +17,20 @@ import (
 	"lina-core/internal/model/entity"
 )
 
-// Get returns one cache entry snapshot for the given owner, namespace, and key.
+// Get returns the current cache entry snapshot identified by ownerType, ownerKey,
+// namespace, and cacheKey.
+//
+// Parameters:
+//   - ctx: request-scoped context used for database access, tracing, and cancellation.
+//   - ownerType: cache owner category, used to isolate entries across different business scopes.
+//   - ownerKey: concrete owner identifier within ownerType, such as a module key or plugin key.
+//   - namespace: logical group name used to organize related cache entries for the same owner.
+//   - cacheKey: concrete key to read inside the namespace.
+//
+// Returns:
+//   - *Item: the cache entry snapshot when the entry exists, including value kind, value, and expiration time.
+//   - bool: whether the cache entry exists after expired data has been cleaned up.
+//   - error: returned when identity parameters are invalid, expired-entry cleanup fails, or the database query fails.
 func (s *Service) Get(
 	ctx context.Context,
 	ownerType OwnerType,
@@ -48,7 +61,22 @@ func (s *Service) Get(
 	return buildCacheItem(row), true, nil
 }
 
-// Set stores one string cache value for the given owner, namespace, and key.
+// Set stores or replaces a string cache value for the specified owner, namespace,
+// and cache key.
+//
+// Parameters:
+//   - ctx: request-scoped context used for database access, tracing, and cancellation.
+//   - ownerType: cache owner category, used to isolate entries across different business scopes.
+//   - ownerKey: concrete owner identifier within ownerType, such as a module key or plugin key.
+//   - namespace: logical group name used to organize related cache entries for the same owner.
+//   - cacheKey: concrete key to write inside the namespace.
+//   - value: string payload to persist in the cache entry.
+//   - expireSeconds: entry lifetime in seconds; 0 means never expire, and positive values create an absolute expiration time.
+//
+// Returns:
+//   - *Item: the latest cache entry snapshot after the value has been written successfully.
+//   - error: returned when identity parameters are invalid, the value exceeds the allowed size,
+//     expireSeconds is negative, expired-entry cleanup fails, or the upsert operation fails.
 func (s *Service) Set(
 	ctx context.Context,
 	ownerType OwnerType,
@@ -91,7 +119,19 @@ func (s *Service) Set(
 	}, nil
 }
 
-// Delete removes one cache entry for the given owner, namespace, and key.
+// Delete removes the cache entry identified by ownerType, ownerKey, namespace,
+// and cacheKey.
+//
+// Parameters:
+//   - ctx: request-scoped context used for database access, tracing, and cancellation.
+//   - ownerType: cache owner category, used to isolate entries across different business scopes.
+//   - ownerKey: concrete owner identifier within ownerType, such as a module key or plugin key.
+//   - namespace: logical group name used to organize related cache entries for the same owner.
+//   - cacheKey: concrete key to delete inside the namespace.
+//
+// Returns:
+//   - error: returned when identity parameters are invalid or the delete statement fails.
+//     Deleting a non-existent entry is treated as a successful no-op.
 func (s *Service) Delete(
 	ctx context.Context,
 	ownerType OwnerType,
@@ -111,7 +151,21 @@ func (s *Service) Delete(
 	return err
 }
 
-// Incr increments one integer cache value and returns the updated snapshot.
+// Incr increments an integer cache value by delta and returns the updated entry snapshot.
+//
+// Parameters:
+//   - ctx: request-scoped context used for database access, tracing, and cancellation.
+//   - ownerType: cache owner category, used to isolate entries across different business scopes.
+//   - ownerKey: concrete owner identifier within ownerType, such as a module key or plugin key.
+//   - namespace: logical group name used to organize related cache entries for the same owner.
+//   - cacheKey: concrete key to increment inside the namespace.
+//   - delta: increment amount added to the current integer value; when the entry does not exist, delta becomes the initial value.
+//   - expireSeconds: new entry lifetime in seconds; 0 keeps the entry non-expiring when creating a new item and preserves the current expiration when updating an existing item.
+//
+// Returns:
+//   - *Item: the latest cache entry snapshot after the increment succeeds.
+//   - error: returned when identity parameters are invalid, expireSeconds is negative,
+//     expired-entry cleanup fails, the existing entry is not stored as an integer, or any database operation fails.
 func (s *Service) Incr(
 	ctx context.Context,
 	ownerType OwnerType,
@@ -185,7 +239,21 @@ func (s *Service) Incr(
 	return updatedItem, nil
 }
 
-// Expire updates the expiration policy for one cache entry.
+// Expire updates the expiration policy of a cache entry without changing its value.
+//
+// Parameters:
+//   - ctx: request-scoped context used for database access, tracing, and cancellation.
+//   - ownerType: cache owner category, used to isolate entries across different business scopes.
+//   - ownerKey: concrete owner identifier within ownerType, such as a module key or plugin key.
+//   - namespace: logical group name used to organize related cache entries for the same owner.
+//   - cacheKey: concrete key whose expiration policy should be updated.
+//   - expireSeconds: new lifetime in seconds; 0 clears the expiration and makes the entry persistent.
+//
+// Returns:
+//   - bool: whether an existing cache entry was found and updated.
+//   - *gtime.Time: the normalized absolute expiration time; nil means the entry will not expire.
+//   - error: returned when identity parameters are invalid, expireSeconds is negative,
+//     expired-entry cleanup fails, or the database update fails.
 func (s *Service) Expire(
 	ctx context.Context,
 	ownerType OwnerType,
@@ -220,7 +288,15 @@ func (s *Service) Expire(
 	return affected > 0, expireAt, nil
 }
 
-// CleanupExpired deletes all expired cache entries.
+// CleanupExpired removes all cache entries whose expiration time is earlier than
+// the current time.
+//
+// Parameters:
+//   - ctx: request-scoped context used for database access, tracing, and cancellation.
+//
+// Returns:
+//   - error: returned when the cleanup delete statement fails. When no expired entries
+//     exist, the method returns nil.
 func (s *Service) CleanupExpired(ctx context.Context) error {
 	cols := dao.SysKvCache.Columns()
 	_, err := dao.SysKvCache.Ctx(ctx).

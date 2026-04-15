@@ -10,7 +10,7 @@ import (
 
 // ListReq defines the request for listing notices.
 type ListReq struct {
-	g.Meta    `path:"/notice" method:"get" tags:"通知公告" summary:"获取通知公告列表" dc:"分页查询通知公告列表，支持按标题、类型、创建人筛选"`
+	g.Meta    `path:"/notice" method:"get" tags:"通知公告" summary:"获取通知公告列表" dc:"分页查询通知公告列表，支持按标题、类型、创建人筛选" permission:"system:notice:query"`
 	PageNum   int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`
 	PageSize  int    `json:"pageSize" d:"10" v:"min:1|max:100" dc:"每页条数" eg:"10"`
 	Title     string `json:"title" dc:"按标题筛选（模糊匹配）" eg:"系统维护"`

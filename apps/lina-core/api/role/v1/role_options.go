@@ -6,7 +6,7 @@ import (
 
 // RoleOptionsReq is the request structure for role options query.
 type RoleOptionsReq struct {
-	g.Meta `path:"/role/options" method:"get" summary:"查询角色下拉选项" tags:"角色管理" dc:"查询所有启用状态的角色下拉选项列表，用于用户角色选择等场景"`
+	g.Meta `path:"/role/options" method:"get" summary:"查询角色下拉选项" tags:"角色管理" dc:"查询所有启用状态的角色下拉选项列表，用于用户角色选择等场景" permission:"system:role:query"`
 }
 
 // RoleOptionsRes is the response structure for role options query.

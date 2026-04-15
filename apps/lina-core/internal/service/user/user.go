@@ -530,7 +530,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 	}
 
 	// Use transaction to ensure atomicity
-	return dao.SysUser.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+	err := dao.SysUser.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		// Update user
 		_, err := dao.SysUser.Ctx(ctx).Where(do.SysUser{Id: in.Id}).Data(data).Update()
 		if err != nil {
@@ -590,6 +590,11 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	s.roleSvc.NotifyAccessTopologyChanged(ctx)
+	return nil
 }
 
 // Delete soft-deletes a user.
@@ -628,6 +633,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		logger.Warningf(ctx, "failed to delete user role association for user %d: %v", id, err)
 	}
 
+	s.roleSvc.NotifyAccessTopologyChanged(ctx)
 	return nil
 }
 
@@ -645,7 +651,11 @@ func (s *Service) UpdateStatus(ctx context.Context, id int, status Status) error
 			Status: status,
 		}).
 		Update()
-	return err
+	if err != nil {
+		return err
+	}
+	s.roleSvc.NotifyAccessTopologyChanged(ctx)
+	return nil
 }
 
 // GetProfile retrieves current user profile.

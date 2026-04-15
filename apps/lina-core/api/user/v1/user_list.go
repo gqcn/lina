@@ -8,7 +8,7 @@ import (
 
 // ListReq defines the request for querying the user list.
 type ListReq struct {
-	g.Meta         `path:"/user" method:"get" tags:"用户管理" summary:"获取用户列表" dc:"分页查询用户列表，支持按用户名、昵称、状态、手机号、性别、部门、创建时间等条件筛选，支持自定义排序"`
+	g.Meta         `path:"/user" method:"get" tags:"用户管理" summary:"获取用户列表" dc:"分页查询用户列表，支持按用户名、昵称、状态、手机号、性别、部门、创建时间等条件筛选，支持自定义排序" permission:"system:user:query"`
 	PageNum        int    `json:"pageNum" d:"1" v:"min:1" dc:"页码" eg:"1"`
 	PageSize       int    `json:"pageSize" d:"10" v:"min:1|max:100" dc:"每页条数" eg:"10"`
 	Username       string `json:"username" dc:"按用户名筛选（模糊匹配）" eg:"admin"`

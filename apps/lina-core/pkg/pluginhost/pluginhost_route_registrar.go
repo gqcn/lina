@@ -29,6 +29,8 @@ type RouteMiddlewares interface {
 	Auth() RouteMiddleware
 	// OperLog returns the host operation-log middleware.
 	OperLog() RouteMiddleware
+	// Permission returns the host declarative permission middleware.
+	Permission() RouteMiddleware
 }
 
 // RouteRegistrar exposes plugin route group registration helpers for one plugin.
@@ -53,6 +55,7 @@ type routeMiddlewares struct {
 	ctx             RouteMiddleware
 	auth            RouteMiddleware
 	operLog         RouteMiddleware
+	permission      RouteMiddleware
 }
 
 // NewRouteMiddlewares creates and returns a new published host middleware directory for plugins.
@@ -63,6 +66,7 @@ func NewRouteMiddlewares(
 	ctx RouteMiddleware,
 	auth RouteMiddleware,
 	operLog RouteMiddleware,
+	permission RouteMiddleware,
 ) RouteMiddlewares {
 	return &routeMiddlewares{
 		neverDoneCtx:    neverDoneCtx,
@@ -71,6 +75,7 @@ func NewRouteMiddlewares(
 		ctx:             ctx,
 		auth:            auth,
 		operLog:         operLog,
+		permission:      permission,
 	}
 }
 
@@ -166,6 +171,13 @@ func (m *routeMiddlewares) OperLog() RouteMiddleware {
 		return nil
 	}
 	return m.operLog
+}
+
+func (m *routeMiddlewares) Permission() RouteMiddleware {
+	if m == nil {
+		return nil
+	}
+	return m.permission
 }
 
 func normalizeRoutePrefix(prefix string) string {

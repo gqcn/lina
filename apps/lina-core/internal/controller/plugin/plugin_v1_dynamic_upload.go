@@ -11,10 +11,6 @@ import (
 
 // UploadDynamicPackage uploads one dynamic wasm package into the plugin workspace.
 func (c *ControllerV1) UploadDynamicPackage(ctx context.Context, req *v1.UploadDynamicPackageReq) (res *v1.UploadDynamicPackageRes, err error) {
-	if err = c.requirePermission(ctx, pluginManagementPermissionInstall); err != nil {
-		return nil, err
-	}
-
 	r := g.RequestFromCtx(ctx)
 	uploadFile := r.GetUploadFile("file")
 	out, err := c.pluginSvc.UploadDynamicPackage(ctx, &pluginsvc.DynamicUploadInput{

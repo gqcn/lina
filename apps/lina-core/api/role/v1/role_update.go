@@ -6,7 +6,7 @@ import (
 
 // RoleUpdateReq is the request structure for role update.
 type RoleUpdateReq struct {
-	g.Meta    `path:"/role/{id}" method:"put" summary:"更新角色" tags:"角色管理" dc:"更新角色信息，可修改角色名称、权限字符、状态、菜单关联等，名称和权限字符不能与其他角色重复"`
+	g.Meta    `path:"/role/{id}" method:"put" summary:"更新角色" tags:"角色管理" dc:"更新角色信息，可修改角色名称、权限字符、状态、菜单关联等，名称和权限字符不能与其他角色重复" permission:"system:role:edit"`
 	Id        int    `json:"id" v:"required|min:1" dc:"角色ID" eg:"1"`
 	Name      string `json:"name" v:"required|length:2,30" dc:"角色名称，长度2-30字符" eg:"管理员"`
 	Key       string `json:"key" v:"required|length:2,30" dc:"权限字符，长度2-30字符" eg:"admin"`

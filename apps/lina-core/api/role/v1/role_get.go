@@ -6,7 +6,7 @@ import (
 
 // RoleGetReq is the request structure for role detail query.
 type RoleGetReq struct {
-	g.Meta `path:"/role/{id}" method:"get" summary:"查询角色详情" tags:"角色管理" dc:"根据角色ID查询角色详细信息，包含关联的菜单ID列表"`
+	g.Meta `path:"/role/{id}" method:"get" summary:"查询角色详情" tags:"角色管理" dc:"根据角色ID查询角色详细信息，包含关联的菜单ID列表" permission:"system:role:query"`
 	Id     int `json:"id" v:"required|min:1" dc:"角色ID" eg:"1"`
 }
 

@@ -6,7 +6,7 @@ import (
 
 // UpdateReq defines the request for updating a department.
 type UpdateReq struct {
-	g.Meta   `path:"/dept/{id}" method:"put" tags:"部门管理" summary:"更新部门" dc:"更新指定部门的信息，仅传入需要修改的字段即可，未传入的字段保持不变。不允许将部门的父级设为自身或其子部门"`
+	g.Meta   `path:"/dept/{id}" method:"put" tags:"部门管理" summary:"更新部门" dc:"更新指定部门的信息，仅传入需要修改的字段即可，未传入的字段保持不变。不允许将部门的父级设为自身或其子部门" permission:"system:dept:edit"`
 	Id       int     `json:"id" v:"required" dc:"部门ID" eg:"100"`
 	ParentId *int    `json:"parentId" dc:"父级部门ID，0表示顶级部门，不能设置为自身或其下级部门" eg:"0"`
 	Name     *string `json:"name" dc:"部门名称，同一父级下不可重复" eg:"研发中心"`
