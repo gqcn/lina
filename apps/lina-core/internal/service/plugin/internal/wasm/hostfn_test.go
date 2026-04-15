@@ -32,9 +32,8 @@ func TestValidateCapabilitiesRejectsEmpty(t *testing.T) {
 	}
 }
 
-func TestValidateHostServiceAuthorizationsAcceptsRuntime(t *testing.T) {
-	err := pluginbridge.ValidateHostServiceAuthorizations(
-		[]string{pluginbridge.CapabilityRuntime},
+func TestCapabilitiesFromHostServicesDerivesRuntimeCapability(t *testing.T) {
+	capabilities := pluginbridge.CapabilitiesFromHostServices(
 		[]*pluginbridge.HostServiceSpec{
 			{
 				Service: pluginbridge.HostServiceRuntime,
@@ -45,23 +44,8 @@ func TestValidateHostServiceAuthorizationsAcceptsRuntime(t *testing.T) {
 			},
 		},
 	)
-	if err != nil {
-		t.Errorf("expected no error, got %v", err)
-	}
-}
-
-func TestValidateHostServiceAuthorizationsRejectsMissingCapability(t *testing.T) {
-	err := pluginbridge.ValidateHostServiceAuthorizations(
-		[]string{pluginbridge.CapabilityStorage},
-		[]*pluginbridge.HostServiceSpec{
-			{
-				Service: pluginbridge.HostServiceRuntime,
-				Methods: []string{pluginbridge.HostServiceMethodRuntimeLogWrite},
-			},
-		},
-	)
-	if err == nil {
-		t.Error("expected missing capability error")
+	if len(capabilities) != 1 || capabilities[0] != pluginbridge.CapabilityRuntime {
+		t.Fatalf("expected derived runtime capability, got %#v", capabilities)
 	}
 }
 

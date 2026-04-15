@@ -5,6 +5,8 @@ package dynamic
 import (
 	"encoding/json"
 
+	"github.com/gogf/gf/v2/errors/gerror"
+
 	"lina-core/pkg/pluginbridge"
 )
 
@@ -14,7 +16,7 @@ func (c *Controller) BackendSummary(request *pluginbridge.BridgeRequestEnvelopeV
 	payload := c.dynamicSvc.BuildBackendSummaryPayload(request)
 	content, err := json.Marshal(payload)
 	if err != nil {
-		return nil, err
+		return nil, gerror.Wrap(err, "marshal backend summary payload failed")
 	}
 	response := pluginbridge.NewJSONResponse(200, content)
 	response.Headers = map[string][]string{

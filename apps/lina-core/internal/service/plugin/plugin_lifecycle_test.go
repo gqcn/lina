@@ -52,7 +52,7 @@ func TestUpdateStatusEnablesBackendOnlyDynamicPluginWithoutFrontendAssets(t *tes
 		t.Fatalf("expected backend-only plugin install state to be set, got error: %v", err)
 	}
 
-	if err = service.UpdateStatus(ctx, pluginID, catalog.StatusEnabled); err != nil {
+	if err = service.UpdateStatus(ctx, pluginID, catalog.StatusEnabled, nil); err != nil {
 		t.Fatalf("expected backend-only dynamic plugin enable to succeed, got error: %v", err)
 	}
 	if !service.IsEnabled(ctx, pluginID) {
@@ -83,10 +83,6 @@ func TestSyncAndListReportsPendingHostServiceAuthorization(t *testing.T) {
 		&catalog.ArtifactSpec{
 			RuntimeKind: pluginbridge.RuntimeKindWasm,
 			ABIVersion:  pluginbridge.SupportedABIVersion,
-			Capabilities: []string{
-				pluginbridge.CapabilityRuntime,
-				pluginbridge.CapabilityHTTPRequest,
-			},
 			HostServices: []*pluginbridge.HostServiceSpec{
 				{
 					Service: pluginbridge.HostServiceRuntime,
@@ -168,11 +164,6 @@ func TestEnableWithAuthorizationAppliesConfirmedHostServiceSnapshot(t *testing.T
 		&catalog.ArtifactSpec{
 			RuntimeKind: pluginbridge.RuntimeKindWasm,
 			ABIVersion:  pluginbridge.SupportedABIVersion,
-			Capabilities: []string{
-				pluginbridge.CapabilityRuntime,
-				pluginbridge.CapabilityHTTPRequest,
-				pluginbridge.CapabilityStorage,
-			},
 			HostServices: []*pluginbridge.HostServiceSpec{
 				{
 					Service: pluginbridge.HostServiceRuntime,
@@ -216,10 +207,10 @@ func TestEnableWithAuthorizationAppliesConfirmedHostServiceSnapshot(t *testing.T
 		},
 	}
 
-	if err := service.InstallWithAuthorization(ctx, pluginID, authorization); err != nil {
+	if err := service.Install(ctx, pluginID, authorization); err != nil {
 		t.Fatalf("expected install with authorization to succeed, got error: %v", err)
 	}
-	if err := service.UpdateStatusWithAuthorization(ctx, pluginID, catalog.StatusEnabled, authorization); err != nil {
+	if err := service.UpdateStatus(ctx, pluginID, catalog.StatusEnabled, authorization); err != nil {
 		t.Fatalf("expected enable with authorization to succeed, got error: %v", err)
 	}
 

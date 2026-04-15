@@ -3,6 +3,7 @@
 package runtime_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -141,7 +142,6 @@ func TestParseRuntimeArtifactLoadsRoutesAndBridgeSpec(t *testing.T) {
 			ABIVersion:         pluginbridge.SupportedABIVersion,
 			FrontendAssetCount: len(testutil.DefaultTestRuntimeFrontendAssets()),
 			RouteCount:         1,
-			Capabilities:       []string{pluginbridge.CapabilityRuntime},
 			HostServices: []*pluginbridge.HostServiceSpec{
 				{
 					Service: pluginbridge.HostServiceRuntime,
@@ -185,5 +185,100 @@ func TestParseRuntimeArtifactLoadsRoutesAndBridgeSpec(t *testing.T) {
 	}
 	if len(manifest.HostServices) != 1 || manifest.HostServices[0].Service != pluginbridge.HostServiceRuntime {
 		t.Fatalf("expected runtime host service snapshot to be restored, got %#v", manifest.HostServices)
+	}
+}
+
+func TestParseRuntimeArtifactRejectsDeprecatedCapabilitiesSection(t *testing.T) {
+	services := testutil.NewServices()
+	pluginDir := testutil.CreateTestRuntimePluginDir(
+		t,
+		"plugin-dynamic-legacy-capabilities",
+		"Runtime Legacy Capability Plugin",
+		"v0.3.1",
+		nil,
+		nil,
+	)
+
+	artifactPath := filepath.Join(pluginDir, runtime.BuildArtifactRelativePath("plugin-dynamic-legacy-capabilities"))
+	testutil.WriteRuntimeWasmArtifact(
+		t,
+		artifactPath,
+		&catalog.ArtifactManifest{
+			ID:      "plugin-dynamic-legacy-capabilities",
+			Name:    "Runtime Legacy Capability Plugin",
+			Version: "v0.3.1",
+			Type:    catalog.TypeDynamic.String(),
+		},
+		&catalog.ArtifactSpec{
+			RuntimeKind: pluginbridge.RuntimeKindWasm,
+			ABIVersion:  pluginbridge.SupportedABIVersion,
+			HostServices: []*pluginbridge.HostServiceSpec{
+				{
+					Service: pluginbridge.HostServiceRuntime,
+					Methods: []string{pluginbridge.HostServiceMethodRuntimeInfoUUID},
+				},
+			},
+		},
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+	)
+
+	content, err := os.ReadFile(artifactPath)
+	if err != nil {
+		t.Fatalf("expected runtime artifact read to succeed, got error: %v", err)
+	}
+	content = appendTestRuntimeCustomSection(
+		t,
+		content,
+		pluginbridge.WasmSectionBackendCapabilities,
+		[]string{pluginbridge.CapabilityRuntime, "host:db:query"},
+	)
+	if err = os.WriteFile(artifactPath, content, 0o644); err != nil {
+		t.Fatalf("expected runtime artifact write to succeed, got error: %v", err)
+	}
+
+	_, err = services.Catalog.LoadManifestFromArtifactPath(artifactPath)
+	if err == nil {
+		t.Fatal("expected deprecated capabilities section to be rejected")
+	}
+	if !strings.Contains(err.Error(), pluginbridge.WasmSectionBackendCapabilities) || !strings.Contains(err.Error(), "host:db:query") {
+		t.Fatalf("expected deprecated capabilities error to mention section name and capability, got %v", err)
+	}
+}
+
+func appendTestRuntimeCustomSection(t *testing.T, content []byte, name string, payload any) []byte {
+	t.Helper()
+
+	encodedPayload, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("expected runtime custom payload marshal to succeed, got error: %v", err)
+	}
+
+	sectionPayload := append([]byte{}, encodeTestRuntimeULEB128(uint32(len(name)))...)
+	sectionPayload = append(sectionPayload, []byte(name)...)
+	sectionPayload = append(sectionPayload, encodedPayload...)
+
+	result := append([]byte{}, content...)
+	result = append(result, 0x00)
+	result = append(result, encodeTestRuntimeULEB128(uint32(len(sectionPayload)))...)
+	result = append(result, sectionPayload...)
+	return result
+}
+
+func encodeTestRuntimeULEB128(value uint32) []byte {
+	result := make([]byte, 0, 5)
+	for {
+		current := byte(value & 0x7f)
+		value >>= 7
+		if value != 0 {
+			current |= 0x80
+		}
+		result = append(result, current)
+		if value == 0 {
+			return result
+		}
 	}
 }

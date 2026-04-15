@@ -63,7 +63,7 @@ plugin-demo-dynamic/
 - `backend/`保存 1 份演示用后端示例代码；
 - `frontend/pages/`保存宿主内嵌挂载入口和独立静态页；
 - `plugin.yaml`保存插件基础信息和菜单元数据；
-- `plugin.yaml`中的新增宿主能力字段（如`capabilities`、`hostServices`、`resources.paths`、`resources.tables`）都应带有就地注释，保证清单本身即可作为作者侧模板；
+- `plugin.yaml`中的新增宿主能力字段（如`hostServices`、`resources.paths`、`resources.tables`）都应带有就地注释，保证清单本身即可作为作者侧模板；
 - `manifest/sql/`仅在需要业务迁移时保存安装与卸载`SQL`。
 
 动态元数据不再通过额外的`JSON`边车文件维护。执行`make wasm`时，构建器会基于当前源码树自动生成：
@@ -154,7 +154,7 @@ records, total, err := db.Table("sys_plugin_node_state").
 验收或使用这个样例时，建议重点确认：
 
 - `plugin.yaml`是否清晰标识该插件属于独立动态插件；
-- `plugin.yaml`中的`capabilities`和`hostServices`是否只声明了通过统一宿主服务模型暴露的能力；
+- `plugin.yaml`中的`hostServices`是否完整声明了通过统一宿主服务模型暴露的能力，并且没有重复维护额外的顶层`capabilities`；
 - `frontend/pages/mount.js`是否只依赖文档已发布的宿主`ESM`契约；
 - `frontend/pages/standalone.html`是否保持框架无关；
 - `plugin.yaml`里的`menus`是否只声明 1 个属于该插件的左侧菜单；

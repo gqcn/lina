@@ -37,11 +37,14 @@ func validateRuntimeBuildManifest(manifest *pluginManifest, manifestPath string)
 	if err := validateSemanticVersion(manifest.Version); err != nil {
 		return fmt.Errorf("dynamic plugin version is invalid: %w", err)
 	}
-	if err := pluginbridge.ValidateCapabilities(manifest.Capabilities); err != nil {
-		return fmt.Errorf("dynamic plugin capabilities invalid: %w", err)
-	}
 	manifest.Capabilities = pluginbridge.NormalizeCapabilities(manifest.Capabilities)
-	if err := pluginbridge.ValidateHostServiceAuthorizations(manifest.Capabilities, manifest.HostServices); err != nil {
+	if len(manifest.Capabilities) > 0 {
+		return fmt.Errorf(
+			"dynamic plugin manifest no longer supports top-level capabilities; please keep only hostServices declarations (found: %s)",
+			strings.Join(manifest.Capabilities, ", "),
+		)
+	}
+	if err := pluginbridge.ValidateHostServiceSpecs(manifest.HostServices); err != nil {
 		return fmt.Errorf("dynamic plugin hostServices invalid: %w", err)
 	}
 	manifest.HostServices = pluginbridge.NormalizeHostServiceSpecs(manifest.HostServices)

@@ -267,7 +267,7 @@ func (s *Service) applyReleaseAuthorizedHostServices(manifest *Manifest, release
 		return nil
 	}
 	manifest.HostServices = pluginbridge.NormalizeHostServiceSpecs(snapshot.AuthorizedHostServices)
-	manifest.HostCapabilities = BuildCapabilityMapFromHostServices(manifest.HostServices)
+	manifest.HostCapabilities = pluginbridge.CapabilityMapFromHostServices(manifest.HostServices)
 	return nil
 }
 

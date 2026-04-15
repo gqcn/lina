@@ -341,12 +341,6 @@ go 1.25.0
 name: Host Services E2E
 version: v0.1.0
 type: dynamic
-capabilities:
-  - host:runtime
-  - host:storage
-  - host:http:request
-  - host:data:read
-  - host:data:mutate
 hostServices:
   - service: runtime
     methods:
@@ -415,6 +409,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/gogf/gf/v2/errors/gerror"
+
 	"lina-core/pkg/plugindb"
 	"lina-core/pkg/pluginbridge"
 )
@@ -454,7 +450,7 @@ func (c *Controller) HostServices(request *pluginbridge.BridgeRequestEnvelopeV1)
 		return nil, err
 	}
 	if !stateFound || stateValue != request.PluginID {
-		return nil, fmt.Errorf("runtime state round trip failed")
+		return nil, gerror.New("runtime state round trip failed")
 	}
 	if err = runtimeSvc.StateDelete(stateKey); err != nil {
 		return nil, err
@@ -464,7 +460,7 @@ func (c *Controller) HostServices(request *pluginbridge.BridgeRequestEnvelopeV1)
 		return nil, err
 	}
 	if stateFoundAfterDelete {
-		return nil, fmt.Errorf("runtime state delete failed")
+		return nil, gerror.New("runtime state delete failed")
 	}
 	if err = runtimeSvc.Log(int(pluginbridge.LogLevelInfo), "host services e2e success", map[string]string{
 		"pluginId": request.PluginID,
@@ -480,7 +476,7 @@ func (c *Controller) HostServices(request *pluginbridge.BridgeRequestEnvelopeV1)
 		"uuid": uuidValue,
 	})
 	if err != nil {
-		return nil, err
+		return nil, gerror.Wrap(err, "marshal storage body failed")
 	}
 	objectMeta, err := storageSvc.Put(objectPath, storageBody, "application/json", true)
 	if err != nil {
@@ -543,7 +539,7 @@ func (c *Controller) HostServices(request *pluginbridge.BridgeRequestEnvelopeV1)
 		return nil, err
 	}
 	if listTotal != 1 || len(listRecords) != 1 {
-		return nil, fmt.Errorf("plugindb list did not return one record")
+		return nil, gerror.New("plugindb list did not return one record")
 	}
 	recordKey := listRecords[0]["id"]
 	countTotal, err := dataSvc.Table(dataTable).
@@ -606,7 +602,7 @@ func (c *Controller) HostServices(request *pluginbridge.BridgeRequestEnvelopeV1)
 	}
 	content, err := json.Marshal(payload)
 	if err != nil {
-		return nil, err
+		return nil, gerror.Wrap(err, "marshal host services payload failed")
 	}
 	return pluginbridge.NewJSONResponse(200, content), nil
 }
@@ -644,8 +640,6 @@ go 1.25.0
 name: Host Services Denied E2E
 version: v0.1.0
 type: dynamic
-capabilities:
-  - host:storage
 hostServices:
   - service: storage
     methods:

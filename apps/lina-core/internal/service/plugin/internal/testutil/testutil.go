@@ -820,13 +820,6 @@ func buildTestRuntimeWasmArtifactContent(
 		}
 		wasm = appendWasmCustomSection(wasm, pluginbridge.WasmSectionBackendBridge, bridgeContent)
 	}
-	if len(runtimeMetadata.Capabilities) > 0 {
-		capabilityContent, marshalErr := json.Marshal(runtimeMetadata.Capabilities)
-		if marshalErr != nil {
-			t.Fatalf("failed to marshal runtime capabilities: %v", marshalErr)
-		}
-		wasm = appendWasmCustomSection(wasm, pluginbridge.WasmSectionBackendCapabilities, capabilityContent)
-	}
 	if len(runtimeMetadata.HostServices) > 0 {
 		hostServiceContent, marshalErr := json.Marshal(runtimeMetadata.HostServices)
 		if marshalErr != nil {

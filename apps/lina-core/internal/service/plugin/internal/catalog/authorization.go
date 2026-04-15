@@ -51,24 +51,6 @@ func HasResourceScopedHostServices(specs []*pluginbridge.HostServiceSpec) bool {
 	return false
 }
 
-// BuildCapabilityMapFromHostServices derives the coarse capability set implied
-// by one authorized host service snapshot.
-func BuildCapabilityMapFromHostServices(specs []*pluginbridge.HostServiceSpec) map[string]struct{} {
-	capabilities := make(map[string]struct{})
-	for _, spec := range specs {
-		if spec == nil {
-			continue
-		}
-		for _, method := range spec.Methods {
-			capability := pluginbridge.RequiredCapabilityForHostServiceMethod(spec.Service, method)
-			if capability != "" {
-				capabilities[capability] = struct{}{}
-			}
-		}
-	}
-	return capabilities
-}
-
 // ParseManifestSnapshot unmarshals one persisted release manifest snapshot.
 func (s *Service) ParseManifestSnapshot(content string) (*ManifestSnapshot, error) {
 	trimmed := strings.TrimSpace(content)

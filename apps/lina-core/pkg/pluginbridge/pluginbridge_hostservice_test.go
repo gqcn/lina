@@ -288,9 +288,22 @@ func TestValidateHostServiceSpecsRejectsDuplicateMethods(t *testing.T) {
 	}
 }
 
-func TestValidateHostServiceAuthorizationsRejectsCapabilitiesWithoutPolicies(t *testing.T) {
-	err := ValidateHostServiceAuthorizations([]string{CapabilityRuntime}, nil)
-	if err == nil {
-		t.Fatal("expected capability declaration without hostServices policy to be rejected")
+func TestCapabilitiesFromHostServicesDerivesCapabilitySet(t *testing.T) {
+	capabilities := CapabilitiesFromHostServices([]*HostServiceSpec{
+		{
+			Service: HostServiceRuntime,
+			Methods: []string{HostServiceMethodRuntimeInfoUUID},
+		},
+		{
+			Service: HostServiceData,
+			Methods: []string{HostServiceMethodDataList, HostServiceMethodDataCreate},
+			Tables:  []string{"sys_plugin_node_state"},
+		},
+	})
+	if len(capabilities) != 3 {
+		t.Fatalf("expected 3 derived capabilities, got %#v", capabilities)
+	}
+	if capabilities[0] != CapabilityDataMutate || capabilities[1] != CapabilityDataRead || capabilities[2] != CapabilityRuntime {
+		t.Fatalf("unexpected derived capabilities ordering: %#v", capabilities)
 	}
 }

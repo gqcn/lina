@@ -162,17 +162,16 @@ func (s *Service) ParseRuntimeWasmArtifactContent(filePath string, content []byt
 	if err != nil {
 		return nil, err
 	}
-	capabilities, err := parseRuntimeArtifactCapabilities(filePath, sections)
-	if err != nil {
+	if err = rejectDeprecatedRuntimeArtifactCapabilities(filePath, sections); err != nil {
 		return nil, err
 	}
 	hostServices, err := parseRuntimeArtifactHostServices(filePath, sections)
 	if err != nil {
 		return nil, err
 	}
-	if err = pluginbridge.ValidateHostServiceAuthorizations(capabilities, hostServices); err != nil {
-		return nil, gerror.Wrapf(err, "校验动态插件宿主服务声明失败: %s", filePath)
-	}
+	// Runtime capability checks remain in place, but the capability set is now
+	// derived from the single hostServices snapshot instead of a second embedded section.
+	capabilities := pluginbridge.CapabilitiesFromHostServices(hostServices)
 
 	runtimeKind := strings.TrimSpace(strings.ToLower(runtimeMetadata.RuntimeKind))
 	if runtimeKind == "" {
@@ -541,23 +540,32 @@ func parseRuntimeArtifactBridgeSpec(
 	return spec, nil
 }
 
-func parseRuntimeArtifactCapabilities(
+func rejectDeprecatedRuntimeArtifactCapabilities(
 	filePath string,
 	sections map[string][]byte,
-) ([]string, error) {
+) error {
 	content, ok := sections[pluginbridge.WasmSectionBackendCapabilities]
 	if !ok {
-		return nil, nil
+		return nil
 	}
 
 	var items []string
-	if err := json.Unmarshal(content, &items); err != nil {
-		return nil, gerror.Wrapf(err, "解析动态插件能力声明失败: %s", filePath)
+	if err := json.Unmarshal(content, &items); err == nil {
+		normalizedItems := pluginbridge.NormalizeCapabilities(items)
+		if len(normalizedItems) > 0 {
+			return gerror.Newf(
+				"动态插件产物已废弃自定义节 %s，请删除旧 capabilities 声明后重新构建: %s (%s)",
+				pluginbridge.WasmSectionBackendCapabilities,
+				filePath,
+				strings.Join(normalizedItems, ", "),
+			)
+		}
 	}
-	if err := pluginbridge.ValidateCapabilities(items); err != nil {
-		return nil, gerror.Wrapf(err, "校验动态插件能力声明失败: %s", filePath)
-	}
-	return pluginbridge.NormalizeCapabilities(items), nil
+	return gerror.Newf(
+		"动态插件产物已废弃自定义节 %s，请删除旧 capabilities 声明后重新构建: %s",
+		pluginbridge.WasmSectionBackendCapabilities,
+		filePath,
+	)
 }
 
 func parseRuntimeArtifactHostServices(

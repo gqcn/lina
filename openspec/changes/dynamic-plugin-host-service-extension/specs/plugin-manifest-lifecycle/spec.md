@@ -2,13 +2,14 @@
 
 ### Requirement: 动态插件清单可声明结构化宿主服务策略
 
-系统 SHALL 允许动态插件在`plugin.yaml`中声明结构化宿主服务策略，用于描述需要的宿主 service、method、资源申请和治理参数；其中`storage`服务当前通过`resources.paths`声明逻辑路径申请，`data`服务当前通过`resources.tables`声明数据表申请。
+系统 SHALL 允许动态插件在`plugin.yaml`中仅声明结构化`hostServices`策略，用于描述需要的宿主 service、method、资源申请和治理参数；宿主内部 capability 分类必须根据这些声明自动推导，而不是要求作者重复维护顶层`capabilities`字段。其中`storage`服务当前通过`resources.paths`声明逻辑路径申请，`data`服务当前通过`resources.tables`声明数据表申请。
 
 #### Scenario: 插件声明宿主服务策略
 
 - **WHEN** 开发者编写动态插件清单
 - **THEN** 清单可以声明`hostServices`元数据
 - **AND** 每个声明至少包含 service、method 集合以及资源申请或策略参数
+- **AND** 清单不再需要单独声明顶层`capabilities`
 - **AND** 构建器对未知 service、未知 method 和非法策略直接报错
 
 #### Scenario: 宿主读取宿主服务策略快照

@@ -116,7 +116,7 @@
 
 作者侧清单建议补充两条约束：
 
-- `plugin.yaml` 中本迭代新增的 `capabilities`、`hostServices`、`resources.paths`、`resources.tables`、URL pattern 等字段，应在样例里提供就地注释说明，避免 reviewers 需要跳回文档对照理解。
+- `plugin.yaml` 中本迭代新增的 `hostServices`、`resources.paths`、`resources.tables`、URL pattern 等字段，应在样例里提供就地注释说明，避免 reviewers 需要跳回文档对照理解。
 - guest 后端的控制器应保持轻量，复杂业务逻辑统一放在 `backend/internal/service/<component>/` 中维护，控制器只负责桥接请求上下文与响应装配。
 
 对于 guest 侧的实际编码方式，当前推荐优先使用 `lina-core/pkg/plugindb` 提供的受限 ORM 风格 facade，而不是继续直接调用底层 `pluginbridge.Data()` helper。推荐心智模型如下：
@@ -615,7 +615,7 @@ license: Apache-2.0
 - `resources`
 - `metadata`
 
-这些字段被移除的原因是它们会把以下信息重复建模：
+这些字段被移除的原因是它们会把以下信息重复建模；其中动态插件作者侧的宿主能力申请现在统一只通过 `hostServices` 维护，不再保留单独的 `capabilities` 顶层输入：
 
 - SQL 文件路径，本来就可以从固定目录推导。
 - 前端页面和`Slot`文件，本来就可以从真实源码目录推导。

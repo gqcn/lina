@@ -78,26 +78,20 @@ Host Service Dispatcher
 - 为每个宿主服务增加独立`wasmimport`函数：guest API 表面上更直观，但 ABI 面会失控，兼容成本更高，放弃。
 - 让 guest 通过宿主 HTTP API 回环调用能力：会把内部治理绕回公开接口，且容易形成自调用与认证歧义，放弃。
 
-### 决策二：采用“能力声明 ＋ 资源授权”双层治理模型
+### 决策二：采用“宿主服务声明 ＋ 内部能力推导 ＋ 资源授权”双层治理模型
 
-仅靠当前的`capabilities`字符串列表，无法表达复杂宿主服务的真实治理边界。比如声明了`host:http:request`之后，插件到底能调用哪个上游、是否允许写入鉴权头、响应体能有多大，这些都不是一个字符串能说明的。
+仅靠`capabilities`字符串列表，无法表达复杂宿主服务的真实治理边界。比如声明了`host:http:request`之后，插件到底能调用哪个上游、响应体能有多大，这些都不是一个字符串能说明的；但如果再要求作者同时维护`capabilities`和`hostServices`两份声明，又会引入重复输入和额外维护成本。
 
-因此本次采用两层模型：
+因此本次采用“作者侧单一声明 + 宿主内部双层治理”的模型：
 
-1. 粗粒度`capabilities`：
-   用于表达插件大类能力，例如`host:runtime`、`host:storage`、`host:http:request`、`host:data:read`。这一层用于快速拒绝未声明的大类能力。
-2. 细粒度`hostServices`策略：
+1. 插件作者只声明细粒度`hostServices`策略：
    在`plugin.yaml`中结构化声明 service、method、资源目标（如`resourceRef`、URL 模式或`resources.tables`）和治理参数，用于表达“这个插件申请访问什么资源、希望以什么方式访问”。声明本身只代表申请，不代表自动授权；宿主需要在安装或启用时展示这些申请项，并确认最终授权结果。
+2. 宿主内部自动推导粗粒度 capability：
+   宿主根据`hostServices.methods`自动推导`host:runtime`、`host:storage`、`host:http:request`、`host:data:read`、`host:data:mutate`等能力分类，用于运行时快速拒绝未授权的大类能力，但这份 capability 集合不再要求插件作者额外维护。
 
 推荐的清单形态如下：
 
 ```yaml
-capabilities:
-  - host:storage
-  - host:http:request
-  - host:data:read
-  - host:data:mutate
-
 hostServices:
   - service: storage
     methods: [put, get, delete, list, stat]
@@ -121,7 +115,7 @@ hostServices:
 
 补充落地约束：
 
-- 面向插件作者的示例 `plugin.yaml` 中，凡是本次迭代新增的 `capabilities`、`hostServices`、`resources.paths`、`resources.tables`、URL pattern 等字段，样例文件都应提供就地注释说明，确保清单本身即可作为开发模板；
+- 面向插件作者的示例 `plugin.yaml` 中，凡是本次迭代新增的 `hostServices`、`resources.paths`、`resources.tables`、URL pattern 等字段，样例文件都应提供就地注释说明，确保清单本身即可作为开发模板；
 - 动态插件 guest 侧的控制器实现应保持轻量，复杂业务负载逻辑统一下沉到 `backend/internal/service/<component>/` 维护，控制器只负责桥接请求上下文、调用 service 并回写响应。
 - `pkg/pluginhost` 中历史遗留的 source-plugin `ResourceSpec` 若未被任何源码插件使用，应优先删除而不是继续为其维护与当前 `catalog.ResourceSpec` 平行的第二套模型；当前 data hostService 的表授权与动态运行时 backend resource 契约统一以宿主内部 `catalog` / runtime artifact 模型为准。
 
@@ -131,7 +125,7 @@ hostServices:
 
 宿主运行时继续校验：
 
-- capability 是否声明；
+- capability 是否已由当前 release 的`hostServices`快照推导并授予；
 - service／method 是否声明；
 - 目标资源标识（`resourceRef`、URL 模式或`table`）是否已被宿主确认授权；
 - 当前执行上下文是否满足服务方法要求；
@@ -607,7 +601,7 @@ query plan 的核心收益是：
 
 为了让宿主在装载、切换、审计和回滚时拥有完整真相源，本次不把宿主服务治理信息只留在源码目录或运行时内存里，而是要求：
 
-- `plugin.yaml`显式声明`hostServices`；
+- `plugin.yaml`仅显式声明`hostServices`；
 - 构建器对声明做归一化和静态校验；
 - 运行时产物把归一化结果嵌入专用自定义节；
 - 宿主装载产物时恢复为 active release 的宿主服务治理快照；
@@ -674,14 +668,14 @@ query plan 的核心收益是：
 
 - [风险] 一次性把十类宿主能力全部纳入迭代，可能导致交付顺序失控。→ Mitigation：明确分成高优先级四类和低优先级六类，任务顺序和验收顺序都以前四类为前置。
 - [风险] 数据服务若设计得过于理想化，落地时可能与真实插件诉求脱节。→ Mitigation：首批样例直接走结构化`data` service，必要时补充命名查询和命令模型，但不回退到 raw SQL 协议。
-- [风险] 文件和网络能力天然敏感，容易越权。→ Mitigation：必须同时做 capability 校验、`hostServices`策略校验、`resourceRef`授权校验和上下文校验，任何一层不满足都拒绝执行。
+- [风险] 文件和网络能力天然敏感，容易越权。→ Mitigation：必须同时做“由`hostServices`推导出的 capability 校验”、`hostServices`策略校验、`resourceRef`/`table`/URL pattern 授权校验和上下文校验，任何一层不满足都拒绝执行。
 - [风险] 宿主服务元数据如果只存在清单或只存在数据库，会形成双真相。→ Mitigation：以运行时产物内嵌快照作为 release 真相源，数据库只保存治理投影和审计记录。
 - [风险] 现有探索性实现已经编码到若干包内，重构时可能出现局部返工。→ Mitigation：明确本项目是绿地项目，直接以目标模型重构，不为旧协议额外保留分支。
 
 ## Migration Plan
 
 1. 在`pluginbridge`中定义统一的宿主服务调用 envelope 和 guest 低层 helper。
-2. 扩展`plugin.yaml`与构建器，支持`hostServices`声明的静态校验和产物自定义节写入。
+2. 扩展`plugin.yaml`与构建器，支持`hostServices`声明的静态校验和产物自定义节写入，并拒绝旧的顶层`capabilities`作者输入。
 3. 在运行时解析链路中恢复宿主服务治理快照，并接入宿主服务注册表与统一分发器。
 4. 将当前最小 Host Call 实现重构为`runtime`、`storage`、`network`、`data`四类高优先级宿主服务，并补齐上下文校验、资源授权和审计能力。
 5. 在`data`能力上新增`pkg/plugindb/shared`强类型枚举与 query plan 模型，以及`pkg/plugindb`受限 ORM 风格 guest SDK。

@@ -17,7 +17,7 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 	mustWriteFile(
 		t,
 		filepath.Join(pluginDir, "plugin.yaml"),
-		"id: plugin-dynamic-builder\nname: Dynamic Builder\nversion: v0.1.0\ntype: dynamic\ndescription: standalone builder test\ncapabilities:\n  - host:runtime\nhostServices:\n  - service: runtime\n    methods:\n      - log.write\n      - state.get\n      - state.set\n",
+		"id: plugin-dynamic-builder\nname: Dynamic Builder\nversion: v0.1.0\ntype: dynamic\ndescription: standalone builder test\nhostServices:\n  - service: runtime\n    methods:\n      - log.write\n      - state.get\n      - state.set\n",
 	)
 	mustWriteFile(
 		t,
@@ -140,12 +140,8 @@ func TestBuildRuntimeWasmArtifactFromSourceEmbedsDeclaredAssets(t *testing.T) {
 		t.Fatalf("unexpected embedded bridge spec: %#v", bridgeSpec)
 	}
 
-	var capabilities []string
-	if err = json.Unmarshal(sections[pluginDynamicWasmSectionBackendCapabilities], &capabilities); err != nil {
-		t.Fatalf("expected capabilities section json to unmarshal, got error: %v", err)
-	}
-	if len(capabilities) != 1 || capabilities[0] != pluginbridge.CapabilityRuntime {
-		t.Fatalf("unexpected embedded capabilities: %#v", capabilities)
+	if _, ok := sections[pluginbridge.WasmSectionBackendCapabilities]; ok {
+		t.Fatalf("expected deprecated capabilities section to be omitted, got %#v", sections[pluginbridge.WasmSectionBackendCapabilities])
 	}
 
 	var hostServices []*pluginbridge.HostServiceSpec
@@ -199,7 +195,7 @@ func TestBuildRuntimeWasmArtifactFromSourceFailsWhenEmbeddedResourcesOmitManifes
 	}
 }
 
-func TestBuildRuntimeWasmArtifactFromSourceRejectsLegacyRawSQLCapability(t *testing.T) {
+func TestBuildRuntimeWasmArtifactFromSourceRejectsDeprecatedCapabilitiesDeclaration(t *testing.T) {
 	pluginDir := t.TempDir()
 
 	mustWriteFile(
@@ -225,10 +221,10 @@ func TestBuildRuntimeWasmArtifactFromSourceRejectsLegacyRawSQLCapability(t *test
 
 	_, err := BuildRuntimeWasmArtifactFromSource(pluginDir)
 	if err == nil {
-		t.Fatal("expected legacy raw SQL capability to be rejected")
+		t.Fatal("expected deprecated top-level capabilities to be rejected")
 	}
-	if !strings.Contains(err.Error(), "host:db:query") {
-		t.Fatalf("expected legacy raw SQL capability error, got %v", err)
+	if !strings.Contains(err.Error(), "host:db:query") || !strings.Contains(err.Error(), "hostServices") {
+		t.Fatalf("expected deprecated capabilities error mentioning hostServices migration, got %v", err)
 	}
 }
 

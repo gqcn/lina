@@ -7,9 +7,9 @@ package pluginbridge
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"strings"
 
+	"github.com/gogf/gf/v2/errors/gerror"
 	"gopkg.in/yaml.v3"
 )
 
@@ -97,7 +97,7 @@ func (spec *HostServiceSpec) UnmarshalJSON(data []byte) error {
 		}
 		spec.Tables = append([]string(nil), dataResources.Tables...)
 	default:
-		return fmt.Errorf("host service resources must be an array or object")
+		return gerror.New("host service resources must be an array or object")
 	}
 	return nil
 }

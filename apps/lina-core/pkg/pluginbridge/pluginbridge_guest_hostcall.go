@@ -6,9 +6,10 @@
 package pluginbridge
 
 import (
-	"fmt"
 	"strconv"
 	"unsafe"
+
+	"github.com/gogf/gf/v2/errors/gerror"
 )
 
 // linaHostCall is the imported host function provided by the lina_env module.
@@ -45,20 +46,20 @@ func invokeHostCall(opcode uint32, reqBytes []byte) ([]byte, error) {
 
 	buf := guestHostCallResponseBuffer
 	if uint32(len(buf)) < respLen {
-		return nil, fmt.Errorf("host call response buffer underflow: have %d, need %d", len(buf), respLen)
+		return nil, gerror.Newf("host call response buffer underflow: have %d, need %d", len(buf), respLen)
 	}
 	_ = respPtr
 
 	envelope, err := UnmarshalHostCallResponse(buf[:respLen])
 	if err != nil {
-		return nil, fmt.Errorf("host call response decode failed: %w", err)
+		return nil, gerror.Wrap(err, "host call response decode failed")
 	}
 	if envelope.Status != HostCallStatusSuccess {
 		message := string(envelope.Payload)
 		if message == "" {
-			message = fmt.Sprintf("host call failed with status %d", envelope.Status)
+			message = "host call failed with status " + strconv.FormatInt(int64(envelope.Status), 10)
 		}
-		return nil, fmt.Errorf("host call error (status=%d): %s", envelope.Status, message)
+		return nil, gerror.Newf("host call error (status=%d): %s", envelope.Status, message)
 	}
 	return envelope.Payload, nil
 }
@@ -124,7 +125,7 @@ func (s *RuntimeHostService) StateGetInt(key string) (int, bool, error) {
 	}
 	number, err := strconv.Atoi(value)
 	if err != nil {
-		return 0, true, fmt.Errorf("state value for %q is not an integer: %s", key, value)
+		return 0, true, gerror.Newf("state value for %q is not an integer: %s", key, value)
 	}
 	return number, true, nil
 }
@@ -207,12 +208,12 @@ func HostDBQuery(sql string, args []string, maxRows int) (*HostDBQueryResult, er
 	_ = sql
 	_ = args
 	_ = maxRows
-	return nil, fmt.Errorf("HostDBQuery 已移除，请改用 pluginbridge.Data() 结构化数据服务")
+	return nil, gerror.New("HostDBQuery 已移除，请改用 pluginbridge.Data() 结构化数据服务")
 }
 
 // HostDBExecute is no longer part of the public host service protocol.
 func HostDBExecute(sql string, args []string) (int64, int64, error) {
 	_ = sql
 	_ = args
-	return 0, 0, fmt.Errorf("HostDBExecute 已移除，请改用 pluginbridge.Data() 结构化数据服务")
+	return 0, 0, gerror.New("HostDBExecute 已移除，请改用 pluginbridge.Data() 结构化数据服务")
 }

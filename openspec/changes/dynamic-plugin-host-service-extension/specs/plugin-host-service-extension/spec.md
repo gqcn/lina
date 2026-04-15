@@ -23,14 +23,15 @@
 - **THEN** 已实现的日志、状态和数据访问能力也通过统一宿主服务协议对 guest 暴露
 - **AND** 宿主不得继续维护面向插件的平行公开协议
 
-### Requirement: 宿主服务访问同时受能力声明和资源授权约束
+### Requirement: 宿主服务访问同时受宿主服务声明推导的能力分类和资源授权约束
 
-系统 SHALL 对每一次宿主服务调用同时执行粗粒度 capability 校验和细粒度资源授权校验，任一层不满足都必须拒绝调用。
+系统 SHALL 对每一次宿主服务调用同时执行粗粒度 capability 校验和细粒度资源授权校验，但 capability 集合必须由`hostServices`声明自动推导，而不是要求插件作者在`plugin.yaml`中重复维护第二份`capabilities`列表；任一层不满足都必须拒绝调用。
 
 #### Scenario: 插件声明宿主服务策略
 
 - **WHEN** 开发者在动态插件清单中声明`hostServices`
 - **THEN** 构建器校验 service、method、资源声明（如`resourceRef`或`resources.tables`）和策略参数是否合法
+- **AND** 宿主根据这些 methods 自动推导内部 capability 分类快照
 - **AND** 将归一化后的宿主服务策略写入运行时产物
 - **AND** 宿主装载产物后恢复为当前 release 的服务授权快照
 

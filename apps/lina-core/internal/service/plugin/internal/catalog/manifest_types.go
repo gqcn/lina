@@ -198,7 +198,7 @@ type ArtifactSpec struct {
 	RouteContracts []*pluginbridge.RouteContract
 	// BridgeSpec carries the WASM bridge ABI metadata.
 	BridgeSpec *pluginbridge.BridgeSpec
-	// Capabilities lists the host capability identifiers declared by the plugin.
+	// Capabilities lists the coarse host capability identifiers derived from HostServices.
 	Capabilities []string
 	// HostServices lists the structured host service declarations embedded in the artifact.
 	HostServices []*pluginbridge.HostServiceSpec

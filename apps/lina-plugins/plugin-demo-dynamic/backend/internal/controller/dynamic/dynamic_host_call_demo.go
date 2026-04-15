@@ -5,6 +5,8 @@ package dynamic
 import (
 	"encoding/json"
 
+	"github.com/gogf/gf/v2/errors/gerror"
+
 	"lina-core/pkg/pluginbridge"
 )
 
@@ -17,7 +19,7 @@ func (c *Controller) HostCallDemo(request *pluginbridge.BridgeRequestEnvelopeV1)
 	}
 	content, err := json.Marshal(payload)
 	if err != nil {
-		return nil, err
+		return nil, gerror.Wrap(err, "marshal host call demo payload failed")
 	}
 	return pluginbridge.NewJSONResponse(200, content), nil
 }

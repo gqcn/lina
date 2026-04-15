@@ -78,7 +78,7 @@
 - [x] **FB-18**: 为`plugindb`中的查询动作、过滤操作符、排序方向、事务 mutation 类型和访问模式等枚举语义值定义独立 Go 命名类型与常量，并禁止在 builder、query plan、执行器和审计逻辑中直接写字符串字面量。
 - [x] **FB-19**: 将`data service`当前位于`internal/service/plugin/internal/datahost`中的自定义 Driver / DB wrapper / 审计上下文能力上提到`pkg/plugindb/host`，形成宿主可复用治理层。
 - [x] **FB-20**: 将动态插件 demo 与数据访问开发文档迁移为`plugindb.Open()`主路径，并补充从兼容层`pluginbridge.Data()`向`plugindb`过渡的说明。
-- [x] **FB-21**: 为动态插件`plugin.yaml`中本次迭代新增的`capabilities`、`hostServices`及其资源声明字段补齐就地注释说明，确保样例清单可直接作为作者侧参考模板。
+- [x] **FB-21**: 为动态插件`plugin.yaml`中本次迭代新增的`hostServices`及其资源声明字段补齐就地注释说明，确保样例清单可直接作为作者侧参考模板。
 - [x] **FB-22**: 将动态插件 demo 控制器中的业务负载逻辑下沉到`backend/internal/service`组件，保持控制器仅负责桥接请求与响应装配。
 - [x] **FB-23**: 更新动态插件生命周期 E2E 辅助逻辑，使启用带 hostServices 授权弹窗的动态插件时能够按默认授权流继续执行回归验证。
 - [x] **FB-24**: 移除`pkg/pluginhost`中已无源码插件使用的`ResourceSpec`及其 source-plugin 适配链，避免继续保留与当前 data hostService / backend resource 模型不一致的冗余结构。
@@ -86,3 +86,7 @@
 - [x] **FB-26**: 将插件运行时中的授权状态、执行来源等枚举语义字符串收敛为独立命名类型与常量，避免继续在运行时、数据治理和审计链路中硬编码字符串字面量。
 - [x] **FB-27**: 按`goframe-v2`代码风格要求收敛本次实现中的相关多变量连续定义，使用`var` block 提升可读性与维护一致性。
 - [x] **FB-28**: 清理已不可达的动态插件 raw SQL 旧 hostcall 链路（`host:db:*` 编解码与宿主处理器），避免继续保留与当前结构化 hostService 模型不一致的冗余代码。
+- [x] **FB-29**: 收敛插件生命周期 facade 中`Install`/`InstallWithAuthorization`及启停相关公开方法的重复包装关系，改为复用私有辅助流程，避免 exported 方法互相转调。
+- [x] **FB-30**: 将动态插件作者侧 manifest 与 runtime artifact 收敛为仅声明`hostServices`，移除顶层`capabilities`作者输入与产物自定义节，宿主内部 capability 分类改为从`hostServices.methods`自动推导。
+- [x] **FB-31**: 将动态插件样例、guest SDK 与相关测试 fixture 中新增或维护的错误创建统一改为`gerror`，并为关键失败分支补充上下文包装说明。
+- [x] **FB-32**: 将插件生命周期 facade 的安装与状态切换公开 API 进一步收敛为单一入口（通过可空授权参数表达是否附带授权确认），并审查同类重复包装点，仅保留真正有语义价值的快捷方法。

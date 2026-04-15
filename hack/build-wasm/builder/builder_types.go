@@ -25,7 +25,6 @@ const (
 	pluginDynamicWasmSectionBackendRes          = pluginbridge.WasmSectionBackendResources
 	pluginDynamicWasmSectionBackendRoutes       = pluginbridge.WasmSectionBackendRoutes
 	pluginDynamicWasmSectionBackendBridge       = pluginbridge.WasmSectionBackendBridge
-	pluginDynamicWasmSectionBackendCapabilities = pluginbridge.WasmSectionBackendCapabilities
 	pluginDynamicWasmSectionBackendHostServices = pluginbridge.WasmSectionBackendHostServices
 )
 
@@ -43,12 +42,13 @@ type RuntimeBuildOutput struct {
 }
 
 type pluginManifest struct {
-	ID           string                          `yaml:"id"`
-	Name         string                          `yaml:"name"`
-	Version      string                          `yaml:"version"`
-	Type         string                          `yaml:"type"`
-	Description  string                          `yaml:"description"`
-	Menus        []*menuSpec                     `yaml:"menus"`
+	ID          string      `yaml:"id"`
+	Name        string      `yaml:"name"`
+	Version     string      `yaml:"version"`
+	Type        string      `yaml:"type"`
+	Description string      `yaml:"description"`
+	Menus       []*menuSpec `yaml:"menus"`
+	// Capabilities is kept only to reject deprecated author-side manifest input.
 	Capabilities []string                        `yaml:"capabilities"`
 	HostServices []*pluginbridge.HostServiceSpec `yaml:"hostServices"`
 }

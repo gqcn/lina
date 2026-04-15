@@ -24,7 +24,7 @@ const (
 	WasmSectionBackendRoutes = "lina.plugin.backend.routes"
 	// WasmSectionBackendBridge stores backend bridge ABI contracts.
 	WasmSectionBackendBridge = "lina.plugin.backend.bridge"
-	// WasmSectionBackendCapabilities stores declared host call capabilities.
+	// WasmSectionBackendCapabilities stores a deprecated legacy capability section.
 	WasmSectionBackendCapabilities = "lina.plugin.backend.capabilities"
 	// WasmSectionBackendHostServices stores structured host service declarations.
 	WasmSectionBackendHostServices = "lina.plugin.backend.host-services"

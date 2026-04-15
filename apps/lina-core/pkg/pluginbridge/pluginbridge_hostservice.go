@@ -4,11 +4,12 @@
 package pluginbridge
 
 import (
-	"fmt"
 	"net/url"
 	"path"
 	"sort"
 	"strings"
+
+	"github.com/gogf/gf/v2/errors/gerror"
 )
 
 const (
@@ -153,85 +154,87 @@ type HostServiceResourceSpec struct {
 	Attributes map[string]string `json:"attributes,omitempty" yaml:"attributes,omitempty"`
 }
 
-var hostServiceMethodCapabilityMap = map[string]map[string]string{
-	HostServiceRuntime: {
-		HostServiceMethodRuntimeLogWrite:    CapabilityRuntime,
-		HostServiceMethodRuntimeStateGet:    CapabilityRuntime,
-		HostServiceMethodRuntimeStateSet:    CapabilityRuntime,
-		HostServiceMethodRuntimeStateDelete: CapabilityRuntime,
-		HostServiceMethodRuntimeInfoNow:     CapabilityRuntime,
-		HostServiceMethodRuntimeInfoUUID:    CapabilityRuntime,
-		HostServiceMethodRuntimeInfoNode:    CapabilityRuntime,
-	},
-	HostServiceStorage: {
-		HostServiceMethodStoragePut:    CapabilityStorage,
-		HostServiceMethodStorageGet:    CapabilityStorage,
-		HostServiceMethodStorageDelete: CapabilityStorage,
-		HostServiceMethodStorageList:   CapabilityStorage,
-		HostServiceMethodStorageStat:   CapabilityStorage,
-	},
-	HostServiceNetwork: {
-		HostServiceMethodNetworkRequest: CapabilityHTTPRequest,
-	},
-	HostServiceData: {
-		HostServiceMethodDataList:        CapabilityDataRead,
-		HostServiceMethodDataGet:         CapabilityDataRead,
-		HostServiceMethodDataCreate:      CapabilityDataMutate,
-		HostServiceMethodDataUpdate:      CapabilityDataMutate,
-		HostServiceMethodDataDelete:      CapabilityDataMutate,
-		HostServiceMethodDataTransaction: CapabilityDataMutate,
-	},
-	HostServiceCache: {
-		"get":    CapabilityCache,
-		"set":    CapabilityCache,
-		"delete": CapabilityCache,
-		"incr":   CapabilityCache,
-		"expire": CapabilityCache,
-	},
-	HostServiceLock: {
-		"acquire": CapabilityLock,
-		"renew":   CapabilityLock,
-		"release": CapabilityLock,
-	},
-	HostServiceSecret: {
-		"resolve": CapabilitySecret,
-	},
-	HostServiceEvent: {
-		"publish": CapabilityEventPublish,
-	},
-	HostServiceQueue: {
-		"enqueue": CapabilityQueueEnqueue,
-	},
-	HostServiceNotify: {
-		"send": CapabilityNotify,
-	},
-}
+var (
+	hostServiceMethodCapabilityMap = map[string]map[string]string{
+		HostServiceRuntime: {
+			HostServiceMethodRuntimeLogWrite:    CapabilityRuntime,
+			HostServiceMethodRuntimeStateGet:    CapabilityRuntime,
+			HostServiceMethodRuntimeStateSet:    CapabilityRuntime,
+			HostServiceMethodRuntimeStateDelete: CapabilityRuntime,
+			HostServiceMethodRuntimeInfoNow:     CapabilityRuntime,
+			HostServiceMethodRuntimeInfoUUID:    CapabilityRuntime,
+			HostServiceMethodRuntimeInfoNode:    CapabilityRuntime,
+		},
+		HostServiceStorage: {
+			HostServiceMethodStoragePut:    CapabilityStorage,
+			HostServiceMethodStorageGet:    CapabilityStorage,
+			HostServiceMethodStorageDelete: CapabilityStorage,
+			HostServiceMethodStorageList:   CapabilityStorage,
+			HostServiceMethodStorageStat:   CapabilityStorage,
+		},
+		HostServiceNetwork: {
+			HostServiceMethodNetworkRequest: CapabilityHTTPRequest,
+		},
+		HostServiceData: {
+			HostServiceMethodDataList:        CapabilityDataRead,
+			HostServiceMethodDataGet:         CapabilityDataRead,
+			HostServiceMethodDataCreate:      CapabilityDataMutate,
+			HostServiceMethodDataUpdate:      CapabilityDataMutate,
+			HostServiceMethodDataDelete:      CapabilityDataMutate,
+			HostServiceMethodDataTransaction: CapabilityDataMutate,
+		},
+		HostServiceCache: {
+			"get":    CapabilityCache,
+			"set":    CapabilityCache,
+			"delete": CapabilityCache,
+			"incr":   CapabilityCache,
+			"expire": CapabilityCache,
+		},
+		HostServiceLock: {
+			"acquire": CapabilityLock,
+			"renew":   CapabilityLock,
+			"release": CapabilityLock,
+		},
+		HostServiceSecret: {
+			"resolve": CapabilitySecret,
+		},
+		HostServiceEvent: {
+			"publish": CapabilityEventPublish,
+		},
+		HostServiceQueue: {
+			"enqueue": CapabilityQueueEnqueue,
+		},
+		HostServiceNotify: {
+			"send": CapabilityNotify,
+		},
+	}
 
-var allCapabilities = map[string]struct{}{
-	CapabilityRuntime:      {},
-	CapabilityStorage:      {},
-	CapabilityHTTPRequest:  {},
-	CapabilityDataRead:     {},
-	CapabilityDataMutate:   {},
-	CapabilityCache:        {},
-	CapabilityLock:         {},
-	CapabilitySecret:       {},
-	CapabilityEventPublish: {},
-	CapabilityQueueEnqueue: {},
-	CapabilityNotify:       {},
-}
+	allCapabilities = map[string]struct{}{
+		CapabilityRuntime:      {},
+		CapabilityStorage:      {},
+		CapabilityHTTPRequest:  {},
+		CapabilityDataRead:     {},
+		CapabilityDataMutate:   {},
+		CapabilityCache:        {},
+		CapabilityLock:         {},
+		CapabilitySecret:       {},
+		CapabilityEventPublish: {},
+		CapabilityQueueEnqueue: {},
+		CapabilityNotify:       {},
+	}
 
-var hostServicesWithoutResources = map[string]struct{}{
-	HostServiceRuntime: {},
-}
+	hostServicesWithoutResources = map[string]struct{}{
+		HostServiceRuntime: {},
+	}
 
-var hostServicesWithTables = map[string]struct{}{
-	HostServiceData: {},
-}
+	hostServicesWithTables = map[string]struct{}{
+		HostServiceData: {},
+	}
 
-var hostServicesWithPaths = map[string]struct{}{
-	HostServiceStorage: {},
-}
+	hostServicesWithPaths = map[string]struct{}{
+		HostServiceStorage: {},
+	}
+)
 
 // RequiredCapabilityForHostServiceMethod returns the capability required by one host service method.
 func RequiredCapabilityForHostServiceMethod(service string, method string) string {
@@ -244,6 +247,36 @@ func RequiredCapabilityForHostServiceMethod(service string, method string) strin
 	return methods[method]
 }
 
+// CapabilitiesFromHostServices returns the sorted capability slice implied by one
+// normalized host service declaration set.
+func CapabilitiesFromHostServices(specs []*HostServiceSpec) []string {
+	capabilityMap := CapabilityMapFromHostServices(specs)
+	capabilities := make([]string, 0, len(capabilityMap))
+	for capability := range capabilityMap {
+		capabilities = append(capabilities, capability)
+	}
+	sort.Strings(capabilities)
+	return capabilities
+}
+
+// CapabilityMapFromHostServices returns the capability set implied by one
+// normalized host service declaration set.
+func CapabilityMapFromHostServices(specs []*HostServiceSpec) map[string]struct{} {
+	capabilities := make(map[string]struct{})
+	for _, spec := range NormalizeHostServiceSpecs(specs) {
+		if spec == nil {
+			continue
+		}
+		for _, method := range spec.Methods {
+			capability := RequiredCapabilityForHostServiceMethod(spec.Service, method)
+			if capability != "" {
+				capabilities[capability] = struct{}{}
+			}
+		}
+	}
+	return capabilities
+}
+
 // ValidateHostServiceSpecs validates and normalizes host service declarations in-place.
 func ValidateHostServiceSpecs(specs []*HostServiceSpec) error {
 	if len(specs) == 0 {
@@ -253,17 +286,17 @@ func ValidateHostServiceSpecs(specs []*HostServiceSpec) error {
 	seenServices := make(map[string]struct{}, len(specs))
 	for _, spec := range specs {
 		if spec == nil {
-			return fmt.Errorf("宿主服务声明不能为空")
+			return gerror.New("宿主服务声明不能为空")
 		}
 		spec.Service = normalizeHostServiceName(spec.Service)
 		if spec.Service == "" {
-			return fmt.Errorf("宿主服务 service 不能为空")
+			return gerror.New("宿主服务 service 不能为空")
 		}
 		if _, ok := hostServiceMethodCapabilityMap[spec.Service]; !ok {
-			return fmt.Errorf("未知的宿主服务声明: %s", spec.Service)
+			return gerror.Newf("未知的宿主服务声明: %s", spec.Service)
 		}
 		if _, exists := seenServices[spec.Service]; exists {
-			return fmt.Errorf("宿主服务 service 不允许重复声明: %s", spec.Service)
+			return gerror.Newf("宿主服务 service 不允许重复声明: %s", spec.Service)
 		}
 		seenServices[spec.Service] = struct{}{}
 
@@ -272,19 +305,19 @@ func ValidateHostServiceSpecs(specs []*HostServiceSpec) error {
 		for _, rawMethod := range spec.Methods {
 			method := normalizeHostServiceMethod(rawMethod)
 			if method == "" {
-				return fmt.Errorf("宿主服务 %s 的 method 不能为空", spec.Service)
+				return gerror.Newf("宿主服务 %s 的 method 不能为空", spec.Service)
 			}
 			if RequiredCapabilityForHostServiceMethod(spec.Service, method) == "" {
-				return fmt.Errorf("宿主服务 %s 不支持 method: %s", spec.Service, method)
+				return gerror.Newf("宿主服务 %s 不支持 method: %s", spec.Service, method)
 			}
 			if _, exists := methodSeen[method]; exists {
-				return fmt.Errorf("宿主服务 %s 的 method 不允许重复: %s", spec.Service, method)
+				return gerror.Newf("宿主服务 %s 的 method 不允许重复: %s", spec.Service, method)
 			}
 			methodSeen[method] = struct{}{}
 			methods = append(methods, method)
 		}
 		if len(methods) == 0 {
-			return fmt.Errorf("宿主服务 %s 至少需要声明一个 method", spec.Service)
+			return gerror.Newf("宿主服务 %s 至少需要声明一个 method", spec.Service)
 		}
 		sort.Strings(methods)
 		spec.Methods = methods
@@ -294,10 +327,10 @@ func ValidateHostServiceSpecs(specs []*HostServiceSpec) error {
 		for _, rawTable := range spec.Tables {
 			table := strings.TrimSpace(rawTable)
 			if table == "" {
-				return fmt.Errorf("宿主服务 %s 的 table 不能为空", spec.Service)
+				return gerror.Newf("宿主服务 %s 的 table 不能为空", spec.Service)
 			}
 			if _, exists := tableSeen[table]; exists {
-				return fmt.Errorf("宿主服务 %s 的 table 不允许重复: %s", spec.Service, table)
+				return gerror.Newf("宿主服务 %s 的 table 不允许重复: %s", spec.Service, table)
 			}
 			tableSeen[table] = struct{}{}
 			tables = append(tables, table)
@@ -310,10 +343,10 @@ func ValidateHostServiceSpecs(specs []*HostServiceSpec) error {
 		for _, rawPath := range spec.Paths {
 			normalizedPath, err := normalizeStorageDeclaredPath(rawPath)
 			if err != nil {
-				return fmt.Errorf("宿主服务 %s 的 path 非法: %w", spec.Service, err)
+				return gerror.Wrapf(err, "宿主服务 %s 的 path 非法", spec.Service)
 			}
 			if _, exists := pathSeen[normalizedPath]; exists {
-				return fmt.Errorf("宿主服务 %s 的 path 不允许重复: %s", spec.Service, normalizedPath)
+				return gerror.Newf("宿主服务 %s 的 path 不允许重复: %s", spec.Service, normalizedPath)
 			}
 			pathSeen[normalizedPath] = struct{}{}
 			paths = append(paths, normalizedPath)
@@ -325,14 +358,14 @@ func ValidateHostServiceSpecs(specs []*HostServiceSpec) error {
 		resources := make([]*HostServiceResourceSpec, 0, len(spec.Resources))
 		for _, resource := range spec.Resources {
 			if resource == nil {
-				return fmt.Errorf("宿主服务 %s 的资源声明不能为空", spec.Service)
+				return gerror.Newf("宿主服务 %s 的资源声明不能为空", spec.Service)
 			}
 			resource.Ref = strings.TrimSpace(resource.Ref)
 			if resource.Ref == "" {
-				return fmt.Errorf("宿主服务 %s 的 resource ref 不能为空", spec.Service)
+				return gerror.Newf("宿主服务 %s 的 resource ref 不能为空", spec.Service)
 			}
 			if _, exists := resourceSeen[resource.Ref]; exists {
-				return fmt.Errorf("宿主服务 %s 的 resource ref 不允许重复: %s", spec.Service, resource.Ref)
+				return gerror.Newf("宿主服务 %s 的 resource ref 不允许重复: %s", spec.Service, resource.Ref)
 			}
 			resourceSeen[resource.Ref] = struct{}{}
 			resource.AllowMethods = normalizeUpperStringSlice(resource.AllowMethods)
@@ -347,44 +380,44 @@ func ValidateHostServiceSpecs(specs []*HostServiceSpec) error {
 
 		if _, ok := hostServicesWithPaths[spec.Service]; ok {
 			if len(spec.Tables) > 0 {
-				return fmt.Errorf("宿主服务 %s 不允许声明 tables", spec.Service)
+				return gerror.Newf("宿主服务 %s 不允许声明 tables", spec.Service)
 			}
 			if len(spec.Resources) > 0 {
-				return fmt.Errorf("宿主服务 %s 不允许声明 resource refs", spec.Service)
+				return gerror.Newf("宿主服务 %s 不允许声明 resource refs", spec.Service)
 			}
 			if len(spec.Paths) == 0 {
-				return fmt.Errorf("宿主服务 %s 至少需要声明一个 path", spec.Service)
+				return gerror.Newf("宿主服务 %s 至少需要声明一个 path", spec.Service)
 			}
 			continue
 		}
 
 		if _, ok := hostServicesWithTables[spec.Service]; ok {
 			if len(spec.Paths) > 0 {
-				return fmt.Errorf("宿主服务 %s 不允许声明 paths", spec.Service)
+				return gerror.Newf("宿主服务 %s 不允许声明 paths", spec.Service)
 			}
 			if len(spec.Resources) > 0 {
-				return fmt.Errorf("宿主服务 %s 不允许声明 resources", spec.Service)
+				return gerror.Newf("宿主服务 %s 不允许声明 resources", spec.Service)
 			}
 			if len(spec.Tables) == 0 {
-				return fmt.Errorf("宿主服务 %s 至少需要声明一个 table", spec.Service)
+				return gerror.Newf("宿主服务 %s 至少需要声明一个 table", spec.Service)
 			}
 			continue
 		}
 		if len(spec.Tables) > 0 {
-			return fmt.Errorf("宿主服务 %s 不允许声明 tables", spec.Service)
+			return gerror.Newf("宿主服务 %s 不允许声明 tables", spec.Service)
 		}
 		if len(spec.Paths) > 0 {
-			return fmt.Errorf("宿主服务 %s 不允许声明 paths", spec.Service)
+			return gerror.Newf("宿主服务 %s 不允许声明 paths", spec.Service)
 		}
 
 		if _, ok := hostServicesWithoutResources[spec.Service]; ok {
 			if len(spec.Resources) > 0 {
-				return fmt.Errorf("宿主服务 %s 不允许声明 resources", spec.Service)
+				return gerror.Newf("宿主服务 %s 不允许声明 resources", spec.Service)
 			}
 			continue
 		}
 		if len(spec.Resources) == 0 {
-			return fmt.Errorf("宿主服务 %s 至少需要声明一个 resource", spec.Service)
+			return gerror.Newf("宿主服务 %s 至少需要声明一个 resource", spec.Service)
 		}
 		if spec.Service == HostServiceNetwork {
 			for _, resource := range spec.Resources {
@@ -392,10 +425,10 @@ func ValidateHostServiceSpecs(specs []*HostServiceSpec) error {
 					continue
 				}
 				if len(resource.AllowMethods) > 0 || len(resource.HeaderAllowList) > 0 || resource.TimeoutMs > 0 || resource.MaxBodyBytes > 0 || len(resource.Attributes) > 0 {
-					return fmt.Errorf("宿主服务 %s 仅允许声明 url，不允许附带额外治理字段: %s", spec.Service, resource.Ref)
+					return gerror.Newf("宿主服务 %s 仅允许声明 url，不允许附带额外治理字段: %s", spec.Service, resource.Ref)
 				}
 				if err := validateNetworkURLPattern(resource.Ref); err != nil {
-					return fmt.Errorf("宿主服务 %s 的 url 非法: %w", spec.Service, err)
+					return gerror.Wrapf(err, "宿主服务 %s 的 url 非法", spec.Service)
 				}
 			}
 		}
@@ -404,43 +437,6 @@ func ValidateHostServiceSpecs(specs []*HostServiceSpec) error {
 	sort.Slice(specs, func(i, j int) bool {
 		return specs[i].Service < specs[j].Service
 	})
-	return nil
-}
-
-// ValidateHostServiceAuthorizations validates capability and host service declarations together.
-func ValidateHostServiceAuthorizations(capabilities []string, specs []*HostServiceSpec) error {
-	normalizedCapabilities := NormalizeCapabilities(capabilities)
-	if len(normalizedCapabilities) == 0 && len(specs) == 0 {
-		return nil
-	}
-	if len(normalizedCapabilities) == 0 && len(specs) > 0 {
-		return fmt.Errorf("声明了 hostServices 但缺少对应的 capabilities")
-	}
-	if len(normalizedCapabilities) > 0 && len(specs) == 0 {
-		return fmt.Errorf("声明了 capabilities 但缺少 hostServices 策略")
-	}
-	if err := ValidateCapabilities(normalizedCapabilities); err != nil {
-		return err
-	}
-	if err := ValidateHostServiceSpecs(specs); err != nil {
-		return err
-	}
-
-	granted := CapabilitySliceToMap(normalizedCapabilities)
-	for _, spec := range specs {
-		if spec == nil {
-			continue
-		}
-		for _, method := range spec.Methods {
-			required := RequiredCapabilityForHostServiceMethod(spec.Service, method)
-			if required == "" {
-				return fmt.Errorf("宿主服务 %s.%s 未绑定 capability", spec.Service, method)
-			}
-			if _, ok := granted[required]; !ok {
-				return fmt.Errorf("宿主服务 %s.%s 缺少 capability %s", spec.Service, method, required)
-			}
-		}
-	}
 	return nil
 }
 
@@ -497,10 +493,10 @@ func ValidateCapabilities(capabilities []string) error {
 	for _, capability := range capabilities {
 		normalized := strings.TrimSpace(capability)
 		if normalized == "" {
-			return fmt.Errorf("插件能力声明不能为空")
+			return gerror.New("插件能力声明不能为空")
 		}
 		if _, ok := allCapabilities[normalized]; !ok {
-			return fmt.Errorf("未知的插件能力声明: %s，支持的值: %v", normalized, AllCapabilities())
+			return gerror.Newf("未知的插件能力声明: %s，支持的值: %v", normalized, AllCapabilities())
 		}
 	}
 	return nil
@@ -564,24 +560,24 @@ func normalizeStoragePathSlice(paths []string) []string {
 func normalizeStorageDeclaredPath(value string) (string, error) {
 	raw := strings.ReplaceAll(strings.TrimSpace(value), "\\", "/")
 	if raw == "" {
-		return "", fmt.Errorf("path 不能为空")
+		return "", gerror.New("path 不能为空")
 	}
 	if strings.HasPrefix(raw, "/") {
-		return "", fmt.Errorf("path 不能是绝对路径: %s", value)
+		return "", gerror.Newf("path 不能是绝对路径: %s", value)
 	}
 	if len(raw) >= 2 && ((raw[0] >= 'A' && raw[0] <= 'Z') || (raw[0] >= 'a' && raw[0] <= 'z')) && raw[1] == ':' {
-		return "", fmt.Errorf("path 不能包含宿主盘符: %s", value)
+		return "", gerror.Newf("path 不能包含宿主盘符: %s", value)
 	}
 
 	isPrefix := strings.HasSuffix(raw, "/")
 	trimmed := strings.TrimSuffix(raw, "/")
 	if trimmed == "" {
-		return "", fmt.Errorf("path 不能为空")
+		return "", gerror.New("path 不能为空")
 	}
 
 	normalized := path.Clean(trimmed)
 	if normalized == "." || normalized == ".." || strings.HasPrefix(normalized, "../") {
-		return "", fmt.Errorf("path 非法: %s", value)
+		return "", gerror.Newf("path 非法: %s", value)
 	}
 	if isPrefix {
 		return normalized + "/", nil
@@ -592,23 +588,23 @@ func normalizeStorageDeclaredPath(value string) (string, error) {
 func validateNetworkURLPattern(rawValue string) error {
 	trimmed := strings.TrimSpace(rawValue)
 	if trimmed == "" {
-		return fmt.Errorf("url 不能为空")
+		return gerror.New("url 不能为空")
 	}
 	if !strings.Contains(trimmed, "://") {
-		return fmt.Errorf("url 必须包含 scheme")
+		return gerror.New("url 必须包含 scheme")
 	}
 	if strings.Contains(trimmed, "?") || strings.Contains(trimmed, "#") {
-		return fmt.Errorf("url 模式不允许包含 query 或 fragment")
+		return gerror.New("url 模式不允许包含 query 或 fragment")
 	}
 	parsed, err := url.Parse(trimmed)
 	if err != nil {
-		return err
+		return gerror.Wrap(err, "解析 url 模式失败")
 	}
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return fmt.Errorf("url scheme 仅支持 http/https")
+		return gerror.New("url scheme 仅支持 http/https")
 	}
 	if strings.TrimSpace(parsed.Host) == "" {
-		return fmt.Errorf("url 缺少 host")
+		return gerror.New("url 缺少 host")
 	}
 	return nil
 }

@@ -8,7 +8,7 @@ import (
 
 // Disable updates plugin status to disabled.
 func (c *ControllerV1) Disable(ctx context.Context, req *v1.DisableReq) (res *v1.DisableRes, err error) {
-	if err = c.pluginSvc.UpdateStatus(ctx, req.Id, 0); err != nil {
+	if err = c.pluginSvc.Disable(ctx, req.Id); err != nil {
 		return nil, err
 	}
 

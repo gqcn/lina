@@ -10,14 +10,9 @@ import (
 	"lina-core/internal/service/plugin/internal/catalog"
 )
 
-// Install executes the install lifecycle for a discovered dynamic plugin.
-func (s *Service) Install(ctx context.Context, pluginID string) error {
-	return s.InstallWithAuthorization(ctx, pluginID, nil)
-}
-
-// InstallWithAuthorization executes the install lifecycle and persists the host-confirmed
+// Install executes the install lifecycle and optionally persists one host-confirmed
 // host service authorization snapshot when the target is a dynamic plugin.
-func (s *Service) InstallWithAuthorization(
+func (s *Service) Install(
 	ctx context.Context,
 	pluginID string,
 	authorization *HostServiceAuthorizationInput,
@@ -26,13 +21,8 @@ func (s *Service) InstallWithAuthorization(
 	if err != nil {
 		return err
 	}
-	if catalog.NormalizeType(manifest.Type) == catalog.TypeDynamic {
-		if _, err = s.catalogSvc.SyncManifest(ctx, manifest); err != nil {
-			return err
-		}
-		if _, err = s.catalogSvc.PersistReleaseHostServiceAuthorization(ctx, manifest, authorization); err != nil {
-			return err
-		}
+	if err = s.persistDynamicPluginAuthorization(ctx, manifest, authorization); err != nil {
+		return err
 	}
 	return s.lifecycleSvc.Install(ctx, pluginID)
 }
@@ -42,14 +32,19 @@ func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
 	return s.lifecycleSvc.Uninstall(ctx, pluginID)
 }
 
-// UpdateStatus updates plugin status, where status is 1=enabled and 0=disabled.
-func (s *Service) UpdateStatus(ctx context.Context, pluginID string, status int) error {
-	return s.UpdateStatusWithAuthorization(ctx, pluginID, status, nil)
+// UpdateStatus updates plugin status, where status is 1=enabled and 0=disabled,
+// and optionally persists one host-confirmed host service authorization snapshot
+// before enabling a dynamic plugin.
+func (s *Service) UpdateStatus(
+	ctx context.Context,
+	pluginID string,
+	status int,
+	authorization *HostServiceAuthorizationInput,
+) error {
+	return s.updateStatus(ctx, pluginID, status, authorization)
 }
 
-// UpdateStatusWithAuthorization updates plugin status and optionally persists one
-// host-confirmed host service authorization snapshot before enabling a dynamic plugin.
-func (s *Service) UpdateStatusWithAuthorization(
+func (s *Service) updateStatus(
 	ctx context.Context,
 	pluginID string,
 	status int,
@@ -79,30 +74,52 @@ func (s *Service) UpdateStatusWithAuthorization(
 	}
 	if catalog.NormalizeType(manifest.Type) == catalog.TypeDynamic {
 		if status == catalog.StatusEnabled {
-			if _, err = s.catalogSvc.SyncManifest(ctx, manifest); err != nil {
-				return err
-			}
-			if _, err = s.catalogSvc.PersistReleaseHostServiceAuthorization(ctx, manifest, authorization); err != nil {
+			if err = s.persistDynamicPluginAuthorization(ctx, manifest, authorization); err != nil {
 				return err
 			}
 		}
-		targetState := catalog.HostStateInstalled.String()
-		if status == catalog.StatusEnabled {
-			targetState = catalog.HostStateEnabled.String()
-		}
-		return s.runtimeSvc.ReconcileDynamicPluginRequest(ctx, pluginID, targetState)
+		return s.reconcileDynamicPluginStatus(ctx, pluginID, status)
 	}
 	return s.catalogSvc.SetPluginStatus(ctx, pluginID, status)
 }
 
 // Enable enables the specified plugin.
 func (s *Service) Enable(ctx context.Context, pluginID string) error {
-	return s.UpdateStatusWithAuthorization(ctx, pluginID, catalog.StatusEnabled, nil)
+	return s.updateStatus(ctx, pluginID, catalog.StatusEnabled, nil)
 }
 
 // Disable disables the specified plugin.
 func (s *Service) Disable(ctx context.Context, pluginID string) error {
-	return s.UpdateStatus(ctx, pluginID, catalog.StatusDisabled)
+	return s.updateStatus(ctx, pluginID, catalog.StatusDisabled, nil)
+}
+
+// persistDynamicPluginAuthorization refreshes the release snapshot for dynamic
+// plugins so install/enable flows can reuse one governance preparation path.
+func (s *Service) persistDynamicPluginAuthorization(
+	ctx context.Context,
+	manifest *catalog.Manifest,
+	authorization *HostServiceAuthorizationInput,
+) error {
+	if manifest == nil || catalog.NormalizeType(manifest.Type) != catalog.TypeDynamic {
+		return nil
+	}
+	if _, err := s.catalogSvc.SyncManifest(ctx, manifest); err != nil {
+		return err
+	}
+	if _, err := s.catalogSvc.PersistReleaseHostServiceAuthorization(ctx, manifest, authorization); err != nil {
+		return err
+	}
+	return nil
+}
+
+// reconcileDynamicPluginStatus converts facade enable/disable requests into the
+// runtime reconciler host state transitions used by dynamic plugins.
+func (s *Service) reconcileDynamicPluginStatus(ctx context.Context, pluginID string, status int) error {
+	targetState := catalog.HostStateInstalled.String()
+	if status == catalog.StatusEnabled {
+		targetState = catalog.HostStateEnabled.String()
+	}
+	return s.runtimeSvc.ReconcileDynamicPluginRequest(ctx, pluginID, targetState)
 }
 
 // IsInstalled returns whether a plugin is installed.

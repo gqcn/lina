@@ -7,7 +7,7 @@
 ## What Changes
 
 - 在现有`lina_env.host_call`基础上，引入“稳定 ABI ＋ 结构化宿主服务”的扩展模型，后续敏感能力统一走宿主服务注册表，而不是继续线性增加离散 opcode。
-- 为动态插件新增结构化的`hostServices`声明，用于描述插件要访问的宿主服务、方法、资源引用或数据表范围以及治理参数，并将`capabilities`收敛为顶层治理分类。
+- 为动态插件新增结构化的`hostServices`声明，用于描述插件要访问的宿主服务、方法、资源引用或数据表范围以及治理参数；宿主内部粗粒度 capability 分类由这些声明自动推导，不再要求作者重复维护顶层`capabilities`。
 - 对所有资源型 hostServices 采用“声明即申请，安装/启用时由宿主确认授权”的治理模型；其中`storage`服务直接声明逻辑路径或路径前缀`resources.paths`，`network`服务直接声明 URL 模式，`data`服务在`resources`节点下以`tables`声明数据表申请，其余低优先级服务继续沿用逻辑`resourceRef`规划；宿主在安装或启用阶段展示、确认并固化最终授权快照。
 - 本迭代按优先级分两层推进宿主服务：高优先级先完成`runtime`、存储／文件、出站网络、数据访问四类能力；低优先级继续纳入缓存、锁、密钥、事件、队列和通知能力。
 - 当前已实现的`host:log`、`host:state`、`host:db:*`只作为现状参考，不构成兼容约束；宿主可以直接重构为统一宿主服务模型。
@@ -31,7 +31,7 @@
 ### Modified Capabilities
 
 - `plugin-runtime-loading`：动态插件运行时产物需要携带宿主服务声明、资源授权和协议版本信息，宿主装载时需恢复这些治理快照。
-- `plugin-manifest-lifecycle`：`plugin.yaml`需要支持结构化宿主服务声明和资源申请快照（含`resourceRef`与`data.resources.tables`），以便安装、升级、卸载和审计时统一治理。
+- `plugin-manifest-lifecycle`：`plugin.yaml`需要支持结构化宿主服务声明和资源申请快照（含`resourceRef`与`data.resources.tables`），并以`hostServices`作为唯一作者侧宿主能力声明入口，以便安装、升级、卸载和审计时统一治理。
 
 ## Impact
 

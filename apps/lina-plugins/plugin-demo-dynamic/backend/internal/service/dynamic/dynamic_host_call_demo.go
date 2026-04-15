@@ -8,22 +8,31 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/gogf/gf/v2/errors/gerror"
+
 	"lina-core/pkg/pluginbridge"
 )
 
 const (
-	hostCallDemoStateKey       = "host_call_demo_visit_count"
-	hostCallDemoStoragePath    = "host-call-demo/"
-	hostCallDemoNetworkURL     = "https://example.com"
-	hostCallDemoDataTable      = "sys_plugin_node_state"
-	hostCallDemoStoragePrefix  = "host-call-demo"
-	hostCallDemoNetworkPreview = 120
+	hostCallDemoStateKey           = "host_call_demo_visit_count"
+	hostCallDemoStoragePath        = "host-call-demo/"
+	hostCallDemoStoragePrefix      = "host-call-demo"
+	hostCallDemoStorageContentType = "application/json"
+	hostCallDemoNetworkURL         = "https://example.com"
+	hostCallDemoNetworkMethodGet   = "GET"
+	hostCallDemoDataTable          = "sys_plugin_node_state"
+	hostCallDemoDesiredState       = "running"
+	hostCallDemoCurrentStateNew    = "pending"
+	hostCallDemoCurrentStateReady  = "running"
+	hostCallDemoAnonymousUser      = "anonymous"
+	hostCallDemoSummaryMessage     = "Host service demo executed through runtime, storage, network, and data services."
+	hostCallDemoNetworkPreview     = 120
 )
 
 // BuildHostCallDemoPayload executes the host service demo and returns the
 // response payload.
 func (s *Service) BuildHostCallDemoPayload(request *pluginbridge.BridgeRequestEnvelopeV1) (map[string]any, error) {
-	username := "anonymous"
+	username := hostCallDemoAnonymousUser
 	if request.Identity != nil && request.Identity.Username != "" {
 		username = request.Identity.Username
 	}
@@ -77,7 +86,7 @@ func (s *Service) BuildHostCallDemoPayload(request *pluginbridge.BridgeRequestEn
 		"storage": storageSummary,
 		"network": networkSummary,
 		"data":    dataSummary,
-		"message": "Host service demo executed through runtime, storage, network, and data services.",
+		"message": hostCallDemoSummaryMessage,
 	}, nil
 }
 
@@ -88,9 +97,9 @@ func (s *Service) runHostCallDemoStorage(pluginID string, demoKey string) (map[s
 		"demoKey":  demoKey,
 	})
 	if err != nil {
-		return nil, err
+		return nil, gerror.Wrap(err, "marshal storage demo request body failed")
 	}
-	if _, err = s.storageSvc.Put(objectPath, body, "application/json", true); err != nil {
+	if _, err = s.storageSvc.Put(objectPath, body, hostCallDemoStorageContentType, true); err != nil {
 		return nil, err
 	}
 	deleted := false
@@ -105,7 +114,7 @@ func (s *Service) runHostCallDemoStorage(pluginID string, demoKey string) (map[s
 		return nil, err
 	}
 	if !found || string(readBody) != string(body) {
-		return nil, fmt.Errorf("storage demo object verification failed")
+		return nil, gerror.New("storage demo object verification failed")
 	}
 
 	objects, err := s.storageSvc.List(hostCallDemoStoragePrefix, 10)
@@ -135,8 +144,8 @@ func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (map[stri
 		"pluginId":     pluginID,
 		"releaseId":    0,
 		"nodeKey":      "host-call-demo-" + demoKey,
-		"desiredState": "running",
-		"currentState": "pending",
+		"desiredState": hostCallDemoDesiredState,
+		"currentState": hostCallDemoCurrentStateNew,
 		"generation":   1,
 		"errorMessage": "",
 	})
@@ -144,7 +153,7 @@ func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (map[stri
 		return nil, err
 	}
 	if createResult == nil || createResult.Key == nil {
-		return nil, fmt.Errorf("data demo create did not return a record key")
+		return nil, gerror.New("data demo create did not return a record key")
 	}
 
 	recordKey := createResult.Key
@@ -159,7 +168,7 @@ func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (map[stri
 		Fields("id", "nodeKey", "currentState").
 		WhereEq("pluginId", pluginID).
 		WhereLike("nodeKey", demoKey).
-		WhereIn("currentState", []string{"pending", "running"}).
+		WhereIn("currentState", []string{hostCallDemoCurrentStateNew, hostCallDemoCurrentStateReady}).
 		OrderDesc("id").
 		Page(1, 10).
 		All()
@@ -167,7 +176,7 @@ func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (map[stri
 		return nil, err
 	}
 	if listTotal < 1 || len(listRecords) == 0 {
-		return nil, fmt.Errorf("data demo list did not find the created record")
+		return nil, gerror.New("data demo list did not find the created record")
 	}
 	countTotal, err := s.dataSvc.Table(hostCallDemoDataTable).
 		WhereEq("pluginId", pluginID).
@@ -179,7 +188,7 @@ func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (map[stri
 	recordKey = listRecords[0]["id"]
 
 	if _, err = s.dataSvc.Table(hostCallDemoDataTable).WhereKey(recordKey).Update(map[string]any{
-		"currentState": "running",
+		"currentState": hostCallDemoCurrentStateReady,
 		"errorMessage": "",
 	}); err != nil {
 		return nil, err
@@ -189,8 +198,8 @@ func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (map[stri
 	if err != nil {
 		return nil, err
 	}
-	if !found || record == nil || fmt.Sprint(record["currentState"]) != "running" {
-		return nil, fmt.Errorf("data demo get did not return the updated record")
+	if !found || record == nil || fmt.Sprint(record["currentState"]) != hostCallDemoCurrentStateReady {
+		return nil, gerror.New("data demo get did not return the updated record")
 	}
 
 	if _, err = s.dataSvc.Table(hostCallDemoDataTable).WhereKey(recordKey).Delete(); err != nil {
@@ -223,7 +232,7 @@ func (s *Service) runHostCallDemoNetwork(request *pluginbridge.BridgeRequestEnve
 	}
 
 	response, err := s.httpSvc.Request(hostCallDemoNetworkURL, &pluginbridge.HostServiceNetworkRequest{
-		Method: "GET",
+		Method: hostCallDemoNetworkMethodGet,
 		Headers: map[string]string{
 			"x-request-id": request.RequestID + "-" + demoKey,
 		},

@@ -191,7 +191,7 @@ func (s *Service) loadRuntimeManifestFromArtifact(artifactPath string) (*Manifes
 		RootDir:          filepath.Dir(artifactPath),
 		Routes:           artifact.RouteContracts,
 		BridgeSpec:       artifact.BridgeSpec,
-		HostCapabilities: pluginbridge.CapabilitySliceToMap(artifact.Capabilities),
+		HostCapabilities: pluginbridge.CapabilityMapFromHostServices(artifact.HostServices),
 		HostServices:     pluginbridge.NormalizeHostServiceSpecs(artifact.HostServices),
 		RuntimeArtifact:  artifact,
 	}
