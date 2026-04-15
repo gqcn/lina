@@ -33,17 +33,24 @@ func buildAuthorizationInput(req *v1.HostServiceAuthorizationReq) *pluginsvc.Hos
 	return input
 }
 
-func buildHostServicePermissionItems(specs []*pluginbridge.HostServiceSpec) []*v1.HostServicePermissionItem {
+func buildHostServicePermissionItems(
+	specs []*pluginbridge.HostServiceSpec,
+	tableComments map[string]string,
+) []*v1.HostServicePermissionItem {
 	items := make([]*v1.HostServicePermissionItem, 0, len(specs))
 	for _, spec := range specs {
 		if spec == nil {
 			continue
 		}
 		item := &v1.HostServicePermissionItem{
-			Service:   spec.Service,
-			Methods:   append([]string(nil), spec.Methods...),
-			Paths:     append([]string(nil), spec.Paths...),
-			Tables:    append([]string(nil), spec.Tables...),
+			Service: spec.Service,
+			Methods: append([]string(nil), spec.Methods...),
+			Paths:   append([]string(nil), spec.Paths...),
+			Tables:  append([]string(nil), spec.Tables...),
+			TableItems: buildHostServicePermissionTableItems(
+				spec.Tables,
+				tableComments,
+			),
 			Resources: make([]*v1.HostServicePermissionResourceItem, 0, len(spec.Resources)),
 		}
 		for _, resource := range spec.Resources {
@@ -60,6 +67,23 @@ func buildHostServicePermissionItems(specs []*pluginbridge.HostServiceSpec) []*v
 			})
 		}
 		items = append(items, item)
+	}
+	return items
+}
+
+func buildHostServicePermissionTableItems(
+	tables []string,
+	tableComments map[string]string,
+) []*v1.HostServicePermissionTableItem {
+	if len(tables) == 0 {
+		return nil
+	}
+	items := make([]*v1.HostServicePermissionTableItem, 0, len(tables))
+	for _, table := range tables {
+		items = append(items, &v1.HostServicePermissionTableItem{
+			Name:    table,
+			Comment: tableComments[table],
+		})
 	}
 	return items
 }

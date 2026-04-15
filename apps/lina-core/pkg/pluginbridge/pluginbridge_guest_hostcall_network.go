@@ -5,15 +5,22 @@
 package pluginbridge
 
 // HTTPHostService exposes guest-side helpers for the governed outbound HTTP host service.
-type HTTPHostService struct{}
+type HTTPHostService interface {
+	// Request executes one governed outbound HTTP request through the host.
+	Request(targetURL string, request *HostServiceNetworkRequest) (*HostServiceNetworkResponse, error)
+}
+
+type httpHostService struct{}
+
+var defaultHTTPHostService HTTPHostService = &httpHostService{}
 
 // HTTP returns the outbound HTTP host service guest client.
-func HTTP() *HTTPHostService {
-	return &HTTPHostService{}
+func HTTP() HTTPHostService {
+	return defaultHTTPHostService
 }
 
 // Request executes one governed outbound HTTP request through the host.
-func (s *HTTPHostService) Request(
+func (s *httpHostService) Request(
 	targetURL string,
 	request *HostServiceNetworkRequest,
 ) (*HostServiceNetworkResponse, error) {

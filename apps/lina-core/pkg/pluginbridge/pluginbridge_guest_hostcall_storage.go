@@ -5,15 +5,34 @@
 package pluginbridge
 
 // StorageHostService exposes guest-side helpers for the governed storage host service.
-type StorageHostService struct{}
+type StorageHostService interface {
+	// Put writes one governed storage object under the given logical path.
+	Put(objectPath string, body []byte, contentType string, overwrite bool) (*HostServiceStorageObject, error)
+	// PutText writes one UTF-8 text object under the given logical path.
+	PutText(objectPath string, content string, contentType string, overwrite bool) (*HostServiceStorageObject, error)
+	// Get reads one governed storage object under the given logical path.
+	Get(objectPath string) ([]byte, *HostServiceStorageObject, bool, error)
+	// GetText reads one UTF-8 text object under the given logical path.
+	GetText(objectPath string) (string, *HostServiceStorageObject, bool, error)
+	// Delete removes one governed storage object under the given logical path.
+	Delete(objectPath string) error
+	// List lists governed storage objects under one logical path prefix.
+	List(prefix string, limit uint32) ([]*HostServiceStorageObject, error)
+	// Stat reads metadata for one governed storage object under the given logical path.
+	Stat(objectPath string) (*HostServiceStorageObject, bool, error)
+}
+
+type storageHostService struct{}
+
+var defaultStorageHostService StorageHostService = &storageHostService{}
 
 // Storage returns the storage host service guest client.
-func Storage() *StorageHostService {
-	return &StorageHostService{}
+func Storage() StorageHostService {
+	return defaultStorageHostService
 }
 
 // Put writes one governed storage object under the given logical path.
-func (s *StorageHostService) Put(
+func (s *storageHostService) Put(
 	objectPath string,
 	body []byte,
 	contentType string,
@@ -46,7 +65,7 @@ func (s *StorageHostService) Put(
 }
 
 // PutText writes one UTF-8 text object under the given logical path.
-func (s *StorageHostService) PutText(
+func (s *storageHostService) PutText(
 	objectPath string,
 	content string,
 	contentType string,
@@ -56,7 +75,7 @@ func (s *StorageHostService) PutText(
 }
 
 // Get reads one governed storage object under the given logical path.
-func (s *StorageHostService) Get(
+func (s *storageHostService) Get(
 	objectPath string,
 ) ([]byte, *HostServiceStorageObject, bool, error) {
 	request := &HostServiceStorageGetRequest{Path: objectPath}
@@ -81,7 +100,7 @@ func (s *StorageHostService) Get(
 }
 
 // GetText reads one UTF-8 text object under the given logical path.
-func (s *StorageHostService) GetText(
+func (s *storageHostService) GetText(
 	objectPath string,
 ) (string, *HostServiceStorageObject, bool, error) {
 	body, object, found, err := s.Get(objectPath)
@@ -92,7 +111,7 @@ func (s *StorageHostService) GetText(
 }
 
 // Delete removes one governed storage object under the given logical path.
-func (s *StorageHostService) Delete(objectPath string) error {
+func (s *storageHostService) Delete(objectPath string) error {
 	request := &HostServiceStorageDeleteRequest{Path: objectPath}
 	_, err := invokeHostService(
 		HostServiceStorage,
@@ -105,7 +124,7 @@ func (s *StorageHostService) Delete(objectPath string) error {
 }
 
 // List lists governed storage objects under one logical path prefix.
-func (s *StorageHostService) List(
+func (s *storageHostService) List(
 	prefix string,
 	limit uint32,
 ) ([]*HostServiceStorageObject, error) {
@@ -134,7 +153,7 @@ func (s *StorageHostService) List(
 }
 
 // Stat reads metadata for one governed storage object under the given logical path.
-func (s *StorageHostService) Stat(
+func (s *storageHostService) Stat(
 	objectPath string,
 ) (*HostServiceStorageObject, bool, error) {
 	request := &HostServiceStorageStatRequest{Path: objectPath}

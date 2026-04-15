@@ -8,7 +8,28 @@ import "encoding/json"
 
 // DataHostService exposes the compatibility guest-side helpers for the governed
 // structured data host service. New guest code should prefer plugindb.
-type DataHostService struct{}
+type DataHostService interface {
+	// List executes one governed structured data list request.
+	List(table string, filters map[string]string, pageNum int32, pageSize int32) (*DataListResult, error)
+	// ListRequest executes one governed structured data list request with the raw host-service request payload.
+	ListRequest(table string, request *HostServiceDataListRequest) (*HostServiceDataListResponse, error)
+	// Get reads one governed record by key from an authorized table.
+	Get(table string, key any) (map[string]any, bool, error)
+	// GetRequest executes one governed data get request with the raw host-service request payload.
+	GetRequest(table string, request *HostServiceDataGetRequest) (*DataGetResult, error)
+	// Create creates one governed record in an authorized table.
+	Create(table string, record map[string]any) (*DataMutationResult, error)
+	// Update updates one governed record in an authorized table.
+	Update(table string, key any, record map[string]any) (*DataMutationResult, error)
+	// Delete deletes one governed record in an authorized table.
+	Delete(table string, key any) (*DataMutationResult, error)
+	// Transaction executes one governed structured data transaction.
+	Transaction(table string, operations []*DataTransactionInput) (*DataTransactionResult, error)
+}
+
+type dataHostService struct{}
+
+var defaultDataHostService DataHostService = &dataHostService{}
 
 // DataListResult is the decoded guest-side result of one data list request.
 type DataListResult struct {
@@ -56,12 +77,12 @@ type DataGetResult struct {
 
 // Data returns the compatibility structured data host service guest client.
 // New guest code should prefer plugindb.Open().
-func Data() *DataHostService {
-	return &DataHostService{}
+func Data() DataHostService {
+	return defaultDataHostService
 }
 
 // List executes one governed structured data list request.
-func (s *DataHostService) List(
+func (s *dataHostService) List(
 	table string,
 	filters map[string]string,
 	pageNum int32,
@@ -90,7 +111,7 @@ func (s *DataHostService) List(
 
 // ListRequest executes one governed structured data list request with the raw
 // host-service request payload.
-func (s *DataHostService) ListRequest(table string, request *HostServiceDataListRequest) (*HostServiceDataListResponse, error) {
+func (s *dataHostService) ListRequest(table string, request *HostServiceDataListRequest) (*HostServiceDataListResponse, error) {
 	payload, err := invokeHostService(
 		HostServiceData,
 		HostServiceMethodDataList,
@@ -109,7 +130,7 @@ func (s *DataHostService) ListRequest(table string, request *HostServiceDataList
 }
 
 // Get reads one governed record by key from an authorized table.
-func (s *DataHostService) Get(table string, key any) (map[string]any, bool, error) {
+func (s *dataHostService) Get(table string, key any) (map[string]any, bool, error) {
 	keyJSON, err := marshalJSONValue(key)
 	if err != nil {
 		return nil, false, err
@@ -128,7 +149,7 @@ func (s *DataHostService) Get(table string, key any) (map[string]any, bool, erro
 
 // GetRequest executes one governed data get request with the raw host-service
 // request payload.
-func (s *DataHostService) GetRequest(table string, request *HostServiceDataGetRequest) (*DataGetResult, error) {
+func (s *dataHostService) GetRequest(table string, request *HostServiceDataGetRequest) (*DataGetResult, error) {
 	payload, err := invokeHostService(
 		HostServiceData,
 		HostServiceMethodDataGet,
@@ -157,22 +178,22 @@ func (s *DataHostService) GetRequest(table string, request *HostServiceDataGetRe
 }
 
 // Create creates one governed record in an authorized table.
-func (s *DataHostService) Create(table string, record map[string]any) (*DataMutationResult, error) {
+func (s *dataHostService) Create(table string, record map[string]any) (*DataMutationResult, error) {
 	return s.mutate(table, HostServiceMethodDataCreate, nil, record)
 }
 
 // Update updates one governed record in an authorized table.
-func (s *DataHostService) Update(table string, key any, record map[string]any) (*DataMutationResult, error) {
+func (s *dataHostService) Update(table string, key any, record map[string]any) (*DataMutationResult, error) {
 	return s.mutate(table, HostServiceMethodDataUpdate, key, record)
 }
 
 // Delete deletes one governed record in an authorized table.
-func (s *DataHostService) Delete(table string, key any) (*DataMutationResult, error) {
+func (s *dataHostService) Delete(table string, key any) (*DataMutationResult, error) {
 	return s.mutate(table, HostServiceMethodDataDelete, key, nil)
 }
 
 // Transaction executes one governed structured data transaction.
-func (s *DataHostService) Transaction(
+func (s *dataHostService) Transaction(
 	table string,
 	operations []*DataTransactionInput,
 ) (*DataTransactionResult, error) {
@@ -228,7 +249,7 @@ func (s *DataHostService) Transaction(
 	}, nil
 }
 
-func (s *DataHostService) mutate(
+func (s *dataHostService) mutate(
 	table string,
 	method string,
 	key any,

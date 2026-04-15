@@ -33,8 +33,18 @@ type HostServicePermissionItem struct {
 	Paths []string `json:"paths,omitempty" dc:"该宿主服务下允许访问的逻辑路径集合，仅 storage service 使用" eg:"[\"reports/\"]"`
 	// Tables lists the governed data tables under this service.
 	Tables []string `json:"tables,omitempty" dc:"该宿主服务下允许访问的数据表集合，仅 data service 使用" eg:"[\"sys_plugin_node_state\"]"`
+	// TableItems lists the governed data tables together with host-resolved display comments.
+	TableItems []*HostServicePermissionTableItem `json:"tableItems,omitempty" dc:"该宿主服务下的数据表展示项，仅 data service 使用；当宿主可解析表级说明时会同时返回 comment" eg:"[]"`
 	// Resources lists the governed resource refs under this service.
 	Resources []*HostServicePermissionResourceItem `json:"resources,omitempty" dc:"该宿主服务下的治理目标集合；network 使用 URL 模式，低优先级服务继续使用 resourceRef" eg:"[]"`
+}
+
+// HostServicePermissionTableItem describes one governed data table descriptor.
+type HostServicePermissionTableItem struct {
+	// Name is the governed table name.
+	Name string `json:"name" dc:"数据表名称" eg:"sys_plugin_node_state"`
+	// Comment is the host-resolved table comment when available.
+	Comment string `json:"comment,omitempty" dc:"宿主解析到的表说明；解析不到时返回空字符串" eg:"插件节点状态表"`
 }
 
 // HostServicePermissionResourceItem describes one governed target descriptor.

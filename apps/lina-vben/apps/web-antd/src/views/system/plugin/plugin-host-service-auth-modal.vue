@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type {
   HostServicePermissionItem,
+  HostServicePermissionTableItem,
   PluginAuthorizationPayload,
   SystemPlugin,
 } from '#/api/system/plugin/model';
@@ -77,6 +78,17 @@ function resolveServiceTargets(service: HostServicePermissionItem) {
     return [...(service.tables ?? [])];
   }
   return (service.resources ?? []).map((item) => item.ref);
+}
+
+function resolveDataTableItems(service: HostServicePermissionItem) {
+  if ((service.tableItems ?? []).length > 0) {
+    return [...(service.tableItems ?? [])];
+  }
+  return (service.tables ?? []).map<HostServicePermissionTableItem>(
+    (table) => ({
+      name: table,
+    }),
+  );
 }
 
 function resolveDefaultSelections(service: HostServicePermissionItem) {
@@ -310,19 +322,20 @@ function handleClosed() {
             class="flex w-full flex-col gap-3"
           >
             <div
-              v-for="table in service.tables"
-              :key="table"
+              v-for="table in resolveDataTableItems(service)"
+              :key="table.name"
               class="rounded-md bg-[var(--ant-color-fill-quaternary)] p-3"
             >
               <Checkbox
-                :value="table"
-                :data-testid="`plugin-host-service-auth-checkbox-${currentPlugin.id}-${service.service}-${table}`"
+                :value="table.name"
+                :data-testid="`plugin-host-service-auth-checkbox-${currentPlugin.id}-${service.service}-${table.name}`"
               >
-                {{ table }}
+                {{ table.name }}
               </Checkbox>
               <div
                 class="mt-2 text-[12px] text-[var(--ant-color-text-description)]"
               >
+                <div v-if="table.comment">表说明: {{ table.comment }}</div>
                 允许方法: {{ service.methods.join(', ') || '-' }}
               </div>
             </div>

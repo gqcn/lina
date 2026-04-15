@@ -18,11 +18,34 @@ import (
 func linaHostCall(opcode uint32, reqPtr uint32, reqLen uint32) uint64
 
 // RuntimeHostService exposes guest-side helpers for the runtime host service.
-type RuntimeHostService struct{}
+type RuntimeHostService interface {
+	// Log writes one structured runtime log entry through the host.
+	Log(level int, message string, fields map[string]string) error
+	// StateGet reads one plugin-scoped runtime state value by key.
+	StateGet(key string) (string, bool, error)
+	// StateSet writes one plugin-scoped runtime state value.
+	StateSet(key string, value string) error
+	// StateDelete removes one plugin-scoped runtime state value.
+	StateDelete(key string) error
+	// StateGetInt reads one integer runtime state value.
+	StateGetInt(key string) (int, bool, error)
+	// StateSetInt writes one integer runtime state value.
+	StateSetInt(key string, value int) error
+	// Now returns the current host time string.
+	Now() (string, error)
+	// UUID returns one host-generated unique identifier string.
+	UUID() (string, error)
+	// Node returns the current host node identity string.
+	Node() (string, error)
+}
+
+type runtimeHostService struct{}
+
+var defaultRuntimeHostService RuntimeHostService = &runtimeHostService{}
 
 // Runtime returns the runtime host service guest client.
-func Runtime() *RuntimeHostService {
-	return &RuntimeHostService{}
+func Runtime() RuntimeHostService {
+	return defaultRuntimeHostService
 }
 
 // invokeHostCall sends one host call request and returns the decoded payload.
@@ -76,7 +99,7 @@ func invokeHostService(service string, method string, resourceRef string, table 
 }
 
 // Log writes one structured runtime log entry through the host.
-func (s *RuntimeHostService) Log(level int, message string, fields map[string]string) error {
+func (s *runtimeHostService) Log(level int, message string, fields map[string]string) error {
 	request := &HostCallLogRequest{
 		Level:   int32(level),
 		Message: message,
@@ -87,7 +110,7 @@ func (s *RuntimeHostService) Log(level int, message string, fields map[string]st
 }
 
 // StateGet reads one plugin-scoped runtime state value by key.
-func (s *RuntimeHostService) StateGet(key string) (string, bool, error) {
+func (s *runtimeHostService) StateGet(key string) (string, bool, error) {
 	request := &HostCallStateGetRequest{Key: key}
 	payload, err := invokeHostService(HostServiceRuntime, HostServiceMethodRuntimeStateGet, "", "", MarshalHostCallStateGetRequest(request))
 	if err != nil {
@@ -104,21 +127,21 @@ func (s *RuntimeHostService) StateGet(key string) (string, bool, error) {
 }
 
 // StateSet writes one plugin-scoped runtime state value.
-func (s *RuntimeHostService) StateSet(key string, value string) error {
+func (s *runtimeHostService) StateSet(key string, value string) error {
 	request := &HostCallStateSetRequest{Key: key, Value: value}
 	_, err := invokeHostService(HostServiceRuntime, HostServiceMethodRuntimeStateSet, "", "", MarshalHostCallStateSetRequest(request))
 	return err
 }
 
 // StateDelete removes one plugin-scoped runtime state value.
-func (s *RuntimeHostService) StateDelete(key string) error {
+func (s *runtimeHostService) StateDelete(key string) error {
 	request := &HostCallStateDeleteRequest{Key: key}
 	_, err := invokeHostService(HostServiceRuntime, HostServiceMethodRuntimeStateDelete, "", "", MarshalHostCallStateDeleteRequest(request))
 	return err
 }
 
 // StateGetInt reads one integer runtime state value.
-func (s *RuntimeHostService) StateGetInt(key string) (int, bool, error) {
+func (s *runtimeHostService) StateGetInt(key string) (int, bool, error) {
 	value, found, err := s.StateGet(key)
 	if err != nil || !found {
 		return 0, found, err
@@ -131,26 +154,26 @@ func (s *RuntimeHostService) StateGetInt(key string) (int, bool, error) {
 }
 
 // StateSetInt writes one integer runtime state value.
-func (s *RuntimeHostService) StateSetInt(key string, value int) error {
+func (s *runtimeHostService) StateSetInt(key string, value int) error {
 	return s.StateSet(key, strconv.Itoa(value))
 }
 
 // Now returns the current host time string.
-func (s *RuntimeHostService) Now() (string, error) {
+func (s *runtimeHostService) Now() (string, error) {
 	return s.runtimeInfoValue(HostServiceMethodRuntimeInfoNow)
 }
 
 // UUID returns one host-generated unique identifier string.
-func (s *RuntimeHostService) UUID() (string, error) {
+func (s *runtimeHostService) UUID() (string, error) {
 	return s.runtimeInfoValue(HostServiceMethodRuntimeInfoUUID)
 }
 
 // Node returns the current host node identity string.
-func (s *RuntimeHostService) Node() (string, error) {
+func (s *runtimeHostService) Node() (string, error) {
 	return s.runtimeInfoValue(HostServiceMethodRuntimeInfoNode)
 }
 
-func (s *RuntimeHostService) runtimeInfoValue(method string) (string, error) {
+func (s *runtimeHostService) runtimeInfoValue(method string) (string, error) {
 	payload, err := invokeHostService(HostServiceRuntime, method, "", "", nil)
 	if err != nil {
 		return "", err

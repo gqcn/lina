@@ -32,7 +32,13 @@ export interface HostServicePermissionItem {
   methods: string[];
   paths?: string[];
   tables?: string[];
+  tableItems?: HostServicePermissionTableItem[];
   resources?: HostServicePermissionResourceItem[];
+}
+
+export interface HostServicePermissionTableItem {
+  name: string;
+  comment?: string;
 }
 
 export interface HostServicePermissionResourceItem {

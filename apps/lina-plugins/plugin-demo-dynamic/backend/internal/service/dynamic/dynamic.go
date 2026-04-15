@@ -9,9 +9,9 @@ import (
 
 // Service encapsulates the dynamic plugin backend business logic.
 type Service struct {
-	runtimeSvc *pluginbridge.RuntimeHostService
-	storageSvc *pluginbridge.StorageHostService
-	httpSvc    *pluginbridge.HTTPHostService
+	runtimeSvc pluginbridge.RuntimeHostService
+	storageSvc pluginbridge.StorageHostService
+	httpSvc    pluginbridge.HTTPHostService
 	dataSvc    *plugindb.DB
 }
 

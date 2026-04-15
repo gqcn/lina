@@ -31,7 +31,7 @@ const (
 
 // BuildHostCallDemoPayload executes the host service demo and returns the
 // response payload.
-func (s *Service) BuildHostCallDemoPayload(request *pluginbridge.BridgeRequestEnvelopeV1) (map[string]any, error) {
+func (s *Service) BuildHostCallDemoPayload(request *pluginbridge.BridgeRequestEnvelopeV1) (*hostCallDemoPayload, error) {
 	username := hostCallDemoAnonymousUser
 	if request.Identity != nil && request.Identity.Username != "" {
 		username = request.Identity.Username
@@ -75,26 +75,26 @@ func (s *Service) BuildHostCallDemoPayload(request *pluginbridge.BridgeRequestEn
 	}
 	networkSummary := s.runHostCallDemoNetwork(request, uuidValue)
 
-	return map[string]any{
-		"visitCount": visitCount,
-		"pluginId":   request.PluginID,
-		"runtime": map[string]any{
-			"now":  nowValue,
-			"uuid": uuidValue,
-			"node": nodeValue,
+	return &hostCallDemoPayload{
+		VisitCount: visitCount,
+		PluginID:   request.PluginID,
+		Runtime: hostCallDemoRuntimePayload{
+			Now:  nowValue,
+			UUID: uuidValue,
+			Node: nodeValue,
 		},
-		"storage": storageSummary,
-		"network": networkSummary,
-		"data":    dataSummary,
-		"message": hostCallDemoSummaryMessage,
+		Storage: *storageSummary,
+		Network: *networkSummary,
+		Data:    *dataSummary,
+		Message: hostCallDemoSummaryMessage,
 	}, nil
 }
 
-func (s *Service) runHostCallDemoStorage(pluginID string, demoKey string) (map[string]any, error) {
+func (s *Service) runHostCallDemoStorage(pluginID string, demoKey string) (*hostCallDemoStoragePayload, error) {
 	objectPath := fmt.Sprintf("%s/%s.json", hostCallDemoStoragePrefix, demoKey)
-	body, err := json.Marshal(map[string]string{
-		"pluginId": pluginID,
-		"demoKey":  demoKey,
+	body, err := json.Marshal(&hostCallDemoStorageRecord{
+		PluginID: pluginID,
+		DemoKey:  demoKey,
 	})
 	if err != nil {
 		return nil, gerror.Wrap(err, "marshal storage demo request body failed")
@@ -130,25 +130,29 @@ func (s *Service) runHostCallDemoStorage(pluginID string, demoKey string) (map[s
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{
-		"pathPrefix":  hostCallDemoStoragePath,
-		"objectPath":  objectPath,
-		"stored":      true,
-		"listedCount": len(objects),
-		"deleted":     !statFound,
+	return &hostCallDemoStoragePayload{
+		PathPrefix:  hostCallDemoStoragePath,
+		ObjectPath:  objectPath,
+		Stored:      true,
+		ListedCount: len(objects),
+		Deleted:     !statFound,
 	}, nil
 }
 
-func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (map[string]any, error) {
-	createResult, err := s.dataSvc.Table(hostCallDemoDataTable).Insert(map[string]any{
-		"pluginId":     pluginID,
-		"releaseId":    0,
-		"nodeKey":      "host-call-demo-" + demoKey,
-		"desiredState": hostCallDemoDesiredState,
-		"currentState": hostCallDemoCurrentStateNew,
-		"generation":   1,
-		"errorMessage": "",
+func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (*hostCallDemoDataPayload, error) {
+	createRecord, err := buildRecordMap(&hostCallDemoDataCreateRecord{
+		PluginID:     pluginID,
+		ReleaseID:    0,
+		NodeKey:      "host-call-demo-" + demoKey,
+		DesiredState: hostCallDemoDesiredState,
+		CurrentState: hostCallDemoCurrentStateNew,
+		Generation:   1,
+		ErrorMessage: "",
 	})
+	if err != nil {
+		return nil, err
+	}
+	createResult, err := s.dataSvc.Table(hostCallDemoDataTable).Insert(createRecord)
 	if err != nil {
 		return nil, err
 	}
@@ -187,10 +191,14 @@ func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (map[stri
 	}
 	recordKey = listRecords[0]["id"]
 
-	if _, err = s.dataSvc.Table(hostCallDemoDataTable).WhereKey(recordKey).Update(map[string]any{
-		"currentState": hostCallDemoCurrentStateReady,
-		"errorMessage": "",
-	}); err != nil {
+	updateRecord, err := buildRecordMap(&hostCallDemoDataUpdateRecord{
+		CurrentState: hostCallDemoCurrentStateReady,
+		ErrorMessage: "",
+	})
+	if err != nil {
+		return nil, err
+	}
+	if _, err = s.dataSvc.Table(hostCallDemoDataTable).WhereKey(recordKey).Update(updateRecord); err != nil {
 		return nil, err
 	}
 
@@ -207,27 +215,27 @@ func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (map[stri
 	}
 	deleted = true
 
-	return map[string]any{
-		"table":      hostCallDemoDataTable,
-		"recordKey":  fmt.Sprint(recordKey),
-		"listTotal":  int(listTotal),
-		"countTotal": int(countTotal),
-		"updated":    true,
-		"deleted":    true,
+	return &hostCallDemoDataPayload{
+		Table:      hostCallDemoDataTable,
+		RecordKey:  fmt.Sprint(recordKey),
+		ListTotal:  int(listTotal),
+		CountTotal: int(countTotal),
+		Updated:    true,
+		Deleted:    true,
 	}, nil
 }
 
-func (s *Service) runHostCallDemoNetwork(request *pluginbridge.BridgeRequestEnvelopeV1, demoKey string) map[string]any {
-	result := map[string]any{
-		"url":         hostCallDemoNetworkURL,
-		"skipped":     false,
-		"statusCode":  0,
-		"contentType": "",
-		"bodyPreview": "",
-		"error":       "",
+func (s *Service) runHostCallDemoNetwork(request *pluginbridge.BridgeRequestEnvelopeV1, demoKey string) *hostCallDemoNetworkPayload {
+	result := &hostCallDemoNetworkPayload{
+		URL:         hostCallDemoNetworkURL,
+		Skipped:     false,
+		StatusCode:  0,
+		ContentType: "",
+		BodyPreview: "",
+		Error:       "",
 	}
 	if hasHostCallDemoFlag(request, "skipNetwork") {
-		result["skipped"] = true
+		result.Skipped = true
 		return result
 	}
 
@@ -238,12 +246,12 @@ func (s *Service) runHostCallDemoNetwork(request *pluginbridge.BridgeRequestEnve
 		},
 	})
 	if err != nil {
-		result["error"] = err.Error()
+		result.Error = err.Error()
 		return result
 	}
-	result["statusCode"] = int(response.StatusCode)
-	result["contentType"] = response.ContentType
-	result["bodyPreview"] = buildHostCallDemoBodyPreview(response.Body)
+	result.StatusCode = int(response.StatusCode)
+	result.ContentType = response.ContentType
+	result.BodyPreview = buildHostCallDemoBodyPreview(response.Body)
 	return result
 }
 

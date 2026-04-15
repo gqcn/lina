@@ -14,10 +14,12 @@ type ReleaseStatus string
 // MigrationExecutionStatus defines the migration execution result persisted in sys_plugin_migration.
 type MigrationExecutionStatus string
 
-// ResourceKind defines the abstract resource category persisted in sys_plugin_resource_ref.
+// ResourceKind defines the abstract governance resource category indexed in
+// sys_plugin_resource_ref.
 type ResourceKind string
 
-// ResourceOwnerType defines the abstract owner category persisted in sys_plugin_resource_ref.
+// ResourceOwnerType defines the abstract owner category indexed in
+// sys_plugin_resource_ref.
 type ResourceOwnerType string
 
 // NodeState defines the current node-state projection enum.
@@ -228,7 +230,8 @@ type ManifestSnapshot struct {
 	HostServiceAuthConfirmed  bool                            `yaml:"hostServiceAuthConfirmed,omitempty"`
 }
 
-// ResourceRefDescriptor represents one discovered plugin asset recorded for later review.
+// ResourceRefDescriptor represents one governance resource index entry derived
+// from the current plugin release.
 type ResourceRefDescriptor struct {
 	Kind      ResourceKind
 	Key       string

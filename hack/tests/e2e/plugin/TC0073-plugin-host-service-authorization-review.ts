@@ -20,6 +20,8 @@ const mysqlDatabase = process.env.E2E_DB_NAME ?? "lina";
 const pluginID = "plugin-dynamic-host-auth-ui";
 const pluginVersion = "v0.1.0";
 const networkURLPattern = "https://*.example.com/api";
+const dataTableName = "sys_plugin_node_state";
+const dataTableComment = "插件节点状态表";
 
 type PluginListItem = {
   authorizedHostServices?: Array<{
@@ -195,13 +197,6 @@ function writeAuthorizationReviewArtifact() {
   );
   appendCustomSection(
     bytes,
-    "lina.plugin.backend.capabilities",
-    Buffer.from(
-      JSON.stringify(["host:runtime", "host:http:request"]),
-    ),
-  );
-  appendCustomSection(
-    bytes,
     "lina.plugin.backend.host-services",
     Buffer.from(
       JSON.stringify([
@@ -217,6 +212,13 @@ function writeAuthorizationReviewArtifact() {
             },
           ],
           service: "network",
+        },
+        {
+          methods: ["list", "get"],
+          resources: {
+            tables: [dataTableName],
+          },
+          service: "data",
         },
       ]),
     ),
@@ -252,6 +254,9 @@ test.describe("TC-73 插件安装/启用时审查 hostServices 授权", () => {
     await pluginPage.openInstallAuthorization(pluginID);
     await expect(pluginPage.hostServiceAuthModal()).toContainText("网络服务");
     await expect(pluginPage.hostServiceAuthModal()).toContainText(networkURLPattern);
+    await expect(pluginPage.hostServiceAuthModal()).toContainText("数据服务");
+    await expect(pluginPage.hostServiceAuthModal()).toContainText(dataTableName);
+    await expect(pluginPage.hostServiceAuthModal()).toContainText(dataTableComment);
     await pluginPage.setHostServiceAuthorization(
       pluginID,
       "network",
@@ -275,9 +280,13 @@ test.describe("TC-73 插件安装/启用时审查 hostServices 授权", () => {
     await pluginPage.searchByPluginId(pluginID);
     await pluginPage.openEnableAuthorization(pluginID);
     await expect(pluginPage.hostServiceAuthModal()).toContainText("已确认");
+    await expect(pluginPage.hostServiceAuthModal()).toContainText(dataTableComment);
     await expect(
       pluginPage.hostServiceAuthCheckbox(pluginID, "network", networkURLPattern),
     ).not.toBeChecked();
+    await expect(
+      pluginPage.hostServiceAuthCheckbox(pluginID, "data", dataTableName),
+    ).toBeChecked();
     await pluginPage.confirmHostServiceAuthorization();
     await expect(pluginPage.pluginEnabledSwitch(pluginID)).toHaveAttribute(
       "aria-checked",

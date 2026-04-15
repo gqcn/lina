@@ -91,3 +91,8 @@
 - [x] **FB-31**: 将动态插件样例、guest SDK 与相关测试 fixture 中新增或维护的错误创建统一改为`gerror`，并为关键失败分支补充上下文包装说明。
 - [x] **FB-32**: 将插件生命周期 facade 的安装与状态切换公开 API 进一步收敛为单一入口（通过可空授权参数表达是否附带授权确认），并审查同类重复包装点，仅保留真正有语义价值的快捷方法。
 - [x] **FB-33**: 按项目 Go 文件注释规范修正`apps/lina-core/pkg/plugindb`及其子包源码文件头，确保主文件与非主文件的注释职责、空行位置和文件用途说明一致。
+- [x] **FB-34**: 将动态插件 guest 侧 `pluginbridge` 宿主服务 client 的公开返回值收敛为接口类型，并同步调整 demo 与相关调用方，避免继续向插件作者暴露具体实现结构体。
+- [x] **FB-35**: 对`sys_plugin_resource_ref`相关实现与文档补充语义澄清，明确其是插件治理资源索引，而非仅服务于`resourceRef`字段的镜像表。
+- [x] **FB-36**: 将动态插件 demo 中稳定 JSON 响应负载的`map[string]any`实现收敛为结构体模型，减少硬编码键名并提升可维护性。
+- [x] **FB-37**: 为 data hostService 授权展示补充数据表的人类可读说明（优先展示宿主表注释），同步更新安装/启用授权弹窗与`TC0073`回归覆盖。
+- [x] **FB-38**: 收敛`apps/lina-core/internal/service/plugin/internal/integration/resource_ref.go`中散落的稳定治理标识与重复文案硬编码，统一为常量和辅助构造函数，降低后续维护成本。

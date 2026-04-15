@@ -1,5 +1,5 @@
-// This file synchronizes abstract plugin resource descriptors into
-// sys_plugin_resource_ref for framework-agnostic governance review.
+// This file synchronizes abstract plugin governance resource descriptors into
+// sys_plugin_resource_ref as one release-scoped governance index.
 
 package integration
 
@@ -15,8 +15,45 @@ import (
 	"lina-core/pkg/pluginbridge"
 )
 
-// SyncPluginResourceReferences keeps sys_plugin_resource_ref aligned with the current
-// abstract resource summary for the given manifest.
+const (
+	pluginResourceIdentitySeparator = ":"
+
+	pluginResourceKeyManifest               = "manifest"
+	pluginResourceKeyBackendEntry           = "backend-entry"
+	pluginResourceKeyRuntimeWasmArtifact    = "runtime-wasm-artifact"
+	pluginResourceKeyRuntimeFrontendAssets  = "runtime-frontend-assets"
+	pluginResourceKeyInstallSQLBundle       = "install-sql-bundle"
+	pluginResourceKeyUninstallSQLBundle     = "uninstall-sql-bundle"
+	pluginResourceKeyFrontendPages          = "frontend-pages"
+	pluginResourceKeyFrontendSlots          = "frontend-slots"
+	pluginResourceOwnerKeyPluginManifest    = "plugin-manifest"
+	pluginResourceOwnerKeyBackendEntry      = "source-plugin-backend-entry"
+	pluginResourceOwnerKeyRuntimeArtifact   = "runtime-wasm-artifact"
+	pluginResourceOwnerKeyRuntimeFrontend   = "runtime-frontend-assets"
+	pluginResourceOwnerKeyInstallSQL        = "install-sql-summary"
+	pluginResourceOwnerKeyUninstallSQL      = "uninstall-sql-summary"
+	pluginResourceOwnerKeyFrontendPage      = "frontend-page-summary"
+	pluginResourceOwnerKeyFrontendSlot      = "frontend-slot-summary"
+	pluginResourceOwnerKeyManifestMenu      = "manifest-menu"
+	pluginResourceSummaryLabelRuntimeAssets = "runtime frontend assets"
+	pluginResourceSummaryLabelInstallSQL    = "install SQL assets"
+	pluginResourceSummaryLabelUninstallSQL  = "uninstall SQL assets"
+	pluginResourceSummaryLabelFrontendPages = "frontend page assets"
+	pluginResourceSummaryLabelFrontendSlots = "frontend slot assets"
+	pluginResourceRemarkManifest            = "One plugin manifest is declared and validated by the host."
+	pluginResourceRemarkBackendEntry        = "One source-plugin backend registration entry is compiled into the host binary."
+	pluginResourceRemarkMenuFallback        = "The host discovered one manifest-declared plugin menu."
+	pluginResourceMethodSummaryFallback     = "no methods"
+	pluginResourceSummaryRemarkFormat       = "The host discovered %d %s for the current plugin release."
+	pluginRuntimeArtifactRemarkFormat       = "The host validated one %s runtime artifact using ABI %s with %d embedded frontend assets, %d install SQL assets, %d uninstall SQL assets, and %d dynamic routes declared."
+	pluginMenuRemarkFormat                  = "The host discovered one manifest-declared plugin menu named %q with type %s."
+	hostServiceResourceRemarkFormat         = "The host discovered one governed host service resource ref %q for service %s with methods [%s]."
+	hostServicePathRemarkFormat             = "The host discovered one governed host service path %q for service %s with methods [%s]."
+	hostServiceTableRemarkFormat            = "The host discovered one governed host service table %q for service %s with methods [%s]."
+)
+
+// SyncPluginResourceReferences keeps sys_plugin_resource_ref aligned with the
+// current governance resource index derived from the given manifest.
 // It implements catalog.ResourceRefSyncer.
 func (s *Service) SyncPluginResourceReferences(ctx context.Context, manifest *catalog.Manifest) error {
 	if manifest == nil {
@@ -51,10 +88,10 @@ func (s *Service) SyncPluginResourceReferences(ctx context.Context, manifest *ca
 
 		if existing, ok := existingMap[identity]; ok {
 			// Only update abstract ownership and review remarks. Concrete file paths are
-			// deliberately excluded so the schema stays framework-agnostic. Runtime
-			// uninstall currently soft-deletes old rows, so repeated sync must also be
-			// able to revive matching identities instead of colliding with the table
-			// unique key on a fresh insert.
+			// deliberately excluded so the governance index stays framework-agnostic.
+			// Runtime uninstall currently soft-deletes old rows, so repeated sync must
+			// also be able to revive matching identities instead of colliding with the
+			// table unique key on a fresh insert.
 			data := do.SysPluginResourceRef{
 				OwnerType: descriptor.OwnerType.String(),
 				OwnerKey:  descriptor.OwnerKey,
@@ -80,8 +117,9 @@ func (s *Service) SyncPluginResourceReferences(ctx context.Context, manifest *ca
 			continue
 		}
 
-		// Persist stable resource identities that describe what the host discovered,
-		// not where each file lives inside a framework-specific directory tree.
+		// Persist stable governance resource identities that describe what the host
+		// discovered, not where each file lives inside a framework-specific
+		// directory tree.
 		_, err = dao.SysPluginResourceRef.Ctx(ctx).Data(do.SysPluginResourceRef{
 			PluginId:     manifest.ID,
 			ReleaseId:    release.Id,
@@ -116,7 +154,8 @@ func (s *Service) SyncPluginResourceReferences(ctx context.Context, manifest *ca
 	return nil
 }
 
-// listPluginResourceRefs returns all resource-ref rows for one plugin release, including soft-deleted rows.
+// listPluginResourceRefs returns all governance index rows for one plugin
+// release, including soft-deleted rows.
 func (s *Service) listPluginResourceRefs(ctx context.Context, pluginID string, releaseID int) ([]*entity.SysPluginResourceRef, error) {
 	items := make([]*entity.SysPluginResourceRef, 0)
 	err := dao.SysPluginResourceRef.Ctx(ctx).
@@ -129,7 +168,8 @@ func (s *Service) listPluginResourceRefs(ctx context.Context, pluginID string, r
 	return items, err
 }
 
-// buildPluginResourceRefDescriptors converts concrete discovery results into framework-agnostic review records.
+// buildPluginResourceRefDescriptors converts concrete discovery results into
+// framework-agnostic governance index records.
 func (s *Service) buildPluginResourceRefDescriptors(manifest *catalog.Manifest) []*catalog.ResourceRefDescriptor {
 	if manifest == nil {
 		return []*catalog.ResourceRefDescriptor{}
@@ -141,89 +181,92 @@ func (s *Service) buildPluginResourceRefDescriptors(manifest *catalog.Manifest) 
 	frontendSlotPaths := s.catalogSvc.ListFrontendSlotPaths(manifest)
 
 	descriptors := []*catalog.ResourceRefDescriptor{
-		{
-			Kind:      catalog.ResourceKindManifest,
-			Key:       "manifest",
-			OwnerType: catalog.ResourceOwnerTypeFile,
-			OwnerKey:  "plugin-manifest",
-			Remark:    "One plugin manifest is declared and validated by the host.",
-		},
+		newResourceRefDescriptor(
+			catalog.ResourceKindManifest,
+			pluginResourceKeyManifest,
+			catalog.ResourceOwnerTypeFile,
+			pluginResourceOwnerKeyPluginManifest,
+			pluginResourceRemarkManifest,
+		),
 	}
 
 	if catalog.NormalizeType(manifest.Type) == catalog.TypeSource {
-		descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
-			Kind:      catalog.ResourceKindBackendEntry,
-			Key:       "backend-entry",
-			OwnerType: catalog.ResourceOwnerTypeBackendRegistration,
-			OwnerKey:  "source-plugin-backend-entry",
-			Remark:    "One source-plugin backend registration entry is compiled into the host binary.",
-		})
+		descriptors = append(descriptors, newResourceRefDescriptor(
+			catalog.ResourceKindBackendEntry,
+			pluginResourceKeyBackendEntry,
+			catalog.ResourceOwnerTypeBackendRegistration,
+			pluginResourceOwnerKeyBackendEntry,
+			pluginResourceRemarkBackendEntry,
+		))
 	} else if manifest.RuntimeArtifact != nil {
-		descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
-			Kind:      catalog.ResourceKindRuntimeWasm,
-			Key:       "runtime-wasm-artifact",
-			OwnerType: catalog.ResourceOwnerTypeRuntimeArtifact,
-			OwnerKey:  "runtime-wasm-artifact",
-			Remark:    buildRuntimeArtifactRemark(manifest),
-		})
+		descriptors = append(descriptors, newResourceRefDescriptor(
+			catalog.ResourceKindRuntimeWasm,
+			pluginResourceKeyRuntimeWasmArtifact,
+			catalog.ResourceOwnerTypeRuntimeArtifact,
+			pluginResourceOwnerKeyRuntimeArtifact,
+			buildRuntimeArtifactRemark(manifest),
+		))
 		if manifest.RuntimeArtifact.FrontendAssetCount > 0 {
-			descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
-				Kind:      catalog.ResourceKindRuntimeFrontend,
-				Key:       "runtime-frontend-assets",
-				OwnerType: catalog.ResourceOwnerTypeRuntimeFrontend,
-				OwnerKey:  "runtime-frontend-assets",
-				Remark:    buildPluginResourceSummaryRemark("runtime frontend assets", manifest.RuntimeArtifact.FrontendAssetCount),
-			})
+			descriptors = append(descriptors, newResourceRefDescriptor(
+				catalog.ResourceKindRuntimeFrontend,
+				pluginResourceKeyRuntimeFrontendAssets,
+				catalog.ResourceOwnerTypeRuntimeFrontend,
+				pluginResourceOwnerKeyRuntimeFrontend,
+				buildPluginResourceSummaryRemark(
+					pluginResourceSummaryLabelRuntimeAssets,
+					manifest.RuntimeArtifact.FrontendAssetCount,
+				),
+			))
 		}
 	}
 
 	if installSQLCount > 0 {
-		descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
-			Kind:      catalog.ResourceKindInstallSQL,
-			Key:       "install-sql-bundle",
-			OwnerType: catalog.ResourceOwnerTypeInstallSQL,
-			OwnerKey:  "install-sql-summary",
-			Remark:    buildPluginResourceSummaryRemark("install SQL assets", installSQLCount),
-		})
+		descriptors = append(descriptors, newResourceRefDescriptor(
+			catalog.ResourceKindInstallSQL,
+			pluginResourceKeyInstallSQLBundle,
+			catalog.ResourceOwnerTypeInstallSQL,
+			pluginResourceOwnerKeyInstallSQL,
+			buildPluginResourceSummaryRemark(pluginResourceSummaryLabelInstallSQL, installSQLCount),
+		))
 	}
 	if uninstallSQLCount > 0 {
-		descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
-			Kind:      catalog.ResourceKindUninstallSQL,
-			Key:       "uninstall-sql-bundle",
-			OwnerType: catalog.ResourceOwnerTypeUninstallSQL,
-			OwnerKey:  "uninstall-sql-summary",
-			Remark:    buildPluginResourceSummaryRemark("uninstall SQL assets", uninstallSQLCount),
-		})
+		descriptors = append(descriptors, newResourceRefDescriptor(
+			catalog.ResourceKindUninstallSQL,
+			pluginResourceKeyUninstallSQLBundle,
+			catalog.ResourceOwnerTypeUninstallSQL,
+			pluginResourceOwnerKeyUninstallSQL,
+			buildPluginResourceSummaryRemark(pluginResourceSummaryLabelUninstallSQL, uninstallSQLCount),
+		))
 	}
 	if len(frontendPagePaths) > 0 {
-		descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
-			Kind:      catalog.ResourceKindFrontendPage,
-			Key:       "frontend-pages",
-			OwnerType: catalog.ResourceOwnerTypeFrontendPageEntry,
-			OwnerKey:  "frontend-page-summary",
-			Remark:    buildPluginResourceSummaryRemark("frontend page assets", len(frontendPagePaths)),
-		})
+		descriptors = append(descriptors, newResourceRefDescriptor(
+			catalog.ResourceKindFrontendPage,
+			pluginResourceKeyFrontendPages,
+			catalog.ResourceOwnerTypeFrontendPageEntry,
+			pluginResourceOwnerKeyFrontendPage,
+			buildPluginResourceSummaryRemark(pluginResourceSummaryLabelFrontendPages, len(frontendPagePaths)),
+		))
 	}
 	if len(frontendSlotPaths) > 0 {
-		descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
-			Kind:      catalog.ResourceKindFrontendSlot,
-			Key:       "frontend-slots",
-			OwnerType: catalog.ResourceOwnerTypeFrontendSlotEntry,
-			OwnerKey:  "frontend-slot-summary",
-			Remark:    buildPluginResourceSummaryRemark("frontend slot assets", len(frontendSlotPaths)),
-		})
+		descriptors = append(descriptors, newResourceRefDescriptor(
+			catalog.ResourceKindFrontendSlot,
+			pluginResourceKeyFrontendSlots,
+			catalog.ResourceOwnerTypeFrontendSlotEntry,
+			pluginResourceOwnerKeyFrontendSlot,
+			buildPluginResourceSummaryRemark(pluginResourceSummaryLabelFrontendSlots, len(frontendSlotPaths)),
+		))
 	}
 	for _, menu := range manifest.Menus {
 		if menu == nil || strings.TrimSpace(menu.Key) == "" {
 			continue
 		}
-		descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
-			Kind:      catalog.ResourceKindMenu,
-			Key:       strings.TrimSpace(menu.Key),
-			OwnerType: catalog.ResourceOwnerTypeMenuEntry,
-			OwnerKey:  "manifest-menu",
-			Remark:    buildPluginMenuResourceRemark(menu),
-		})
+		descriptors = append(descriptors, newResourceRefDescriptor(
+			catalog.ResourceKindMenu,
+			strings.TrimSpace(menu.Key),
+			catalog.ResourceOwnerTypeMenuEntry,
+			pluginResourceOwnerKeyManifestMenu,
+			buildPluginMenuResourceRemark(menu),
+		))
 	}
 
 	descriptors = appendHostServiceResourceDescriptors(descriptors, manifest.HostServices)
@@ -257,12 +300,12 @@ func (s *Service) countPluginUninstallSQLAssets(manifest *catalog.Manifest) int 
 
 // buildPluginResourceSummaryRemark formats the standard governance discovery summary line.
 func buildPluginResourceSummaryRemark(resourceLabel string, count int) string {
-	return fmt.Sprintf("The host discovered %d %s for the current plugin release.", count, resourceLabel)
+	return fmt.Sprintf(pluginResourceSummaryRemarkFormat, count, resourceLabel)
 }
 
 // buildPluginResourceIdentity returns a stable composite key for one resource ref row.
 func buildPluginResourceIdentity(kind string, key string) string {
-	return kind + ":" + key
+	return kind + pluginResourceIdentitySeparator + key
 }
 
 // buildRuntimeArtifactRemark summarizes runtime WASM metadata for governance review.
@@ -272,7 +315,7 @@ func buildRuntimeArtifactRemark(manifest *catalog.Manifest) string {
 		return ""
 	}
 	return fmt.Sprintf(
-		"The host validated one %s runtime artifact using ABI %s with %d embedded frontend assets, %d install SQL assets, %d uninstall SQL assets, and %d dynamic routes declared.",
+		pluginRuntimeArtifactRemarkFormat,
 		manifest.RuntimeArtifact.RuntimeKind,
 		manifest.RuntimeArtifact.ABIVersion,
 		manifest.RuntimeArtifact.FrontendAssetCount,
@@ -285,13 +328,29 @@ func buildRuntimeArtifactRemark(manifest *catalog.Manifest) string {
 // buildPluginMenuResourceRemark formats the governance remark for one manifest-declared menu entry.
 func buildPluginMenuResourceRemark(menu *catalog.MenuSpec) string {
 	if menu == nil {
-		return "The host discovered one manifest-declared plugin menu."
+		return pluginResourceRemarkMenuFallback
 	}
 	return fmt.Sprintf(
-		"The host discovered one manifest-declared plugin menu named %q with type %s.",
+		pluginMenuRemarkFormat,
 		strings.TrimSpace(menu.Name),
 		normalizeMenuType(menu.Type),
 	)
+}
+
+func newResourceRefDescriptor(
+	kind catalog.ResourceKind,
+	key string,
+	ownerType catalog.ResourceOwnerType,
+	ownerKey string,
+	remark string,
+) *catalog.ResourceRefDescriptor {
+	return &catalog.ResourceRefDescriptor{
+		Kind:      kind,
+		Key:       key,
+		OwnerType: ownerType,
+		OwnerKey:  ownerKey,
+		Remark:    remark,
+	}
 }
 
 func appendHostServiceResourceDescriptors(
@@ -329,13 +388,13 @@ func appendHostServiceResourceDescriptors(
 					continue
 				}
 				seen[identity] = struct{}{}
-				descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
-					Kind:      kind,
-					Key:       normalizedTable,
-					OwnerType: catalog.ResourceOwnerTypeHostServiceResource,
-					OwnerKey:  service.Service,
-					Remark:    buildHostServiceTableRemark(service.Service, normalizedTable, service.Methods),
-				})
+				descriptors = append(descriptors, newResourceRefDescriptor(
+					kind,
+					normalizedTable,
+					catalog.ResourceOwnerTypeHostServiceResource,
+					service.Service,
+					buildHostServiceTableRemark(service.Service, normalizedTable, service.Methods),
+				))
 			}
 			continue
 		}
@@ -350,13 +409,13 @@ func appendHostServiceResourceDescriptors(
 					continue
 				}
 				seen[identity] = struct{}{}
-				descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
-					Kind:      kind,
-					Key:       normalizedPath,
-					OwnerType: catalog.ResourceOwnerTypeHostServiceResource,
-					OwnerKey:  service.Service,
-					Remark:    buildHostServicePathRemark(service.Service, normalizedPath, service.Methods),
-				})
+				descriptors = append(descriptors, newResourceRefDescriptor(
+					kind,
+					normalizedPath,
+					catalog.ResourceOwnerTypeHostServiceResource,
+					service.Service,
+					buildHostServicePathRemark(service.Service, normalizedPath, service.Methods),
+				))
 			}
 			continue
 		}
@@ -372,13 +431,13 @@ func appendHostServiceResourceDescriptors(
 				continue
 			}
 			seen[identity] = struct{}{}
-			descriptors = append(descriptors, &catalog.ResourceRefDescriptor{
-				Kind:      kind,
-				Key:       strings.TrimSpace(resource.Ref),
-				OwnerType: catalog.ResourceOwnerTypeHostServiceResource,
-				OwnerKey:  service.Service,
-				Remark:    buildHostServiceResourceRemark(service.Service, resource.Ref, service.Methods),
-			})
+			descriptors = append(descriptors, newResourceRefDescriptor(
+				kind,
+				strings.TrimSpace(resource.Ref),
+				catalog.ResourceOwnerTypeHostServiceResource,
+				service.Service,
+				buildHostServiceResourceRemark(service.Service, resource.Ref, service.Methods),
+			))
 		}
 	}
 
@@ -411,12 +470,9 @@ func mapHostServiceResourceKind(service string) catalog.ResourceKind {
 }
 
 func buildHostServiceResourceRemark(service string, ref string, methods []string) string {
-	methodSummary := "no methods"
-	if len(methods) > 0 {
-		methodSummary = strings.Join(methods, ", ")
-	}
+	methodSummary := buildMethodSummary(methods)
 	return fmt.Sprintf(
-		"The host discovered one governed host service resource ref %q for service %s with methods [%s].",
+		hostServiceResourceRemarkFormat,
 		strings.TrimSpace(ref),
 		strings.TrimSpace(service),
 		methodSummary,
@@ -424,12 +480,9 @@ func buildHostServiceResourceRemark(service string, ref string, methods []string
 }
 
 func buildHostServicePathRemark(service string, storagePath string, methods []string) string {
-	methodSummary := "no methods"
-	if len(methods) > 0 {
-		methodSummary = strings.Join(methods, ", ")
-	}
+	methodSummary := buildMethodSummary(methods)
 	return fmt.Sprintf(
-		"The host discovered one governed host service path %q for service %s with methods [%s].",
+		hostServicePathRemarkFormat,
 		strings.TrimSpace(storagePath),
 		strings.TrimSpace(service),
 		methodSummary,
@@ -437,16 +490,20 @@ func buildHostServicePathRemark(service string, storagePath string, methods []st
 }
 
 func buildHostServiceTableRemark(service string, table string, methods []string) string {
-	methodSummary := "no methods"
-	if len(methods) > 0 {
-		methodSummary = strings.Join(methods, ", ")
-	}
+	methodSummary := buildMethodSummary(methods)
 	return fmt.Sprintf(
-		"The host discovered one governed host service table %q for service %s with methods [%s].",
+		hostServiceTableRemarkFormat,
 		strings.TrimSpace(table),
 		strings.TrimSpace(service),
 		methodSummary,
 	)
+}
+
+func buildMethodSummary(methods []string) string {
+	if len(methods) == 0 {
+		return pluginResourceMethodSummaryFallback
+	}
+	return strings.Join(methods, ", ")
 }
 
 // ListPluginResourceRefs is the exported form of listPluginResourceRefs for cross-package access.
