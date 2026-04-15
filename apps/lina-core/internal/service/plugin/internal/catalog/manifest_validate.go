@@ -15,21 +15,12 @@ import (
 	"lina-core/pkg/pluginfs"
 )
 
-// menuType identifies the display category of a plugin-declared menu entry.
-type menuType string
-
 const (
-	menuTypeDirectory menuType = "D"
-	menuTypePage      menuType = "M"
-	menuTypeButton    menuType = "B"
-
 	menuDefaultVisible = 1
 	menuDefaultStatus  = 1
 	menuDefaultIsFrame = 0
 	menuDefaultIsCache = 0
 )
-
-func (t menuType) String() string { return string(t) }
 
 // ValidateManifest validates required fields and structural constraints in a plugin manifest.
 // For source plugins it additionally checks for go.mod and backend/plugin.go.
@@ -165,7 +156,7 @@ func ValidateManifestMenus(manifest *Manifest) error {
 		spec.Component = strings.TrimSpace(spec.Component)
 		spec.Perms = strings.TrimSpace(spec.Perms)
 		spec.Icon = strings.TrimSpace(spec.Icon)
-		spec.Type = normalizeMenuType(spec.Type).String()
+		spec.Type = NormalizeMenuType(spec.Type).String()
 		spec.QueryParam = strings.TrimSpace(spec.QueryParam)
 		spec.Remark = strings.TrimSpace(spec.Remark)
 
@@ -175,7 +166,7 @@ func ValidateManifestMenus(manifest *Manifest) error {
 		if spec.Name == "" {
 			return gerror.Newf("插件菜单缺少 name: %s", spec.Key)
 		}
-		if !isSupportedMenuType(normalizeMenuType(spec.Type)) {
+		if !IsSupportedMenuType(NormalizeMenuType(spec.Type)) {
 			return gerror.Newf("插件菜单类型仅支持 D/M/B: %s", spec.Key)
 		}
 		if spec.ParentKey == spec.Key {
@@ -224,27 +215,6 @@ func ValidateManifestMenus(manifest *Manifest) error {
 	}
 
 	return nil
-}
-
-// normalizeMenuType converts a raw menu type string to the canonical menuType constant.
-func normalizeMenuType(value string) menuType {
-	switch strings.ToUpper(strings.TrimSpace(value)) {
-	case "":
-		return menuTypePage
-	case menuTypeDirectory.String():
-		return menuTypeDirectory
-	case menuTypePage.String():
-		return menuTypePage
-	case menuTypeButton.String():
-		return menuTypeButton
-	default:
-		return ""
-	}
-}
-
-// isSupportedMenuType reports whether value is a recognized menu type.
-func isSupportedMenuType(value menuType) bool {
-	return value == menuTypeDirectory || value == menuTypePage || value == menuTypeButton
 }
 
 // normalizeMenuFlag validates and returns a plugin menu integer flag (0 or 1).

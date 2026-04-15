@@ -91,7 +91,7 @@ func (s *Service) SyncManifest(ctx context.Context, manifest *Manifest) (*entity
 				return nil, err
 			}
 		}
-		if err = s.syncMetadata(ctx, manifest, registry, "Source plugin manifest synchronized into host registry."); err != nil {
+		if err = s.syncMetadata(ctx, manifest, registry, PluginNodeStateMessageManifestSynchronized); err != nil {
 			return nil, err
 		}
 		return s.syncRegistryReleaseReference(ctx, registry, manifest)
@@ -156,7 +156,7 @@ func (s *Service) SyncManifest(ctx context.Context, manifest *Manifest) (*entity
 			return nil, err
 		}
 	}
-	if err = s.syncMetadata(ctx, manifest, registry, "Source plugin manifest synchronized into host registry."); err != nil {
+	if err = s.syncMetadata(ctx, manifest, registry, PluginNodeStateMessageManifestSynchronized); err != nil {
 		return nil, err
 	}
 	return s.syncRegistryReleaseReference(ctx, registry, manifest)
@@ -229,7 +229,7 @@ func (s *Service) SetPluginStatus(ctx context.Context, pluginID string, enabled 
 			registry.Version,
 			registry.Installed,
 			registry.Status,
-			"Plugin status updated from management API.",
+			PluginNodeStateMessageStatusUpdated,
 		)
 	}
 	return nil
@@ -263,7 +263,7 @@ func (s *Service) SetPluginInstalled(ctx context.Context, pluginID string, insta
 
 // BuildPluginStatusKey returns the display key for a plugin's status record.
 func (s *Service) BuildPluginStatusKey(pluginID string) string {
-	return "sys_plugin.status:" + pluginID
+	return PluginStatusKeyPrefix + pluginID
 }
 
 // syncRegistryReleaseReference links the registry row to the matching release row

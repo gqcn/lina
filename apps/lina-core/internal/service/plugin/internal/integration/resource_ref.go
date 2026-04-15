@@ -333,7 +333,7 @@ func buildPluginMenuResourceRemark(menu *catalog.MenuSpec) string {
 	return fmt.Sprintf(
 		pluginMenuRemarkFormat,
 		strings.TrimSpace(menu.Name),
-		normalizeMenuType(menu.Type),
+		catalog.NormalizeMenuType(menu.Type).String(),
 	)
 }
 

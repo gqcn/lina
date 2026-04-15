@@ -23,6 +23,18 @@ const (
 	MenuKeyPrefix = "plugin:"
 	// MenuRemarkPrefix is the legacy plugin marker prefix stored in sys_menu.remark.
 	MenuRemarkPrefix = "plugin:"
+	// DynamicRoutePermissionMenuKeySeparator marks synthetic route-permission menu keys.
+	DynamicRoutePermissionMenuKeySeparator = ":perm:"
+	// DynamicRoutePermissionMenuRemarkSuffix marks synthetic route-permission menu remarks.
+	DynamicRoutePermissionMenuRemarkSuffix = ":dynamic-route-permission"
+	// DynamicRoutePermissionMenuNamePrefix prefixes hidden route-permission menu names.
+	DynamicRoutePermissionMenuNamePrefix = "动态路由权限:"
+	// PluginStatusKeyPrefix is the stable status record key exposed to runtime consumers.
+	PluginStatusKeyPrefix = "sys_plugin.status:"
+	// PluginNodeStateMessageManifestSynchronized records a manifest-sync node-state update.
+	PluginNodeStateMessageManifestSynchronized = "Source plugin manifest synchronized into host registry."
+	// PluginNodeStateMessageStatusUpdated records a management-triggered status update.
+	PluginNodeStateMessageStatusUpdated = "Plugin status updated from management API."
 )
 
 // BuildReleaseStatus builds the composite release status string from installation

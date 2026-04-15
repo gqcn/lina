@@ -96,3 +96,4 @@
 - [x] **FB-36**: 将动态插件 demo 中稳定 JSON 响应负载的`map[string]any`实现收敛为结构体模型，减少硬编码键名并提升可维护性。
 - [x] **FB-37**: 为 data hostService 授权展示补充数据表的人类可读说明（优先展示宿主表注释），同步更新安装/启用授权弹窗与`TC0073`回归覆盖。
 - [x] **FB-38**: 收敛`apps/lina-core/internal/service/plugin/internal/integration/resource_ref.go`中散落的稳定治理标识与重复文案硬编码，统一为常量和辅助构造函数，降低后续维护成本。
+- [x] **FB-39**: 继续收敛插件治理与动态路由权限菜单相关实现中的稳定状态键前缀、节点同步消息和菜单类型/remark 标识硬编码，统一复用`catalog`共享常量与辅助方法。

@@ -640,7 +640,7 @@ func (s *Service) getDynamicRoutePermissionsByRoleIDs(ctx context.Context, roleI
 	menuItems := make([]*entity.SysMenu, 0)
 	if err := dao.SysMenu.Ctx(ctx).
 		WhereIn(dao.SysMenu.Columns().Id, intsToInterfaces(menuIDs)).
-		Where(dao.SysMenu.Columns().Type, "B").
+		Where(dao.SysMenu.Columns().Type, catalog.MenuTypeButton.String()).
 		Where(dao.SysMenu.Columns().Status, statusNormal).
 		Scan(&menuItems); err != nil {
 		return nil, err

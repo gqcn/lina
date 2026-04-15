@@ -21,17 +21,11 @@ import (
 )
 
 const (
-	// menuKeyPrefix is the common prefix for plugin-owned menu keys in sys_menu.menu_key.
-	menuKeyPrefix = catalog.MenuKeyPrefix
-
 	pluginMenuDefaultVisible = 1
 	pluginMenuDefaultStatus  = 1
 	pluginMenuDefaultIsFrame = 0
 	pluginMenuDefaultIsCache = 0
 	pluginDefaultAdminRoleID = 1
-
-	// dynamicRoutePermissionMenuNamePrefix prefixes hidden permission menus.
-	dynamicRoutePermissionMenuNamePrefix = "动态路由权限:"
 )
 
 // SyncPluginMenusAndPermissions reconciles all manifest menus and dynamic route permission
@@ -100,7 +94,7 @@ func (s *Service) syncPluginMenusInTx(ctx context.Context, manifest *catalog.Man
 		existingByKey[item.MenuKey] = item
 		if _, ok := declaredKeys[item.MenuKey]; !ok {
 			// Only remove declared menu keys, not permission menu synthetic keys.
-			if !strings.Contains(item.MenuKey, ":perm:") {
+			if !isDynamicRoutePermissionMenuKey(item.MenuKey) {
 				staleKeys = append(staleKeys, item.MenuKey)
 			}
 		}
@@ -225,12 +219,12 @@ func (s *Service) buildDynamicRoutePermissionMenuSpecs(manifest *catalog.Manifes
 		status := pluginMenuDefaultStatus
 		items = append(items, &catalog.MenuSpec{
 			Key:     buildDynamicRoutePermissionMenuKey(manifest.ID, permission),
-			Name:    dynamicRoutePermissionMenuNamePrefix + permission,
+			Name:    catalog.DynamicRoutePermissionMenuNamePrefix + permission,
 			Perms:   permission,
-			Type:    "B",
+			Type:    catalog.MenuTypeButton.String(),
 			Visible: &visible,
 			Status:  &status,
-			Remark:  "plugin:" + manifest.ID + ":dynamic-route-permission",
+			Remark:  buildDynamicRoutePermissionMenuRemark(manifest.ID),
 		})
 	}
 	sort.Slice(items, func(i, j int) bool {
@@ -242,11 +236,15 @@ func (s *Service) buildDynamicRoutePermissionMenuSpecs(manifest *catalog.Manifes
 // buildDynamicRoutePermissionMenuKey returns the synthetic menu key for a route permission.
 func buildDynamicRoutePermissionMenuKey(pluginID string, permission string) string {
 	encodedPermission := base64.RawURLEncoding.EncodeToString([]byte(strings.TrimSpace(permission)))
-	return menuKeyPrefix + strings.TrimSpace(pluginID) + ":perm:" + encodedPermission
+	return catalog.MenuKeyPrefix + strings.TrimSpace(pluginID) + catalog.DynamicRoutePermissionMenuKeySeparator + encodedPermission
 }
 
 func isDynamicRoutePermissionMenuKey(menuKey string) bool {
-	return strings.Contains(strings.TrimSpace(menuKey), ":perm:")
+	return strings.Contains(strings.TrimSpace(menuKey), catalog.DynamicRoutePermissionMenuKeySeparator)
+}
+
+func buildDynamicRoutePermissionMenuRemark(pluginID string) string {
+	return catalog.MenuRemarkPrefix + strings.TrimSpace(pluginID) + catalog.DynamicRoutePermissionMenuRemarkSuffix
 }
 
 func (s *Service) listDeclaredPluginMenuKeys(manifest *catalog.Manifest) map[string]struct{} {
@@ -355,7 +353,7 @@ func (s *Service) upsertPluginMenu(
 		Component:  spec.Component,
 		Perms:      spec.Perms,
 		Icon:       spec.Icon,
-		Type:       normalizeMenuType(spec.Type),
+		Type:       catalog.NormalizeMenuType(spec.Type).String(),
 		Sort:       spec.Sort,
 		Visible:    visible,
 		Status:     status,
@@ -406,7 +404,7 @@ func (s *Service) ensurePluginMenuAdminBindings(ctx context.Context, resolvedIDs
 }
 
 func (s *Service) listPluginMenusByPlugin(ctx context.Context, pluginID string) ([]*entity.SysMenu, error) {
-	pattern := fmt.Sprintf("%s%s:%%", menuKeyPrefix, strings.TrimSpace(pluginID))
+	pattern := fmt.Sprintf("%s%s:%%", catalog.MenuKeyPrefix, strings.TrimSpace(pluginID))
 	cols := dao.SysMenu.Columns()
 	items := make([]*entity.SysMenu, 0)
 	err := dao.SysMenu.Ctx(ctx).
@@ -480,22 +478,6 @@ func (s *Service) deletePluginMenusByKeys(ctx context.Context, menuKeys []string
 		return err
 	}
 	return nil
-}
-
-// normalizeMenuType converts a raw menu type string to the canonical type value.
-func normalizeMenuType(value string) string {
-	switch strings.ToUpper(strings.TrimSpace(value)) {
-	case "D":
-		return "D"
-	case "M":
-		return "M"
-	case "B":
-		return "B"
-	case "":
-		return "M"
-	default:
-		return ""
-	}
 }
 
 // normalizeMenuFlag validates and returns a plugin menu integer flag (0 or 1).

@@ -4,9 +4,47 @@
 package catalog
 
 import (
+	"strings"
+
 	"lina-core/pkg/pluginbridge"
 	"lina-core/pkg/pluginhost"
 )
+
+// MenuType defines the canonical display category for one plugin-declared menu entry.
+type MenuType string
+
+const (
+	// MenuTypeDirectory marks a directory/group menu.
+	MenuTypeDirectory MenuType = "D"
+	// MenuTypePage marks a page/router menu.
+	MenuTypePage MenuType = "M"
+	// MenuTypeButton marks a hidden button/permission menu.
+	MenuTypeButton MenuType = "B"
+)
+
+// String returns the canonical menu type value.
+func (t MenuType) String() string { return string(t) }
+
+// NormalizeMenuType converts a raw menu type string to the canonical MenuType value.
+func NormalizeMenuType(value string) MenuType {
+	switch strings.ToUpper(strings.TrimSpace(value)) {
+	case "":
+		return MenuTypePage
+	case MenuTypeDirectory.String():
+		return MenuTypeDirectory
+	case MenuTypePage.String():
+		return MenuTypePage
+	case MenuTypeButton.String():
+		return MenuTypeButton
+	default:
+		return ""
+	}
+}
+
+// IsSupportedMenuType reports whether value is a recognized menu type.
+func IsSupportedMenuType(value MenuType) bool {
+	return value == MenuTypeDirectory || value == MenuTypePage || value == MenuTypeButton
+}
 
 // Manifest defines plugin metadata loaded from plugin.yaml or wasm custom sections.
 type Manifest struct {
