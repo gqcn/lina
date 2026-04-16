@@ -1,5 +1,5 @@
 // Package role implements role management, permission lookup, and shared access
-// context caching for the Lina backend.
+// context caching for the Lina core host service.
 package role
 
 import (

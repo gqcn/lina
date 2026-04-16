@@ -1,5 +1,5 @@
 // Package user implements user management, profile maintenance, import/export,
-// and related authorization helpers for the Lina backend.
+// and related authorization helpers for the Lina core host service.
 package user
 
 import (

@@ -16,9 +16,10 @@ type OpenApiConfig struct {
 // GetOpenApi reads OpenAPI config from configuration file.
 func (s *serviceImpl) GetOpenApi(ctx context.Context) *OpenApiConfig {
 	cfg := &OpenApiConfig{
-		Title:             "Lina Admin API",
+		Title:             "Lina Framework API",
+		Description:       "Lina core host service API reference.",
 		Version:           "v1.0.0",
-		ServerDescription: "API Server",
+		ServerDescription: "Core Host API Server",
 	}
 	mustScanConfig(ctx, "openapi", cfg)
 	return cfg

@@ -4,7 +4,7 @@ import "github.com/gogf/gf/v2/frame/g"
 
 // DynamicListReq is the request for querying public dynamic-plugin states.
 type DynamicListReq struct {
-	g.Meta `path:"/plugins/dynamic" method:"get" tags:"插件管理" summary:"查询插件运行状态" dc:"返回前端公共壳层渲染插件 Slot 所需的最小运行状态集合，供登录页和布局壳层在匿名或登录态下判断插件内容是否应显示"`
+	g.Meta `path:"/plugins/dynamic" method:"get" tags:"插件管理" summary:"查询插件运行状态" dc:"返回前端公共界面层渲染插件 Slot 所需的最小运行状态集合，供登录页和布局界面在匿名或登录态下判断插件内容是否应显示"`
 }
 
 // DynamicListRes is the response for querying public dynamic-plugin states.

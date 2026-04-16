@@ -6,7 +6,7 @@ import (
 
 // GetAllReq defines the request for querying all user menu routes.
 type GetAllReq struct {
-	g.Meta `path:"/menus/all" method:"get" tags:"菜单管理" summary:"获取用户菜单路由" dc:"获取当前登录用户的菜单列表，返回Vben框架所需的路由格式，用于前端动态路由生成"`
+	g.Meta `path:"/menus/all" method:"get" tags:"菜单管理" summary:"获取宿主菜单路由" dc:"获取当前登录用户可访问的宿主菜单路由列表，返回默认管理工作台用于动态路由装配的路由投影"`
 }
 
 // MenuRouteItem represents a menu route item for Vben frontend

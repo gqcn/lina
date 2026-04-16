@@ -1,5 +1,5 @@
 // Package sysconfig implements system-configuration query, mutation, import,
-// and export services for the Lina backend.
+// and export services for the Lina core host service.
 package sysconfig
 
 import (

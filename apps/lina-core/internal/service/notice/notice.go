@@ -1,5 +1,5 @@
 // Package notice implements notice management, publication, and related
-// lookup services for the Lina backend.
+// lookup services for the Lina core host service.
 package notice
 
 import (

@@ -3,7 +3,7 @@ import { config } from '../../fixtures/config';
 import { test, expect } from '../../fixtures/auth';
 
 test.describe('TC0001 登录验证', () => {
-  test('TC0001a: 登录后跳转到管理后台', async ({ page }) => {
+  test('TC0001a: 登录后跳转到宿主工作区', async ({ page }) => {
     const loginPage = new LoginPage(page);
     await loginPage.goto();
     await loginPage.loginAndWaitForRedirect(config.adminUser, config.adminPass);

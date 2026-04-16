@@ -1,3 +1,3 @@
-# Simple i18n
+# use-simple-locale
 
-Simple i18 implementation
+A lightweight locale composable for simplified i18n scenarios.

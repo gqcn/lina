@@ -1,3 +1,3 @@
-# \_core
+# _core views
 
-此目录包含应用程序正常运行所需的基本视图。这些视图是应用程序布局中使用的视图。
+This directory contains core views required by the application runtime.

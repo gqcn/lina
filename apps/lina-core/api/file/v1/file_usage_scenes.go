@@ -6,7 +6,7 @@ import (
 
 // UsageScenesReq defines the request for querying file usage scenes.
 type UsageScenesReq struct {
-	g.Meta `path:"/file/scenes" method:"get" tags:"文件管理" summary:"获取文件使用场景列表" dc:"查询所有已使用的文件使用场景标识列表，用于文件列表页面的使用场景筛选下拉框" permission:"system:file:query"`
+	g.Meta `path:"/file/scenes" method:"get" tags:"文件管理" summary:"获取文件使用场景列表" dc:"查询所有已使用的文件使用场景标识列表，供管理工作台的筛选器、治理视图或文件表单复用" permission:"system:file:query"`
 }
 
 // UsageScenesRes File usage scenes list response

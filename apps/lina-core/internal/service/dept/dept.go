@@ -1,5 +1,5 @@
 // Package dept implements department tree queries, mutation flows, and
-// descendant traversal helpers for the Lina backend.
+// descendant traversal helpers for the Lina core host service.
 package dept
 
 import (

@@ -1,10 +1,11 @@
 # 项目概述
 
-`Lina`是一个`Go`语言管理后台系统，采用前后端分离架构。
+`Lina`是一个`AI驱动的全栈开发框架`，提供核心宿主服务、默认管理工作台、插件扩展机制与 AI 协作研发工作流。
 
 - **前端**: `Vben5 + Vue 3 + Ant Design Vue + TypeScript（pnpm monorepo）`
-- **后端**: `GoFrame + MySQL + JWT`
-- **参考项目**: `/Users/john/Workspace/github/imdap/ruoyi-plus-vben5`（前端样式和功能交互参考）
+- **后端**: `GoFrame + MySQL + JWT + Wasm 插件运行时`
+- **研发流程**: `OpenSpec + SDD + AI 辅助协作`
+- **参考项目**: `/Users/john/Workspace/github/imdap/ruoyi-plus-vben5`（默认管理工作台的前端样式和功能交互参考）
 
 ## 默认账号
 
@@ -15,7 +16,7 @@
 
 ```text
 apps/                → MonoRepo项目目录
-  lina-core/         → GoFrame框架实现的后端源码
+  lina-core/         → 全栈开发框架的核心宿主服务（GoFrame）
     api/             → 请求/响应 DTO（g.Meta 路由定义）
     internal/        → 后端核心代码实现
       cmd/           → 服务启动 & 路由注册
@@ -30,9 +31,10 @@ apps/                → MonoRepo项目目录
       config/        → 后端配置文件
       sql/           → DDL + Seed DML（版本 SQL 文件）
         mock-data/   → Mock 演示/测试数据（不随生产部署）
-  lina-vben/         → Vben5 前端（pnpm monorepo）
-    apps/web-antd/   → 主应用（Ant Design Vue）
+  lina-vben/         → 默认管理工作台（Vben5 前端 pnpm monorepo）
+    apps/web-antd/   → 默认管理工作台应用（Ant Design Vue）
     packages/        → 共享库（@core, effects, stores, utils 等）
+  lina-plugins/      → 插件样例与插件开发参考入口
 hack/                → 项目脚本及测试用例文件
   tests/             → E2E 测试（Playwright）
     e2e/             → 测试用例文件
@@ -96,6 +98,9 @@ pnpm report            # 查看 HTML 报告
 
 `README.md`等技术文档编写需遵循规范 @.agents/instructions/markdown-format.instructions.md 。
 
+- 仓库内所有目录级主说明文档统一使用英文 `README.md`，并同步提供内容一致的中文镜像 `README.zh_CN.md`。
+- 新增目录说明文档时，必须在同一次变更中同步创建上述两份 README，不允许只维护单语版本。
+
 # 开发流程规范
 
 本项目采用`SDD`驱动开发，使用`OpenSpec`工具辅助落地。变更记录存放在 `openspec/changes/` 目录下。每个变更包含：`proposal.md`（提案）、`design.md`（设计）、`specs/`（增量规范）、`tasks.md`（任务清单）。
@@ -112,6 +117,19 @@ pnpm report            # 查看 HTML 报告
 - 审查技能`/openspec-review`自动在以下节点触发：`/opsx:apply`任务完成后、`/opsx:feedback`任务完成后、`/opsx:archive`归档前。
 
 # 架构设计规范
+
+## 顶级要求
+
+### 项目定位统一要求
+
+1. `Lina` 的统一项目定位是`AI驱动的全栈开发框架`。所有前端、后端、配置、脚本输出、OpenAPI 描述、系统信息页和项目文档中的项目介绍，都必须围绕这一定位展开。
+2. 默认管理工作台、系统管理模块、用户权限模块等能力属于 `Lina` 提供的默认入口和内建通用能力，不构成项目的唯一产品边界。
+
+### 核心宿主边界要求
+
+1. `apps/lina-core` 是全栈开发框架的核心宿主服务，负责提供通用模块接口能力、组件能力、系统治理能力与插件扩展能力。
+2. `lina-core` 的设计必须优先保证通用性、稳定性和可复用性，不得与具体管理工作台页面的展示结构、交互细节或前端框架实现强绑定。
+3. 若需求仅来源于表格列、筛选项、树选择器、路由装配、工作台聚合、下拉选项等工作台展示变化，应优先通过工作台适配接口或前端适配层解决，而不是直接修改 `lina-core` 的核心领域契约、通用 service 语义或存储模型。
 
 ## 模块设计规范
 

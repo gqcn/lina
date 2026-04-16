@@ -1,4 +1,4 @@
-# Lina Admin - Root Makefile
+# Lina Framework - Root Makefile
 # ===========================
 
 BACKEND_DIR   := apps/lina-core

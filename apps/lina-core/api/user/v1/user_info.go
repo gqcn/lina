@@ -6,7 +6,7 @@ import (
 
 // GetInfoReq defines the request for querying current frontend user info.
 type GetInfoReq struct {
-	g.Meta `path:"/user/info" method:"get" tags:"用户管理" summary:"获取前端用户信息" dc:"获取当前登录用户的基本信息，包括用户名、角色、菜单树、权限列表等，用于前端页面展示和权限控制"`
+	g.Meta `path:"/user/info" method:"get" tags:"用户管理" summary:"获取宿主用户上下文" dc:"获取当前登录用户的基础身份、角色、菜单树与权限集合，供默认管理工作台完成启动装配、导航渲染与权限控制"`
 }
 
 // GetInfoRes defines the response for querying current frontend user info.
@@ -18,7 +18,7 @@ type GetInfoRes struct {
 	Avatar      string      `json:"avatar" dc:"头像地址" eg:"/upload/avatar/default.png"`
 	Roles       []string    `json:"roles" dc:"用户角色标识列表" eg:"['admin','user']"`
 	HomePath    string      `json:"homePath" dc:"首页路径" eg:"/dashboard"`
-	Menus       []*MenuTree `json:"menus" dc:"用户菜单树，用于前端动态路由生成" eg:"[]"`
+	Menus       []*MenuTree `json:"menus" dc:"宿主菜单树，供默认管理工作台装配导航、路由与工作区入口" eg:"[]"`
 	Permissions []string    `json:"permissions" dc:"用户有效权限标识列表，包含菜单权限与按钮权限，用于接口声明权限校验和按钮级权限控制" eg:"['system:user:list','system:user:add','system:user:edit']"`
 }
 

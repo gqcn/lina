@@ -114,7 +114,7 @@
 系统 SHALL 提供 Pinia Store 管理用户消息状态。
 
 #### Scenario: 初始化轮询
-- **WHEN** 用户登录后进入管理后台
+- **WHEN** 用户登录后进入宿主工作区
 - **THEN** 消息 Store 启动 60 秒间隔轮询，获取未读消息数量
 
 #### Scenario: 停止轮询

@@ -129,13 +129,13 @@ TBD - created by archiving change plugin-framework. Update Purpose after archive
 - **AND** 一期至少公开 `layout.user-dropdown.after` 与 `dashboard.workspace.after`
 - **AND** 每个插槽都必须说明宿主位置、渲染容器、推荐用途、排序规则与失败降级策略
 
-### Requirement: 宿主优先在公共壳层发布通用前端 Slot
-系统 SHALL 优先在布局壳层、登录壳层、工作台壳层与 CRUD 壳层发布通用前端 Slot，避免把扩展点绑定到单一业务模块。
+### Requirement: 宿主优先在公共界面层发布通用前端 Slot
+系统 SHALL 优先在布局界面、登录界面、工作台界面与 CRUD 通用界面发布通用前端 Slot，避免把扩展点绑定到单一业务模块。
 
 #### Scenario: 宿主发布首批通用公共 Slot
 - **WHEN** 宿主扩充前端 Slot 能力
 - **THEN** 一期至少新增 `layout.header.actions.before`、`layout.header.actions.after`、`auth.login.after`、`dashboard.workspace.before`、`crud.toolbar.after`、`crud.table.after`
-- **AND** 这些 Slot 必须依附已有公共壳层而不是某个业务模块私有页面
+- **AND** 这些 Slot 必须依附已有公共界面层而不是某个业务模块私有页面
 - **AND** 开发文档必须同步说明每个 Slot 的宿主位置与推荐内容
 
 #### Scenario: 插件在登录页公开区插入内容
@@ -143,10 +143,10 @@ TBD - created by archiving change plugin-framework. Update Purpose after archive
 - **THEN** 宿主在登录页表单之后渲染该内容
 - **AND** 插件被禁用后该内容立即隐藏
 
-#### Scenario: 插件在 CRUD 通用壳层插入内容
+#### Scenario: 插件在 CRUD 通用界面插入内容
 - **WHEN** 一个已启用插件声明向 `crud.toolbar.after` 或 `crud.table.after` 插入前端内容
 - **THEN** 宿主在通用 Grid 工具栏区或表格区下方渲染该内容
-- **AND** 所有复用该通用壳层的页面都能自动获得扩展位
+- **AND** 所有复用该通用界面的页面都能自动获得扩展位
 
 #### Scenario: 插件向宿主布局插入内容
 - **WHEN** 一个已启用插件声明向 `layout.user-dropdown.after` 插入前端内容

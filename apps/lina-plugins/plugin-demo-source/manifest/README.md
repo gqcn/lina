@@ -1,3 +1,5 @@
-This directory is reserved for plugin-owned SQL migrations.
+# Manifest Resources
 
-Menus are registered from `plugin.yaml` metadata, not SQL files.
+This directory stores plugin-owned SQL migration assets for the source plugin sample.
+
+Menus are declared in `plugin.yaml`; SQL is reserved for plugin-owned data lifecycle changes.

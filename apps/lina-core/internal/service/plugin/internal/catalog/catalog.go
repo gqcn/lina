@@ -1,5 +1,5 @@
 // Package catalog provides plugin manifest discovery, registry management,
-// release tracking, and governance queries for the Lina plugin system.
+// release tracking, and governance queries for the Lina host plugin system.
 package catalog
 
 import (

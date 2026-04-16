@@ -1,3 +1,3 @@
 # inject-app-loading
 
-用于在应用加载时显示加载动画的插件，可自行选择加载动画的样式。
+This plugin injects the app-loading screen that is shown before the Vue application finishes booting.

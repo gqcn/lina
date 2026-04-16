@@ -19,7 +19,7 @@ TBD - created by archiving change plugin-framework. Update Purpose after archive
 
 ### Requirement: 单节点模式主节点语义
 
-当 `cluster.enabled=false` 时，宿主 SHALL 将当前节点视为主节点，并跳过仅为多节点部署服务的后台协调逻辑。
+当 `cluster.enabled=false` 时，宿主 SHALL 将当前节点视为主节点，并跳过仅为多节点部署服务的宿主协调逻辑。
 
 #### Scenario: 单节点模式跳过选主基础设施
 - **WHEN** 宿主以单节点模式启动
@@ -38,7 +38,7 @@ TBD - created by archiving change plugin-framework. Update Purpose after archive
 #### Scenario: 单节点模式同步完成动态插件切换
 - **WHEN** 宿主以单节点模式执行动态插件安装、启用、禁用、卸载或升级
 - **THEN** 当前节点同步完成目标插件的状态切换
-- **AND** 不依赖后台主节点轮询才能生效
+- **AND** 不依赖宿主主节点轮询才能生效
 
 #### Scenario: 集群模式保留主节点收敛
 - **WHEN** 宿主以集群模式执行动态插件管理操作

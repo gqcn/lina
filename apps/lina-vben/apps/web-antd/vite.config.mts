@@ -158,7 +158,17 @@ export default defineConfig(async () => {
   const pluginRoot = join(import.meta.dirname, '../../../lina-plugins');
 
   return {
-    application: {},
+    application: {
+      printInfoMap: {
+        'Lina Repository': 'https://github.com/gqcn/lina',
+      },
+      pwaOptions: {
+        manifest: {
+          description:
+            'Lina is an AI-driven full-stack development framework with core host services, a default management workspace, plugin extensibility, and AI-assisted delivery workflows.',
+        },
+      },
+    },
     vite: {
       plugins: [
         {

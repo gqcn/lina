@@ -1,5 +1,5 @@
 // Package menu implements menu tree management, permission lookup, and
-// plugin-aware filtering for the Lina backend.
+// plugin-aware filtering for the Lina core host service.
 package menu
 
 import (

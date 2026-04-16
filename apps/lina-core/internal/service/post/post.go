@@ -1,5 +1,5 @@
 // Package post implements post management, option queries, and export services
-// for the Lina backend.
+// for the Lina core host service.
 package post
 
 import (

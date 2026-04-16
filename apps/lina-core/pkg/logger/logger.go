@@ -1,4 +1,4 @@
-// Package logger provides the project-wide logging wrapper used by Lina backend code.
+// Package logger provides the project-wide logging wrapper used by the Lina core host service and host-side extensions.
 package logger
 
 import (

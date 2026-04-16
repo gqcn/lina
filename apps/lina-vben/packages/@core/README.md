@@ -1,3 +1,3 @@
-# @vben-core
+# @vben/core
 
-系统一些比较基础的SDK和UI组件库，该目录后续完善后，可能会迁移出去或者发布到npm，请勿将任何业务逻辑和业务包放在该目录。
+This directory hosts foundational SDK and UI packages shared across the Lina front-end monorepo. Keep business-specific logic out of this layer.

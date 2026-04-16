@@ -12,6 +12,11 @@ export const overridesPreferences = defineOverridesPreferences({
     enableRefreshToken: false,
     name: import.meta.env.VITE_APP_TITLE,
   },
+  copyright: {
+    companyName: 'Lina',
+    companySiteLink: 'https://github.com/gqcn/lina',
+    date: '2024-2026',
+  },
   theme: {
     mode: 'light',
   },

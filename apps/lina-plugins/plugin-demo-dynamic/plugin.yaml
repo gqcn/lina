@@ -110,7 +110,7 @@ hostServices:
 # - `sort`：可选，排序值；越小越靠前。
 # - `visible/status/is_frame/is_cache`：可选，均使用 `0/1` 语义，与宿主菜单字段保持一致。
 # - `query` / `query_param`：可选，附加路由参数；推荐优先使用结构化的 `query`。
-# - `remark`：可选，写入宿主菜单备注，便于后台治理。
+# - `remark`：可选，写入宿主菜单备注，便于宿主治理。
 menus:
   # 该示例声明一个宿主内嵌菜单，实际页面资源来自动态插件托管的 `mount.js`。
   - key: plugin:plugin-demo-dynamic:main-entry
@@ -131,5 +131,5 @@ menus:
     # 宿主额外路由参数；这里指定 `embedded-mount`，表示按宿主内嵌模式挂载插件入口。
     query:
       pluginAccessMode: embedded-mount
-    # 宿主后台菜单表中的备注说明。
+    # 宿主菜单表中的备注说明。
     remark: plugin-demo-dynamic embedded mount menu entry

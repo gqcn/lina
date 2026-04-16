@@ -1,7 +1,5 @@
 # Manifest Resources
 
-`plugin-demo-dynamic` keeps install-time resources under this directory.
+This directory stores install-time resources for `plugin-demo-dynamic`.
 
-The current sample does not ship SQL migrations, but the directory remains part
-of the embedded resource contract so the standard `go:embed` declaration stays
-stable when SQL assets are added later.
+The sample currently keeps the directory even without SQL migrations so the embedded resource contract remains stable when SQL assets are added later.

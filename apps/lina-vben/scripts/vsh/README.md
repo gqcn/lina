@@ -1,56 +1,28 @@
 # @vben/vsh
 
-一个 Shell 脚本工具集合，用于 Vue Vben Admin 项目的开发和管理。
+`vsh` is a shell-oriented toolkit used for workspace maintenance and development automation.
 
-## 功能特性
+## Features
 
-- 🚀 基于 Node.js 的现代化 Shell 工具
-- 📦 支持模块化开发和按需加载
-- 🔍 提供依赖检查和分析功能
-- 🔄 支持循环依赖扫描
-- 📝 提供包发布检查功能
+- modern Node.js based shell tooling
+- dependency checking and analysis
+- circular dependency scanning
+- publish-time validation helpers
 
-## 安装
+## Install
 
 ```bash
-# 使用 pnpm 安装
 pnpm add -D @vben/vsh
-
-# 或者使用 npm
-npm install -D @vben/vsh
-
-# 或者使用 yarn
-yarn add -D @vben/vsh
 ```
 
-## 使用方法
-
-### 全局安装
+## Usage
 
 ```bash
-# 全局安装
-pnpm add -g @vben/vsh
-
-# 使用 vsh 命令
 vsh [command]
 ```
 
-### 本地使用
+Common commands:
 
-```bash
-# 在 package.json 中添加脚本
-{
-  "scripts": {
-    "vsh": "vsh"
-  }
-}
-
-# 运行命令
-pnpm vsh [command]
-```
-
-## 命令列表
-
-- `vsh check-deps`: 检查项目依赖
-- `vsh scan-circular`: 扫描循环依赖
-- `vsh publish-check`: 检查包发布配置
+- `vsh check-deps`
+- `vsh scan-circular`
+- `vsh publish-check`

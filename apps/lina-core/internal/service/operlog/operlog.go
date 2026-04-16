@@ -1,5 +1,5 @@
 // Package operlog implements operation-log query, cleanup, and export services
-// for the Lina backend.
+// for the Lina core host service.
 package operlog
 
 import (

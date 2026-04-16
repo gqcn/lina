@@ -1,5 +1,3 @@
 # base
 
-基础共享包，请勿引入 workspace 依赖
-
--
+Foundational shared package. Keep it workspace-agnostic and avoid depending on other workspace packages.

@@ -49,12 +49,12 @@ export const publishedPluginSlots: PublishedPluginSlot[] = [
     key: pluginSlotKeys.dashboardWorkspaceAfter,
   },
   {
-    description: '后台头部动作区前置扩展区域，适合挂载全局状态或入口。',
+    description: '宿主头部动作区前置扩展区域，适合挂载全局状态或入口。',
     hostLocation: 'layout.header.actions',
     key: pluginSlotKeys.layoutHeaderActionsBefore,
   },
   {
-    description: '后台头部动作区后置扩展区域，适合挂载轻量提示或快捷入口。',
+    description: '宿主头部动作区后置扩展区域，适合挂载轻量提示或快捷入口。',
     hostLocation: 'layout.header.actions',
     key: pluginSlotKeys.layoutHeaderActionsAfter,
   },

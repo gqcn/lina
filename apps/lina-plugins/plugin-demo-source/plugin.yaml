@@ -54,7 +54,7 @@ license: Apache-2.0
 # - `sort`：可选，排序值；越小越靠前。
 # - `visible/status/is_frame/is_cache`：可选，均使用 `0/1` 语义，与宿主菜单字段保持一致。
 # - `query` / `query_param`：可选，附加路由参数；优先推荐使用结构化的 `query` 写法。
-# - `remark`：可选，写入宿主菜单备注，便于后台治理。
+# - `remark`：可选，写入宿主菜单备注，便于宿主治理。
 menus:
   # 该示例声明一个左侧菜单入口，打开宿主提供的插件动态页面壳。
   - key: plugin:plugin-demo-source:sidebar-entry
@@ -72,5 +72,5 @@ menus:
     type: M
     # 排到较靠前位置，便于在示例环境中快速看到。
     sort: -1
-    # 宿主后台菜单表中的备注说明。
+    # 宿主菜单表中的备注说明。
     remark: 源码插件示例左侧菜单

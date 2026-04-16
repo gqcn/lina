@@ -1,5 +1,5 @@
 // Package dict implements dictionary type, dictionary data, and import/export
-// services for the Lina backend.
+// services for the Lina core host service.
 package dict
 
 import (

@@ -1,5 +1,5 @@
 // Package file implements file upload, storage, download, and metadata query
-// services for the Lina backend.
+// services for the Lina core host service.
 package file
 
 import (
