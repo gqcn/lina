@@ -3,9 +3,7 @@
 ## Purpose
 
 定义在线会话的存储抽象、登录态跟踪、列表查询与强制下线能力，确保系统能够稳定管理当前在线用户及其会话生命周期。
-
 ## Requirements
-
 ### Requirement: 会话存储抽象层
 
 系统 SHALL 定义 `SessionStore` 抽象接口用于会话管理，当前使用 MySQL MEMORY 引擎实现。接口 MUST 支持以下操作：创建会话、查询会话、删除会话、列表查询（支持按用户名和 IP 过滤）。
@@ -83,20 +81,19 @@
 - **THEN** 认证中间件 MUST 通过 UPDATE 操作更新该会话的 `last_active_time` 为当前时间，并通过受影响行数判断会话是否存在（>0 存在，=0 不存在或已被清除）
 
 ### Requirement: 不活跃会话自动清理
-
-系统 SHALL 提供定时任务自动清理长时间未操作的在线会话，防止会话表无限增长。超时阈值和清理频率 MUST 支持通过配置文件调整。
+系统 SHALL 提供定时任务自动清理长时间未操作的在线会话，防止会话表无限增长。超时阈值和清理频率 MUST 支持通过 duration 字符串配置文件调整。
 
 #### Scenario: 定时清理超时会话
 - **WHEN** 定时清理任务执行时（默认每 5 分钟一次）
 - **THEN** 系统 MUST 查询 `sys_online_session` 表中 `last_active_time` 距当前时间超过超时阈值（默认 24 小时）的记录，并将其删除
 
-#### Scenario: 超时阈值可配置
-- **WHEN** 管理员在 `config.yaml` 中设置 `session.timeoutHour` 配置项
-- **THEN** 系统 MUST 使用该配置值作为会话超时阈值，不设置时默认为 24 小时
+#### Scenario: 超时阈值可通过新配置调整
+- **WHEN** 管理员在 `config.yaml` 中设置 `session.timeout=24h`
+- **THEN** 系统 MUST 使用该 duration 值作为会话超时阈值，不设置时默认为 24 小时
 
-#### Scenario: 清理频率可配置
-- **WHEN** 管理员在 `config.yaml` 中设置 `session.cleanupMinute` 配置项
-- **THEN** 系统 MUST 使用该配置值作为清理任务执行间隔，不设置时默认为 5 分钟
+#### Scenario: 清理频率可通过新配置调整
+- **WHEN** 管理员在 `config.yaml` 中设置 `session.cleanupInterval=5m`
+- **THEN** 系统 MUST 使用该 duration 值作为清理任务执行间隔，不设置时默认为 5 分钟
 
 ### Requirement: 系统监控菜单
 
@@ -109,3 +106,4 @@
 #### Scenario: 菜单导航
 - **WHEN** 管理员点击"在线用户"或"服务监控"菜单项
 - **THEN** 页面跳转到对应的功能页面
+
