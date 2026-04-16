@@ -27,7 +27,7 @@ type DataListOutput struct {
 }
 
 // DataList queries dict data list with pagination and filters.
-func (s *Service) DataList(ctx context.Context, in DataListInput) (*DataListOutput, error) {
+func (s *serviceImpl) DataList(ctx context.Context, in DataListInput) (*DataListOutput, error) {
 	var (
 		cols = dao.SysDictData.Columns()
 		m    = dao.SysDictData.Ctx(ctx)
@@ -75,7 +75,7 @@ type DataCreateInput struct {
 }
 
 // DataCreate creates a new dict data entry.
-func (s *Service) DataCreate(ctx context.Context, in DataCreateInput) (int, error) {
+func (s *serviceImpl) DataCreate(ctx context.Context, in DataCreateInput) (int, error) {
 	id, err := dao.SysDictData.Ctx(ctx).Data(do.SysDictData{
 		DictType: in.DictType,
 		Label:    in.Label,
@@ -94,7 +94,7 @@ func (s *Service) DataCreate(ctx context.Context, in DataCreateInput) (int, erro
 }
 
 // DataGetById retrieves dict data by ID.
-func (s *Service) DataGetById(ctx context.Context, id int) (*entity.SysDictData, error) {
+func (s *serviceImpl) DataGetById(ctx context.Context, id int) (*entity.SysDictData, error) {
 	var dictData *entity.SysDictData
 	err := dao.SysDictData.Ctx(ctx).
 		Where(do.SysDictData{Id: id}).
@@ -122,7 +122,7 @@ type DataUpdateInput struct {
 }
 
 // DataUpdate updates dict data information.
-func (s *Service) DataUpdate(ctx context.Context, in DataUpdateInput) error {
+func (s *serviceImpl) DataUpdate(ctx context.Context, in DataUpdateInput) error {
 	// Check dict data exists
 	if _, err := s.DataGetById(ctx, in.Id); err != nil {
 		return err
@@ -159,7 +159,7 @@ func (s *Service) DataUpdate(ctx context.Context, in DataUpdateInput) error {
 }
 
 // DataDelete hard-deletes a dict data entry.
-func (s *Service) DataDelete(ctx context.Context, id int) error {
+func (s *serviceImpl) DataDelete(ctx context.Context, id int) error {
 	// Check dict data exists
 	if _, err := s.DataGetById(ctx, id); err != nil {
 		return err
@@ -180,7 +180,7 @@ type DataExportInput struct {
 }
 
 // DataExport generates an Excel file with dict data (max 10000 rows).
-func (s *Service) DataExport(ctx context.Context, in DataExportInput) (data []byte, err error) {
+func (s *serviceImpl) DataExport(ctx context.Context, in DataExportInput) (data []byte, err error) {
 	cols := dao.SysDictData.Columns()
 	m := dao.SysDictData.Ctx(ctx)
 
@@ -259,7 +259,7 @@ func (s *Service) DataExport(ctx context.Context, in DataExportInput) (data []by
 }
 
 // DataByType returns all non-deleted dict data for a given dict type with status=1, ordered by sort ASC.
-func (s *Service) DataByType(ctx context.Context, dictType string) ([]*entity.SysDictData, error) {
+func (s *serviceImpl) DataByType(ctx context.Context, dictType string) ([]*entity.SysDictData, error) {
 	cols := dao.SysDictData.Columns()
 	var list []*entity.SysDictData
 	err := dao.SysDictData.Ctx(ctx).

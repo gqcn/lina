@@ -16,18 +16,38 @@ import (
 	"lina-core/pkg/pluginhost"
 )
 
-// Service provides middleware operations.
-type Service struct {
-	authSvc    *auth.Service      // Authentication service
-	bizCtxSvc  *bizctx.Service    // Business context service
-	operLogSvc *operlog.Service   // Operation log service
-	pluginSvc  *pluginsvc.Service // Plugin service
-	roleSvc    *role.Service      // Role and permission service
+// Service defines the middleware service contract.
+type Service interface {
+	// SessionStore returns the session store for external use (e.g., cleanup tasks).
+	SessionStore() session.Store
+	// PublishedRouteMiddlewares returns the published host middleware directory for plugin route composition.
+	PublishedRouteMiddlewares() pluginhost.RouteMiddlewares
+	// Ctx injects business context into request.
+	Ctx(r *ghttp.Request)
+	// CORS handles cross-origin requests.
+	CORS(r *ghttp.Request)
+	// Auth validates JWT token and injects user info into context.
+	Auth(r *ghttp.Request)
+	// OperLog records operation logs for write operations and specially tagged GET operations.
+	OperLog(r *ghttp.Request)
+	// Permission enforces declarative permission requirements declared on static host API handlers.
+	Permission(r *ghttp.Request)
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
+	authSvc    auth.Service      // Authentication service
+	bizCtxSvc  bizctx.Service    // Business context service
+	operLogSvc operlog.Service   // Operation log service
+	pluginSvc  pluginsvc.Service // Plugin service
+	roleSvc    role.Service      // Role and permission service
 }
 
 // New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{
+func New() Service {
+	return &serviceImpl{
 		authSvc:    auth.New(),
 		bizCtxSvc:  bizctx.New(),
 		operLogSvc: operlog.New(),
@@ -37,12 +57,12 @@ func New() *Service {
 }
 
 // SessionStore returns the session store for external use (e.g., cleanup tasks).
-func (s *Service) SessionStore() session.Store {
+func (s *serviceImpl) SessionStore() session.Store {
 	return s.authSvc.SessionStore()
 }
 
 // PublishedRouteMiddlewares returns the published host middleware directory for plugin route composition.
-func (s *Service) PublishedRouteMiddlewares() pluginhost.RouteMiddlewares {
+func (s *serviceImpl) PublishedRouteMiddlewares() pluginhost.RouteMiddlewares {
 	if s == nil {
 		return nil
 	}
@@ -59,20 +79,20 @@ func (s *Service) PublishedRouteMiddlewares() pluginhost.RouteMiddlewares {
 }
 
 // Ctx injects business context into request.
-func (s *Service) Ctx(r *ghttp.Request) {
+func (s *serviceImpl) Ctx(r *ghttp.Request) {
 	customCtx := &model.Context{}
 	s.bizCtxSvc.Init(r, customCtx)
 	r.Middleware.Next()
 }
 
 // CORS handles cross-origin requests.
-func (s *Service) CORS(r *ghttp.Request) {
+func (s *serviceImpl) CORS(r *ghttp.Request) {
 	r.Response.CORSDefault()
 	r.Middleware.Next()
 }
 
 // Auth validates JWT token and injects user info into context.
-func (s *Service) Auth(r *ghttp.Request) {
+func (s *serviceImpl) Auth(r *ghttp.Request) {
 	tokenHeader := r.GetHeader("Authorization")
 	if tokenHeader == "" {
 		r.Response.WriteStatus(http.StatusUnauthorized)

@@ -16,8 +16,8 @@ import (
 const testHolder = "test-node"
 
 // newTestService creates a new locker service for testing.
-func newTestService() *Service {
-	return New()
+func newTestService() *serviceImpl {
+	return New().(*serviceImpl)
 }
 
 // cleanupLock removes the lock by name after test.

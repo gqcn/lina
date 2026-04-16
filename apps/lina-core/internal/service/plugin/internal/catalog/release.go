@@ -20,7 +20,7 @@ import (
 
 // LoadReleaseManifest loads the dynamic plugin manifest from a persisted release artifact.
 // The package path stored in the release row is resolved to an absolute host path before parsing.
-func (s *Service) LoadReleaseManifest(ctx context.Context, release *entity.SysPluginRelease) (*Manifest, error) {
+func (s *serviceImpl) LoadReleaseManifest(ctx context.Context, release *entity.SysPluginRelease) (*Manifest, error) {
 	if release == nil {
 		return nil, gerror.New("插件 release 不能为空")
 	}
@@ -44,7 +44,7 @@ func (s *Service) LoadReleaseManifest(ctx context.Context, release *entity.SysPl
 
 // resolveReleasePackagePath converts a release package_path (possibly relative) to an
 // absolute host path. Relative paths are anchored at the runtime storage directory.
-func (s *Service) resolveReleasePackagePath(ctx context.Context, packagePath string) (string, error) {
+func (s *serviceImpl) resolveReleasePackagePath(ctx context.Context, packagePath string) (string, error) {
 	if filepath.IsAbs(packagePath) {
 		return filepath.Clean(packagePath), nil
 	}
@@ -56,7 +56,7 @@ func (s *Service) resolveReleasePackagePath(ctx context.Context, packagePath str
 }
 
 // GetRelease returns the sys_plugin_release row for a plugin ID + version pair.
-func (s *Service) GetRelease(ctx context.Context, pluginID string, version string) (*entity.SysPluginRelease, error) {
+func (s *serviceImpl) GetRelease(ctx context.Context, pluginID string, version string) (*entity.SysPluginRelease, error) {
 	var release *entity.SysPluginRelease
 	err := dao.SysPluginRelease.Ctx(ctx).
 		Where(do.SysPluginRelease{
@@ -68,7 +68,7 @@ func (s *Service) GetRelease(ctx context.Context, pluginID string, version strin
 }
 
 // GetReleaseByID returns the sys_plugin_release row with the given primary key.
-func (s *Service) GetReleaseByID(ctx context.Context, releaseID int) (*entity.SysPluginRelease, error) {
+func (s *serviceImpl) GetReleaseByID(ctx context.Context, releaseID int) (*entity.SysPluginRelease, error) {
 	if releaseID <= 0 {
 		return nil, nil
 	}
@@ -81,7 +81,7 @@ func (s *Service) GetReleaseByID(ctx context.Context, releaseID int) (*entity.Sy
 
 // GetRegistryRelease returns the active release row for a registry entry, preferring
 // the ReleaseId pointer and falling back to a version lookup.
-func (s *Service) GetRegistryRelease(ctx context.Context, registry *entity.SysPlugin) (*entity.SysPluginRelease, error) {
+func (s *serviceImpl) GetRegistryRelease(ctx context.Context, registry *entity.SysPlugin) (*entity.SysPluginRelease, error) {
 	if registry == nil {
 		return nil, nil
 	}
@@ -101,7 +101,7 @@ func (s *Service) GetRegistryRelease(ctx context.Context, registry *entity.SysPl
 }
 
 // GetActiveRelease returns the currently active release row for one plugin.
-func (s *Service) GetActiveRelease(ctx context.Context, pluginID string) (*entity.SysPluginRelease, error) {
+func (s *serviceImpl) GetActiveRelease(ctx context.Context, pluginID string) (*entity.SysPluginRelease, error) {
 	var release *entity.SysPluginRelease
 	err := dao.SysPluginRelease.Ctx(ctx).
 		Where(do.SysPluginRelease{
@@ -115,7 +115,7 @@ func (s *Service) GetActiveRelease(ctx context.Context, pluginID string) (*entit
 
 // UpdateReleaseState transitions a release row to the given status and optionally
 // updates its package path.
-func (s *Service) UpdateReleaseState(ctx context.Context, releaseID int, status ReleaseStatus, packagePath string) error {
+func (s *serviceImpl) UpdateReleaseState(ctx context.Context, releaseID int, status ReleaseStatus, packagePath string) error {
 	if releaseID <= 0 {
 		return nil
 	}
@@ -135,7 +135,7 @@ func (s *Service) UpdateReleaseState(ctx context.Context, releaseID int, status 
 }
 
 // syncReleaseMetadata upserts the manifest snapshot into sys_plugin_release.
-func (s *Service) syncReleaseMetadata(ctx context.Context, manifest *Manifest, registry *entity.SysPlugin) error {
+func (s *serviceImpl) syncReleaseMetadata(ctx context.Context, manifest *Manifest, registry *entity.SysPlugin) error {
 	if manifest == nil || registry == nil {
 		return nil
 	}
@@ -178,17 +178,17 @@ func (s *Service) syncReleaseMetadata(ctx context.Context, manifest *Manifest, r
 }
 
 // SyncReleaseMetadata is the exported form of syncReleaseMetadata for runtime callers.
-func (s *Service) SyncReleaseMetadata(ctx context.Context, manifest *Manifest, registry *entity.SysPlugin) error {
+func (s *serviceImpl) SyncReleaseMetadata(ctx context.Context, manifest *Manifest, registry *entity.SysPlugin) error {
 	return s.syncReleaseMetadata(ctx, manifest, registry)
 }
 
 // BuildManifestSnapshot is the exported form of buildManifestSnapshot for cross-package access.
-func (s *Service) BuildManifestSnapshot(manifest *Manifest) (string, error) {
+func (s *serviceImpl) BuildManifestSnapshot(manifest *Manifest) (string, error) {
 	return s.buildManifestSnapshot(manifest, nil)
 }
 
 // buildManifestSnapshot marshals the review-oriented manifest fields into a YAML string.
-func (s *Service) buildManifestSnapshot(manifest *Manifest, existing *entity.SysPluginRelease) (string, error) {
+func (s *serviceImpl) buildManifestSnapshot(manifest *Manifest, existing *entity.SysPluginRelease) (string, error) {
 	snapshot := s.buildManifestSnapshotModel(manifest)
 	if snapshot == nil {
 		return "", gerror.New("plugin manifest cannot be nil")
@@ -210,7 +210,7 @@ func (s *Service) buildManifestSnapshot(manifest *Manifest, existing *entity.Sys
 	return string(content), nil
 }
 
-func (s *Service) buildManifestSnapshotModel(manifest *Manifest) *ManifestSnapshot {
+func (s *serviceImpl) buildManifestSnapshotModel(manifest *Manifest) *ManifestSnapshot {
 	if manifest == nil {
 		return nil
 	}
@@ -249,7 +249,7 @@ func (s *Service) buildManifestSnapshotModel(manifest *Manifest) *ManifestSnapsh
 	return snapshot
 }
 
-func (s *Service) applyReleaseAuthorizedHostServices(manifest *Manifest, release *entity.SysPluginRelease) error {
+func (s *serviceImpl) applyReleaseAuthorizedHostServices(manifest *Manifest, release *entity.SysPluginRelease) error {
 	if manifest == nil || release == nil {
 		return nil
 	}
@@ -272,7 +272,7 @@ func (s *Service) applyReleaseAuthorizedHostServices(manifest *Manifest, release
 }
 
 // BuildPackagePath returns the canonical package path for a manifest used in release rows.
-func (s *Service) BuildPackagePath(manifest *Manifest) string {
+func (s *serviceImpl) BuildPackagePath(manifest *Manifest) string {
 	if manifest == nil {
 		return ""
 	}
@@ -290,7 +290,7 @@ func (s *Service) BuildPackagePath(manifest *Manifest) string {
 }
 
 // buildReleasePackagePathForSync keeps archived dynamic-release package paths stable.
-func (s *Service) buildReleasePackagePathForSync(manifest *Manifest, existing *entity.SysPluginRelease) string {
+func (s *serviceImpl) buildReleasePackagePathForSync(manifest *Manifest, existing *entity.SysPluginRelease) string {
 	if existing != nil {
 		existingPath := filepath.ToSlash(strings.TrimSpace(existing.PackagePath))
 		if shouldPreserveArchivedPackagePath(manifest, existingPath) {
@@ -316,7 +316,7 @@ func shouldPreserveArchivedPackagePath(manifest *Manifest, packagePath string) b
 
 // buildReleaseStatusForManifest determines the appropriate release status from
 // registry state and whether the release row matches the active registry pointer.
-func (s *Service) buildReleaseStatusForManifest(manifest *Manifest, registry *entity.SysPlugin, releaseID int) ReleaseStatus {
+func (s *serviceImpl) buildReleaseStatusForManifest(manifest *Manifest, registry *entity.SysPlugin, releaseID int) ReleaseStatus {
 	if manifest == nil || registry == nil {
 		return ReleaseStatusPrepared
 	}
@@ -333,7 +333,7 @@ func (s *Service) buildReleaseStatusForManifest(manifest *Manifest, registry *en
 }
 
 // buildReleaseManifestPath returns the manifest path to store in the release row.
-func (s *Service) buildReleaseManifestPath(manifest *Manifest) string {
+func (s *serviceImpl) buildReleaseManifestPath(manifest *Manifest) string {
 	if manifest == nil || NormalizeType(manifest.Type) == TypeDynamic {
 		return ""
 	}
@@ -344,7 +344,7 @@ func (s *Service) buildReleaseManifestPath(manifest *Manifest) string {
 }
 
 // isManifestDeclared reports whether the manifest has a valid manifest path or embedded manifest.
-func (s *Service) isManifestDeclared(manifest *Manifest) bool {
+func (s *serviceImpl) isManifestDeclared(manifest *Manifest) bool {
 	if manifest == nil {
 		return false
 	}
@@ -355,7 +355,7 @@ func (s *Service) isManifestDeclared(manifest *Manifest) bool {
 }
 
 // countSQLAssets counts SQL migration steps for the given direction from manifest metadata.
-func (s *Service) countSQLAssets(manifest *Manifest, direction MigrationDirection) int {
+func (s *serviceImpl) countSQLAssets(manifest *Manifest, direction MigrationDirection) int {
 	if manifest == nil {
 		return 0
 	}
@@ -371,14 +371,14 @@ func (s *Service) countSQLAssets(manifest *Manifest, direction MigrationDirectio
 	return len(s.ListUninstallSQLPaths(manifest))
 }
 
-func (s *Service) buildFrontendPageCount(manifest *Manifest) int {
+func (s *serviceImpl) buildFrontendPageCount(manifest *Manifest) int {
 	if manifest == nil || NormalizeType(manifest.Type) != TypeSource {
 		return 0
 	}
 	return len(s.ListFrontendPagePaths(manifest))
 }
 
-func (s *Service) buildFrontendSlotCount(manifest *Manifest) int {
+func (s *serviceImpl) buildFrontendSlotCount(manifest *Manifest) int {
 	if manifest == nil || NormalizeType(manifest.Type) != TypeSource {
 		return 0
 	}

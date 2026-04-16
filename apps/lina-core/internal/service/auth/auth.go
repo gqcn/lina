@@ -29,18 +29,36 @@ const (
 	statusDisabled = 0
 )
 
-// Service provides authentication operations.
-type Service struct {
-	configSvc    *config.Service    // Configuration service
-	loginLogSvc  *loginlog.Service  // Login log service
-	pluginSvc    *pluginsvc.Service // Plugin service
-	roleSvc      *role.Service      // Role service
-	sessionStore session.Store      // Session store
+// Service defines the auth service contract.
+type Service interface {
+	// SessionStore returns the session store instance.
+	SessionStore() session.Store
+	// Login verifies credentials and issues JWT token.
+	Login(ctx context.Context, in LoginInput) (*LoginOutput, error)
+	// ParseToken parses and validates JWT token, returns claims.
+	ParseToken(ctx context.Context, tokenString string) (*Claims, error)
+	// HashPassword hashes password using bcrypt.
+	HashPassword(password string) (string, error)
+	// Logout records logout login log and removes session.
+	Logout(ctx context.Context, username string, tokenId string)
+	// RevokeSession removes one online session and its cached access context.
+	RevokeSession(ctx context.Context, tokenId string) error
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
+	configSvc    config.Service    // Configuration service
+	loginLogSvc  loginlog.Service  // Login log service
+	pluginSvc    pluginsvc.Service // Plugin service
+	roleSvc      role.Service      // Role service
+	sessionStore session.Store     // Session store
 }
 
 // New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{
+func New() Service {
+	return &serviceImpl{
 		configSvc:    config.New(),
 		loginLogSvc:  loginlog.New(),
 		pluginSvc:    pluginsvc.New(),
@@ -50,7 +68,7 @@ func New() *Service {
 }
 
 // SessionStore returns the session store instance.
-func (s *Service) SessionStore() session.Store {
+func (s *serviceImpl) SessionStore() session.Store {
 	return s.sessionStore
 }
 
@@ -75,7 +93,7 @@ type LoginOutput struct {
 }
 
 // Login verifies credentials and issues JWT token.
-func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error) {
+func (s *serviceImpl) Login(ctx context.Context, in LoginInput) (*LoginOutput, error) {
 	// Extract client info for login log
 	var ip, browser, osName string
 	if r := g.RequestFromCtx(ctx); r != nil {
@@ -188,7 +206,7 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginOutput, error
 }
 
 // ParseToken parses and validates JWT token, returns claims.
-func (s *Service) ParseToken(ctx context.Context, tokenString string) (*Claims, error) {
+func (s *serviceImpl) ParseToken(ctx context.Context, tokenString string) (*Claims, error) {
 	jwtCfg := s.configSvc.GetJwt(ctx)
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(jwtCfg.Secret), nil
@@ -203,7 +221,7 @@ func (s *Service) ParseToken(ctx context.Context, tokenString string) (*Claims, 
 }
 
 // HashPassword hashes password using bcrypt.
-func (s *Service) HashPassword(password string) (string, error) {
+func (s *serviceImpl) HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", gerror.Wrap(err, "密码加密失败")
@@ -212,7 +230,7 @@ func (s *Service) HashPassword(password string) (string, error) {
 }
 
 // Logout records logout login log and removes session.
-func (s *Service) Logout(ctx context.Context, username string, tokenId string) {
+func (s *serviceImpl) Logout(ctx context.Context, username string, tokenId string) {
 	var ip, browser, osName string
 	if r := g.RequestFromCtx(ctx); r != nil {
 		ip = r.GetClientIp()
@@ -251,7 +269,7 @@ func (s *Service) Logout(ctx context.Context, username string, tokenId string) {
 }
 
 // RevokeSession removes one online session and its cached access context.
-func (s *Service) RevokeSession(ctx context.Context, tokenId string) error {
+func (s *serviceImpl) RevokeSession(ctx context.Context, tokenId string) error {
 	if tokenId == "" {
 		return nil
 	}
@@ -260,7 +278,7 @@ func (s *Service) RevokeSession(ctx context.Context, tokenId string) error {
 }
 
 // generateToken generates JWT token for given user, returns token string and tokenId.
-func (s *Service) generateToken(ctx context.Context, user *entity.SysUser) (string, string, error) {
+func (s *serviceImpl) generateToken(ctx context.Context, user *entity.SysUser) (string, string, error) {
 	var (
 		jwtCfg  = s.configSvc.GetJwt(ctx)
 		tokenId = guid.S()
@@ -284,7 +302,7 @@ func (s *Service) generateToken(ctx context.Context, user *entity.SysUser) (stri
 }
 
 // getUserDeptName queries the department name for a user by userId.
-func (s *Service) getUserDeptName(ctx context.Context, userId int) string {
+func (s *serviceImpl) getUserDeptName(ctx context.Context, userId int) string {
 	var userDept *entity.SysUserDept
 	err := dao.SysUserDept.Ctx(ctx).
 		Where(dao.SysUserDept.Columns().UserId, userId).

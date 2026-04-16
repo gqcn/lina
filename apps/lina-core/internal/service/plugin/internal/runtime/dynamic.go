@@ -33,7 +33,7 @@ type PluginDynamicStateItem struct {
 }
 
 // ListRuntimeStates returns public plugin runtime states for shell slot rendering.
-func (s *Service) ListRuntimeStates(ctx context.Context) (*RuntimeStateListOutput, error) {
+func (s *serviceImpl) ListRuntimeStates(ctx context.Context) (*RuntimeStateListOutput, error) {
 	registries, err := s.catalogSvc.ListAllRegistries(ctx)
 	if err != nil {
 		return nil, err

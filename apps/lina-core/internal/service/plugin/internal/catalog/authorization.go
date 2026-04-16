@@ -52,7 +52,7 @@ func HasResourceScopedHostServices(specs []*pluginbridge.HostServiceSpec) bool {
 }
 
 // ParseManifestSnapshot unmarshals one persisted release manifest snapshot.
-func (s *Service) ParseManifestSnapshot(content string) (*ManifestSnapshot, error) {
+func (s *serviceImpl) ParseManifestSnapshot(content string) (*ManifestSnapshot, error) {
 	trimmed := strings.TrimSpace(content)
 	if trimmed == "" {
 		return nil, nil
@@ -68,7 +68,7 @@ func (s *Service) ParseManifestSnapshot(content string) (*ManifestSnapshot, erro
 
 // PersistReleaseHostServiceAuthorization writes the current requested and
 // authorized host service snapshot into the matching release row.
-func (s *Service) PersistReleaseHostServiceAuthorization(
+func (s *serviceImpl) PersistReleaseHostServiceAuthorization(
 	ctx context.Context,
 	manifest *Manifest,
 	input *HostServiceAuthorizationInput,

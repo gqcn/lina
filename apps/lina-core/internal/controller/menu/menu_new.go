@@ -13,9 +13,9 @@ import (
 
 // ControllerV1 is the menu controller.
 type ControllerV1 struct {
-	menuSvc   *menusvc.Service  // menu service
-	roleSvc   *role.Service     // role service
-	bizCtxSvc *bizctx.Service   // business context service
+	menuSvc   menusvc.Service // menu service
+	roleSvc   role.Service    // role service
+	bizCtxSvc bizctx.Service  // business context service
 }
 
 // NewV1 creates and returns a new menu controller instance.

@@ -15,17 +15,33 @@ const (
 	defaultElectionRenewInterval = 10 * time.Second
 )
 
-// Service provides deployment-topology queries and optional primary election.
-type Service struct {
+// Service defines the cluster service contract.
+type Service interface {
+	// Start starts clustered primary-election infrastructure when cluster mode is enabled.
+	Start(ctx context.Context)
+	// Stop stops clustered primary-election infrastructure when it is running.
+	Stop(ctx context.Context)
+	// IsEnabled reports whether clustered deployment mode is enabled.
+	IsEnabled() bool
+	// IsPrimary reports whether the current node should behave as the primary node.
+	IsPrimary() bool
+	// NodeID returns the stable identifier of the current host node.
+	NodeID() string
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
 	cfg         *config.ClusterConfig // cfg stores the normalized cluster settings.
 	nodeID      string                // nodeID is the stable identifier of the current node.
 	electionSvc *electionService      // electionSvc participates in primary election for clustered mode.
 }
 
 // New creates and returns a new cluster Service instance.
-func New(cfg *config.ClusterConfig) *Service {
+func New(cfg *config.ClusterConfig) Service {
 	normalizedCfg := normalizeClusterConfig(cfg)
-	service := &Service{
+	service := &serviceImpl{
 		cfg:    normalizedCfg,
 		nodeID: generateNodeIdentifier(),
 	}
@@ -38,7 +54,7 @@ func New(cfg *config.ClusterConfig) *Service {
 }
 
 // Start starts clustered primary-election infrastructure when cluster mode is enabled.
-func (s *Service) Start(ctx context.Context) {
+func (s *serviceImpl) Start(ctx context.Context) {
 	if s == nil || !s.IsEnabled() || s.electionSvc == nil {
 		return
 	}
@@ -46,7 +62,7 @@ func (s *Service) Start(ctx context.Context) {
 }
 
 // Stop stops clustered primary-election infrastructure when it is running.
-func (s *Service) Stop(ctx context.Context) {
+func (s *serviceImpl) Stop(ctx context.Context) {
 	if s == nil || !s.IsEnabled() || s.electionSvc == nil {
 		return
 	}
@@ -54,12 +70,12 @@ func (s *Service) Stop(ctx context.Context) {
 }
 
 // IsEnabled reports whether clustered deployment mode is enabled.
-func (s *Service) IsEnabled() bool {
+func (s *serviceImpl) IsEnabled() bool {
 	return s != nil && s.cfg != nil && s.cfg.Enabled
 }
 
 // IsPrimary reports whether the current node should behave as the primary node.
-func (s *Service) IsPrimary() bool {
+func (s *serviceImpl) IsPrimary() bool {
 	if s == nil || !s.IsEnabled() {
 		return true
 	}
@@ -70,7 +86,7 @@ func (s *Service) IsPrimary() bool {
 }
 
 // NodeID returns the stable identifier of the current host node.
-func (s *Service) NodeID() string {
+func (s *serviceImpl) NodeID() string {
 	if s == nil || s.nodeID == "" {
 		return "local-node"
 	}

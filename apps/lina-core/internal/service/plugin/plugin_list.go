@@ -11,14 +11,14 @@ import (
 )
 
 // SyncSourcePlugins scans source plugin manifests and synchronizes default status.
-func (s *Service) SyncSourcePlugins(ctx context.Context) error {
+func (s *serviceImpl) SyncSourcePlugins(ctx context.Context) error {
 	_, err := s.SyncAndList(ctx)
 	return err
 }
 
 // SyncAndList scans plugin manifests, synchronizes plugin registry rows, and
 // returns the combined list of source and dynamic plugin items.
-func (s *Service) SyncAndList(ctx context.Context) (*ListOutput, error) {
+func (s *serviceImpl) SyncAndList(ctx context.Context) (*ListOutput, error) {
 	manifests, err := s.catalogSvc.ScanManifests()
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (s *Service) SyncAndList(ctx context.Context) (*ListOutput, error) {
 }
 
 // List returns the plugin list with optional in-memory filtering applied.
-func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
+func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	out, err := s.SyncAndList(ctx)
 	if err != nil {
 		return nil, err

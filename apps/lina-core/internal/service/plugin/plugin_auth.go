@@ -9,21 +9,21 @@ import (
 )
 
 // HandleAuthLoginSucceeded dispatches a login-succeeded hook to all enabled plugins.
-func (s *Service) HandleAuthLoginSucceeded(ctx context.Context, input AuthLoginSucceededInput) error {
+func (s *serviceImpl) HandleAuthLoginSucceeded(ctx context.Context, input AuthLoginSucceededInput) error {
 	return s.dispatchAuthHookEvent(ctx, pluginhost.ExtensionPointAuthLoginSucceeded, input, "登录成功")
 }
 
 // HandleAuthLoginFailed dispatches a login-failed hook to all enabled plugins.
-func (s *Service) HandleAuthLoginFailed(ctx context.Context, input AuthLoginSucceededInput) error {
+func (s *serviceImpl) HandleAuthLoginFailed(ctx context.Context, input AuthLoginSucceededInput) error {
 	return s.dispatchAuthHookEvent(ctx, pluginhost.ExtensionPointAuthLoginFailed, input, "登录失败")
 }
 
 // HandleAuthLogoutSucceeded dispatches a logout-succeeded hook to all enabled plugins.
-func (s *Service) HandleAuthLogoutSucceeded(ctx context.Context, input AuthLoginSucceededInput) error {
+func (s *serviceImpl) HandleAuthLogoutSucceeded(ctx context.Context, input AuthLoginSucceededInput) error {
 	return s.dispatchAuthHookEvent(ctx, pluginhost.ExtensionPointAuthLogoutSucceeded, input, "登出成功")
 }
 
-func (s *Service) dispatchAuthHookEvent(
+func (s *serviceImpl) dispatchAuthHookEvent(
 	ctx context.Context,
 	event pluginhost.ExtensionPoint,
 	input AuthLoginSucceededInput,

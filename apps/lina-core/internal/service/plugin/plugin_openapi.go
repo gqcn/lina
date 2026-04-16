@@ -9,6 +9,6 @@ import (
 )
 
 // ProjectDynamicRoutesToOpenAPI projects dynamic routes into the host OpenAPI paths.
-func (s *Service) ProjectDynamicRoutesToOpenAPI(ctx context.Context, paths goai.Paths) error {
+func (s *serviceImpl) ProjectDynamicRoutesToOpenAPI(ctx context.Context, paths goai.Paths) error {
 	return s.openapiSvc.ProjectDynamicRoutesToOpenAPI(ctx, paths)
 }

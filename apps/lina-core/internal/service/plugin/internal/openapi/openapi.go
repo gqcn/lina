@@ -17,19 +17,27 @@ import (
 // RoutePublicPrefix is the fixed URL prefix under which all dynamic plugin routes are served.
 const RoutePublicPrefix = "/api/v1/extensions"
 
-// Service projects dynamic plugin routes into host OpenAPI documents.
-type Service struct {
+// Service defines the openapi service contract.
+type Service interface {
+	// ProjectDynamicRoutesToOpenAPI projects currently enabled dynamic plugin routes into the host OpenAPI paths.
+	ProjectDynamicRoutesToOpenAPI(ctx context.Context, paths goai.Paths) error
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
 	// catalogSvc provides manifest scanning and active manifest lookup.
-	catalogSvc *catalog.Service
+	catalogSvc catalog.Service
 }
 
 // New creates a new openapi Service backed by the given catalog service.
-func New(catalogSvc *catalog.Service) *Service {
-	return &Service{catalogSvc: catalogSvc}
+func New(catalogSvc catalog.Service) Service {
+	return &serviceImpl{catalogSvc: catalogSvc}
 }
 
 // ProjectDynamicRoutesToOpenAPI projects currently enabled dynamic plugin routes into the host OpenAPI paths.
-func (s *Service) ProjectDynamicRoutesToOpenAPI(ctx context.Context, paths goai.Paths) error {
+func (s *serviceImpl) ProjectDynamicRoutesToOpenAPI(ctx context.Context, paths goai.Paths) error {
 	manifests, err := s.catalogSvc.ScanManifests()
 	if err != nil {
 		return err

@@ -17,7 +17,7 @@ import (
 
 func TestUpdateStatusEnablesBackendOnlyDynamicPluginWithoutFrontendAssets(t *testing.T) {
 	var (
-		service  = New()
+		service  = newTestService()
 		ctx      = context.Background()
 		pluginID = "plugin-dynamic-backend-only"
 	)
@@ -64,7 +64,7 @@ func TestUpdateStatusEnablesBackendOnlyDynamicPluginWithoutFrontendAssets(t *tes
 
 func TestSyncAndListReportsPendingHostServiceAuthorization(t *testing.T) {
 	var (
-		service  = New()
+		service  = newTestService()
 		ctx      = context.Background()
 		pluginID = "plugin-dynamic-host-auth-pending"
 	)
@@ -147,7 +147,7 @@ func TestSyncAndListReportsPendingHostServiceAuthorization(t *testing.T) {
 
 func TestEnableWithAuthorizationAppliesConfirmedHostServiceSnapshot(t *testing.T) {
 	var (
-		service  = New()
+		service  = newTestService()
 		ctx      = context.Background()
 		pluginID = "plugin-dynamic-host-auth-enabled"
 	)

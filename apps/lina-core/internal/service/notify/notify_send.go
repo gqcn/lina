@@ -18,7 +18,7 @@ import (
 )
 
 // Send validates the notify channel and creates unified notify message and delivery records.
-func (s *Service) Send(ctx context.Context, in SendInput) (*SendOutput, error) {
+func (s *serviceImpl) Send(ctx context.Context, in SendInput) (*SendOutput, error) {
 	channel, err := s.getChannel(ctx, in.ChannelKey)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (s *Service) Send(ctx context.Context, in SendInput) (*SendOutput, error) {
 }
 
 // SendNoticePublication sends one published notice through the built-in inbox channel.
-func (s *Service) SendNoticePublication(ctx context.Context, in NoticePublishInput) (*SendOutput, error) {
+func (s *serviceImpl) SendNoticePublication(ctx context.Context, in NoticePublishInput) (*SendOutput, error) {
 	recipientUserIDs, err := s.listActiveInboxUserIDs(ctx, in.SenderUserID)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func (s *Service) SendNoticePublication(ctx context.Context, in NoticePublishInp
 	})
 }
 
-func (s *Service) sendInbox(
+func (s *serviceImpl) sendInbox(
 	ctx context.Context,
 	channel *entity.SysNotifyChannel,
 	in SendInput,
@@ -127,7 +127,7 @@ func (s *Service) sendInbox(
 	}, nil
 }
 
-func (s *Service) getChannel(ctx context.Context, channelKey string) (*entity.SysNotifyChannel, error) {
+func (s *serviceImpl) getChannel(ctx context.Context, channelKey string) (*entity.SysNotifyChannel, error) {
 	normalizedChannelKey := strings.TrimSpace(channelKey)
 	if normalizedChannelKey == "" {
 		return nil, gerror.New("通知通道标识不能为空")
@@ -147,7 +147,7 @@ func (s *Service) getChannel(ctx context.Context, channelKey string) (*entity.Sy
 	return channel, nil
 }
 
-func (s *Service) listActiveInboxUserIDs(ctx context.Context, excludedUserID int64) ([]int64, error) {
+func (s *serviceImpl) listActiveInboxUserIDs(ctx context.Context, excludedUserID int64) ([]int64, error) {
 	userCols := dao.SysUser.Columns()
 	model := dao.SysUser.Ctx(ctx).Fields(userCols.Id).Where(do.SysUser{Status: 1})
 	if excludedUserID > 0 {

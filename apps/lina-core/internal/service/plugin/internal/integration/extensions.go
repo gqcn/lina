@@ -18,7 +18,7 @@ import (
 )
 
 // RegisterHTTPRoutes registers callback-contributed HTTP routes for source plugins.
-func (s *Service) RegisterHTTPRoutes(
+func (s *serviceImpl) RegisterHTTPRoutes(
 	ctx context.Context,
 	pluginGroup *ghttp.RouterGroup,
 	middlewares pluginhost.RouteMiddlewares,
@@ -53,7 +53,7 @@ func (s *Service) RegisterHTTPRoutes(
 }
 
 // RegisterCrons registers callback-contributed cron jobs for source plugins.
-func (s *Service) RegisterCrons(ctx context.Context) error {
+func (s *serviceImpl) RegisterCrons(ctx context.Context) error {
 	manifests, err := s.catalogSvc.ScanManifests()
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (s *Service) RegisterCrons(ctx context.Context) error {
 
 // DispatchAfterAuth dispatches callback-style after-auth request handlers.
 // It implements runtime.AfterAuthDispatcher.
-func (s *Service) DispatchAfterAuth(
+func (s *serviceImpl) DispatchAfterAuth(
 	ctx context.Context,
 	input pluginhost.AfterAuthInput,
 ) {
@@ -127,7 +127,7 @@ func (s *Service) DispatchAfterAuth(
 
 // DispatchPluginHookEvent dispatches one named hook event to all enabled plugins.
 // It implements catalog.HookDispatcher and runtime.HookDispatcher.
-func (s *Service) DispatchPluginHookEvent(
+func (s *serviceImpl) DispatchPluginHookEvent(
 	ctx context.Context,
 	eventName pluginhost.ExtensionPoint,
 	payload map[string]interface{},
@@ -176,7 +176,7 @@ func (s *Service) DispatchPluginHookEvent(
 }
 
 // FilterMenus filters disabled plugin menus by menu_key prefix "plugin:<plugin-id>".
-func (s *Service) FilterMenus(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
+func (s *serviceImpl) FilterMenus(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
 	if len(menus) == 0 {
 		return menus
 	}
@@ -190,7 +190,7 @@ func (s *Service) FilterMenus(ctx context.Context, menus []*entity.SysMenu) []*e
 
 // FilterPermissionMenus filters permission menus based on plugin enablement and plugin-defined permission visibility.
 // It implements runtime.PermissionMenuFilter.
-func (s *Service) FilterPermissionMenus(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
+func (s *serviceImpl) FilterPermissionMenus(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
 	if len(menus) == 0 {
 		return menus
 	}
@@ -214,7 +214,7 @@ func (s *Service) FilterPermissionMenus(ctx context.Context, menus []*entity.Sys
 }
 
 // ShouldKeepPermission reports whether a permission should stay effective after plugin filtering.
-func (s *Service) ShouldKeepPermission(ctx context.Context, menu *entity.SysMenu) bool {
+func (s *serviceImpl) ShouldKeepPermission(ctx context.Context, menu *entity.SysMenu) bool {
 	runtime, err := s.buildFilterRuntime(ctx)
 	if err != nil {
 		return s.shouldKeepPermissionSlow(ctx, menu)
@@ -222,7 +222,7 @@ func (s *Service) ShouldKeepPermission(ctx context.Context, menu *entity.SysMenu
 	return s.shouldKeepPermissionWithRuntime(ctx, menu, runtime)
 }
 
-func (s *Service) filterMenusWithRuntime(
+func (s *serviceImpl) filterMenusWithRuntime(
 	ctx context.Context,
 	menus []*entity.SysMenu,
 	runtime *filterRuntime,
@@ -243,7 +243,7 @@ func (s *Service) filterMenusWithRuntime(
 	return filtered
 }
 
-func (s *Service) filterMenusSlow(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
+func (s *serviceImpl) filterMenusSlow(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
 	filtered := make([]*entity.SysMenu, 0, len(menus))
 	for _, menu := range menus {
 		if menu == nil {
@@ -260,7 +260,7 @@ func (s *Service) filterMenusSlow(ctx context.Context, menus []*entity.SysMenu) 
 	return filtered
 }
 
-func (s *Service) filterPermissionMenusSlow(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
+func (s *serviceImpl) filterPermissionMenusSlow(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
 	filteredMenus := s.filterMenusSlow(ctx, menus)
 	filtered := make([]*entity.SysMenu, 0, len(filteredMenus))
 	for _, menu := range filteredMenus {
@@ -274,7 +274,7 @@ func (s *Service) filterPermissionMenusSlow(ctx context.Context, menus []*entity
 	return filtered
 }
 
-func (s *Service) shouldKeepMenuWithRuntime(
+func (s *serviceImpl) shouldKeepMenuWithRuntime(
 	ctx context.Context,
 	menu *entity.SysMenu,
 	runtime *filterRuntime,
@@ -321,7 +321,7 @@ func (s *Service) shouldKeepMenuWithRuntime(
 	return true
 }
 
-func (s *Service) shouldKeepMenuSlow(ctx context.Context, menu *entity.SysMenu) bool {
+func (s *serviceImpl) shouldKeepMenuSlow(ctx context.Context, menu *entity.SysMenu) bool {
 	manifests, err := s.catalogSvc.ScanManifests()
 	if err != nil {
 		logger.Warningf(ctx, "scan plugin manifests for menu filter failed: %v", err)
@@ -377,7 +377,7 @@ func (s *Service) shouldKeepMenuSlow(ctx context.Context, menu *entity.SysMenu) 
 	return true
 }
 
-func (s *Service) shouldKeepPermissionWithRuntime(
+func (s *serviceImpl) shouldKeepPermissionWithRuntime(
 	ctx context.Context,
 	menu *entity.SysMenu,
 	runtime *filterRuntime,
@@ -417,7 +417,7 @@ func (s *Service) shouldKeepPermissionWithRuntime(
 	return true
 }
 
-func (s *Service) shouldKeepPermissionSlow(ctx context.Context, menu *entity.SysMenu) bool {
+func (s *serviceImpl) shouldKeepPermissionSlow(ctx context.Context, menu *entity.SysMenu) bool {
 	manifests, err := s.catalogSvc.ScanManifests()
 	if err != nil {
 		logger.Warningf(ctx, "scan plugin manifests for permission filter failed: %v", err)
@@ -467,7 +467,7 @@ func (s *Service) shouldKeepPermissionSlow(ctx context.Context, menu *entity.Sys
 }
 
 // shouldDispatchHookToPlugin determines whether the hook event should be delivered to a plugin.
-func (s *Service) shouldDispatchHookToPlugin(
+func (s *serviceImpl) shouldDispatchHookToPlugin(
 	ctx context.Context,
 	runtime *filterRuntime,
 	pluginID string,
@@ -489,7 +489,7 @@ func (s *Service) shouldDispatchHookToPlugin(
 }
 
 // executePluginDeclaredHook executes a single declared hook for a plugin.
-func (s *Service) executePluginDeclaredHook(
+func (s *serviceImpl) executePluginDeclaredHook(
 	ctx context.Context,
 	pluginID string,
 	hook *catalog.HookSpec,
@@ -539,7 +539,7 @@ func BuildPluginHookTimeoutContext(ctx context.Context, hook *catalog.HookSpec) 
 }
 
 // RunPluginDeclaredHook is the exported form of runPluginDeclaredHook for cross-package access.
-func (s *Service) RunPluginDeclaredHook(
+func (s *serviceImpl) RunPluginDeclaredHook(
 	ctx context.Context,
 	pluginID string,
 	hook *catalog.HookSpec,
@@ -573,7 +573,7 @@ func normalizePluginHookMode(hook *catalog.HookSpec) pluginhost.CallbackExecutio
 }
 
 // runPluginDeclaredHook dispatches one declared hook action.
-func (s *Service) runPluginDeclaredHook(
+func (s *serviceImpl) runPluginDeclaredHook(
 	ctx context.Context,
 	pluginID string,
 	hook *catalog.HookSpec,
@@ -612,7 +612,7 @@ func (s *Service) runPluginDeclaredHook(
 }
 
 // executeSourcePluginHookHandlers executes registered callback-style hook handlers for one source plugin.
-func (s *Service) executeSourcePluginHookHandlers(
+func (s *serviceImpl) executeSourcePluginHookHandlers(
 	ctx context.Context,
 	pluginID string,
 	eventName pluginhost.ExtensionPoint,
@@ -631,7 +631,7 @@ func (s *Service) executeSourcePluginHookHandlers(
 }
 
 // executeSourcePluginHookHandler executes one registered callback-style hook handler.
-func (s *Service) executeSourcePluginHookHandler(
+func (s *serviceImpl) executeSourcePluginHookHandler(
 	ctx context.Context,
 	pluginID string,
 	item *pluginhost.HookHandlerRegistration,

@@ -8,8 +8,8 @@ import (
 
 // ControllerV1 is the plugin controller.
 type ControllerV1 struct {
-	pluginSvc *pluginsvc.Service // plugin service
-	roleSvc   *role.Service      // role service
+	pluginSvc pluginsvc.Service // plugin service
+	roleSvc   role.Service      // role service
 }
 
 // NewV1 creates and returns a new plugin controller instance.

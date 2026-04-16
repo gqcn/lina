@@ -11,7 +11,7 @@ import (
 
 // ControllerV1 is the operation log controller.
 type ControllerV1 struct {
-	operLogSvc *operlogsvc.Service // operation log service
+	operLogSvc operlogsvc.Service // operation log service
 }
 
 // NewV1 creates and returns a new operation log controller instance.

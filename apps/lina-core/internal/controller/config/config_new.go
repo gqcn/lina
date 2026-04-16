@@ -11,7 +11,7 @@ import (
 
 // ControllerV1 implements the config API controller.
 type ControllerV1 struct {
-	svc *sysconfig.Service
+	svc sysconfig.Service
 }
 
 // NewV1 creates and returns a new config controller.

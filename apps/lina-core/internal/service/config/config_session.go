@@ -14,7 +14,7 @@ type SessionConfig struct {
 }
 
 // GetSession reads session config from configuration file.
-func (s *Service) GetSession(ctx context.Context) *SessionConfig {
+func (s *serviceImpl) GetSession(ctx context.Context) *SessionConfig {
 	cfg := &SessionConfig{
 		Timeout:         24 * time.Hour,
 		CleanupInterval: 5 * time.Minute,

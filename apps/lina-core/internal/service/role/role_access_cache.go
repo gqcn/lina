@@ -46,7 +46,7 @@ var accessRevisionState = struct {
 }{}
 
 // PrimeTokenAccessContext preloads the access context cache for one freshly issued login token.
-func (s *Service) PrimeTokenAccessContext(
+func (s *serviceImpl) PrimeTokenAccessContext(
 	ctx context.Context,
 	tokenID string,
 	userID int,
@@ -58,7 +58,7 @@ func (s *Service) PrimeTokenAccessContext(
 }
 
 // InvalidateTokenAccessContext removes the cached access context bound to one token.
-func (s *Service) InvalidateTokenAccessContext(ctx context.Context, tokenID string) {
+func (s *serviceImpl) InvalidateTokenAccessContext(ctx context.Context, tokenID string) {
 	if tokenID == "" {
 		return
 	}
@@ -70,7 +70,7 @@ func (s *Service) InvalidateTokenAccessContext(ctx context.Context, tokenID stri
 }
 
 // InvalidateUserAccessContexts removes all cached access contexts bound to one user.
-func (s *Service) InvalidateUserAccessContexts(ctx context.Context, userID int) {
+func (s *serviceImpl) InvalidateUserAccessContexts(ctx context.Context, userID int) {
 	if userID <= 0 {
 		return
 	}
@@ -101,7 +101,7 @@ func (s *Service) InvalidateUserAccessContexts(ctx context.Context, userID int) 
 }
 
 // MarkAccessTopologyChanged bumps the shared permission topology revision and clears local token caches.
-func (s *Service) MarkAccessTopologyChanged(ctx context.Context) error {
+func (s *serviceImpl) MarkAccessTopologyChanged(ctx context.Context) error {
 	s.clearLocalAccessCache(ctx)
 	s.clearLocalAccessRevision()
 
@@ -123,7 +123,7 @@ func (s *Service) MarkAccessTopologyChanged(ctx context.Context) error {
 }
 
 // NotifyAccessTopologyChanged best-effort refreshes the shared permission topology revision.
-func (s *Service) NotifyAccessTopologyChanged(ctx context.Context) {
+func (s *serviceImpl) NotifyAccessTopologyChanged(ctx context.Context) {
 	if err := s.MarkAccessTopologyChanged(ctx); err != nil {
 		logger.Warningf(ctx, "update access topology revision failed: %v", err)
 	}
@@ -131,7 +131,7 @@ func (s *Service) NotifyAccessTopologyChanged(ctx context.Context) {
 
 // getTokenAccessContext returns one token-scoped access snapshot that stays
 // valid only while the shared topology revision matches the cached entry.
-func (s *Service) getTokenAccessContext(
+func (s *serviceImpl) getTokenAccessContext(
 	ctx context.Context,
 	tokenID string,
 	userID int,
@@ -156,7 +156,7 @@ func (s *Service) getTokenAccessContext(
 
 // getCachedTokenAccessContext returns one cached snapshot only when the token,
 // user, and topology revision all still point to the same effective grants.
-func (s *Service) getCachedTokenAccessContext(
+func (s *serviceImpl) getCachedTokenAccessContext(
 	ctx context.Context,
 	tokenID string,
 	userID int,
@@ -179,7 +179,7 @@ func (s *Service) getCachedTokenAccessContext(
 
 // cacheTokenAccessContext stores one detached access snapshot and indexes the
 // token so later logout or user-level invalidation can remove all bound entries.
-func (s *Service) cacheTokenAccessContext(
+func (s *serviceImpl) cacheTokenAccessContext(
 	ctx context.Context,
 	tokenID string,
 	userID int,
@@ -210,7 +210,7 @@ func (s *Service) cacheTokenAccessContext(
 
 // clearLocalAccessCache drops all token snapshots held by the current process
 // after one topology mutation so subsequent requests rebuild fresh grants.
-func (s *Service) clearLocalAccessCache(ctx context.Context) {
+func (s *serviceImpl) clearLocalAccessCache(ctx context.Context) {
 	var tokenIDs []string
 
 	accessCacheState.Lock()
@@ -237,7 +237,7 @@ func (s *Service) clearLocalAccessCache(ctx context.Context) {
 
 // removeIndexedToken removes one token from the local reverse indexes that map
 // token IDs back to their owning user for bulk invalidation.
-func (s *Service) removeIndexedToken(tokenID string) {
+func (s *serviceImpl) removeIndexedToken(tokenID string) {
 	accessCacheState.Lock()
 	defer accessCacheState.Unlock()
 
@@ -259,7 +259,7 @@ func (s *Service) removeIndexedToken(tokenID string) {
 
 // getAccessRevision returns the current permission-topology revision. It first
 // uses the short-lived local copy and falls back to the shared KV row when needed.
-func (s *Service) getAccessRevision(ctx context.Context) (int64, error) {
+func (s *serviceImpl) getAccessRevision(ctx context.Context) (int64, error) {
 	if revision, ok := s.getLocalAccessRevision(); ok {
 		return revision, nil
 	}
@@ -288,7 +288,7 @@ func (s *Service) getAccessRevision(ctx context.Context) (int64, error) {
 
 // getLocalAccessRevision returns the process-local revision only while its
 // refresh window is still valid.
-func (s *Service) getLocalAccessRevision() (int64, bool) {
+func (s *serviceImpl) getLocalAccessRevision() (int64, bool) {
 	accessRevisionState.RLock()
 	defer accessRevisionState.RUnlock()
 
@@ -300,7 +300,7 @@ func (s *Service) getLocalAccessRevision() (int64, bool) {
 
 // getLocalAccessRevisionForce returns the last known local revision even after
 // the refresh window expires so transient shared-cache failures can degrade softly.
-func (s *Service) getLocalAccessRevisionForce() (int64, bool) {
+func (s *serviceImpl) getLocalAccessRevisionForce() (int64, bool) {
 	accessRevisionState.RLock()
 	defer accessRevisionState.RUnlock()
 
@@ -312,7 +312,7 @@ func (s *Service) getLocalAccessRevisionForce() (int64, bool) {
 
 // storeLocalAccessRevision records the shared revision in process memory so hot
 // permission checks do not hit the shared KV cache on every request.
-func (s *Service) storeLocalAccessRevision(revision int64) {
+func (s *serviceImpl) storeLocalAccessRevision(revision int64) {
 	accessRevisionState.Lock()
 	accessRevisionState.value = revision
 	accessRevisionState.expireAt = time.Now().Add(accessRevisionRefreshInterval)
@@ -321,7 +321,7 @@ func (s *Service) storeLocalAccessRevision(revision int64) {
 
 // clearLocalAccessRevision drops the process-local revision so the next read
 // must resynchronize after a local topology write.
-func (s *Service) clearLocalAccessRevision() {
+func (s *serviceImpl) clearLocalAccessRevision() {
 	accessRevisionState.Lock()
 	accessRevisionState.value = 0
 	accessRevisionState.expireAt = time.Time{}
@@ -330,7 +330,7 @@ func (s *Service) clearLocalAccessRevision() {
 
 // resolveAccessTokenID extracts the current login token ID from the business
 // context so access snapshots can be cached per issued session.
-func (s *Service) resolveAccessTokenID(ctx context.Context) string {
+func (s *serviceImpl) resolveAccessTokenID(ctx context.Context) string {
 	if s == nil || s.bizCtxSvc == nil {
 		return ""
 	}
@@ -343,7 +343,7 @@ func (s *Service) resolveAccessTokenID(ctx context.Context) string {
 
 // resolveAccessCacheTTL keeps token snapshots no longer than either the JWT or
 // online-session lifetime because either expiry makes the cache unreachable.
-func (s *Service) resolveAccessCacheTTL(ctx context.Context) time.Duration {
+func (s *serviceImpl) resolveAccessCacheTTL(ctx context.Context) time.Duration {
 	if s == nil || s.configSvc == nil {
 		return 24 * time.Hour
 	}

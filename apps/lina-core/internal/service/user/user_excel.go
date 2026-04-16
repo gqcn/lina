@@ -20,7 +20,7 @@ type ExportInput struct {
 }
 
 // Export generates an Excel file with user data based on IDs.
-func (s *Service) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
+func (s *serviceImpl) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
 	cols := dao.SysUser.Columns()
 	m := dao.SysUser.Ctx(ctx)
 
@@ -111,7 +111,7 @@ type ImportFailItem struct {
 }
 
 // Import reads an Excel file and creates users from it.
-func (s *Service) Import(ctx context.Context, fileReader io.Reader) (result *ImportResult, err error) {
+func (s *serviceImpl) Import(ctx context.Context, fileReader io.Reader) (result *ImportResult, err error) {
 	f, err := excelize.OpenReader(fileReader)
 	if err != nil {
 		return nil, gerror.New("无法解析 Excel 文件")
@@ -234,7 +234,7 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader) (result *Imp
 }
 
 // GenerateImportTemplate creates an Excel template for user import.
-func (s *Service) GenerateImportTemplate() (data []byte, err error) {
+func (s *serviceImpl) GenerateImportTemplate() (data []byte, err error) {
 	f := excelize.NewFile()
 	defer closeExcelFile(f, &err)
 	sheet := "Sheet1"

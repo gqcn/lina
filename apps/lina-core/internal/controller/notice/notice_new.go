@@ -11,7 +11,7 @@ import (
 
 // ControllerV1 is the notice controller.
 type ControllerV1 struct {
-	noticeSvc *noticesvc.Service // notice service
+	noticeSvc noticesvc.Service // notice service
 }
 
 // NewV1 creates and returns a new notice controller instance.

@@ -5,12 +5,12 @@ package plugin
 import "context"
 
 // PrewarmRuntimeFrontendBundles preloads frontend bundles for enabled dynamic plugins.
-func (s *Service) PrewarmRuntimeFrontendBundles(ctx context.Context) error {
+func (s *serviceImpl) PrewarmRuntimeFrontendBundles(ctx context.Context) error {
 	return s.frontendSvc.PrewarmRuntimeFrontendBundles(ctx)
 }
 
 // ResolveRuntimeFrontendAsset resolves one frontend asset for a dynamic plugin.
-func (s *Service) ResolveRuntimeFrontendAsset(
+func (s *serviceImpl) ResolveRuntimeFrontendAsset(
 	ctx context.Context,
 	pluginID string,
 	version string,
@@ -20,6 +20,6 @@ func (s *Service) ResolveRuntimeFrontendAsset(
 }
 
 // BuildRuntimeFrontendPublicBaseURL returns the public base URL for a plugin's hosted frontend assets.
-func (s *Service) BuildRuntimeFrontendPublicBaseURL(pluginID string, version string) string {
+func (s *serviceImpl) BuildRuntimeFrontendPublicBaseURL(pluginID string, version string) string {
 	return s.frontendSvc.BuildRuntimeFrontendPublicBaseURL(pluginID, version)
 }

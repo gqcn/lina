@@ -31,7 +31,7 @@ const (
 
 // BuildHostCallDemoPayload executes the host service demo and returns the
 // response payload.
-func (s *Service) BuildHostCallDemoPayload(request *pluginbridge.BridgeRequestEnvelopeV1) (*hostCallDemoPayload, error) {
+func (s *serviceImpl) BuildHostCallDemoPayload(request *pluginbridge.BridgeRequestEnvelopeV1) (*hostCallDemoPayload, error) {
 	username := hostCallDemoAnonymousUser
 	if request.Identity != nil && request.Identity.Username != "" {
 		username = request.Identity.Username
@@ -90,7 +90,7 @@ func (s *Service) BuildHostCallDemoPayload(request *pluginbridge.BridgeRequestEn
 	}, nil
 }
 
-func (s *Service) runHostCallDemoStorage(pluginID string, demoKey string) (*hostCallDemoStoragePayload, error) {
+func (s *serviceImpl) runHostCallDemoStorage(pluginID string, demoKey string) (*hostCallDemoStoragePayload, error) {
 	objectPath := fmt.Sprintf("%s/%s.json", hostCallDemoStoragePrefix, demoKey)
 	body, err := json.Marshal(&hostCallDemoStorageRecord{
 		PluginID: pluginID,
@@ -139,7 +139,7 @@ func (s *Service) runHostCallDemoStorage(pluginID string, demoKey string) (*host
 	}, nil
 }
 
-func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (*hostCallDemoDataPayload, error) {
+func (s *serviceImpl) runHostCallDemoData(pluginID string, demoKey string) (*hostCallDemoDataPayload, error) {
 	createRecord, err := buildRecordMap(&hostCallDemoDataCreateRecord{
 		PluginID:     pluginID,
 		ReleaseID:    0,
@@ -225,7 +225,7 @@ func (s *Service) runHostCallDemoData(pluginID string, demoKey string) (*hostCal
 	}, nil
 }
 
-func (s *Service) runHostCallDemoNetwork(request *pluginbridge.BridgeRequestEnvelopeV1, demoKey string) *hostCallDemoNetworkPayload {
+func (s *serviceImpl) runHostCallDemoNetwork(request *pluginbridge.BridgeRequestEnvelopeV1, demoKey string) *hostCallDemoNetworkPayload {
 	result := &hostCallDemoNetworkPayload{
 		URL:         hostCallDemoNetworkURL,
 		Skipped:     false,

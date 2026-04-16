@@ -10,22 +10,40 @@ import (
 	notifysvc "lina-core/internal/service/notify"
 )
 
-// Service provides user message operations.
-type Service struct {
-	bizCtxSvc *bizctx.Service    // Business context service
-	notifySvc *notifysvc.Service // Unified notify service
+// Service defines the usermsg service contract.
+type Service interface {
+	// UnreadCount returns unread message count for current user.
+	UnreadCount(ctx context.Context) (int, error)
+	// List queries message list for current user with pagination.
+	List(ctx context.Context, in ListInput) (*ListOutput, error)
+	// MarkRead marks a single message as read.
+	MarkRead(ctx context.Context, id int64) error
+	// MarkReadAll marks all messages as read for current user.
+	MarkReadAll(ctx context.Context) error
+	// Delete deletes a single message for current user.
+	Delete(ctx context.Context, id int64) error
+	// Clear deletes all messages for current user.
+	Clear(ctx context.Context) error
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
+	bizCtxSvc bizctx.Service
+	notifySvc notifysvc.Service // Unified notify service
 }
 
 // New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{
+func New() Service {
+	return &serviceImpl{
 		bizCtxSvc: bizctx.New(),
 		notifySvc: notifysvc.New(),
 	}
 }
 
 // getCurrentUserId extracts current user ID from context.
-func (s *Service) getCurrentUserId(ctx context.Context) (int64, error) {
+func (s *serviceImpl) getCurrentUserId(ctx context.Context) (int64, error) {
 	bizCtx := s.bizCtxSvc.Get(ctx)
 	if bizCtx == nil || bizCtx.UserId == 0 {
 		return 0, gerror.New("未登录")
@@ -34,7 +52,7 @@ func (s *Service) getCurrentUserId(ctx context.Context) (int64, error) {
 }
 
 // UnreadCount returns unread message count for current user.
-func (s *Service) UnreadCount(ctx context.Context) (int, error) {
+func (s *serviceImpl) UnreadCount(ctx context.Context) (int, error) {
 	userId, err := s.getCurrentUserId(ctx)
 	if err != nil {
 		return 0, err
@@ -68,7 +86,7 @@ type MessageItem struct {
 }
 
 // List queries message list for current user with pagination.
-func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
+func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	userId, err := s.getCurrentUserId(ctx)
 	if err != nil {
 		return nil, err
@@ -105,7 +123,7 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 }
 
 // MarkRead marks a single message as read.
-func (s *Service) MarkRead(ctx context.Context, id int64) error {
+func (s *serviceImpl) MarkRead(ctx context.Context, id int64) error {
 	userId, err := s.getCurrentUserId(ctx)
 	if err != nil {
 		return err
@@ -114,7 +132,7 @@ func (s *Service) MarkRead(ctx context.Context, id int64) error {
 }
 
 // MarkReadAll marks all messages as read for current user.
-func (s *Service) MarkReadAll(ctx context.Context) error {
+func (s *serviceImpl) MarkReadAll(ctx context.Context) error {
 	userId, err := s.getCurrentUserId(ctx)
 	if err != nil {
 		return err
@@ -123,7 +141,7 @@ func (s *Service) MarkReadAll(ctx context.Context) error {
 }
 
 // Delete deletes a single message for current user.
-func (s *Service) Delete(ctx context.Context, id int64) error {
+func (s *serviceImpl) Delete(ctx context.Context, id int64) error {
 	userId, err := s.getCurrentUserId(ctx)
 	if err != nil {
 		return err
@@ -132,7 +150,7 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 }
 
 // Clear deletes all messages for current user.
-func (s *Service) Clear(ctx context.Context) error {
+func (s *serviceImpl) Clear(ctx context.Context) error {
 	userId, err := s.getCurrentUserId(ctx)
 	if err != nil {
 		return err

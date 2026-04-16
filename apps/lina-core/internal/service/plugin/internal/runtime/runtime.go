@@ -13,9 +13,13 @@ import (
 	"lina-core/internal/service/plugin/internal/lifecycle"
 	"lina-core/internal/service/plugin/internal/openapi"
 	"lina-core/pkg/pluginhost"
+
+	"github.com/gogf/gf/v2/net/ghttp"
+
+	// TopologyProvider abstracts cluster topology information needed by the reconciler.
+	"lina-core/pkg/pluginbridge"
 )
 
-// TopologyProvider abstracts cluster topology information needed by the reconciler.
 type TopologyProvider interface {
 	// IsClusterModeEnabled reports whether multi-node cluster mode is active.
 	IsClusterModeEnabled() bool
@@ -73,17 +77,128 @@ type PermissionMenuFilter interface {
 	FilterPermissionMenus(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu
 }
 
-// Service coordinates dynamic plugin lifecycle reconciliation, artifact management,
-// upload handling, node-state projection, and route dispatch.
-type Service struct {
+// Service defines the runtime service contract.
+type Service interface {
+	// ParseRuntimeWasmArtifact reads one WASM artifact file and extracts all embedded custom sections.
+	// It implements the catalog.ArtifactParser interface.
+	ParseRuntimeWasmArtifact(filePath string) (*catalog.ArtifactSpec, error)
+	// ParseRuntimeWasmArtifactContent parses one WASM artifact from an in-memory byte slice.
+	// It implements the catalog.ArtifactParser interface.
+	ParseRuntimeWasmArtifactContent(filePath string, content []byte) (*catalog.ArtifactSpec, error)
+	// ValidateRuntimeArtifact loads and validates the WASM artifact for a dynamic plugin source directory.
+	// It implements the catalog.ArtifactParser interface.
+	ValidateRuntimeArtifact(manifest *catalog.Manifest, rootDir string) error
+	// ListRuntimeStates returns public plugin runtime states for shell slot rendering.
+	ListRuntimeStates(ctx context.Context) (*RuntimeStateListOutput, error)
+	// ExecuteDynamicRoute is the exported form of executeDynamicRoute for cross-package access.
+	ExecuteDynamicRoute(
+		ctx context.Context,
+		manifest *catalog.Manifest,
+		request *pluginbridge.BridgeRequestEnvelopeV1,
+	) (*pluginbridge.BridgeResponseEnvelopeV1, error)
+	// ReconcileDynamicPluginRequest implements lifecycle.ReconcileProvider.
+	// It submits a desired-state transition to the reconciler loop.
+	ReconcileDynamicPluginRequest(ctx context.Context, pluginID string, desiredState string) error
+	// EnsureRuntimeArtifactAvailable implements lifecycle.ReconcileProvider.
+	// It verifies the WASM artifact is present for the given lifecycle action label.
+	EnsureRuntimeArtifactAvailable(manifest *catalog.Manifest, actionLabel string) error
+	// ShouldRefreshInstalledDynamicRelease implements lifecycle.ReconcileProvider.
+	// It type-asserts registry to *entity.SysPlugin then delegates to the private helper.
+	ShouldRefreshInstalledDynamicRelease(
+		ctx context.Context,
+		registry interface{},
+		manifest *catalog.Manifest,
+	) bool
+	// BuildPluginItem returns a PluginItem projection for one manifest + registry pair.
+	// Used by the plugin facade SyncAndList coordination method.
+	BuildPluginItem(ctx context.Context, manifest *catalog.Manifest, registry *entity.SysPlugin) *PluginItem
+	// BuildRuntimeItems returns PluginItems for dynamic plugins present in the registry
+	// but absent from the given manifest map. Used by the plugin facade SyncAndList.
+	BuildRuntimeItems(ctx context.Context, covered map[string]struct{}) ([]*PluginItem, error)
+	// CheckIsInstalled reports whether a plugin is installed after reconciling artifact state.
+	// Used by the plugin facade UpdateStatus guard.
+	CheckIsInstalled(ctx context.Context, pluginID string) (bool, error)
+	// SyncPluginNodeState implements catalog.NodeStateSyncer.
+	// It updates the current node projection of one plugin lifecycle state.
+	SyncPluginNodeState(
+		ctx context.Context,
+		pluginID string,
+		version string,
+		installed int,
+		enabled int,
+		message string,
+	) error
+	// GetPluginNodeState implements catalog.NodeStateSyncer.
+	// It returns the latest node projection row for one plugin/node pair.
+	GetPluginNodeState(ctx context.Context, pluginID string, nodeID string) (*entity.SysPluginNodeState, error)
+	// CurrentNodeID implements catalog.NodeStateSyncer.
+	CurrentNodeID() string
+	// SyncPluginReleaseRuntimeState implements catalog.ReleaseStateSyncer.
+	// It updates the active release row to reflect current registry state.
+	SyncPluginReleaseRuntimeState(ctx context.Context, registry *entity.SysPlugin) error
+	// StartRuntimeReconciler starts the background loop that keeps dynamic-plugin
+	// desired state, active release, and current-node projection converged.
+	StartRuntimeReconciler(ctx context.Context)
+	// ReconcileRuntimePlugins runs one convergence pass. It is safe to call from
+	// both the background loop and synchronous management flows.
+	ReconcileRuntimePlugins(ctx context.Context) error
+	// Uninstall executes uninstall lifecycle for an installed dynamic plugin.
+	Uninstall(ctx context.Context, pluginID string) error
+	// HasArtifactStorageFile is the exported form of hasArtifactStorageFile for cross-package access.
+	HasArtifactStorageFile(ctx context.Context, pluginID string) (bool, string, error)
+	// LoadActiveDynamicPluginManifest implements catalog.DynamicManifestLoader.
+	// It returns the currently active dynamic-plugin manifest reloaded from the stable
+	// release archive so live traffic sees the stable version during staged upgrades.
+	LoadActiveDynamicPluginManifest(ctx context.Context, registry *entity.SysPlugin) (*catalog.Manifest, error)
+	// RegisterDynamicRouteDispatcher binds the fixed-prefix dispatcher into one host
+	// router group so dynamic routes reuse the standard RouterGroup registration flow.
+	RegisterDynamicRouteDispatcher(group *ghttp.RouterGroup)
+	// PrepareDynamicRouteMiddleware resolves the active dynamic route contract and
+	// caches host-owned runtime state on the request before later middlewares run.
+	PrepareDynamicRouteMiddleware(r *ghttp.Request)
+	// AuthenticateDynamicRouteMiddleware applies host-owned login and permission
+	// governance for the matched dynamic route before bridge execution starts.
+	AuthenticateDynamicRouteMiddleware(r *ghttp.Request)
+	// DispatchDynamicRoute dispatches one fixed-prefix request into the active release
+	// of one dynamic plugin. Matching always happens against the archived active manifest
+	// so staged uploads cannot affect live traffic before reconcile.
+	DispatchDynamicRoute(
+		ctx context.Context,
+		in *DynamicRouteDispatchInput,
+	) (*pluginbridge.BridgeResponseEnvelopeV1, error)
+	// SetTopology wires the cluster topology provider.
+	SetTopology(t TopologyProvider)
+	// SetMenuManager wires the menu synchronization provider.
+	SetMenuManager(m MenuManager)
+	// SetHookDispatcher wires the lifecycle hook dispatcher.
+	SetHookDispatcher(d HookDispatcher)
+	// SetJwtConfigProvider wires the JWT configuration provider for route token validation.
+	SetJwtConfigProvider(p JwtConfigProvider)
+	// SetUserContextSetter wires the user-context injection provider.
+	SetUserContextSetter(p UserContextSetter)
+	// SetAfterAuthDispatcher wires the post-authentication callback dispatcher.
+	SetAfterAuthDispatcher(d AfterAuthDispatcher)
+	// SetPermissionMenuFilter wires the plugin-level permission menu filter.
+	SetPermissionMenuFilter(f PermissionMenuFilter)
+	// UploadDynamicPackage validates one runtime wasm package and writes it into the
+	// configured plugin.dynamic.storagePath directory.
+	UploadDynamicPackage(ctx context.Context, in *DynamicUploadInput) (out *DynamicUploadOutput, err error)
+	// StoreUploadedPackage is the exported form of storeUploadedPackage for cross-package access.
+	StoreUploadedPackage(ctx context.Context, filename string, content []byte, overwriteSupport bool) (*DynamicUploadOutput, error)
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
 	// catalogSvc provides manifest, registry, and release access.
-	catalogSvc *catalog.Service
+	catalogSvc catalog.Service
 	// lifecycleSvc provides install/uninstall SQL migration support.
-	lifecycleSvc *lifecycle.Service
+	lifecycleSvc lifecycle.Service
 	// frontendSvc manages in-memory frontend bundles.
-	frontendSvc *frontend.Service
+	frontendSvc frontend.Service
 	// openapiSvc projects dynamic routes into the host OpenAPI document.
-	openapiSvc *openapi.Service
+	openapiSvc openapi.Service
 	// topology provides cluster topology information.
 	topology TopologyProvider
 	// menuMgr handles plugin menu and permission synchronization.
@@ -102,12 +217,12 @@ type Service struct {
 
 // New creates a new runtime Service with the given sub-service dependencies.
 func New(
-	catalogSvc *catalog.Service,
-	lifecycleSvc *lifecycle.Service,
-	frontendSvc *frontend.Service,
-	openapiSvc *openapi.Service,
-) *Service {
-	return &Service{
+	catalogSvc catalog.Service,
+	lifecycleSvc lifecycle.Service,
+	frontendSvc frontend.Service,
+	openapiSvc openapi.Service,
+) Service {
+	return &serviceImpl{
 		catalogSvc:   catalogSvc,
 		lifecycleSvc: lifecycleSvc,
 		frontendSvc:  frontendSvc,
@@ -116,42 +231,42 @@ func New(
 }
 
 // SetTopology wires the cluster topology provider.
-func (s *Service) SetTopology(t TopologyProvider) {
+func (s *serviceImpl) SetTopology(t TopologyProvider) {
 	s.topology = t
 }
 
 // SetMenuManager wires the menu synchronization provider.
-func (s *Service) SetMenuManager(m MenuManager) {
+func (s *serviceImpl) SetMenuManager(m MenuManager) {
 	s.menuMgr = m
 }
 
 // SetHookDispatcher wires the lifecycle hook dispatcher.
-func (s *Service) SetHookDispatcher(d HookDispatcher) {
+func (s *serviceImpl) SetHookDispatcher(d HookDispatcher) {
 	s.hookDispatcher = d
 }
 
 // SetJwtConfigProvider wires the JWT configuration provider for route token validation.
-func (s *Service) SetJwtConfigProvider(p JwtConfigProvider) {
+func (s *serviceImpl) SetJwtConfigProvider(p JwtConfigProvider) {
 	s.jwtConfig = p
 }
 
 // SetUserContextSetter wires the user-context injection provider.
-func (s *Service) SetUserContextSetter(p UserContextSetter) {
+func (s *serviceImpl) SetUserContextSetter(p UserContextSetter) {
 	s.userCtx = p
 }
 
 // SetAfterAuthDispatcher wires the post-authentication callback dispatcher.
-func (s *Service) SetAfterAuthDispatcher(d AfterAuthDispatcher) {
+func (s *serviceImpl) SetAfterAuthDispatcher(d AfterAuthDispatcher) {
 	s.afterAuth = d
 }
 
 // SetPermissionMenuFilter wires the plugin-level permission menu filter.
-func (s *Service) SetPermissionMenuFilter(f PermissionMenuFilter) {
+func (s *serviceImpl) SetPermissionMenuFilter(f PermissionMenuFilter) {
 	s.menuFilter = f
 }
 
 // isClusterModeEnabled is a nil-safe wrapper around the topology provider.
-func (s *Service) isClusterModeEnabled() bool {
+func (s *serviceImpl) isClusterModeEnabled() bool {
 	if s.topology == nil {
 		return false
 	}
@@ -159,7 +274,7 @@ func (s *Service) isClusterModeEnabled() bool {
 }
 
 // isPrimaryNode is a nil-safe wrapper around the topology provider.
-func (s *Service) isPrimaryNode() bool {
+func (s *serviceImpl) isPrimaryNode() bool {
 	if s.topology == nil {
 		return false
 	}
@@ -167,7 +282,7 @@ func (s *Service) isPrimaryNode() bool {
 }
 
 // currentNodeID is a nil-safe wrapper around the topology provider.
-func (s *Service) currentNodeID() string {
+func (s *serviceImpl) currentNodeID() string {
 	if s.topology == nil {
 		return ""
 	}
@@ -175,7 +290,7 @@ func (s *Service) currentNodeID() string {
 }
 
 // dispatchHookEvent is a nil-safe wrapper for hook event dispatch.
-func (s *Service) dispatchHookEvent(
+func (s *serviceImpl) dispatchHookEvent(
 	ctx context.Context,
 	event pluginhost.ExtensionPoint,
 	values map[string]interface{},
@@ -187,7 +302,7 @@ func (s *Service) dispatchHookEvent(
 }
 
 // syncPluginMenusAndPermissions is a nil-safe wrapper for menu synchronization.
-func (s *Service) syncPluginMenusAndPermissions(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) syncPluginMenusAndPermissions(ctx context.Context, manifest *catalog.Manifest) error {
 	if s.menuMgr == nil {
 		return nil
 	}
@@ -195,7 +310,7 @@ func (s *Service) syncPluginMenusAndPermissions(ctx context.Context, manifest *c
 }
 
 // syncPluginMenus is a nil-safe wrapper for partial menu synchronization (rollback path).
-func (s *Service) syncPluginMenus(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) syncPluginMenus(ctx context.Context, manifest *catalog.Manifest) error {
 	if s.menuMgr == nil {
 		return nil
 	}
@@ -203,7 +318,7 @@ func (s *Service) syncPluginMenus(ctx context.Context, manifest *catalog.Manifes
 }
 
 // deletePluginMenusByManifest is a nil-safe wrapper for menu deletion.
-func (s *Service) deletePluginMenusByManifest(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) deletePluginMenusByManifest(ctx context.Context, manifest *catalog.Manifest) error {
 	if s.menuMgr == nil {
 		return nil
 	}
@@ -211,7 +326,7 @@ func (s *Service) deletePluginMenusByManifest(ctx context.Context, manifest *cat
 }
 
 // ensureFrontendBundle delegates to frontendSvc to guarantee an in-memory bundle exists.
-func (s *Service) ensureFrontendBundle(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) ensureFrontendBundle(ctx context.Context, manifest *catalog.Manifest) error {
 	if s.frontendSvc == nil {
 		return nil
 	}
@@ -219,7 +334,7 @@ func (s *Service) ensureFrontendBundle(ctx context.Context, manifest *catalog.Ma
 }
 
 // validateFrontendMenuBindings delegates frontend menu binding validation.
-func (s *Service) validateFrontendMenuBindings(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) validateFrontendMenuBindings(ctx context.Context, manifest *catalog.Manifest) error {
 	if s.frontendSvc == nil {
 		return nil
 	}
@@ -227,7 +342,7 @@ func (s *Service) validateFrontendMenuBindings(ctx context.Context, manifest *ca
 }
 
 // invalidateFrontendBundle removes all cached frontend bundle entries for a plugin.
-func (s *Service) invalidateFrontendBundle(ctx context.Context, pluginID string, reason string) {
+func (s *serviceImpl) invalidateFrontendBundle(ctx context.Context, pluginID string, reason string) {
 	if s.frontendSvc != nil {
 		s.frontendSvc.InvalidateBundle(ctx, pluginID, reason)
 	}

@@ -12,36 +12,25 @@ import (
 	"lina-core/internal/model/entity"
 )
 
-// Service provides dict management operations.
-type Service struct{}
-
-// New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{}
-}
-
-// ListInput defines input for List function.
 type ListInput struct {
-	PageNum  int    // Page number, starting from 1
-	PageSize int    // Page size
-	Name     string // Dictionary name, supports fuzzy search
-	Type     string // Dictionary type, supports fuzzy search
+	PageNum  int
+	PageSize int
+	Name     string
+	Type     string
 }
 
-// ListOutput defines output for List function.
 type ListOutput struct {
-	List  []*entity.SysDictType // Dictionary type list
-	Total int                   // Total count
+	List  []*entity.SysDictType
+	Total int
 }
 
-// List queries dict type list with pagination and filters.
-func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
+// List queries dictionary types with pagination and filters.
+func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysDictType.Columns()
 		m    = dao.SysDictType.Ctx(ctx)
 	)
 
-	// Apply filters
 	if in.Name != "" {
 		m = m.WhereLike(cols.Name, "%"+in.Name+"%")
 	}
@@ -49,13 +38,11 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 		m = m.WhereLike(cols.Type, "%"+in.Type+"%")
 	}
 
-	// Get total count
 	total, err := m.Count()
 	if err != nil {
 		return nil, err
 	}
 
-	// Query with pagination
 	var list []*entity.SysDictType
 	err = m.Page(in.PageNum, in.PageSize).
 		Order(cols.Id + " DESC").
@@ -70,17 +57,15 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	}, nil
 }
 
-// CreateInput defines input for Create function.
 type CreateInput struct {
-	Name   string // Dictionary name
-	Type   string // Dictionary type
-	Status int    // Status: 1=Normal 0=Disabled
-	Remark string // Remark
+	Name   string
+	Type   string
+	Status int
+	Remark string
 }
 
-// Create creates a new dict type.
-func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
-	// Check type uniqueness (dict types use hard delete, so no deleted_at filter needed)
+// Create creates a new dictionary type.
+func (s *serviceImpl) Create(ctx context.Context, in CreateInput) (int, error) {
 	count, err := dao.SysDictType.Ctx(ctx).
 		Where(do.SysDictType{Type: in.Type}).
 		Count()
@@ -91,7 +76,6 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 		return 0, gerror.New("字典类型已存在")
 	}
 
-	// Insert dict type (GoFrame auto-fills created_at and updated_at)
 	id, err := dao.SysDictType.Ctx(ctx).Data(do.SysDictType{
 		Name:   in.Name,
 		Type:   in.Type,
@@ -106,7 +90,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 }
 
 // GetById retrieves dict type by ID.
-func (s *Service) GetById(ctx context.Context, id int) (*entity.SysDictType, error) {
+func (s *serviceImpl) GetById(ctx context.Context, id int) (*entity.SysDictType, error) {
 	var dictType *entity.SysDictType
 	err := dao.SysDictType.Ctx(ctx).
 		Where(do.SysDictType{Id: id}).
@@ -130,7 +114,7 @@ type UpdateInput struct {
 }
 
 // Update updates dict type information.
-func (s *Service) Update(ctx context.Context, in UpdateInput) error {
+func (s *serviceImpl) Update(ctx context.Context, in UpdateInput) error {
 	// Check dict type exists
 	if _, err := s.GetById(ctx, in.Id); err != nil {
 		return err
@@ -169,7 +153,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 }
 
 // Delete hard-deletes a dict type and its associated dict data.
-func (s *Service) Delete(ctx context.Context, id int) error {
+func (s *serviceImpl) Delete(ctx context.Context, id int) error {
 	// Check dict type exists
 	dictType, err := s.GetById(ctx, id)
 	if err != nil {
@@ -199,7 +183,7 @@ type ExportInput struct {
 }
 
 // Export generates an Excel file with dict type data (max 10000 rows).
-func (s *Service) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
+func (s *serviceImpl) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
 	cols := dao.SysDictType.Columns()
 	m := dao.SysDictType.Ctx(ctx)
 
@@ -276,7 +260,7 @@ type OptionItem struct {
 }
 
 // Options returns all non-deleted dict types with status=1.
-func (s *Service) Options(ctx context.Context) ([]*OptionItem, error) {
+func (s *serviceImpl) Options(ctx context.Context) ([]*OptionItem, error) {
 	cols := dao.SysDictType.Columns()
 	var list []*entity.SysDictType
 	err := dao.SysDictType.Ctx(ctx).

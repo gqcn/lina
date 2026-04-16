@@ -16,7 +16,7 @@ const pluginDataDriverTypePrefix = "plugin-data-"
 // ResolveDataTableComments resolves host-side table comments for the given
 // data-table names. It degrades to an empty map when metadata lookup is
 // unavailable so plugin list APIs are not blocked by optional schema comments.
-func (s *Service) ResolveDataTableComments(ctx context.Context, tables []string) map[string]string {
+func (s *serviceImpl) ResolveDataTableComments(ctx context.Context, tables []string) map[string]string {
 	normalizedTables := normalizeDataTableNames(tables)
 	if len(normalizedTables) == 0 {
 		return map[string]string{}

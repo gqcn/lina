@@ -18,7 +18,7 @@ type CombinedExportInput struct {
 }
 
 // CombinedExport generates an Excel file with both dict types and dict data (max 10000 rows each).
-func (s *Service) CombinedExport(ctx context.Context, in CombinedExportInput) (data []byte, err error) {
+func (s *serviceImpl) CombinedExport(ctx context.Context, in CombinedExportInput) (data []byte, err error) {
 	// Query dict types
 	typeCols := dao.SysDictType.Columns()
 	typeM := dao.SysDictType.Ctx(ctx)

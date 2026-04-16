@@ -14,25 +14,51 @@ import (
 	"lina-core/internal/model/entity"
 )
 
-// Service provides dept management operations.
-type Service struct{}
-
-// New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{}
+// Service defines the dept service contract.
+type Service interface {
+	// List queries dept list with filters.
+	List(ctx context.Context, in ListInput) (*ListOutput, error)
+	// Create creates a new dept.
+	Create(ctx context.Context, in CreateInput) (int, error)
+	// GetById retrieves dept by ID.
+	GetById(ctx context.Context, id int) (*entity.SysDept, error)
+	// Update updates dept information with transaction support.
+	Update(ctx context.Context, in UpdateInput) error
+	// Delete soft-deletes a dept.
+	Delete(ctx context.Context, id int) error
+	// Tree builds dept tree structure.
+	Tree(ctx context.Context) ([]*TreeNode, error)
+	// Exclude returns dept list excluding specified dept and its descendants.
+	Exclude(ctx context.Context, in ExcludeInput) ([]*entity.SysDept, error)
+	// Users gets users for leader selection.
+	// When deptId=0, returns all users. When deptId>0, returns users in the dept and all its sub-depts.
+	// Supports keyword search on username/nickname and result limit.
+	Users(ctx context.Context, deptId int, keyword string, limit int) ([]*DeptUser, error)
+	// UserDeptTree builds dept tree with user count per node, plus an "未分配部门" virtual node.
+	UserDeptTree(ctx context.Context) ([]*TreeNode, error)
+	// GetDeptAndDescendantIds returns the given deptId plus all descendant dept IDs (cross-database compatible).
+	// This is a shared utility method for traversing department hierarchies.
+	GetDeptAndDescendantIds(ctx context.Context, deptId int) ([]int, error)
 }
 
-// TreeNode defines the tree structure for dept.
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct{}
+
+func New() Service {
+	return &serviceImpl{}
+}
+
 type TreeNode struct {
-	Id        int         `json:"id"`        // Department ID
-	Label     string      `json:"label"`     // Department name (with user count)
-	UserCount int         `json:"userCount"` // User count
-	Children  []*TreeNode `json:"children"`  // Child departments
+	Id        int         `json:"id"`
+	Label     string      `json:"label"`
+	UserCount int         `json:"userCount"`
+	Children  []*TreeNode `json:"children"`
 }
 
-// DeptUser defines the user info in a dept.
 type DeptUser struct {
-	Id       int    `json:"id"`       // User ID
+	Id       int    `json:"id"`
 	Username string `json:"username"` // Username
 	Nickname string `json:"nickname"` // Nickname
 }
@@ -49,7 +75,7 @@ type ListOutput struct {
 }
 
 // List queries dept list with filters.
-func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
+func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysDept.Columns()
 		m    = dao.SysDept.Ctx(ctx)
@@ -89,7 +115,7 @@ type CreateInput struct {
 }
 
 // Create creates a new dept.
-func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
+func (s *serviceImpl) Create(ctx context.Context, in CreateInput) (int, error) {
 	// Check code uniqueness
 	if in.Code != "" {
 		if err := s.checkCodeUnique(ctx, in.Code, 0); err != nil {
@@ -130,7 +156,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 }
 
 // GetById retrieves dept by ID.
-func (s *Service) GetById(ctx context.Context, id int) (*entity.SysDept, error) {
+func (s *serviceImpl) GetById(ctx context.Context, id int) (*entity.SysDept, error) {
 	var dept *entity.SysDept
 	err := dao.SysDept.Ctx(ctx).
 		Where(do.SysDept{Id: id}).
@@ -159,7 +185,7 @@ type UpdateInput struct {
 }
 
 // Update updates dept information with transaction support.
-func (s *Service) Update(ctx context.Context, in UpdateInput) error {
+func (s *serviceImpl) Update(ctx context.Context, in UpdateInput) error {
 	// Check dept exists
 	dept, err := s.GetById(ctx, in.Id)
 	if err != nil {
@@ -260,7 +286,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 }
 
 // Delete soft-deletes a dept.
-func (s *Service) Delete(ctx context.Context, id int) error {
+func (s *serviceImpl) Delete(ctx context.Context, id int) error {
 	cols := dao.SysDept.Columns()
 
 	// Check no children
@@ -293,7 +319,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 }
 
 // Tree builds dept tree structure.
-func (s *Service) Tree(ctx context.Context) ([]*TreeNode, error) {
+func (s *serviceImpl) Tree(ctx context.Context) ([]*TreeNode, error) {
 	cols := dao.SysDept.Columns()
 
 	var depts []*entity.SysDept
@@ -333,7 +359,7 @@ type ExcludeInput struct {
 }
 
 // Exclude returns dept list excluding specified dept and its descendants.
-func (s *Service) Exclude(ctx context.Context, in ExcludeInput) ([]*entity.SysDept, error) {
+func (s *serviceImpl) Exclude(ctx context.Context, in ExcludeInput) ([]*entity.SysDept, error) {
 	// Get the target dept
 	dept, err := s.GetById(ctx, in.Id)
 	if err != nil {
@@ -361,7 +387,7 @@ func (s *Service) Exclude(ctx context.Context, in ExcludeInput) ([]*entity.SysDe
 // Users gets users for leader selection.
 // When deptId=0, returns all users. When deptId>0, returns users in the dept and all its sub-depts.
 // Supports keyword search on username/nickname and result limit.
-func (s *Service) Users(ctx context.Context, deptId int, keyword string, limit int) ([]*DeptUser, error) {
+func (s *serviceImpl) Users(ctx context.Context, deptId int, keyword string, limit int) ([]*DeptUser, error) {
 	uCols := dao.SysUser.Columns()
 
 	if deptId == 0 {
@@ -466,7 +492,7 @@ func (s *Service) Users(ctx context.Context, deptId int, keyword string, limit i
 }
 
 // UserDeptTree builds dept tree with user count per node, plus an "未分配部门" virtual node.
-func (s *Service) UserDeptTree(ctx context.Context) ([]*TreeNode, error) {
+func (s *serviceImpl) UserDeptTree(ctx context.Context) ([]*TreeNode, error) {
 	// Get base tree
 	nodes, err := s.Tree(ctx)
 	if err != nil {
@@ -539,7 +565,7 @@ func (s *Service) UserDeptTree(ctx context.Context) ([]*TreeNode, error) {
 }
 
 // checkCodeUnique checks if the dept code is unique (excluding the given dept ID for updates).
-func (s *Service) checkCodeUnique(ctx context.Context, code string, excludeId int) error {
+func (s *serviceImpl) checkCodeUnique(ctx context.Context, code string, excludeId int) error {
 	cols := dao.SysDept.Columns()
 	m := dao.SysDept.Ctx(ctx).
 		Where(cols.Code, code)
@@ -558,7 +584,7 @@ func (s *Service) checkCodeUnique(ctx context.Context, code string, excludeId in
 
 // GetDeptAndDescendantIds returns the given deptId plus all descendant dept IDs (cross-database compatible).
 // This is a shared utility method for traversing department hierarchies.
-func (s *Service) GetDeptAndDescendantIds(ctx context.Context, deptId int) ([]int, error) {
+func (s *serviceImpl) GetDeptAndDescendantIds(ctx context.Context, deptId int) ([]int, error) {
 	var (
 		deptCols  = dao.SysDept.Columns()
 		deptIds   = []int{deptId}

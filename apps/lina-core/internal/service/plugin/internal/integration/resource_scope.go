@@ -22,7 +22,7 @@ const (
 )
 
 // applyPluginResourceDataScope injects host role data-scope constraints into one plugin resource query.
-func (s *Service) applyPluginResourceDataScope(
+func (s *serviceImpl) applyPluginResourceDataScope(
 	ctx context.Context,
 	model *gdb.Model,
 	resource *catalog.ResourceSpec,
@@ -67,7 +67,7 @@ func (s *Service) applyPluginResourceDataScope(
 }
 
 // getCurrentPluginResourceUserID returns the current request user ID from the business context.
-func (s *Service) getCurrentPluginResourceUserID(ctx context.Context) int {
+func (s *serviceImpl) getCurrentPluginResourceUserID(ctx context.Context) int {
 	if s.bizCtxSvc == nil {
 		return 0
 	}
@@ -76,7 +76,7 @@ func (s *Service) getCurrentPluginResourceUserID(ctx context.Context) int {
 
 // getCurrentPluginResourceDataScope resolves the effective data scope for the given user
 // by scanning all assigned roles and applying the most permissive scope that applies.
-func (s *Service) getCurrentPluginResourceDataScope(ctx context.Context, userID int) (int, error) {
+func (s *serviceImpl) getCurrentPluginResourceDataScope(ctx context.Context, userID int) (int, error) {
 	roleIDs, err := s.getPluginResourceRoleIDs(ctx, userID)
 	if err != nil {
 		return pluginResourceDataScopeNone, err
@@ -117,7 +117,7 @@ func (s *Service) getCurrentPluginResourceDataScope(ctx context.Context, userID 
 }
 
 // getPluginResourceRoleIDs returns the deduplicated role IDs assigned to the given user.
-func (s *Service) getPluginResourceRoleIDs(ctx context.Context, userID int) ([]int, error) {
+func (s *serviceImpl) getPluginResourceRoleIDs(ctx context.Context, userID int) ([]int, error) {
 	var userRoles []*entity.SysUserRole
 	err := dao.SysUserRole.Ctx(ctx).
 		Where(dao.SysUserRole.Columns().UserId, userID).
@@ -142,7 +142,7 @@ func (s *Service) getPluginResourceRoleIDs(ctx context.Context, userID int) ([]i
 }
 
 // getCurrentPluginResourceDeptIDs returns the deduplicated department IDs for the given user.
-func (s *Service) getCurrentPluginResourceDeptIDs(ctx context.Context, userID int) ([]int, error) {
+func (s *serviceImpl) getCurrentPluginResourceDeptIDs(ctx context.Context, userID int) ([]int, error) {
 	var userDepts []*entity.SysUserDept
 	err := dao.SysUserDept.Ctx(ctx).
 		Where(dao.SysUserDept.Columns().UserId, userID).

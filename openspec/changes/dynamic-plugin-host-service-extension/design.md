@@ -843,6 +843,17 @@ CREATE TABLE IF NOT EXISTS sys_notify_delivery (
 
 ## Feedback Follow-Ups
 
+### `internal/service` 组件统一接口返回模型
+
+宿主与插件 `internal/service` 目录下的组件统一收敛为“导出接口 + 私有实现结构体”模式：各组件对外只暴露 `Service` 接口和 `New()` 构造函数，具体实现结构体改为包内私有类型。这样做有两个直接收益：
+
+- 调用方不再依赖具体 `Service` 结构体，后续更容易按组件替换实现、注入 mock 或按需拆分子实现；
+- 组件公开能力边界可以直接在 `Service` 接口中集中呈现，维护者无需再在多个实现文件中反向查找所有 exported 方法。
+
+该约束适用于 `lina-core` 与插件侧所有宿主 `service` 组件，以及插件动态运行时内部的 `catalog` / `runtime` / `integration` / `frontend` / `lifecycle` / `openapi` 等子组件。包内私有辅助方法和状态仍保留在实现结构体上，不进入公开接口面。
+
+接口定义位置也统一收敛：不额外新增 `*_contract.go` 文件，而是直接内联在各组件主文件中维护，例如 `internal/service/auth/auth.go`、`internal/service/plugin/plugin.go`、`backend/internal/service/dynamic/dynamic.go`。主文件顶部按“公开类型/输入输出模型 -> `Service` 接口 -> `var _ Service = (*serviceImpl)(nil)` -> `serviceImpl` -> `New()`”的顺序组织，这样组件入口文件本身就能完整展示该组件的公开契约与主实现装配关系。
+
 ### 宿主与源码插件静态接口统一声明式权限模型
 
 宿主静态 API 与源码插件静态路由需要共用同一套“接口声明 -> 中间件校验”的权限模型。对于进入受保护路由组的静态接口，权限要求统一通过接口元数据中的 `permission` 声明，不再允许控制器方法自行散落式调用权限判断。这样可以保证：

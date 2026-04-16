@@ -26,7 +26,7 @@ type permissionErrorResponse struct {
 }
 
 // Permission enforces declarative permission requirements declared on static host API handlers.
-func (s *Service) Permission(r *ghttp.Request) {
+func (s *serviceImpl) Permission(r *ghttp.Request) {
 	if r == nil {
 		return
 	}

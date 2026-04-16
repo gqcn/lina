@@ -2,26 +2,53 @@
 
 package notify
 
-import "github.com/gogf/gf/v2/os/gtime"
+import (
+	"context"
 
-// Service provides unified notification orchestration and inbox facade operations.
-type Service struct{}
+	"github.com/gogf/gf/v2/os/gtime"
+	// serviceImpl implements Service.
+)
 
-// SendInput defines one unified notification send request.
+// Service defines the notify service contract.
+type Service interface {
+	// InboxUnreadCount returns the unread inbox delivery count for one user.
+	InboxUnreadCount(ctx context.Context, userID int64) (int, error)
+	// InboxList returns one paged inbox list for the current user.
+	InboxList(ctx context.Context, in InboxListInput) (*InboxListOutput, error)
+	// InboxMarkRead marks one inbox delivery as read for the current user.
+	InboxMarkRead(ctx context.Context, userID int64, deliveryID int64) error
+	// InboxMarkAllRead marks all unread inbox deliveries as read for the current user.
+	InboxMarkAllRead(ctx context.Context, userID int64) error
+	// InboxDelete soft-deletes one inbox delivery for the current user.
+	InboxDelete(ctx context.Context, userID int64, deliveryID int64) error
+	// InboxClear soft-deletes all inbox deliveries for the current user.
+	InboxClear(ctx context.Context, userID int64) error
+	// DeleteBySource removes notify deliveries and messages for the given business source identifiers.
+	DeleteBySource(ctx context.Context, sourceType SourceType, sourceIDs []string) error
+	// Send validates the notify channel and creates unified notify message and delivery records.
+	Send(ctx context.Context, in SendInput) (*SendOutput, error)
+	// SendNoticePublication sends one published notice through the built-in inbox channel.
+	SendNoticePublication(ctx context.Context, in NoticePublishInput) (*SendOutput, error)
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct{}
+
 type SendInput struct {
-	// ChannelKey is the logical notification channel key.
 	ChannelKey string
-	// PluginID is the optional source plugin identifier for plugin-originated messages.
+
 	PluginID string
-	// SourceType identifies the originating business source type.
+
 	SourceType SourceType
-	// SourceID identifies the originating business record.
+
 	SourceID string
-	// CategoryCode identifies the message category exposed to inbox consumers.
+
 	CategoryCode CategoryCode
-	// Title is the message title displayed to recipients.
+
 	Title string
-	// Content is the message body stored in the notify message record.
+
 	Content string
 	// Payload carries optional structured message metadata.
 	Payload map[string]any
@@ -94,6 +121,6 @@ type InboxListItem struct {
 }
 
 // New creates and returns a new notify service instance.
-func New() *Service {
-	return &Service{}
+func New() Service {
+	return &serviceImpl{}
 }

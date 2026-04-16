@@ -21,7 +21,7 @@ import (
 
 // ScanManifests merges source-plugin discovery and runtime-wasm discovery
 // into one normalized manifest list used by lifecycle and governance services.
-func (s *Service) ScanManifests() ([]*Manifest, error) {
+func (s *serviceImpl) ScanManifests() ([]*Manifest, error) {
 	sourceManifests, err := s.scanSourceManifests()
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (s *Service) ScanManifests() ([]*Manifest, error) {
 // scanSourceManifests scans source plugins from apps/lina-plugins. Runtime
 // sample directories are skipped because their clear-text plugin.yaml files
 // are only build inputs, not runtime discovery sources.
-func (s *Service) scanSourceManifests() ([]*Manifest, error) {
+func (s *serviceImpl) scanSourceManifests() ([]*Manifest, error) {
 	pluginRootDir, err := s.resolvePluginRootDir()
 	if err != nil {
 		return s.ScanEmbeddedSourceManifests()
@@ -117,7 +117,7 @@ func (s *Service) scanSourceManifests() ([]*Manifest, error) {
 // scanRuntimeManifests scans the configured runtime wasm storage directory.
 // Discovery is intentionally non-recursive so the host does not impose any extra
 // outer directory convention beyond dropping .wasm files into storagePath.
-func (s *Service) scanRuntimeManifests(ctx context.Context) ([]*Manifest, error) {
+func (s *serviceImpl) scanRuntimeManifests(ctx context.Context) ([]*Manifest, error) {
 	storageDir, err := s.resolveRuntimeStorageDir(ctx)
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func buildDiscoveryLocation(manifest *Manifest) string {
 
 // loadRuntimeManifestFromArtifact reads and validates a WASM artifact file and
 // returns its embedded plugin manifest with fully-hydrated hook/resource specs.
-func (s *Service) loadRuntimeManifestFromArtifact(artifactPath string) (*Manifest, error) {
+func (s *serviceImpl) loadRuntimeManifestFromArtifact(artifactPath string) (*Manifest, error) {
 	if s.artifactParser == nil {
 		return nil, gerror.New("artifact parser not configured")
 	}
@@ -211,7 +211,7 @@ func (s *Service) loadRuntimeManifestFromArtifact(artifactPath string) (*Manifes
 }
 
 // LoadManifestFromYAML parses a plugin.yaml file at the given path into a Manifest.
-func (s *Service) LoadManifestFromYAML(filePath string, manifest *Manifest) error {
+func (s *serviceImpl) LoadManifestFromYAML(filePath string, manifest *Manifest) error {
 	content := gfile.GetBytes(filePath)
 	if len(content) == 0 {
 		return gerror.Newf("插件清单文件为空: %s", filePath)
@@ -220,7 +220,7 @@ func (s *Service) LoadManifestFromYAML(filePath string, manifest *Manifest) erro
 }
 
 // resolvePluginRootDir resolves the plugin root directory from the current working directory.
-func (s *Service) resolvePluginRootDir() (string, error) {
+func (s *serviceImpl) resolvePluginRootDir() (string, error) {
 	workingDir, err := os.Getwd()
 	if err != nil {
 		return "", err
@@ -253,7 +253,7 @@ func (s *Service) resolvePluginRootDir() (string, error) {
 // resolveRuntimeStorageDir resolves the configured runtime WASM storage directory.
 // Relative paths are anchored at the repository root when available so uploads,
 // manual copies, and automated scans all agree on one shared path.
-func (s *Service) resolveRuntimeStorageDir(ctx context.Context) (string, error) {
+func (s *serviceImpl) resolveRuntimeStorageDir(ctx context.Context) (string, error) {
 	storagePath := s.configSvc.GetPluginDynamicStoragePath(ctx)
 	if filepath.IsAbs(storagePath) {
 		return filepath.Clean(storagePath), nil
@@ -271,27 +271,27 @@ func (s *Service) resolveRuntimeStorageDir(ctx context.Context) (string, error) 
 
 // RuntimeStorageDir returns the absolute path of the runtime WASM storage directory
 // configured in plugin.dynamic.storagePath.
-func (s *Service) RuntimeStorageDir(ctx context.Context) (string, error) {
+func (s *serviceImpl) RuntimeStorageDir(ctx context.Context) (string, error) {
 	return s.resolveRuntimeStorageDir(ctx)
 }
 
 // LoadManifestFromArtifactPath loads and validates a dynamic plugin manifest from
 // the given absolute WASM artifact file path.
-func (s *Service) LoadManifestFromArtifactPath(artifactPath string) (*Manifest, error) {
+func (s *serviceImpl) LoadManifestFromArtifactPath(artifactPath string) (*Manifest, error) {
 	return s.loadRuntimeManifestFromArtifact(artifactPath)
 }
 
 // DiscoverSQLPaths discovers plugin SQL files by directory convention.
-func (s *Service) DiscoverSQLPaths(rootDir string, uninstall bool) []string {
+func (s *serviceImpl) DiscoverSQLPaths(rootDir string, uninstall bool) []string {
 	return pluginfs.DiscoverSQLPaths(rootDir, uninstall)
 }
 
 // DiscoverPagePaths discovers plugin page source files by directory convention.
-func (s *Service) DiscoverPagePaths(rootDir string) []string {
+func (s *serviceImpl) DiscoverPagePaths(rootDir string) []string {
 	return pluginfs.DiscoverVuePaths(rootDir, filepath.Join("frontend", "pages"))
 }
 
 // DiscoverSlotPaths discovers plugin slot source files by directory convention.
-func (s *Service) DiscoverSlotPaths(rootDir string) []string {
+func (s *serviceImpl) DiscoverSlotPaths(rootDir string) []string {
 	return pluginfs.DiscoverVuePaths(rootDir, filepath.Join("frontend", "slots"))
 }

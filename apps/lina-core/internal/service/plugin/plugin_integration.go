@@ -12,7 +12,7 @@ import (
 )
 
 // RegisterHTTPRoutes registers callback-contributed HTTP routes for source plugins.
-func (s *Service) RegisterHTTPRoutes(
+func (s *serviceImpl) RegisterHTTPRoutes(
 	ctx context.Context,
 	pluginGroup *ghttp.RouterGroup,
 	middlewares pluginhost.RouteMiddlewares,
@@ -21,17 +21,17 @@ func (s *Service) RegisterHTTPRoutes(
 }
 
 // RegisterCrons registers callback-contributed cron jobs for source plugins.
-func (s *Service) RegisterCrons(ctx context.Context) error {
+func (s *serviceImpl) RegisterCrons(ctx context.Context) error {
 	return s.integrationSvc.RegisterCrons(ctx)
 }
 
 // DispatchAfterAuthRequest dispatches callback-style after-auth request handlers.
-func (s *Service) DispatchAfterAuthRequest(ctx context.Context, input pluginhost.AfterAuthInput) {
+func (s *serviceImpl) DispatchAfterAuthRequest(ctx context.Context, input pluginhost.AfterAuthInput) {
 	s.integrationSvc.DispatchAfterAuth(ctx, input)
 }
 
 // DispatchHookEvent dispatches one named hook event to all enabled plugins.
-func (s *Service) DispatchHookEvent(
+func (s *serviceImpl) DispatchHookEvent(
 	ctx context.Context,
 	event pluginhost.ExtensionPoint,
 	values map[string]interface{},
@@ -40,16 +40,16 @@ func (s *Service) DispatchHookEvent(
 }
 
 // FilterMenus filters disabled plugin menus from the given menu list.
-func (s *Service) FilterMenus(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
+func (s *serviceImpl) FilterMenus(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
 	return s.integrationSvc.FilterMenus(ctx, menus)
 }
 
 // FilterPermissionMenus filters permission menus based on plugin enablement.
-func (s *Service) FilterPermissionMenus(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
+func (s *serviceImpl) FilterPermissionMenus(ctx context.Context, menus []*entity.SysMenu) []*entity.SysMenu {
 	return s.integrationSvc.FilterPermissionMenus(ctx, menus)
 }
 
 // ListResourceRecords queries plugin-owned backend resource rows.
-func (s *Service) ListResourceRecords(ctx context.Context, in ResourceListInput) (*ResourceListOutput, error) {
+func (s *serviceImpl) ListResourceRecords(ctx context.Context, in ResourceListInput) (*ResourceListOutput, error) {
 	return s.integrationSvc.ListResourceRecords(ctx, in)
 }

@@ -55,7 +55,7 @@ type PluginItem struct {
 }
 
 // listRuntimeRegistries returns all dynamic-type plugin registry rows.
-func (s *Service) listRuntimeRegistries(ctx context.Context) ([]*entity.SysPlugin, error) {
+func (s *serviceImpl) listRuntimeRegistries(ctx context.Context) ([]*entity.SysPlugin, error) {
 	var list []*entity.SysPlugin
 	err := dao.SysPlugin.Ctx(ctx).
 		Where(do.SysPlugin{Type: catalog.TypeDynamic.String()}).
@@ -68,7 +68,7 @@ func (s *Service) listRuntimeRegistries(ctx context.Context) ([]*entity.SysPlugi
 }
 
 // buildPluginItem returns a PluginItem projection combining manifest and registry data.
-func (s *Service) buildPluginItem(ctx context.Context, manifest *catalog.Manifest, registry *entity.SysPlugin) *PluginItem {
+func (s *serviceImpl) buildPluginItem(ctx context.Context, manifest *catalog.Manifest, registry *entity.SysPlugin) *PluginItem {
 	if manifest == nil && registry == nil {
 		return nil
 	}
@@ -181,7 +181,7 @@ func (s *Service) buildPluginItem(ctx context.Context, manifest *catalog.Manifes
 
 // hasArtifactStorageFile reports whether the runtime artifact for pluginID exists
 // in the configured storage directory.
-func (s *Service) hasArtifactStorageFile(ctx context.Context, pluginID string) (bool, string, error) {
+func (s *serviceImpl) hasArtifactStorageFile(ctx context.Context, pluginID string) (bool, string, error) {
 	storageDir, err := s.catalogSvc.RuntimeStorageDir(ctx)
 	if err != nil {
 		return false, "", err
@@ -203,13 +203,13 @@ func (s *Service) hasArtifactStorageFile(ctx context.Context, pluginID string) (
 }
 
 // HasArtifactStorageFile is the exported form of hasArtifactStorageFile for cross-package access.
-func (s *Service) HasArtifactStorageFile(ctx context.Context, pluginID string) (bool, string, error) {
+func (s *serviceImpl) HasArtifactStorageFile(ctx context.Context, pluginID string) (bool, string, error) {
 	return s.hasArtifactStorageFile(ctx, pluginID)
 }
 
 // reconcileRegistryArtifactState resets a dynamic plugin registry row to
 // uninstalled when its runtime artifact file can no longer be found on disk.
-func (s *Service) reconcileRegistryArtifactState(ctx context.Context, registry *entity.SysPlugin) (*entity.SysPlugin, error) {
+func (s *serviceImpl) reconcileRegistryArtifactState(ctx context.Context, registry *entity.SysPlugin) (*entity.SysPlugin, error) {
 	if registry == nil || catalog.NormalizeType(registry.Type) != catalog.TypeDynamic {
 		return registry, nil
 	}

@@ -6,6 +6,7 @@ import (
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
 
+	"io"
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
@@ -30,17 +31,59 @@ const (
 	DefaultAdminUsername = "admin"
 )
 
-// Service provides user management operations.
-type Service struct {
-	authSvc   *auth.Service   // Authentication service
-	bizCtxSvc *bizctx.Service // Business context service
-	deptSvc   *dept.Service   // Department service
-	roleSvc   *role.Service   // Role service
+// Service defines the user service contract.
+type Service interface {
+	// List queries user list with pagination and filters.
+	List(ctx context.Context, in ListInput) (*ListOutput, error)
+	// GetUserIdsByDeptId returns user IDs associated with a dept and all its descendants.
+	GetUserIdsByDeptId(ctx context.Context, deptId int) ([]int, error)
+	// GetAllAssignedUserIds returns all user IDs that have a dept association.
+	GetAllAssignedUserIds(ctx context.Context) ([]int, error)
+	// GetUserDeptInfo returns the dept ID and name for a user.
+	GetUserDeptInfo(ctx context.Context, userId int) (int, string, error)
+	// Create creates a new user with transaction support.
+	Create(ctx context.Context, in CreateInput) (int, error)
+	// GetById retrieves user by ID.
+	GetById(ctx context.Context, id int) (*entity.SysUser, error)
+	// Update updates user information with transaction support.
+	Update(ctx context.Context, in UpdateInput) error
+	// Delete soft-deletes a user.
+	Delete(ctx context.Context, id int) error
+	// UpdateStatus updates user status.
+	UpdateStatus(ctx context.Context, id int, status Status) error
+	// GetProfile retrieves current user profile.
+	GetProfile(ctx context.Context) (*entity.SysUser, error)
+	// UpdateProfile updates current user profile.
+	UpdateProfile(ctx context.Context, in UpdateProfileInput) error
+	// ResetPassword resets a user's password.
+	ResetPassword(ctx context.Context, id int, password string) error
+	// UpdateAvatar updates current user's avatar URL.
+	UpdateAvatar(ctx context.Context, avatarUrl string) error
+	// GetUserPostIds returns the post IDs associated with a user.
+	GetUserPostIds(ctx context.Context, userId int) ([]int, error)
+	// GetUserRoleIds returns the role IDs associated with a user.
+	GetUserRoleIds(ctx context.Context, userId int) ([]int, error)
+	// Export generates an Excel file with user data based on IDs.
+	Export(ctx context.Context, in ExportInput) (data []byte, err error)
+	// Import reads an Excel file and creates users from it.
+	Import(ctx context.Context, fileReader io.Reader) (result *ImportResult, err error)
+	// GenerateImportTemplate creates an Excel template for user import.
+	GenerateImportTemplate() (data []byte, err error)
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
+	authSvc   auth.Service
+	bizCtxSvc bizctx.Service
+	deptSvc   dept.Service
+	roleSvc   role.Service // Role service
 }
 
 // New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{
+func New() Service {
+	return &serviceImpl{
 		authSvc:   auth.New(),
 		bizCtxSvc: bizctx.New(),
 		deptSvc:   dept.New(),
@@ -80,7 +123,7 @@ type ListOutput struct {
 }
 
 // List queries user list with pagination and filters.
-func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
+func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysUser.Columns()
 		m    = dao.SysUser.Ctx(ctx)
@@ -286,7 +329,7 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 }
 
 // GetUserIdsByDeptId returns user IDs associated with a dept and all its descendants.
-func (s *Service) GetUserIdsByDeptId(ctx context.Context, deptId int) ([]int, error) {
+func (s *serviceImpl) GetUserIdsByDeptId(ctx context.Context, deptId int) ([]int, error) {
 	// Use shared method from dept service to get dept and descendant IDs
 	deptIds, err := s.deptSvc.GetDeptAndDescendantIds(ctx, deptId)
 	if err != nil {
@@ -314,7 +357,7 @@ func (s *Service) GetUserIdsByDeptId(ctx context.Context, deptId int) ([]int, er
 }
 
 // GetAllAssignedUserIds returns all user IDs that have a dept association.
-func (s *Service) GetAllAssignedUserIds(ctx context.Context) ([]int, error) {
+func (s *serviceImpl) GetAllAssignedUserIds(ctx context.Context) ([]int, error) {
 	var userDepts []*entity.SysUserDept
 	err := dao.SysUserDept.Ctx(ctx).
 		Fields(dao.SysUserDept.Columns().UserId).
@@ -331,7 +374,7 @@ func (s *Service) GetAllAssignedUserIds(ctx context.Context) ([]int, error) {
 }
 
 // GetUserDeptInfo returns the dept ID and name for a user.
-func (s *Service) GetUserDeptInfo(ctx context.Context, userId int) (int, string, error) {
+func (s *serviceImpl) GetUserDeptInfo(ctx context.Context, userId int) (int, string, error) {
 	var userDept *entity.SysUserDept
 	err := dao.SysUserDept.Ctx(ctx).
 		Where(dao.SysUserDept.Columns().UserId, userId).
@@ -365,7 +408,7 @@ type CreateInput struct {
 }
 
 // Create creates a new user with transaction support.
-func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
+func (s *serviceImpl) Create(ctx context.Context, in CreateInput) (int, error) {
 	// Check username uniqueness
 	count, err := dao.SysUser.Ctx(ctx).
 		Where(do.SysUser{Username: in.Username}).
@@ -454,7 +497,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 }
 
 // GetById retrieves user by ID.
-func (s *Service) GetById(ctx context.Context, id int) (*entity.SysUser, error) {
+func (s *serviceImpl) GetById(ctx context.Context, id int) (*entity.SysUser, error) {
 	var user *entity.SysUser
 	cols := dao.SysUser.Columns()
 	err := dao.SysUser.Ctx(ctx).
@@ -487,7 +530,7 @@ type UpdateInput struct {
 }
 
 // Update updates user information with transaction support.
-func (s *Service) Update(ctx context.Context, in UpdateInput) error {
+func (s *serviceImpl) Update(ctx context.Context, in UpdateInput) error {
 	// Cannot edit self via admin panel
 	bizCtx := s.bizCtxSvc.Get(ctx)
 	if bizCtx != nil && bizCtx.UserId == in.Id {
@@ -598,7 +641,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 }
 
 // Delete soft-deletes a user.
-func (s *Service) Delete(ctx context.Context, id int) error {
+func (s *serviceImpl) Delete(ctx context.Context, id int) error {
 	// Cannot delete default admin
 	user, err := s.GetById(ctx, id)
 	if err != nil {
@@ -638,7 +681,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 }
 
 // UpdateStatus updates user status.
-func (s *Service) UpdateStatus(ctx context.Context, id int, status Status) error {
+func (s *serviceImpl) UpdateStatus(ctx context.Context, id int, status Status) error {
 	// Cannot disable self
 	bizCtx := s.bizCtxSvc.Get(ctx)
 	if bizCtx != nil && bizCtx.UserId == id && status == StatusDisabled {
@@ -659,7 +702,7 @@ func (s *Service) UpdateStatus(ctx context.Context, id int, status Status) error
 }
 
 // GetProfile retrieves current user profile.
-func (s *Service) GetProfile(ctx context.Context) (*entity.SysUser, error) {
+func (s *serviceImpl) GetProfile(ctx context.Context) (*entity.SysUser, error) {
 	bizCtx := s.bizCtxSvc.Get(ctx)
 	if bizCtx == nil {
 		return nil, gerror.New("未登录")
@@ -677,7 +720,7 @@ type UpdateProfileInput struct {
 }
 
 // UpdateProfile updates current user profile.
-func (s *Service) UpdateProfile(ctx context.Context, in UpdateProfileInput) error {
+func (s *serviceImpl) UpdateProfile(ctx context.Context, in UpdateProfileInput) error {
 	bizCtx := s.bizCtxSvc.Get(ctx)
 	if bizCtx == nil {
 		return gerror.New("未登录")
@@ -709,7 +752,7 @@ func (s *Service) UpdateProfile(ctx context.Context, in UpdateProfileInput) erro
 }
 
 // ResetPassword resets a user's password.
-func (s *Service) ResetPassword(ctx context.Context, id int, password string) error {
+func (s *serviceImpl) ResetPassword(ctx context.Context, id int, password string) error {
 	// Check user exists
 	if _, err := s.GetById(ctx, id); err != nil {
 		return err
@@ -731,7 +774,7 @@ func (s *Service) ResetPassword(ctx context.Context, id int, password string) er
 }
 
 // UpdateAvatar updates current user's avatar URL.
-func (s *Service) UpdateAvatar(ctx context.Context, avatarUrl string) error {
+func (s *serviceImpl) UpdateAvatar(ctx context.Context, avatarUrl string) error {
 	bizCtx := s.bizCtxSvc.Get(ctx)
 	if bizCtx == nil {
 		return gerror.New("未登录")
@@ -746,7 +789,7 @@ func (s *Service) UpdateAvatar(ctx context.Context, avatarUrl string) error {
 }
 
 // GetUserPostIds returns the post IDs associated with a user.
-func (s *Service) GetUserPostIds(ctx context.Context, userId int) ([]int, error) {
+func (s *serviceImpl) GetUserPostIds(ctx context.Context, userId int) ([]int, error) {
 	var userPosts []*entity.SysUserPost
 	err := dao.SysUserPost.Ctx(ctx).
 		Where(dao.SysUserPost.Columns().UserId, userId).
@@ -762,7 +805,7 @@ func (s *Service) GetUserPostIds(ctx context.Context, userId int) ([]int, error)
 }
 
 // GetUserRoleIds returns the role IDs associated with a user.
-func (s *Service) GetUserRoleIds(ctx context.Context, userId int) ([]int, error) {
+func (s *serviceImpl) GetUserRoleIds(ctx context.Context, userId int) ([]int, error) {
 	var userRoles []*entity.SysUserRole
 	err := dao.SysUserRole.Ctx(ctx).
 		Where(dao.SysUserRole.Columns().UserId, userId).

@@ -23,21 +23,51 @@ type RuntimeFrontendAssetOutput struct {
 	ContentType string
 }
 
-// Service manages in-memory frontend bundles for dynamic plugins.
-type Service struct {
-	// catalogSvc provides manifest, registry, and release access.
-	catalogSvc *catalog.Service
+// Service defines the frontend service contract.
+type Service interface {
+	// EnsureBundleReader returns a BundleReader for the manifest, building and caching the bundle if needed.
+	EnsureBundleReader(ctx context.Context, manifest *catalog.Manifest) (BundleReader, error)
+	// ValidateRuntimeFrontendMenuBindings verifies that dynamic plugin menus only reference
+	// hosted assets that exist in the plugin's in-memory bundle.
+	ValidateRuntimeFrontendMenuBindings(ctx context.Context, manifest *catalog.Manifest) error
+	// ValidateHostedMenuBindings is the exported form of validateHostedMenuBindings for cross-package access.
+	ValidateHostedMenuBindings(ctx context.Context, manifest *catalog.Manifest, menus []*entity.SysMenu) error
+	// PrewarmRuntimeFrontendBundles rebuilds in-memory frontend bundles for all enabled
+	// dynamic plugins during host startup. A single failed preload does not stop the host;
+	// errors are collected and returned as one joined error.
+	PrewarmRuntimeFrontendBundles(ctx context.Context) error
+	// ResolveRuntimeFrontendAsset resolves one enabled dynamic plugin frontend asset for public serving.
+	ResolveRuntimeFrontendAsset(
+		ctx context.Context,
+		pluginID string,
+		version string,
+		relativePath string,
+	) (*RuntimeFrontendAssetOutput, error)
+	// BuildRuntimeFrontendPublicBaseURL returns the stable public base URL for runtime plugin assets.
+	BuildRuntimeFrontendPublicBaseURL(pluginID string, version string) string
+	// InvalidateBundle removes all cached bundle entries for the given plugin ID.
+	InvalidateBundle(ctx context.Context, pluginID string, reason string)
+	// EnsureBundle guarantees an in-memory frontend bundle exists for the given manifest,
+	// building and caching it if necessary. Returns the bundle for immediate use.
+	// This is called by the runtime reconciler to pre-warm bundles after reconciliation.
+	EnsureBundle(ctx context.Context, manifest *catalog.Manifest) error
 }
 
-// New creates a new frontend Service backed by the given catalog service.
-func New(catalogSvc *catalog.Service) *Service {
-	return &Service{catalogSvc: catalogSvc}
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
+	catalogSvc catalog.Service
+}
+
+func New(catalogSvc catalog.Service) Service {
+	return &serviceImpl{catalogSvc: catalogSvc}
 }
 
 // PrewarmRuntimeFrontendBundles rebuilds in-memory frontend bundles for all enabled
 // dynamic plugins during host startup. A single failed preload does not stop the host;
 // errors are collected and returned as one joined error.
-func (s *Service) PrewarmRuntimeFrontendBundles(ctx context.Context) error {
+func (s *serviceImpl) PrewarmRuntimeFrontendBundles(ctx context.Context) error {
 	registries, err := s.catalogSvc.ListAllRegistries(ctx)
 	if err != nil {
 		return err
@@ -89,7 +119,7 @@ func (s *Service) PrewarmRuntimeFrontendBundles(ctx context.Context) error {
 }
 
 // ResolveRuntimeFrontendAsset resolves one enabled dynamic plugin frontend asset for public serving.
-func (s *Service) ResolveRuntimeFrontendAsset(
+func (s *serviceImpl) ResolveRuntimeFrontendAsset(
 	ctx context.Context,
 	pluginID string,
 	version string,
@@ -152,19 +182,19 @@ func (s *Service) ResolveRuntimeFrontendAsset(
 }
 
 // BuildRuntimeFrontendPublicBaseURL returns the stable public base URL for runtime plugin assets.
-func (s *Service) BuildRuntimeFrontendPublicBaseURL(pluginID string, version string) string {
+func (s *serviceImpl) BuildRuntimeFrontendPublicBaseURL(pluginID string, version string) string {
 	return "/plugin-assets/" + strings.TrimSpace(pluginID) + "/" + strings.TrimSpace(version) + "/"
 }
 
 // InvalidateBundle removes all cached bundle entries for the given plugin ID.
-func (s *Service) InvalidateBundle(ctx context.Context, pluginID string, reason string) {
+func (s *serviceImpl) InvalidateBundle(ctx context.Context, pluginID string, reason string) {
 	invalidateBundle(ctx, pluginID, reason)
 }
 
 // EnsureBundle guarantees an in-memory frontend bundle exists for the given manifest,
 // building and caching it if necessary. Returns the bundle for immediate use.
 // This is called by the runtime reconciler to pre-warm bundles after reconciliation.
-func (s *Service) EnsureBundle(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) EnsureBundle(ctx context.Context, manifest *catalog.Manifest) error {
 	_, err := s.ensureBundle(ctx, manifest)
 	return err
 }
@@ -178,7 +208,7 @@ func HasFrontendAssets(manifest *catalog.Manifest) bool {
 
 // loadActiveDynamicPluginManifest returns the currently active dynamic-plugin manifest
 // reloaded from the stable release archive.
-func (s *Service) loadActiveDynamicPluginManifest(ctx context.Context, registry *entity.SysPlugin) (*catalog.Manifest, error) {
+func (s *serviceImpl) loadActiveDynamicPluginManifest(ctx context.Context, registry *entity.SysPlugin) (*catalog.Manifest, error) {
 	if registry == nil {
 		return nil, gerror.New("插件注册记录不能为空")
 	}

@@ -27,21 +27,21 @@ type integrationTopologyAdapter struct{ t Topology }
 func (a *integrationTopologyAdapter) IsPrimaryNode() bool { return a.t.IsPrimary() }
 
 // jwtConfigAdapter adapts configsvc.Service to runtime.JwtConfigProvider.
-type jwtConfigAdapter struct{ svc *configsvc.Service }
+type jwtConfigAdapter struct{ svc configsvc.Service }
 
 func (a *jwtConfigAdapter) GetJwtSecret(ctx context.Context) string {
 	return a.svc.GetJwt(ctx).Secret
 }
 
 // userCtxAdapter adapts bizctx.Service to runtime.UserContextSetter.
-type userCtxAdapter struct{ svc *bizctx.Service }
+type userCtxAdapter struct{ svc bizctx.Service }
 
 func (a *userCtxAdapter) SetUser(ctx context.Context, tokenID string, userID int, username string, status int) {
 	a.svc.SetUser(ctx, tokenID, userID, username, status)
 }
 
 // bizCtxAdapter adapts bizctx.Service to integration.BizCtxProvider.
-type bizCtxAdapter struct{ svc *bizctx.Service }
+type bizCtxAdapter struct{ svc bizctx.Service }
 
 func (a *bizCtxAdapter) GetUserId(ctx context.Context) int {
 	bizUser := a.svc.Get(ctx)

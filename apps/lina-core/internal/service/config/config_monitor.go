@@ -14,7 +14,7 @@ type MonitorConfig struct {
 }
 
 // GetMonitor reads monitor config from configuration file.
-func (s *Service) GetMonitor(ctx context.Context) *MonitorConfig {
+func (s *serviceImpl) GetMonitor(ctx context.Context) *MonitorConfig {
 	cfg := &MonitorConfig{
 		Interval:            30 * time.Second,
 		RetentionMultiplier: 5,

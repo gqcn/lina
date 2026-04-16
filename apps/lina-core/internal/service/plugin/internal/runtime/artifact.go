@@ -90,7 +90,7 @@ func isMissingArtifactError(err error) bool {
 
 // ParseRuntimeWasmArtifact reads one WASM artifact file and extracts all embedded custom sections.
 // It implements the catalog.ArtifactParser interface.
-func (s *Service) ParseRuntimeWasmArtifact(filePath string) (*catalog.ArtifactSpec, error) {
+func (s *serviceImpl) ParseRuntimeWasmArtifact(filePath string) (*catalog.ArtifactSpec, error) {
 	content := gfile.GetBytes(filePath)
 	if len(content) == 0 {
 		return nil, gerror.Newf("动态插件产物为空: %s", filePath)
@@ -100,7 +100,7 @@ func (s *Service) ParseRuntimeWasmArtifact(filePath string) (*catalog.ArtifactSp
 
 // ParseRuntimeWasmArtifactContent parses one WASM artifact from an in-memory byte slice.
 // It implements the catalog.ArtifactParser interface.
-func (s *Service) ParseRuntimeWasmArtifactContent(filePath string, content []byte) (*catalog.ArtifactSpec, error) {
+func (s *serviceImpl) ParseRuntimeWasmArtifactContent(filePath string, content []byte) (*catalog.ArtifactSpec, error) {
 	sections, err := parseWasmCustomSections(content)
 	if err != nil {
 		return nil, gerror.Wrapf(err, "解析动态插件产物失败: %s", filePath)
@@ -244,7 +244,7 @@ func (s *Service) ParseRuntimeWasmArtifactContent(filePath string, content []byt
 
 // ValidateRuntimeArtifact loads and validates the WASM artifact for a dynamic plugin source directory.
 // It implements the catalog.ArtifactParser interface.
-func (s *Service) ValidateRuntimeArtifact(manifest *catalog.Manifest, rootDir string) error {
+func (s *serviceImpl) ValidateRuntimeArtifact(manifest *catalog.Manifest, rootDir string) error {
 	artifactPath, err := resolveArtifactPath(rootDir, manifest.ID)
 	if err != nil {
 		return err
@@ -277,7 +277,7 @@ func (s *Service) ValidateRuntimeArtifact(manifest *catalog.Manifest, rootDir st
 }
 
 // ensureArtifactAvailable ensures the WASM artifact is present for lifecycle operations.
-func (s *Service) ensureArtifactAvailable(manifest *catalog.Manifest, actionLabel string) error {
+func (s *serviceImpl) ensureArtifactAvailable(manifest *catalog.Manifest, actionLabel string) error {
 	if manifest == nil {
 		return gerror.New("插件清单不能为空")
 	}
@@ -303,7 +303,7 @@ func (s *Service) ensureArtifactAvailable(manifest *catalog.Manifest, actionLabe
 }
 
 // buildPluginRegistryChecksum returns the SHA-256 checksum of the plugin artifact or manifest.
-func (s *Service) buildPluginRegistryChecksum(manifest *catalog.Manifest) string {
+func (s *serviceImpl) buildPluginRegistryChecksum(manifest *catalog.Manifest) string {
 	if manifest == nil {
 		return ""
 	}

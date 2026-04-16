@@ -20,7 +20,7 @@ type UserAccessContext struct {
 }
 
 // GetUserAccessContext loads the user's roles, menus, and permissions with token-aware caching when available.
-func (s *Service) GetUserAccessContext(ctx context.Context, userId int) (*UserAccessContext, error) {
+func (s *serviceImpl) GetUserAccessContext(ctx context.Context, userId int) (*UserAccessContext, error) {
 	tokenID := s.resolveAccessTokenID(ctx)
 	if tokenID != "" {
 		return s.getTokenAccessContext(ctx, tokenID, userId)
@@ -29,7 +29,7 @@ func (s *Service) GetUserAccessContext(ctx context.Context, userId int) (*UserAc
 }
 
 // loadUserAccessContext loads the user's roles, menus, and permissions directly from storage.
-func (s *Service) loadUserAccessContext(ctx context.Context, userId int) (*UserAccessContext, error) {
+func (s *serviceImpl) loadUserAccessContext(ctx context.Context, userId int) (*UserAccessContext, error) {
 	roleIds, err := s.GetUserRoleIds(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func (s *Service) loadUserAccessContext(ctx context.Context, userId int) (*UserA
 
 // getUserRolesByRoleIds loads only enabled roles because disabled roles must no
 // longer contribute names or grants to the effective access snapshot.
-func (s *Service) getUserRolesByRoleIds(ctx context.Context, roleIds []int) ([]*entity.SysRole, error) {
+func (s *serviceImpl) getUserRolesByRoleIds(ctx context.Context, roleIds []int) ([]*entity.SysRole, error) {
 	if len(roleIds) == 0 {
 		return []*entity.SysRole{}, nil
 	}
@@ -101,7 +101,7 @@ func (s *Service) getUserRolesByRoleIds(ctx context.Context, roleIds []int) ([]*
 
 // getUserMenuIdsByRoleIds flattens the role-menu relation into one deduplicated
 // menu ID list that later drives permission resolution.
-func (s *Service) getUserMenuIdsByRoleIds(ctx context.Context, roleIds []int) ([]int, error) {
+func (s *serviceImpl) getUserMenuIdsByRoleIds(ctx context.Context, roleIds []int) ([]int, error) {
 	if len(roleIds) == 0 {
 		return []int{}, nil
 	}
@@ -132,7 +132,7 @@ func (s *Service) getUserMenuIdsByRoleIds(ctx context.Context, roleIds []int) ([
 
 // getUserPermissionsByMenuIds resolves enabled menu permissions and lets the
 // plugin layer filter out permissions hidden by plugin enablement or callbacks.
-func (s *Service) getUserPermissionsByMenuIds(ctx context.Context, menuIds []int) ([]string, error) {
+func (s *serviceImpl) getUserPermissionsByMenuIds(ctx context.Context, menuIds []int) ([]string, error) {
 	if len(menuIds) == 0 {
 		return []string{}, nil
 	}

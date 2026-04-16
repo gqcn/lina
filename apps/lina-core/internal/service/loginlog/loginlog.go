@@ -25,14 +25,32 @@ const (
 	LoginStatusFail    = 1 // 失败
 )
 
-// Service provides login log operations.
-type Service struct {
-	dictSvc *dictsvc.Service // dictionary service for label lookups
+// Service defines the loginlog service contract.
+type Service interface {
+	// Create inserts a new login log record.
+	Create(ctx context.Context, in CreateInput) error
+	// List queries login log list with pagination and filters.
+	List(ctx context.Context, in ListInput) (*ListOutput, error)
+	// GetById retrieves login log by ID.
+	GetById(ctx context.Context, id int) (*entity.SysLoginLog, error)
+	// Clean hard-deletes login logs by time range.
+	Clean(ctx context.Context, in CleanInput) (int, error)
+	// DeleteByIds hard-deletes login logs by IDs.
+	DeleteByIds(ctx context.Context, ids []int) (int, error)
+	// Export generates an Excel file with login log data (max 10000 rows).
+	Export(ctx context.Context, in ExportInput) (data []byte, err error)
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
+	dictSvc dictsvc.Service // dictionary service for label lookups
 }
 
 // New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{
+func New() Service {
+	return &serviceImpl{
 		dictSvc: dictsvc.New(),
 	}
 }
@@ -48,7 +66,7 @@ type CreateInput struct {
 }
 
 // Create inserts a new login log record.
-func (s *Service) Create(ctx context.Context, in CreateInput) error {
+func (s *serviceImpl) Create(ctx context.Context, in CreateInput) error {
 	_, err := dao.SysLoginLog.Ctx(ctx).Data(do.SysLoginLog{
 		UserName:  in.UserName,
 		Status:    in.Status,
@@ -81,7 +99,7 @@ type ListOutput struct {
 }
 
 // List queries login log list with pagination and filters.
-func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
+func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	cols := dao.SysLoginLog.Columns()
 	m := dao.SysLoginLog.Ctx(ctx)
 
@@ -141,7 +159,7 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 }
 
 // GetById retrieves login log by ID.
-func (s *Service) GetById(ctx context.Context, id int) (*entity.SysLoginLog, error) {
+func (s *serviceImpl) GetById(ctx context.Context, id int) (*entity.SysLoginLog, error) {
 	var record *entity.SysLoginLog
 	err := dao.SysLoginLog.Ctx(ctx).
 		Where(do.SysLoginLog{Id: id}).
@@ -162,7 +180,7 @@ type CleanInput struct {
 }
 
 // Clean hard-deletes login logs by time range.
-func (s *Service) Clean(ctx context.Context, in CleanInput) (int, error) {
+func (s *serviceImpl) Clean(ctx context.Context, in CleanInput) (int, error) {
 	cols := dao.SysLoginLog.Columns()
 	m := dao.SysLoginLog.Ctx(ctx)
 
@@ -195,7 +213,7 @@ func (s *Service) Clean(ctx context.Context, in CleanInput) (int, error) {
 }
 
 // DeleteByIds hard-deletes login logs by IDs.
-func (s *Service) DeleteByIds(ctx context.Context, ids []int) (int, error) {
+func (s *serviceImpl) DeleteByIds(ctx context.Context, ids []int) (int, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
@@ -223,7 +241,7 @@ type ExportInput struct {
 }
 
 // Export generates an Excel file with login log data (max 10000 rows).
-func (s *Service) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
+func (s *serviceImpl) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
 	cols := dao.SysLoginLog.Columns()
 	m := dao.SysLoginLog.Ctx(ctx)
 

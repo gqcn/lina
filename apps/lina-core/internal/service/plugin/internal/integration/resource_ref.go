@@ -55,7 +55,7 @@ const (
 // SyncPluginResourceReferences keeps sys_plugin_resource_ref aligned with the
 // current governance resource index derived from the given manifest.
 // It implements catalog.ResourceRefSyncer.
-func (s *Service) SyncPluginResourceReferences(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) SyncPluginResourceReferences(ctx context.Context, manifest *catalog.Manifest) error {
 	if manifest == nil {
 		return nil
 	}
@@ -156,7 +156,7 @@ func (s *Service) SyncPluginResourceReferences(ctx context.Context, manifest *ca
 
 // listPluginResourceRefs returns all governance index rows for one plugin
 // release, including soft-deleted rows.
-func (s *Service) listPluginResourceRefs(ctx context.Context, pluginID string, releaseID int) ([]*entity.SysPluginResourceRef, error) {
+func (s *serviceImpl) listPluginResourceRefs(ctx context.Context, pluginID string, releaseID int) ([]*entity.SysPluginResourceRef, error) {
 	items := make([]*entity.SysPluginResourceRef, 0)
 	err := dao.SysPluginResourceRef.Ctx(ctx).
 		Unscoped().
@@ -170,7 +170,7 @@ func (s *Service) listPluginResourceRefs(ctx context.Context, pluginID string, r
 
 // buildPluginResourceRefDescriptors converts concrete discovery results into
 // framework-agnostic governance index records.
-func (s *Service) buildPluginResourceRefDescriptors(manifest *catalog.Manifest) []*catalog.ResourceRefDescriptor {
+func (s *serviceImpl) buildPluginResourceRefDescriptors(manifest *catalog.Manifest) []*catalog.ResourceRefDescriptor {
 	if manifest == nil {
 		return []*catalog.ResourceRefDescriptor{}
 	}
@@ -276,7 +276,7 @@ func (s *Service) buildPluginResourceRefDescriptors(manifest *catalog.Manifest) 
 
 // countPluginInstallSQLAssets returns the number of install SQL steps for the manifest.
 // For dynamic plugins the count comes from the embedded artifact; for source plugins it scans disk.
-func (s *Service) countPluginInstallSQLAssets(manifest *catalog.Manifest) int {
+func (s *serviceImpl) countPluginInstallSQLAssets(manifest *catalog.Manifest) int {
 	if manifest == nil {
 		return 0
 	}
@@ -288,7 +288,7 @@ func (s *Service) countPluginInstallSQLAssets(manifest *catalog.Manifest) int {
 
 // countPluginUninstallSQLAssets returns the number of uninstall SQL steps for the manifest.
 // For dynamic plugins the count comes from the embedded artifact; for source plugins it scans disk.
-func (s *Service) countPluginUninstallSQLAssets(manifest *catalog.Manifest) int {
+func (s *serviceImpl) countPluginUninstallSQLAssets(manifest *catalog.Manifest) int {
 	if manifest == nil {
 		return 0
 	}
@@ -507,11 +507,11 @@ func buildMethodSummary(methods []string) string {
 }
 
 // ListPluginResourceRefs is the exported form of listPluginResourceRefs for cross-package access.
-func (s *Service) ListPluginResourceRefs(ctx context.Context, pluginID string, releaseID int) ([]*entity.SysPluginResourceRef, error) {
+func (s *serviceImpl) ListPluginResourceRefs(ctx context.Context, pluginID string, releaseID int) ([]*entity.SysPluginResourceRef, error) {
 	return s.listPluginResourceRefs(ctx, pluginID, releaseID)
 }
 
 // BuildResourceRefDescriptors is the exported form of buildPluginResourceRefDescriptors for cross-package access.
-func (s *Service) BuildResourceRefDescriptors(manifest *catalog.Manifest) []*catalog.ResourceRefDescriptor {
+func (s *serviceImpl) BuildResourceRefDescriptors(manifest *catalog.Manifest) []*catalog.ResourceRefDescriptor {
 	return s.buildPluginResourceRefDescriptors(manifest)
 }

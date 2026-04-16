@@ -34,7 +34,7 @@ func buildReleaseArtifactRelativePath(pluginID string, version string) string {
 // versioned archive path and returns that stable relative path. Same-version
 // refreshes overwrite the archive when bytes differ so the active release always
 // points at the exact content currently reconciled.
-func (s *Service) archiveReleaseArtifact(ctx context.Context, manifest *catalog.Manifest) (string, error) {
+func (s *serviceImpl) archiveReleaseArtifact(ctx context.Context, manifest *catalog.Manifest) (string, error) {
 	if manifest == nil || manifest.RuntimeArtifact == nil {
 		return "", gerror.New("动态插件归档要求存在有效产物")
 	}
@@ -75,7 +75,7 @@ func (s *Service) archiveReleaseArtifact(ctx context.Context, manifest *catalog.
 
 // resolveReleasePackagePath resolves one persisted release package path into an
 // absolute host path. Relative paths are anchored at the runtime storage directory.
-func (s *Service) resolveReleasePackagePath(ctx context.Context, release *entity.SysPluginRelease) (string, error) {
+func (s *serviceImpl) resolveReleasePackagePath(ctx context.Context, release *entity.SysPluginRelease) (string, error) {
 	if release == nil {
 		return "", gerror.New("插件 release 不能为空")
 	}
@@ -96,7 +96,7 @@ func (s *Service) resolveReleasePackagePath(ctx context.Context, release *entity
 }
 
 // loadManifestFromRelease reloads one dynamic manifest from its persisted release archive.
-func (s *Service) loadManifestFromRelease(ctx context.Context, release *entity.SysPluginRelease) (*catalog.Manifest, error) {
+func (s *serviceImpl) loadManifestFromRelease(ctx context.Context, release *entity.SysPluginRelease) (*catalog.Manifest, error) {
 	if release == nil {
 		return nil, gerror.New("插件 release 不能为空")
 	}
@@ -106,7 +106,7 @@ func (s *Service) loadManifestFromRelease(ctx context.Context, release *entity.S
 // LoadActiveDynamicPluginManifest implements catalog.DynamicManifestLoader.
 // It returns the currently active dynamic-plugin manifest reloaded from the stable
 // release archive so live traffic sees the stable version during staged upgrades.
-func (s *Service) LoadActiveDynamicPluginManifest(ctx context.Context, registry *entity.SysPlugin) (*catalog.Manifest, error) {
+func (s *serviceImpl) LoadActiveDynamicPluginManifest(ctx context.Context, registry *entity.SysPlugin) (*catalog.Manifest, error) {
 	if registry == nil {
 		return nil, gerror.New("插件注册记录不能为空")
 	}
@@ -126,6 +126,6 @@ func (s *Service) LoadActiveDynamicPluginManifest(ctx context.Context, registry 
 
 // loadActiveManifest is the private helper used internally by the reconciler
 // to reload the active manifest without going through the catalog interface.
-func (s *Service) loadActiveManifest(ctx context.Context, registry *entity.SysPlugin) (*catalog.Manifest, error) {
+func (s *serviceImpl) loadActiveManifest(ctx context.Context, registry *entity.SysPlugin) (*catalog.Manifest, error) {
 	return s.LoadActiveDynamicPluginManifest(ctx, registry)
 }

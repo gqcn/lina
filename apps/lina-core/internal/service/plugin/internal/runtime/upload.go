@@ -48,7 +48,7 @@ type DynamicUploadOutput struct {
 
 // UploadDynamicPackage validates one runtime wasm package and writes it into the
 // configured plugin.dynamic.storagePath directory.
-func (s *Service) UploadDynamicPackage(ctx context.Context, in *DynamicUploadInput) (out *DynamicUploadOutput, err error) {
+func (s *serviceImpl) UploadDynamicPackage(ctx context.Context, in *DynamicUploadInput) (out *DynamicUploadOutput, err error) {
 	if in == nil || in.File == nil {
 		return nil, gerror.New("请上传动态插件文件")
 	}
@@ -91,7 +91,7 @@ func normalizeUploadFilename(filename string) string {
 	return filepath.Base(filename) + ".wasm"
 }
 
-func (s *Service) storeUploadedPackage(
+func (s *serviceImpl) storeUploadedPackage(
 	ctx context.Context,
 	filename string,
 	content []byte,
@@ -197,13 +197,13 @@ func (s *Service) storeUploadedPackage(
 }
 
 // StoreUploadedPackage is the exported form of storeUploadedPackage for cross-package access.
-func (s *Service) StoreUploadedPackage(ctx context.Context, filename string, content []byte, overwriteSupport bool) (*DynamicUploadOutput, error) {
+func (s *serviceImpl) StoreUploadedPackage(ctx context.Context, filename string, content []byte, overwriteSupport bool) (*DynamicUploadOutput, error) {
 	return s.storeUploadedPackage(ctx, filename, content, overwriteSupport)
 }
 
 // findDuplicateArtifactPath scans the storage directory for any .wasm file other than
 // targetPath that embeds the same plugin ID. Returns the conflicting path if found.
-func (s *Service) findDuplicateArtifactPath(storageDir string, pluginID string, targetPath string) (string, error) {
+func (s *serviceImpl) findDuplicateArtifactPath(storageDir string, pluginID string, targetPath string) (string, error) {
 	if !gfile.Exists(storageDir) || !gfile.IsDir(storageDir) {
 		return "", nil
 	}

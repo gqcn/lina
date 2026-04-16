@@ -17,7 +17,7 @@ import (
 )
 
 // ScanEmbeddedSourceManifests discovers manifests from all registered embedded source plugins.
-func (s *Service) ScanEmbeddedSourceManifests() ([]*Manifest, error) {
+func (s *serviceImpl) ScanEmbeddedSourceManifests() ([]*Manifest, error) {
 	sourcePlugins := pluginhost.ListSourcePlugins()
 	if len(sourcePlugins) == 0 {
 		return []*Manifest{}, nil
@@ -79,7 +79,7 @@ func HasSourcePluginEmbeddedFiles(manifest *Manifest) bool {
 
 // ReadSourcePluginManifestContent reads the raw manifest content from an embedded or
 // filesystem-backed source plugin.
-func (s *Service) ReadSourcePluginManifestContent(manifest *Manifest) ([]byte, error) {
+func (s *serviceImpl) ReadSourcePluginManifestContent(manifest *Manifest) ([]byte, error) {
 	if embeddedFiles := GetSourcePluginEmbeddedFiles(manifest); embeddedFiles != nil {
 		content, err := fs.ReadFile(embeddedFiles, pluginfs.EmbeddedManifestPath)
 		if err != nil {
@@ -98,7 +98,7 @@ func (s *Service) ReadSourcePluginManifestContent(manifest *Manifest) ([]byte, e
 }
 
 // ReadSourcePluginAssetContent reads one asset relative path from an embedded or filesystem source plugin.
-func (s *Service) ReadSourcePluginAssetContent(manifest *Manifest, relativePath string) (string, error) {
+func (s *serviceImpl) ReadSourcePluginAssetContent(manifest *Manifest, relativePath string) (string, error) {
 	normalizedPath, err := pluginfs.NormalizeRelativePath(relativePath)
 	if err != nil {
 		return "", err
@@ -120,7 +120,7 @@ func (s *Service) ReadSourcePluginAssetContent(manifest *Manifest, relativePath 
 }
 
 // ListInstallSQLPaths returns the ordered install SQL file paths for a source plugin manifest.
-func (s *Service) ListInstallSQLPaths(manifest *Manifest) []string {
+func (s *serviceImpl) ListInstallSQLPaths(manifest *Manifest) []string {
 	if embeddedFiles := GetSourcePluginEmbeddedFiles(manifest); embeddedFiles != nil {
 		return pluginfs.DiscoverSQLPathsFromFS(embeddedFiles, false)
 	}
@@ -131,7 +131,7 @@ func (s *Service) ListInstallSQLPaths(manifest *Manifest) []string {
 }
 
 // ListUninstallSQLPaths returns the ordered uninstall SQL file paths for a source plugin manifest.
-func (s *Service) ListUninstallSQLPaths(manifest *Manifest) []string {
+func (s *serviceImpl) ListUninstallSQLPaths(manifest *Manifest) []string {
 	if embeddedFiles := GetSourcePluginEmbeddedFiles(manifest); embeddedFiles != nil {
 		return pluginfs.DiscoverSQLPathsFromFS(embeddedFiles, true)
 	}
@@ -142,7 +142,7 @@ func (s *Service) ListUninstallSQLPaths(manifest *Manifest) []string {
 }
 
 // ListFrontendPagePaths returns the frontend page source paths for a source plugin manifest.
-func (s *Service) ListFrontendPagePaths(manifest *Manifest) []string {
+func (s *serviceImpl) ListFrontendPagePaths(manifest *Manifest) []string {
 	if embeddedFiles := GetSourcePluginEmbeddedFiles(manifest); embeddedFiles != nil {
 		return pluginfs.DiscoverVuePathsFromFS(embeddedFiles, "frontend/pages")
 	}
@@ -153,7 +153,7 @@ func (s *Service) ListFrontendPagePaths(manifest *Manifest) []string {
 }
 
 // ListFrontendSlotPaths returns the frontend slot source paths for a source plugin manifest.
-func (s *Service) ListFrontendSlotPaths(manifest *Manifest) []string {
+func (s *serviceImpl) ListFrontendSlotPaths(manifest *Manifest) []string {
 	if embeddedFiles := GetSourcePluginEmbeddedFiles(manifest); embeddedFiles != nil {
 		return pluginfs.DiscoverVuePathsFromFS(embeddedFiles, "frontend/slots")
 	}

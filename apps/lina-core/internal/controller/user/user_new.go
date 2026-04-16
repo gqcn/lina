@@ -14,10 +14,10 @@ import (
 
 // ControllerV1 is the user controller.
 type ControllerV1 struct {
-	userSvc *usersvc.Service // user service
-	roleSvc *role.Service    // role service
-	menuSvc *menu.Service    // menu service
-	deptSvc *dept.Service    // department service
+	userSvc usersvc.Service // user service
+	roleSvc role.Service    // role service
+	menuSvc menu.Service    // menu service
+	deptSvc dept.Service    // department service
 }
 
 // NewV1 creates and returns a new user controller instance.

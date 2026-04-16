@@ -31,7 +31,7 @@ const (
 // SyncPluginMenusAndPermissions reconciles all manifest menus and dynamic route permission
 // entries into sys_menu, then ensures the admin role has access to them.
 // It implements runtime.MenuManager and catalog.MenuSyncer.
-func (s *Service) SyncPluginMenusAndPermissions(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) SyncPluginMenusAndPermissions(ctx context.Context, manifest *catalog.Manifest) error {
 	if manifest == nil {
 		return nil
 	}
@@ -46,7 +46,7 @@ func (s *Service) SyncPluginMenusAndPermissions(ctx context.Context, manifest *c
 // SyncPluginMenus reconciles only the manifest-declared menus, skipping route-permission entries.
 // Used during reconciler rollback to restore the previous menu state without touching permissions.
 // It implements runtime.MenuManager.
-func (s *Service) SyncPluginMenus(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) SyncPluginMenus(ctx context.Context, manifest *catalog.Manifest) error {
 	if manifest == nil {
 		return nil
 	}
@@ -57,7 +57,7 @@ func (s *Service) SyncPluginMenus(ctx context.Context, manifest *catalog.Manifes
 
 // DeletePluginMenusByManifest removes all plugin-owned menu rows for the given manifest.
 // It implements runtime.MenuManager.
-func (s *Service) DeletePluginMenusByManifest(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) DeletePluginMenusByManifest(ctx context.Context, manifest *catalog.Manifest) error {
 	if manifest == nil {
 		return nil
 	}
@@ -76,7 +76,7 @@ func (s *Service) DeletePluginMenusByManifest(ctx context.Context, manifest *cat
 }
 
 // syncPluginMenusInTx reconciles one plugin's declared menus inside the caller's transaction.
-func (s *Service) syncPluginMenusInTx(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) syncPluginMenusInTx(ctx context.Context, manifest *catalog.Manifest) error {
 	declaredKeys := s.listDeclaredPluginMenuKeys(manifest)
 	existingMenus, err := s.listPluginMenusByPlugin(ctx, manifest.ID)
 	if err != nil {
@@ -153,7 +153,7 @@ func (s *Service) syncPluginMenusInTx(ctx context.Context, manifest *catalog.Man
 }
 
 // syncDynamicRoutePermissionMenus materializes route permission entries as hidden button menus.
-func (s *Service) syncDynamicRoutePermissionMenus(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) syncDynamicRoutePermissionMenus(ctx context.Context, manifest *catalog.Manifest) error {
 	if manifest == nil {
 		return nil
 	}
@@ -197,7 +197,7 @@ func (s *Service) syncDynamicRoutePermissionMenus(ctx context.Context, manifest 
 }
 
 // buildDynamicRoutePermissionMenuSpecs derives synthetic hidden button menus from manifest routes.
-func (s *Service) buildDynamicRoutePermissionMenuSpecs(manifest *catalog.Manifest) []*catalog.MenuSpec {
+func (s *serviceImpl) buildDynamicRoutePermissionMenuSpecs(manifest *catalog.Manifest) []*catalog.MenuSpec {
 	if manifest == nil || len(manifest.Routes) == 0 {
 		return []*catalog.MenuSpec{}
 	}
@@ -245,7 +245,7 @@ func buildDynamicRoutePermissionMenuRemark(pluginID string) string {
 	return catalog.MenuRemarkPrefix + strings.TrimSpace(pluginID) + catalog.DynamicRoutePermissionMenuRemarkSuffix
 }
 
-func (s *Service) listDeclaredPluginMenuKeys(manifest *catalog.Manifest) map[string]struct{} {
+func (s *serviceImpl) listDeclaredPluginMenuKeys(manifest *catalog.Manifest) map[string]struct{} {
 	declaredKeys := make(map[string]struct{}, len(manifest.Menus))
 	if manifest == nil {
 		return declaredKeys
@@ -259,7 +259,7 @@ func (s *Service) listDeclaredPluginMenuKeys(manifest *catalog.Manifest) map[str
 	return declaredKeys
 }
 
-func (s *Service) listPluginMenuExternalParents(ctx context.Context, manifest *catalog.Manifest) (map[string]*entity.SysMenu, error) {
+func (s *serviceImpl) listPluginMenuExternalParents(ctx context.Context, manifest *catalog.Manifest) (map[string]*entity.SysMenu, error) {
 	declaredKeys := s.listDeclaredPluginMenuKeys(manifest)
 	parentKeys := make([]string, 0)
 	seen := make(map[string]struct{})
@@ -279,7 +279,7 @@ func (s *Service) listPluginMenuExternalParents(ctx context.Context, manifest *c
 	return s.listMenusByKeys(ctx, parentKeys, false)
 }
 
-func (s *Service) resolvePluginMenuParentID(
+func (s *serviceImpl) resolvePluginMenuParentID(
 	spec *catalog.MenuSpec,
 	declaredKeys map[string]struct{},
 	resolvedIDs map[string]int,
@@ -302,7 +302,7 @@ func (s *Service) resolvePluginMenuParentID(
 	return parent.Id, true, nil
 }
 
-func (s *Service) upsertPluginMenu(
+func (s *serviceImpl) upsertPluginMenu(
 	ctx context.Context,
 	spec *catalog.MenuSpec,
 	parentID int,
@@ -378,7 +378,7 @@ func (s *Service) upsertPluginMenu(
 	return existing.Id, nil
 }
 
-func (s *Service) ensurePluginMenuAdminBindings(ctx context.Context, resolvedIDs map[string]int) error {
+func (s *serviceImpl) ensurePluginMenuAdminBindings(ctx context.Context, resolvedIDs map[string]int) error {
 	menuIDs := make([]int, 0, len(resolvedIDs))
 	for _, menuID := range resolvedIDs {
 		if menuID <= 0 {
@@ -401,7 +401,7 @@ func (s *Service) ensurePluginMenuAdminBindings(ctx context.Context, resolvedIDs
 	return nil
 }
 
-func (s *Service) listPluginMenusByPlugin(ctx context.Context, pluginID string) ([]*entity.SysMenu, error) {
+func (s *serviceImpl) listPluginMenusByPlugin(ctx context.Context, pluginID string) ([]*entity.SysMenu, error) {
 	pattern := fmt.Sprintf("%s%s:%%", catalog.MenuKeyPrefix, strings.TrimSpace(pluginID))
 	cols := dao.SysMenu.Columns()
 	items := make([]*entity.SysMenu, 0)
@@ -413,7 +413,7 @@ func (s *Service) listPluginMenusByPlugin(ctx context.Context, pluginID string) 
 	return items, err
 }
 
-func (s *Service) listMenusByKeys(ctx context.Context, menuKeys []string, unscoped bool) (map[string]*entity.SysMenu, error) {
+func (s *serviceImpl) listMenusByKeys(ctx context.Context, menuKeys []string, unscoped bool) (map[string]*entity.SysMenu, error) {
 	result := make(map[string]*entity.SysMenu, len(menuKeys))
 	if len(menuKeys) == 0 {
 		return result, nil
@@ -438,7 +438,7 @@ func (s *Service) listMenusByKeys(ctx context.Context, menuKeys []string, unscop
 	return result, nil
 }
 
-func (s *Service) deletePluginMenusByKeys(ctx context.Context, menuKeys []string) error {
+func (s *serviceImpl) deletePluginMenusByKeys(ctx context.Context, menuKeys []string) error {
 	if len(menuKeys) == 0 {
 		return nil
 	}
@@ -495,7 +495,7 @@ func BuildDynamicRoutePermissionMenuKey(pluginID string, permission string) stri
 }
 
 // ListPluginMenusByPlugin is the exported form of listPluginMenusByPlugin for cross-package access.
-func (s *Service) ListPluginMenusByPlugin(ctx context.Context, pluginID string) ([]*entity.SysMenu, error) {
+func (s *serviceImpl) ListPluginMenusByPlugin(ctx context.Context, pluginID string) ([]*entity.SysMenu, error) {
 	return s.listPluginMenusByPlugin(ctx, pluginID)
 }
 

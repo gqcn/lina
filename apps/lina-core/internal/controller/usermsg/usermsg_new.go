@@ -11,7 +11,7 @@ import (
 
 // ControllerV1 is the user message controller.
 type ControllerV1 struct {
-	usermsgSvc *usermsgsvc.Service // user message service
+	usermsgSvc usermsgsvc.Service // user message service
 }
 
 // NewV1 creates and returns a new user message controller instance.

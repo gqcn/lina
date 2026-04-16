@@ -28,7 +28,7 @@ type inboxListRecord struct {
 }
 
 // InboxUnreadCount returns the unread inbox delivery count for one user.
-func (s *Service) InboxUnreadCount(ctx context.Context, userID int64) (int, error) {
+func (s *serviceImpl) InboxUnreadCount(ctx context.Context, userID int64) (int, error) {
 	if userID <= 0 {
 		return 0, gerror.New("用户不存在")
 	}
@@ -42,7 +42,7 @@ func (s *Service) InboxUnreadCount(ctx context.Context, userID int64) (int, erro
 }
 
 // InboxList returns one paged inbox list for the current user.
-func (s *Service) InboxList(ctx context.Context, in InboxListInput) (*InboxListOutput, error) {
+func (s *serviceImpl) InboxList(ctx context.Context, in InboxListInput) (*InboxListOutput, error) {
 	if in.UserID <= 0 {
 		return nil, gerror.New("用户不存在")
 	}
@@ -110,7 +110,7 @@ func (s *Service) InboxList(ctx context.Context, in InboxListInput) (*InboxListO
 }
 
 // InboxMarkRead marks one inbox delivery as read for the current user.
-func (s *Service) InboxMarkRead(ctx context.Context, userID int64, deliveryID int64) error {
+func (s *serviceImpl) InboxMarkRead(ctx context.Context, userID int64, deliveryID int64) error {
 	if userID <= 0 {
 		return gerror.New("用户不存在")
 	}
@@ -128,7 +128,7 @@ func (s *Service) InboxMarkRead(ctx context.Context, userID int64, deliveryID in
 }
 
 // InboxMarkAllRead marks all unread inbox deliveries as read for the current user.
-func (s *Service) InboxMarkAllRead(ctx context.Context, userID int64) error {
+func (s *serviceImpl) InboxMarkAllRead(ctx context.Context, userID int64) error {
 	if userID <= 0 {
 		return gerror.New("用户不存在")
 	}
@@ -148,7 +148,7 @@ func (s *Service) InboxMarkAllRead(ctx context.Context, userID int64) error {
 }
 
 // InboxDelete soft-deletes one inbox delivery for the current user.
-func (s *Service) InboxDelete(ctx context.Context, userID int64, deliveryID int64) error {
+func (s *serviceImpl) InboxDelete(ctx context.Context, userID int64, deliveryID int64) error {
 	if userID <= 0 {
 		return gerror.New("用户不存在")
 	}
@@ -162,7 +162,7 @@ func (s *Service) InboxDelete(ctx context.Context, userID int64, deliveryID int6
 }
 
 // InboxClear soft-deletes all inbox deliveries for the current user.
-func (s *Service) InboxClear(ctx context.Context, userID int64) error {
+func (s *serviceImpl) InboxClear(ctx context.Context, userID int64) error {
 	if userID <= 0 {
 		return gerror.New("用户不存在")
 	}
@@ -175,7 +175,7 @@ func (s *Service) InboxClear(ctx context.Context, userID int64) error {
 }
 
 // DeleteBySource removes notify deliveries and messages for the given business source identifiers.
-func (s *Service) DeleteBySource(ctx context.Context, sourceType SourceType, sourceIDs []string) error {
+func (s *serviceImpl) DeleteBySource(ctx context.Context, sourceType SourceType, sourceIDs []string) error {
 	normalizedSourceIDs := normalizeSourceIDs(sourceIDs)
 	if len(normalizedSourceIDs) == 0 {
 		return nil

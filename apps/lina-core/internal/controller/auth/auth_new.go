@@ -12,8 +12,8 @@ import (
 
 // ControllerV1 is the authentication controller.
 type ControllerV1 struct {
-	authSvc   *authsvc.Service  // auth service
-	bizCtxSvc *bizctx.Service   // business context service
+	authSvc   authsvc.Service // auth service
+	bizCtxSvc bizctx.Service  // business context service
 }
 
 // NewV1 creates and returns a new authentication controller instance.

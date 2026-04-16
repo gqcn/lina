@@ -104,7 +104,7 @@ type dynamicRouteAccessContext struct {
 
 // RegisterDynamicRouteDispatcher binds the fixed-prefix dispatcher into one host
 // router group so dynamic routes reuse the standard RouterGroup registration flow.
-func (s *Service) RegisterDynamicRouteDispatcher(group *ghttp.RouterGroup) {
+func (s *serviceImpl) RegisterDynamicRouteDispatcher(group *ghttp.RouterGroup) {
 	if group == nil {
 		return
 	}
@@ -115,7 +115,7 @@ func (s *Service) RegisterDynamicRouteDispatcher(group *ghttp.RouterGroup) {
 
 // PrepareDynamicRouteMiddleware resolves the active dynamic route contract and
 // caches host-owned runtime state on the request before later middlewares run.
-func (s *Service) PrepareDynamicRouteMiddleware(r *ghttp.Request) {
+func (s *serviceImpl) PrepareDynamicRouteMiddleware(r *ghttp.Request) {
 	if r == nil {
 		return
 	}
@@ -137,7 +137,7 @@ func (s *Service) PrepareDynamicRouteMiddleware(r *ghttp.Request) {
 
 // AuthenticateDynamicRouteMiddleware applies host-owned login and permission
 // governance for the matched dynamic route before bridge execution starts.
-func (s *Service) AuthenticateDynamicRouteMiddleware(r *ghttp.Request) {
+func (s *serviceImpl) AuthenticateDynamicRouteMiddleware(r *ghttp.Request) {
 	if r == nil {
 		return
 	}
@@ -168,7 +168,7 @@ func (s *Service) AuthenticateDynamicRouteMiddleware(r *ghttp.Request) {
 	r.Middleware.Next()
 }
 
-func (s *Service) handleDynamicRouteRequest(r *ghttp.Request) {
+func (s *serviceImpl) handleDynamicRouteRequest(r *ghttp.Request) {
 	if r == nil {
 		return
 	}
@@ -198,7 +198,7 @@ func (s *Service) handleDynamicRouteRequest(r *ghttp.Request) {
 // DispatchDynamicRoute dispatches one fixed-prefix request into the active release
 // of one dynamic plugin. Matching always happens against the archived active manifest
 // so staged uploads cannot affect live traffic before reconcile.
-func (s *Service) DispatchDynamicRoute(
+func (s *serviceImpl) DispatchDynamicRoute(
 	ctx context.Context,
 	in *DynamicRouteDispatchInput,
 ) (*pluginbridge.BridgeResponseEnvelopeV1, error) {
@@ -225,7 +225,7 @@ func (s *Service) DispatchDynamicRoute(
 
 // matchDynamicRoute resolves the fixed `/api/v1/extensions/{pluginId}/...`
 // public path to the plugin-declared internal route contract.
-func (s *Service) matchDynamicRoute(ctx context.Context, request *ghttp.Request) (*dynamicRouteMatch, error) {
+func (s *serviceImpl) matchDynamicRoute(ctx context.Context, request *ghttp.Request) (*dynamicRouteMatch, error) {
 	publicPath := strings.TrimSpace(request.URL.Path)
 	if !strings.HasPrefix(publicPath, RoutePublicPrefix+"/") {
 		return nil, nil
@@ -319,7 +319,7 @@ func normalizeDynamicRoutePath(path string) string {
 	return normalized
 }
 
-func (s *Service) prepareDynamicRouteRuntime(
+func (s *serviceImpl) prepareDynamicRouteRuntime(
 	ctx context.Context,
 	request *ghttp.Request,
 ) (*dynamicRouteRuntimeState, *pluginbridge.BridgeResponseEnvelopeV1, error) {
@@ -352,7 +352,7 @@ func (s *Service) prepareDynamicRouteRuntime(
 	}, nil, nil
 }
 
-func (s *Service) authorizeDynamicRouteRequest(
+func (s *serviceImpl) authorizeDynamicRouteRequest(
 	ctx context.Context,
 	runtimeState *dynamicRouteRuntimeState,
 	request *ghttp.Request,
@@ -366,7 +366,7 @@ func (s *Service) authorizeDynamicRouteRequest(
 	return s.buildDynamicRouteIdentitySnapshot(ctx, runtimeState.Match, request)
 }
 
-func (s *Service) executePreparedDynamicRoute(
+func (s *serviceImpl) executePreparedDynamicRoute(
 	ctx context.Context,
 	runtimeState *dynamicRouteRuntimeState,
 	identity *pluginbridge.IdentitySnapshotV1,
@@ -394,7 +394,7 @@ func (s *Service) executePreparedDynamicRoute(
 	return s.executeDynamicRoute(ctx, runtimeState.Manifest, requestEnvelope)
 }
 
-func (s *Service) buildDynamicRouteRequestEnvelopeWithIdentity(
+func (s *serviceImpl) buildDynamicRouteRequestEnvelopeWithIdentity(
 	match *dynamicRouteMatch,
 	request *ghttp.Request,
 	identity *pluginbridge.IdentitySnapshotV1,
@@ -436,7 +436,7 @@ func (s *Service) buildDynamicRouteRequestEnvelopeWithIdentity(
 
 // buildDynamicRouteIdentitySnapshot validates session state and permission grants
 // on the host side before forwarding the request into guest code.
-func (s *Service) buildDynamicRouteIdentitySnapshot(
+func (s *serviceImpl) buildDynamicRouteIdentitySnapshot(
 	ctx context.Context,
 	match *dynamicRouteMatch,
 	request *ghttp.Request,
@@ -495,7 +495,7 @@ func (s *Service) buildDynamicRouteIdentitySnapshot(
 	}, nil, nil
 }
 
-func (s *Service) parseDynamicRouteToken(ctx context.Context, tokenString string) (*dynamicRouteClaims, error) {
+func (s *serviceImpl) parseDynamicRouteToken(ctx context.Context, tokenString string) (*dynamicRouteClaims, error) {
 	secret := ""
 	if s.jwtConfig != nil {
 		secret = s.jwtConfig.GetJwtSecret(ctx)
@@ -513,7 +513,7 @@ func (s *Service) parseDynamicRouteToken(ctx context.Context, tokenString string
 	return claims, nil
 }
 
-func (s *Service) touchDynamicRouteSession(ctx context.Context, tokenID string) (bool, error) {
+func (s *serviceImpl) touchDynamicRouteSession(ctx context.Context, tokenID string) (bool, error) {
 	result, err := dao.SysOnlineSession.Ctx(ctx).
 		Where(do.SysOnlineSession{TokenId: tokenID}).
 		Data(do.SysOnlineSession{LastActiveTime: gtime.Now()}).Update()
@@ -540,7 +540,7 @@ func (s *Service) touchDynamicRouteSession(ctx context.Context, tokenID string) 
 	return count > 0, nil
 }
 
-func (s *Service) getDynamicRouteAccessContext(ctx context.Context, userID int) (*dynamicRouteAccessContext, error) {
+func (s *serviceImpl) getDynamicRouteAccessContext(ctx context.Context, userID int) (*dynamicRouteAccessContext, error) {
 	roleIDs, err := s.getDynamicRouteUserRoleIDs(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -560,7 +560,7 @@ func (s *Service) getDynamicRouteAccessContext(ctx context.Context, userID int) 
 	}, nil
 }
 
-func (s *Service) getDynamicRouteUserRoleIDs(ctx context.Context, userID int) ([]int, error) {
+func (s *serviceImpl) getDynamicRouteUserRoleIDs(ctx context.Context, userID int) ([]int, error) {
 	items := make([]*entity.SysUserRole, 0)
 	if err := dao.SysUserRole.Ctx(ctx).
 		Where(do.SysUserRole{UserId: userID}).
@@ -582,7 +582,7 @@ func (s *Service) getDynamicRouteUserRoleIDs(ctx context.Context, userID int) ([
 	return roleIDs, nil
 }
 
-func (s *Service) getDynamicRouteRoleNames(ctx context.Context, roleIDs []int) ([]string, error) {
+func (s *serviceImpl) getDynamicRouteRoleNames(ctx context.Context, roleIDs []int) ([]string, error) {
 	if len(roleIDs) == 0 {
 		return []string{}, nil
 	}
@@ -607,7 +607,7 @@ func (s *Service) getDynamicRouteRoleNames(ctx context.Context, roleIDs []int) (
 // lookups into a single pass: it fetches menu IDs bound to the given roles, then
 // loads only button-type permission menus in one query (3 DB queries total for
 // the full access context instead of 5).
-func (s *Service) getDynamicRoutePermissionsByRoleIDs(ctx context.Context, roleIDs []int) ([]string, error) {
+func (s *serviceImpl) getDynamicRoutePermissionsByRoleIDs(ctx context.Context, roleIDs []int) ([]string, error) {
 	if len(roleIDs) == 0 {
 		return []string{}, nil
 	}
@@ -824,7 +824,7 @@ func GetDynamicRouteOperLogMetadata(request *ghttp.Request) *DynamicRouteOperLog
 // writeDynamicRouteResponse writes the guest response back without going through
 // GoFrame's default success wrapper, otherwise raw plugin payloads would be
 // polluted by host-managed response formatting.
-func (s *Service) writeDynamicRouteResponse(request *ghttp.Request, response *pluginbridge.BridgeResponseEnvelopeV1) {
+func (s *serviceImpl) writeDynamicRouteResponse(request *ghttp.Request, response *pluginbridge.BridgeResponseEnvelopeV1) {
 	if request == nil || response == nil {
 		return
 	}

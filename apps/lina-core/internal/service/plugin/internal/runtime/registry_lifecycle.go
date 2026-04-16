@@ -17,7 +17,7 @@ import (
 
 // updateDesiredState records the management intent that the primary reconciler
 // should eventually converge to.
-func (s *Service) updateDesiredState(
+func (s *serviceImpl) updateDesiredState(
 	ctx context.Context,
 	pluginID string,
 	desiredState catalog.HostState,
@@ -31,7 +31,7 @@ func (s *Service) updateDesiredState(
 
 // markReconciling marks the host row as entering a transient reconciliation
 // window while keeping the requested desired state persisted.
-func (s *Service) markReconciling(
+func (s *serviceImpl) markReconciling(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 	desiredState catalog.HostState,
@@ -52,7 +52,7 @@ func (s *Service) markReconciling(
 
 // finalizeState applies one stable lifecycle state together with the release
 // pointer and next generation number after a successful switch.
-func (s *Service) finalizeState(
+func (s *serviceImpl) finalizeState(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 	manifest *catalog.Manifest,
@@ -107,7 +107,7 @@ func (s *Service) finalizeState(
 
 // restoreStableState clears a transient reconcile marker and rewrites
 // desired/current state back to the stable registry flags.
-func (s *Service) restoreStableState(
+func (s *serviceImpl) restoreStableState(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 ) (*entity.SysPlugin, error) {

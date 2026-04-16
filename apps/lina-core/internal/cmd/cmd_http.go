@@ -246,8 +246,8 @@ func (m *Main) Http(ctx context.Context, in HttpInput) (out *HttpOutput, err err
 func (m *Main) enhanceOpenAPIDocs(
 	ctx context.Context,
 	server *ghttp.Server,
-	configSvc *config.Service,
-	pluginSvc *pluginsvc.Service,
+	configSvc config.Service,
+	pluginSvc pluginsvc.Service,
 ) {
 	// Set OpenAPI info from configuration
 	oaiCfg := configSvc.GetOpenApi(ctx)

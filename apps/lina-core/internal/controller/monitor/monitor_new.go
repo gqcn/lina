@@ -13,8 +13,8 @@ import (
 
 // ControllerV1 is the system monitor controller.
 type ControllerV1 struct {
-	authSvc      *auth.Service      // auth service
-	serverMonSvc *servermon.Service // server monitor service
+	authSvc      auth.Service      // auth service
+	serverMonSvc servermon.Service // server monitor service
 }
 
 // NewV1 creates and returns a new system monitor controller instance.

@@ -16,7 +16,7 @@ type JwtConfig struct {
 }
 
 // GetJwt reads JWT config from configuration file.
-func (s *Service) GetJwt(ctx context.Context) *JwtConfig {
+func (s *serviceImpl) GetJwt(ctx context.Context) *JwtConfig {
 	cfg := &JwtConfig{
 		Expire: 24 * time.Hour,
 	}

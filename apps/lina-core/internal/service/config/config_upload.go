@@ -11,7 +11,7 @@ type UploadConfig struct {
 }
 
 // GetUpload reads upload config from configuration file.
-func (s *Service) GetUpload(ctx context.Context) *UploadConfig {
+func (s *serviceImpl) GetUpload(ctx context.Context) *UploadConfig {
 	cfg := &UploadConfig{
 		Path:    "temp/upload",
 		MaxSize: 10,

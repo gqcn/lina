@@ -25,7 +25,7 @@ const (
 // ValidateManifest validates required fields and structural constraints in a plugin manifest.
 // For source plugins it additionally checks for go.mod and backend/plugin.go.
 // For dynamic plugins it optionally validates the runtime artifact via ArtifactParser.
-func (s *Service) ValidateManifest(manifest *Manifest, filePath string) error {
+func (s *serviceImpl) ValidateManifest(manifest *Manifest, filePath string) error {
 	rootDir := filepath.Dir(filePath)
 	if strings.TrimSpace(filePath) == "" && strings.TrimSpace(manifest.RootDir) != "" {
 		rootDir = manifest.RootDir
@@ -116,7 +116,7 @@ func (s *Service) ValidateManifest(manifest *Manifest, filePath string) error {
 }
 
 // ValidateUploadedRuntimeManifest validates the identity fields extracted from a WASM artifact manifest.
-func (s *Service) ValidateUploadedRuntimeManifest(manifest *Manifest) error {
+func (s *serviceImpl) ValidateUploadedRuntimeManifest(manifest *Manifest) error {
 	if manifest == nil {
 		return gerror.New("动态插件清单不能为空")
 	}

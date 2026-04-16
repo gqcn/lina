@@ -31,7 +31,7 @@ import (
 //   - *Item: the cache entry snapshot when the entry exists, including value kind, value, and expiration time.
 //   - bool: whether the cache entry exists after expired data has been cleaned up.
 //   - error: returned when identity parameters are invalid, expired-entry cleanup fails, or the database query fails.
-func (s *Service) Get(
+func (s *serviceImpl) Get(
 	ctx context.Context,
 	ownerType OwnerType,
 	ownerKey string,
@@ -77,7 +77,7 @@ func (s *Service) Get(
 //   - *Item: the latest cache entry snapshot after the value has been written successfully.
 //   - error: returned when identity parameters are invalid, the value exceeds the allowed size,
 //     expireSeconds is negative, expired-entry cleanup fails, or the upsert operation fails.
-func (s *Service) Set(
+func (s *serviceImpl) Set(
 	ctx context.Context,
 	ownerType OwnerType,
 	ownerKey string,
@@ -132,7 +132,7 @@ func (s *Service) Set(
 // Returns:
 //   - error: returned when identity parameters are invalid or the delete statement fails.
 //     Deleting a non-existent entry is treated as a successful no-op.
-func (s *Service) Delete(
+func (s *serviceImpl) Delete(
 	ctx context.Context,
 	ownerType OwnerType,
 	ownerKey string,
@@ -166,7 +166,7 @@ func (s *Service) Delete(
 //   - *Item: the latest cache entry snapshot after the increment succeeds.
 //   - error: returned when identity parameters are invalid, expireSeconds is negative,
 //     expired-entry cleanup fails, the existing entry is not stored as an integer, or any database operation fails.
-func (s *Service) Incr(
+func (s *serviceImpl) Incr(
 	ctx context.Context,
 	ownerType OwnerType,
 	ownerKey string,
@@ -254,7 +254,7 @@ func (s *Service) Incr(
 //   - *gtime.Time: the normalized absolute expiration time; nil means the entry will not expire.
 //   - error: returned when identity parameters are invalid, expireSeconds is negative,
 //     expired-entry cleanup fails, or the database update fails.
-func (s *Service) Expire(
+func (s *serviceImpl) Expire(
 	ctx context.Context,
 	ownerType OwnerType,
 	ownerKey string,
@@ -297,7 +297,7 @@ func (s *Service) Expire(
 // Returns:
 //   - error: returned when the cleanup delete statement fails. When no expired entries
 //     exist, the method returns nil.
-func (s *Service) CleanupExpired(ctx context.Context) error {
+func (s *serviceImpl) CleanupExpired(ctx context.Context) error {
 	cols := dao.SysKvCache.Columns()
 	_, err := dao.SysKvCache.Ctx(ctx).
 		WhereNotNull(cols.ExpireAt).
@@ -306,7 +306,7 @@ func (s *Service) CleanupExpired(ctx context.Context) error {
 	return err
 }
 
-func (s *Service) upsert(
+func (s *serviceImpl) upsert(
 	ctx context.Context,
 	ownerType OwnerType,
 	ownerKey string,
@@ -348,7 +348,7 @@ func (s *Service) upsert(
 	return err
 }
 
-func (s *Service) validateIdentity(
+func (s *serviceImpl) validateIdentity(
 	ownerType OwnerType,
 	ownerKey string,
 	namespace string,

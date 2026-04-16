@@ -11,7 +11,7 @@ import (
 
 // ControllerV1 is the login log controller.
 type ControllerV1 struct {
-	loginLogSvc *loginlogsvc.Service // login log service
+	loginLogSvc loginlogsvc.Service // login log service
 }
 
 // NewV1 creates and returns a new login log controller instance.

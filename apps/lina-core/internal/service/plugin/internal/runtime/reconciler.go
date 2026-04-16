@@ -32,7 +32,7 @@ var (
 
 // StartRuntimeReconciler starts the background loop that keeps dynamic-plugin
 // desired state, active release, and current-node projection converged.
-func (s *Service) StartRuntimeReconciler(ctx context.Context) {
+func (s *serviceImpl) StartRuntimeReconciler(ctx context.Context) {
 	if !s.isClusterModeEnabled() {
 		return
 	}
@@ -41,7 +41,7 @@ func (s *Service) StartRuntimeReconciler(ctx context.Context) {
 	})
 }
 
-func (s *Service) runReconciler(ctx context.Context) {
+func (s *serviceImpl) runReconciler(ctx context.Context) {
 	ticker := time.NewTicker(runtimeReconcilerInterval)
 	defer ticker.Stop()
 
@@ -59,7 +59,7 @@ func (s *Service) runReconciler(ctx context.Context) {
 
 // ReconcileRuntimePlugins runs one convergence pass. It is safe to call from
 // both the background loop and synchronous management flows.
-func (s *Service) ReconcileRuntimePlugins(ctx context.Context) error {
+func (s *serviceImpl) ReconcileRuntimePlugins(ctx context.Context) error {
 	reconcileMu.Lock()
 	defer reconcileMu.Unlock()
 
@@ -117,7 +117,7 @@ func (s *Service) ReconcileRuntimePlugins(ctx context.Context) error {
 	return firstErr
 }
 
-func (s *Service) reconcileDynamicPluginRequest(
+func (s *serviceImpl) reconcileDynamicPluginRequest(
 	ctx context.Context,
 	pluginID string,
 	desiredState catalog.HostState,
@@ -133,7 +133,7 @@ func (s *Service) reconcileDynamicPluginRequest(
 
 // reconcilePluginIfNeeded selects the smallest convergence action for the current
 // registry row: install, upgrade, same-version refresh, state toggle, or uninstall.
-func (s *Service) reconcilePluginIfNeeded(ctx context.Context, registry *entity.SysPlugin) error {
+func (s *serviceImpl) reconcilePluginIfNeeded(ctx context.Context, registry *entity.SysPlugin) error {
 	if registry == nil || catalog.NormalizeType(registry.Type) != catalog.TypeDynamic {
 		return nil
 	}
@@ -176,7 +176,7 @@ func (s *Service) reconcilePluginIfNeeded(ctx context.Context, registry *entity.
 	return nil
 }
 
-func (s *Service) reconcileCurrentNodeProjection(ctx context.Context, registry *entity.SysPlugin) error {
+func (s *serviceImpl) reconcileCurrentNodeProjection(ctx context.Context, registry *entity.SysPlugin) error {
 	if registry == nil || catalog.NormalizeType(registry.Type) != catalog.TypeDynamic {
 		return nil
 	}
@@ -220,7 +220,7 @@ func (s *Service) reconcileCurrentNodeProjection(ctx context.Context, registry *
 // applyInstall performs the first activation of a discovered dynamic plugin,
 // including artifact archive, SQL install, permission/menu projection, optional
 // frontend bundle preparation, and registry finalization.
-func (s *Service) applyInstall(
+func (s *serviceImpl) applyInstall(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 	manifest *catalog.Manifest,
@@ -300,7 +300,7 @@ func (s *Service) applyInstall(
 
 // applyUpgrade moves an installed plugin to a new semantic version. Unlike
 // refresh, this path runs upgrade SQL and may replace the active release.
-func (s *Service) applyUpgrade(
+func (s *serviceImpl) applyUpgrade(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 	manifest *catalog.Manifest,
@@ -369,7 +369,7 @@ func (s *Service) applyUpgrade(
 
 // applyStateToggle flips enable/disable status for the current active release
 // without changing the installed version or artifact archive.
-func (s *Service) applyStateToggle(
+func (s *serviceImpl) applyStateToggle(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 	manifest *catalog.Manifest,
@@ -428,7 +428,7 @@ func (s *Service) applyStateToggle(
 // applyRefresh reapplies host projections for the same semantic version when
 // the artifact checksum or archived bytes changed. It intentionally skips
 // upgrade SQL because the version contract did not advance.
-func (s *Service) applyRefresh(
+func (s *serviceImpl) applyRefresh(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 	manifest *catalog.Manifest,
@@ -481,7 +481,7 @@ func (s *Service) applyRefresh(
 	return s.catalogSvc.SyncMetadata(ctx, manifest, registry, "Dynamic plugin release refreshed on primary node.")
 }
 
-func (s *Service) applyUninstall(ctx context.Context, registry *entity.SysPlugin) error {
+func (s *serviceImpl) applyUninstall(ctx context.Context, registry *entity.SysPlugin) error {
 	manifest, err := s.loadActiveManifest(ctx, registry)
 	if err != nil {
 		return err
@@ -548,7 +548,7 @@ func (s *Service) applyUninstall(ctx context.Context, registry *entity.SysPlugin
 	)
 }
 
-func (s *Service) rollbackInstallOrUpgrade(
+func (s *serviceImpl) rollbackInstallOrUpgrade(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 	restoreManifest *catalog.Manifest,
@@ -572,7 +572,7 @@ func (s *Service) rollbackInstallOrUpgrade(
 	return s.rollbackReleaseFailure(ctx, registry, failedReleaseID, reconcileErr)
 }
 
-func (s *Service) rollbackReleaseFailure(
+func (s *serviceImpl) rollbackReleaseFailure(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 	releaseID int,
@@ -605,7 +605,7 @@ func (s *Service) rollbackReleaseFailure(
 // shouldRefreshInstalledRelease decides whether an already installed dynamic release
 // should be re-converged even though the semantic version did not change. It compares
 // desired checksum, registry checksum, and archived release content.
-func (s *Service) shouldRefreshInstalledRelease(
+func (s *serviceImpl) shouldRefreshInstalledRelease(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 	manifest *catalog.Manifest,
@@ -646,7 +646,7 @@ func (s *Service) shouldRefreshInstalledRelease(
 }
 
 // Uninstall executes uninstall lifecycle for an installed dynamic plugin.
-func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
+func (s *serviceImpl) Uninstall(ctx context.Context, pluginID string) error {
 	manifest, err := s.catalogSvc.GetDesiredManifest(pluginID)
 	if err != nil {
 		return err

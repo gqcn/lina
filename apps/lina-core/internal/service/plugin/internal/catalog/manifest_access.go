@@ -14,7 +14,7 @@ import (
 // For dynamic plugins this is the mutable staging artifact stored at the configured
 // runtime storage path. Changes here do not take effect until the reconciler archives
 // the artifact as an active release.
-func (s *Service) GetDesiredManifest(pluginID string) (*Manifest, error) {
+func (s *serviceImpl) GetDesiredManifest(pluginID string) (*Manifest, error) {
 	if pluginID == "" {
 		return nil, gerror.New("插件ID不能为空")
 	}
@@ -34,7 +34,7 @@ func (s *Service) GetDesiredManifest(pluginID string) (*Manifest, error) {
 // For dynamic plugins this reloads from the archived active release so live traffic
 // sees the stable version while staging changes accumulate. Source plugins always
 // return the discovered manifest directly.
-func (s *Service) GetActiveManifest(ctx context.Context, pluginID string) (*Manifest, error) {
+func (s *serviceImpl) GetActiveManifest(ctx context.Context, pluginID string) (*Manifest, error) {
 	manifest, err := s.GetDesiredManifest(pluginID)
 	if err != nil {
 		return nil, err

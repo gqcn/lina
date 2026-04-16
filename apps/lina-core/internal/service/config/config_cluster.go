@@ -25,7 +25,7 @@ func defaultElectionConfig() *ElectionConfig {
 }
 
 // GetCluster reads cluster config from configuration file.
-func (s *Service) GetCluster(ctx context.Context) *ClusterConfig {
+func (s *serviceImpl) GetCluster(ctx context.Context) *ClusterConfig {
 	cfg := &ClusterConfig{
 		Enabled:  false,
 		Election: *defaultElectionConfig(),

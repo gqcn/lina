@@ -11,7 +11,7 @@ import (
 
 // ControllerV1 is the dictionary controller.
 type ControllerV1 struct {
-	dictSvc *dictsvc.Service // dictionary service
+	dictSvc dictsvc.Service // dictionary service
 }
 
 // NewV1 creates and returns a new dictionary controller instance.

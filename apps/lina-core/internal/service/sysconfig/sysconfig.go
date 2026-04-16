@@ -7,27 +7,51 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/xuri/excelize/v2"
 
+	"io"
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 )
 
-// Service provides system config management operations.
-type Service struct{}
-
-// New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{}
+// Service defines the sysconfig service contract.
+type Service interface {
+	// List queries config list with pagination and filters.
+	List(ctx context.Context, in ListInput) (*ListOutput, error)
+	// GetById retrieves config by ID.
+	GetById(ctx context.Context, id int) (*entity.SysConfig, error)
+	// Create creates a new config record.
+	Create(ctx context.Context, in CreateInput) (int, error)
+	// Update updates config information.
+	Update(ctx context.Context, in UpdateInput) error
+	// Delete soft-deletes a config record using GoFrame's auto soft-delete feature.
+	Delete(ctx context.Context, id int) error
+	// GetByKey retrieves config by key name.
+	GetByKey(ctx context.Context, key string) (*entity.SysConfig, error)
+	// Export generates an Excel file with config data.
+	Export(ctx context.Context, in ExportInput) (data []byte, err error)
+	// Import reads an Excel file and creates configs from it.
+	// If updateSupport is true, existing records (matched by key) will be updated; otherwise, they will be skipped.
+	Import(ctx context.Context, fileReader io.Reader, updateSupport bool) (result *ImportResult, err error)
+	// GenerateImportTemplate creates an Excel template for config import.
+	GenerateImportTemplate() (data []byte, err error)
 }
 
-// ListInput defines input for List function.
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct{}
+
+func New() Service {
+	return &serviceImpl{}
+}
+
 type ListInput struct {
-	PageNum   int    // Page number, starting from 1
-	PageSize  int    // Page size
-	Name      string // Parameter name, supports fuzzy search
-	Key       string // Parameter key, supports fuzzy search
-	BeginTime string // Creation time start
-	EndTime   string // Creation time end
+	PageNum   int
+	PageSize  int
+	Name      string
+	Key       string
+	BeginTime string
+	EndTime   string
 }
 
 // ListOutput defines output for List function.
@@ -37,7 +61,7 @@ type ListOutput struct {
 }
 
 // List queries config list with pagination and filters.
-func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
+func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysConfig.Columns()
 		m    = dao.SysConfig.Ctx(ctx)
@@ -79,7 +103,7 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 }
 
 // GetById retrieves config by ID.
-func (s *Service) GetById(ctx context.Context, id int) (*entity.SysConfig, error) {
+func (s *serviceImpl) GetById(ctx context.Context, id int) (*entity.SysConfig, error) {
 	var cfg *entity.SysConfig
 	err := dao.SysConfig.Ctx(ctx).
 		Where(do.SysConfig{Id: id}).
@@ -102,7 +126,7 @@ type CreateInput struct {
 }
 
 // Create creates a new config record.
-func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
+func (s *serviceImpl) Create(ctx context.Context, in CreateInput) (int, error) {
 	// Check key uniqueness (GoFrame auto-adds deleted_at IS NULL)
 	count, err := dao.SysConfig.Ctx(ctx).
 		Where(do.SysConfig{Key: in.Key}).
@@ -138,7 +162,7 @@ type UpdateInput struct {
 }
 
 // Update updates config information.
-func (s *Service) Update(ctx context.Context, in UpdateInput) error {
+func (s *serviceImpl) Update(ctx context.Context, in UpdateInput) error {
 	// Check config exists
 	if _, err := s.GetById(ctx, in.Id); err != nil {
 		return err
@@ -178,7 +202,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 }
 
 // Delete soft-deletes a config record using GoFrame's auto soft-delete feature.
-func (s *Service) Delete(ctx context.Context, id int) error {
+func (s *serviceImpl) Delete(ctx context.Context, id int) error {
 	// Check config exists
 	if _, err := s.GetById(ctx, id); err != nil {
 		return err
@@ -192,7 +216,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 }
 
 // GetByKey retrieves config by key name.
-func (s *Service) GetByKey(ctx context.Context, key string) (*entity.SysConfig, error) {
+func (s *serviceImpl) GetByKey(ctx context.Context, key string) (*entity.SysConfig, error) {
 	var cfg *entity.SysConfig
 	err := dao.SysConfig.Ctx(ctx).
 		Where(do.SysConfig{Key: key}).
@@ -216,7 +240,7 @@ type ExportInput struct {
 }
 
 // Export generates an Excel file with config data.
-func (s *Service) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
+func (s *serviceImpl) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
 	cols := dao.SysConfig.Columns()
 	m := dao.SysConfig.Ctx(ctx)
 

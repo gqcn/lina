@@ -12,17 +12,30 @@ import (
 	"github.com/gogf/gf/v2/os/gtime"
 )
 
-// Service provides distributed lock functionality.
-type Service struct{}
-
-// New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{}
+// Service defines the locker service contract.
+type Service interface {
+	// Lock acquires a distributed lock when it is absent or expired.
+	Lock(ctx context.Context, name, holder, reason string, lease time.Duration) (*Instance, bool, error)
+	// LockFunc acquires a lock and executes the given function.
+	// The lock is automatically released after the function completes.
+	LockFunc(ctx context.Context, name, holder, reason string, lease time.Duration, f func() error) (bool, error)
+	// Unlock releases one distributed lock identified by lock ID and holder.
+	Unlock(ctx context.Context, lockID int64, holder string) error
+	// Renew extends one distributed lock identified by lock ID and holder.
+	Renew(ctx context.Context, lockID int64, holder string, lease time.Duration) error
 }
 
-// Lock attempts to acquire a distributed lock with the given name and lease duration.
-// It returns the lock instance if successful, or nil if the lock is held by another node.
-func (s *Service) Lock(ctx context.Context, name, holder, reason string, lease time.Duration) (*Instance, bool, error) {
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct{}
+
+func New() Service {
+	return &serviceImpl{}
+}
+
+// Lock acquires a distributed lock when it is absent or expired.
+func (s *serviceImpl) Lock(ctx context.Context, name, holder, reason string, lease time.Duration) (*Instance, bool, error) {
 	var locker *entity.SysLocker
 	err := dao.SysLocker.Ctx(ctx).Where(do.SysLocker{
 		Name: name,
@@ -94,7 +107,7 @@ func (s *Service) Lock(ctx context.Context, name, holder, reason string, lease t
 
 // LockFunc acquires a lock and executes the given function.
 // The lock is automatically released after the function completes.
-func (s *Service) LockFunc(ctx context.Context, name, holder, reason string, lease time.Duration, f func() error) (bool, error) {
+func (s *serviceImpl) LockFunc(ctx context.Context, name, holder, reason string, lease time.Duration, f func() error) (bool, error) {
 	instance, ok, err := s.Lock(ctx, name, holder, reason, lease)
 	if err != nil {
 		return false, err
@@ -114,7 +127,7 @@ func (s *Service) LockFunc(ctx context.Context, name, holder, reason string, lea
 }
 
 // Unlock releases one distributed lock identified by lock ID and holder.
-func (s *Service) Unlock(ctx context.Context, lockID int64, holder string) error {
+func (s *serviceImpl) Unlock(ctx context.Context, lockID int64, holder string) error {
 	return (&Instance{
 		id:     lockID,
 		holder: holder,
@@ -122,7 +135,7 @@ func (s *Service) Unlock(ctx context.Context, lockID int64, holder string) error
 }
 
 // Renew extends one distributed lock identified by lock ID and holder.
-func (s *Service) Renew(ctx context.Context, lockID int64, holder string, lease time.Duration) error {
+func (s *serviceImpl) Renew(ctx context.Context, lockID int64, holder string, lease time.Duration) error {
 	return (&Instance{
 		id:     lockID,
 		holder: holder,

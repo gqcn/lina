@@ -15,7 +15,7 @@ import (
 )
 
 func TestSingleNodeModeSkipsPluginNodeProjection(t *testing.T) {
-	service := New()
+	service := newTestService()
 	ctx := context.Background()
 
 	var (

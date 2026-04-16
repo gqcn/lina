@@ -27,7 +27,7 @@ type nodeProjectionInput struct {
 
 // SyncPluginNodeState implements catalog.NodeStateSyncer.
 // It updates the current node projection of one plugin lifecycle state.
-func (s *Service) SyncPluginNodeState(
+func (s *serviceImpl) SyncPluginNodeState(
 	ctx context.Context,
 	pluginID string,
 	version string,
@@ -82,7 +82,7 @@ func (s *Service) SyncPluginNodeState(
 
 // GetPluginNodeState implements catalog.NodeStateSyncer.
 // It returns the latest node projection row for one plugin/node pair.
-func (s *Service) GetPluginNodeState(ctx context.Context, pluginID string, nodeID string) (*entity.SysPluginNodeState, error) {
+func (s *serviceImpl) GetPluginNodeState(ctx context.Context, pluginID string, nodeID string) (*entity.SysPluginNodeState, error) {
 	if !s.isClusterModeEnabled() {
 		return nil, nil
 	}
@@ -98,13 +98,13 @@ func (s *Service) GetPluginNodeState(ctx context.Context, pluginID string, nodeI
 }
 
 // CurrentNodeID implements catalog.NodeStateSyncer.
-func (s *Service) CurrentNodeID() string {
+func (s *serviceImpl) CurrentNodeID() string {
 	return s.currentNodeID()
 }
 
 // SyncPluginReleaseRuntimeState implements catalog.ReleaseStateSyncer.
 // It updates the active release row to reflect current registry state.
-func (s *Service) SyncPluginReleaseRuntimeState(ctx context.Context, registry *entity.SysPlugin) error {
+func (s *serviceImpl) SyncPluginReleaseRuntimeState(ctx context.Context, registry *entity.SysPlugin) error {
 	if registry == nil || catalog.NormalizeType(registry.Type) != catalog.TypeDynamic {
 		return nil
 	}
@@ -122,7 +122,7 @@ func (s *Service) SyncPluginReleaseRuntimeState(ctx context.Context, registry *e
 }
 
 // syncNodeProjection upserts the node state row for the given plugin/node pair.
-func (s *Service) syncNodeProjection(ctx context.Context, in nodeProjectionInput) error {
+func (s *serviceImpl) syncNodeProjection(ctx context.Context, in nodeProjectionInput) error {
 	if !s.isClusterModeEnabled() {
 		return nil
 	}

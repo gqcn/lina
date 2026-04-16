@@ -11,14 +11,22 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// Service provides system information operations.
-type Service struct {
+// Service defines the sysinfo service contract.
+type Service interface {
+	// GetInfo returns system runtime information.
+	GetInfo(ctx context.Context) (*SystemInfo, error)
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
 	startTime time.Time // Service start time
 }
 
 // New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{
+func New() Service {
+	return &serviceImpl{
 		startTime: time.Now(),
 	}
 }
@@ -45,7 +53,7 @@ type ComponentInfo struct {
 }
 
 // GetInfo returns system runtime information.
-func (s *Service) GetInfo(ctx context.Context) (*SystemInfo, error) {
+func (s *serviceImpl) GetInfo(ctx context.Context) (*SystemInfo, error) {
 	info := &SystemInfo{
 		GoVersion: runtime.Version(),
 		GfVersion: gf.VERSION,
@@ -84,7 +92,7 @@ func (s *Service) GetInfo(ctx context.Context) (*SystemInfo, error) {
 }
 
 // loadComponents reads component metadata from components.yaml.
-func (s *Service) loadComponents(ctx context.Context, sectionKey string, dbVersion string) []ComponentInfo {
+func (s *serviceImpl) loadComponents(ctx context.Context, sectionKey string, dbVersion string) []ComponentInfo {
 	cfg := g.Cfg("components")
 	val, err := cfg.Get(ctx, sectionKey)
 	if err != nil || val.IsEmpty() {
@@ -115,7 +123,7 @@ func (s *Service) loadComponents(ctx context.Context, sectionKey string, dbVersi
 }
 
 // getDbVersion retrieves the database version.
-func (s *Service) getDbVersion(ctx context.Context) (string, error) {
+func (s *serviceImpl) getDbVersion(ctx context.Context) (string, error) {
 	result, err := g.DB().GetValue(ctx, "SELECT VERSION()")
 	if err != nil {
 		return "", err

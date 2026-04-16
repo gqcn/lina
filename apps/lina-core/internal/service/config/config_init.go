@@ -10,7 +10,7 @@ type InitConfig struct {
 }
 
 // GetInit reads initialization config from configuration file.
-func (s *Service) GetInit(ctx context.Context) *InitConfig {
+func (s *serviceImpl) GetInit(ctx context.Context) *InitConfig {
 	cfg := &InitConfig{
 		SqlDir: "manifest/sql",
 	}

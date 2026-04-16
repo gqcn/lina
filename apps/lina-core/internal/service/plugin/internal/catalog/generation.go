@@ -79,7 +79,7 @@ func ShouldTrackStagedDynamicRelease(registry *entity.SysPlugin, manifest *Manif
 // BuildRegistryChecksum returns a review-friendly checksum derived from the manifest source.
 // For dynamic plugins, the artifact checksum is returned directly. For source plugins the
 // manifest YAML bytes are hashed using SHA-256.
-func (s *Service) BuildRegistryChecksum(manifest *Manifest) string {
+func (s *serviceImpl) BuildRegistryChecksum(manifest *Manifest) string {
 	if manifest == nil {
 		return ""
 	}

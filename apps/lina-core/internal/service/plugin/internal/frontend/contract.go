@@ -37,7 +37,7 @@ const (
 
 // ValidateRuntimeFrontendMenuBindings verifies that dynamic plugin menus only reference
 // hosted assets that exist in the plugin's in-memory bundle.
-func (s *Service) ValidateRuntimeFrontendMenuBindings(ctx context.Context, manifest *catalog.Manifest) error {
+func (s *serviceImpl) ValidateRuntimeFrontendMenuBindings(ctx context.Context, manifest *catalog.Manifest) error {
 	if manifest == nil || catalog.NormalizeType(manifest.Type) != catalog.TypeDynamic {
 		return nil
 	}
@@ -49,7 +49,7 @@ func (s *Service) ValidateRuntimeFrontendMenuBindings(ctx context.Context, manif
 	return s.validateHostedMenuBindings(ctx, manifest, menus)
 }
 
-func (s *Service) listPluginOwnedMenus(ctx context.Context, pluginID string) ([]*entity.SysMenu, error) {
+func (s *serviceImpl) listPluginOwnedMenus(ctx context.Context, pluginID string) ([]*entity.SysMenu, error) {
 	columns := dao.SysMenu.Columns()
 	prefixPattern := catalog.MenuKeyPrefix + pluginID + ":%"
 	remarkPattern := catalog.MenuRemarkPrefix + pluginID + "%"
@@ -65,7 +65,7 @@ func (s *Service) listPluginOwnedMenus(ctx context.Context, pluginID string) ([]
 	return menus, nil
 }
 
-func (s *Service) validateHostedMenuBindings(ctx context.Context, manifest *catalog.Manifest, menus []*entity.SysMenu) error {
+func (s *serviceImpl) validateHostedMenuBindings(ctx context.Context, manifest *catalog.Manifest, menus []*entity.SysMenu) error {
 	if manifest == nil || manifest.RuntimeArtifact == nil || len(menus) == 0 {
 		return nil
 	}
@@ -108,7 +108,7 @@ func (s *Service) validateHostedMenuBindings(ctx context.Context, manifest *cata
 	return nil
 }
 
-func (s *Service) resolveHostedMenuAssetPath(
+func (s *serviceImpl) resolveHostedMenuAssetPath(
 	manifest *catalog.Manifest,
 	menuPath string,
 ) (string, bool, error) {
@@ -133,7 +133,7 @@ func (s *Service) resolveHostedMenuAssetPath(
 }
 
 // ValidateHostedMenuBindings is the exported form of validateHostedMenuBindings for cross-package access.
-func (s *Service) ValidateHostedMenuBindings(ctx context.Context, manifest *catalog.Manifest, menus []*entity.SysMenu) error {
+func (s *serviceImpl) ValidateHostedMenuBindings(ctx context.Context, manifest *catalog.Manifest, menus []*entity.SysMenu) error {
 	return s.validateHostedMenuBindings(ctx, manifest, menus)
 }
 

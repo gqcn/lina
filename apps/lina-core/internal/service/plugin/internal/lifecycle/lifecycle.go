@@ -27,10 +27,41 @@ type TopologyProvider interface {
 	IsPrimaryNode() bool
 }
 
-// Service provides install, uninstall, and migration lifecycle orchestration for dynamic plugins.
-type Service struct {
+// Service defines the lifecycle service contract.
+type Service interface {
+	// SetReconciler wires the runtime package's reconcile provider.
+	SetReconciler(r ReconcileProvider)
+	// SetTopology wires the cluster topology provider.
+	SetTopology(t TopologyProvider)
+	// Install executes the install lifecycle for a discovered dynamic plugin.
+	// Repeated installs are treated as idempotent unless the same version needs a refresh.
+	Install(ctx context.Context, pluginID string) error
+	// Uninstall executes the uninstall lifecycle for an installed dynamic plugin.
+	Uninstall(ctx context.Context, pluginID string) error
+	// ExecuteManifestSQLFiles executes plugin manifest SQL files and records every attempt
+	// in sys_plugin_migration.
+	ExecuteManifestSQLFiles(
+		ctx context.Context,
+		manifest *catalog.Manifest,
+		direction catalog.MigrationDirection,
+	) error
+	// ResolveSQLAssets extracts lifecycle SQL either from embedded runtime artifact sections
+	// or from source-style directory conventions, while preserving execution order.
+	ResolveSQLAssets(
+		manifest *catalog.Manifest,
+		direction catalog.MigrationDirection,
+	) ([]*SQLAsset, error)
+	// ResolvePluginSQLAssets resolves SQL assets from the manifest and returns them as catalog.ArtifactSQLAsset
+	// slices for callers that expect the catalog asset type rather than lifecycle.SQLAsset.
+	ResolvePluginSQLAssets(manifest *catalog.Manifest, direction catalog.MigrationDirection) ([]*catalog.ArtifactSQLAsset, error)
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
 	// catalogSvc provides manifest discovery and registry access.
-	catalogSvc *catalog.Service
+	catalogSvc catalog.Service
 	// reconciler triggers runtime convergence for desired state transitions.
 	reconciler ReconcileProvider
 	// topology provides cluster topology information.
@@ -39,23 +70,23 @@ type Service struct {
 
 // New creates a new lifecycle Service with the given catalog service.
 // Call SetReconciler and SetTopology after construction to wire runtime dependencies.
-func New(catalogSvc *catalog.Service) *Service {
-	return &Service{catalogSvc: catalogSvc}
+func New(catalogSvc catalog.Service) Service {
+	return &serviceImpl{catalogSvc: catalogSvc}
 }
 
 // SetReconciler wires the runtime package's reconcile provider.
-func (s *Service) SetReconciler(r ReconcileProvider) {
+func (s *serviceImpl) SetReconciler(r ReconcileProvider) {
 	s.reconciler = r
 }
 
 // SetTopology wires the cluster topology provider.
-func (s *Service) SetTopology(t TopologyProvider) {
+func (s *serviceImpl) SetTopology(t TopologyProvider) {
 	s.topology = t
 }
 
 // Install executes the install lifecycle for a discovered dynamic plugin.
 // Repeated installs are treated as idempotent unless the same version needs a refresh.
-func (s *Service) Install(ctx context.Context, pluginID string) error {
+func (s *serviceImpl) Install(ctx context.Context, pluginID string) error {
 	manifest, err := s.catalogSvc.GetDesiredManifest(pluginID)
 	if err != nil {
 		return err
@@ -101,7 +132,7 @@ func (s *Service) Install(ctx context.Context, pluginID string) error {
 }
 
 // Uninstall executes the uninstall lifecycle for an installed dynamic plugin.
-func (s *Service) Uninstall(ctx context.Context, pluginID string) error {
+func (s *serviceImpl) Uninstall(ctx context.Context, pluginID string) error {
 	manifest, err := s.catalogSvc.GetDesiredManifest(pluginID)
 	if err != nil {
 		return err

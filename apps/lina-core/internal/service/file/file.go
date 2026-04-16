@@ -33,24 +33,49 @@ const (
 )
 
 // Dict type used in file management
-const DictTypeFileScene = "sys_file_scene" // File scene dictionary
+const DictTypeFileScene = "sys_file_scene"
 
-// Service provides file management operations.
-type Service struct {
-	configSvc *config.Service  // Configuration service
-	storage   Storage          // Storage backend
-	bizCtxSvc *bizctx.Service  // Business context service
-	dictSvc   *dictsvc.Service // Dictionary service for scene labels
+// Service defines the file service contract.
+type Service interface {
+	// Upload handles file upload: computes SHA-256 hash, checks for duplicates, saves file via storage backend and records metadata in DB.
+	// If a file with the same hash already exists, a new record is still created (with different scene), reusing the physical file.
+	Upload(ctx context.Context, in *UploadInput) (output *UploadOutput, err error)
+	// List returns paginated file records.
+	List(ctx context.Context, in *ListInput) (*ListOutput, error)
+	// Info returns file info by ID.
+	Info(ctx context.Context, id int64) (*entity.SysFile, error)
+	// InfoByIds returns file info by multiple IDs.
+	InfoByIds(ctx context.Context, ids []int64) ([]*entity.SysFile, error)
+	// Delete removes files by IDs (soft delete in DB, also removes physical files).
+	Delete(ctx context.Context, idsStr string) error
+	// GetStorage returns the underlying storage backend (for download use).
+	GetStorage() Storage
+	// UsageScenes returns all usage scenes from dictionary.
+	UsageScenes(ctx context.Context) ([]*UsageScenesOutput, error)
+	// Suffixes returns distinct file suffixes from the database.
+	Suffixes(ctx context.Context) ([]*SuffixesOutput, error)
+	// Detail returns file info with scene label.
+	Detail(ctx context.Context, id int64) (*DetailOutput, error)
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
+	configSvc config.Service  // Configuration service
+	storage   Storage         // Storage backend
+	bizCtxSvc bizctx.Service  // Business context service
+	dictSvc   dictsvc.Service // Dictionary service for scene labels
 }
 
 // New creates and returns a new Service instance with local storage.
-func New() *Service {
+func New() Service {
 	var (
 		ctx         = context.Background()
 		configSvc   = config.New()
 		storagePath = configSvc.GetUpload(ctx).Path
 	)
-	return &Service{
+	return &serviceImpl{
 		configSvc: configSvc,
 		storage:   NewLocalStorage(storagePath),
 		bizCtxSvc: bizctx.New(),
@@ -76,7 +101,7 @@ type UploadOutput struct {
 
 // Upload handles file upload: computes SHA-256 hash, checks for duplicates, saves file via storage backend and records metadata in DB.
 // If a file with the same hash already exists, a new record is still created (with different scene), reusing the physical file.
-func (s *Service) Upload(ctx context.Context, in *UploadInput) (output *UploadOutput, err error) {
+func (s *serviceImpl) Upload(ctx context.Context, in *UploadInput) (output *UploadOutput, err error) {
 	file := in.File
 	if file == nil {
 		return nil, gerror.New("请上传文件")
@@ -272,7 +297,7 @@ type ListOutputItem struct {
 }
 
 // List returns paginated file records.
-func (s *Service) List(ctx context.Context, in *ListInput) (*ListOutput, error) {
+func (s *serviceImpl) List(ctx context.Context, in *ListInput) (*ListOutput, error) {
 	m := dao.SysFile.Ctx(ctx)
 
 	if in.Name != "" {
@@ -369,7 +394,7 @@ func (s *Service) List(ctx context.Context, in *ListInput) (*ListOutput, error) 
 }
 
 // Info returns file info by ID.
-func (s *Service) Info(ctx context.Context, id int64) (*entity.SysFile, error) {
+func (s *serviceImpl) Info(ctx context.Context, id int64) (*entity.SysFile, error) {
 	var file *entity.SysFile
 	err := dao.SysFile.Ctx(ctx).Where(dao.SysFile.Columns().Id, id).Scan(&file)
 	if err != nil {
@@ -382,7 +407,7 @@ func (s *Service) Info(ctx context.Context, id int64) (*entity.SysFile, error) {
 }
 
 // InfoByIds returns file info by multiple IDs.
-func (s *Service) InfoByIds(ctx context.Context, ids []int64) ([]*entity.SysFile, error) {
+func (s *serviceImpl) InfoByIds(ctx context.Context, ids []int64) ([]*entity.SysFile, error) {
 	var files []*entity.SysFile
 	err := dao.SysFile.Ctx(ctx).WhereIn(dao.SysFile.Columns().Id, ids).Scan(&files)
 	if err != nil {
@@ -401,7 +426,7 @@ func (s *Service) InfoByIds(ctx context.Context, ids []int64) ([]*entity.SysFile
 }
 
 // Delete removes files by IDs (soft delete in DB, also removes physical files).
-func (s *Service) Delete(ctx context.Context, idsStr string) error {
+func (s *serviceImpl) Delete(ctx context.Context, idsStr string) error {
 	ids := gstr.SplitAndTrim(idsStr, ",")
 	if len(ids) == 0 {
 		return gerror.New("请选择要删除的文件")
@@ -436,12 +461,12 @@ func (s *Service) Delete(ctx context.Context, idsStr string) error {
 }
 
 // GetStorage returns the underlying storage backend (for download use).
-func (s *Service) GetStorage() Storage {
+func (s *serviceImpl) GetStorage() Storage {
 	return s.storage
 }
 
 // getBaseUrl returns the base URL (scheme + host) from the current HTTP request context.
-func (s *Service) getBaseUrl(ctx context.Context) string {
+func (s *serviceImpl) getBaseUrl(ctx context.Context) string {
 	r := g.RequestFromCtx(ctx)
 	if r == nil {
 		return ""
@@ -460,7 +485,7 @@ type UsageScenesOutput struct {
 }
 
 // UsageScenes returns all usage scenes from dictionary.
-func (s *Service) UsageScenes(ctx context.Context) ([]*UsageScenesOutput, error) {
+func (s *serviceImpl) UsageScenes(ctx context.Context) ([]*UsageScenesOutput, error) {
 	list, err := s.dictSvc.DataByType(ctx, DictTypeFileScene)
 	if err != nil {
 		return nil, err
@@ -482,7 +507,7 @@ type SuffixesOutput struct {
 }
 
 // Suffixes returns distinct file suffixes from the database.
-func (s *Service) Suffixes(ctx context.Context) ([]*SuffixesOutput, error) {
+func (s *serviceImpl) Suffixes(ctx context.Context) ([]*SuffixesOutput, error) {
 	result, err := dao.SysFile.Ctx(ctx).
 		Fields(dao.SysFile.Columns().Suffix).
 		Group(dao.SysFile.Columns().Suffix).
@@ -513,7 +538,7 @@ type DetailOutput struct {
 }
 
 // Detail returns file info with scene label.
-func (s *Service) Detail(ctx context.Context, id int64) (*DetailOutput, error) {
+func (s *serviceImpl) Detail(ctx context.Context, id int64) (*DetailOutput, error) {
 	// Get file info
 	var file *entity.SysFile
 	err := dao.SysFile.Ctx(ctx).Where(dao.SysFile.Columns().Id, id).Scan(&file)

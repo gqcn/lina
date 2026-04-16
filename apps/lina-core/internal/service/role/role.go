@@ -16,17 +16,74 @@ import (
 	"lina-core/pkg/logger"
 )
 
-// Service provides role management operations.
-type Service struct {
-	bizCtxSvc  *bizctx.Service    // Business context service
-	configSvc  *config.Service    // Configuration service
-	kvCacheSvc *kvcache.Service   // Distributed KV cache service
-	pluginSvc  *pluginsvc.Service // plugin service
+// Service defines the role service contract.
+type Service interface {
+	// List queries role list with pagination.
+	List(ctx context.Context, in ListInput) (*ListOutput, error)
+	// GetById retrieves role by ID.
+	GetById(ctx context.Context, id int) (*entity.SysRole, error)
+	// GetDetail retrieves role detail with menu IDs.
+	GetDetail(ctx context.Context, id int) (*GetDetailOutput, error)
+	// Create creates a new role.
+	Create(ctx context.Context, in CreateInput) (int, error)
+	// Update updates role information.
+	Update(ctx context.Context, in UpdateInput) error
+	// Delete deletes a role.
+	Delete(ctx context.Context, id int) error
+	// UpdateStatus updates role status.
+	UpdateStatus(ctx context.Context, id int, status int) error
+	// GetOptions returns role options for dropdown.
+	GetOptions(ctx context.Context) ([]*OptionItem, error)
+	// GetUsers queries users assigned to a role.
+	GetUsers(ctx context.Context, in GetUsersInput) (*GetUsersOutput, error)
+	// AssignUsers assigns users to a role.
+	AssignUsers(ctx context.Context, roleId int, userIds []int) error
+	// UnassignUser removes user from a role.
+	UnassignUser(ctx context.Context, roleId int, userId int) error
+	// UnassignUsers removes multiple users from a role.
+	UnassignUsers(ctx context.Context, roleId int, userIds []int) error
+	// GetUserRoleIds returns role IDs for a user.
+	GetUserRoleIds(ctx context.Context, userId int) ([]int, error)
+	// GetUserRoles returns role entities for a user.
+	GetUserRoles(ctx context.Context, userId int) ([]*entity.SysRole, error)
+	// GetUserRoleNames returns role names for a user.
+	GetUserRoleNames(ctx context.Context, userId int) ([]string, error)
+	// GetUserMenuIds returns menu IDs accessible by a user through their roles.
+	GetUserMenuIds(ctx context.Context, userId int) ([]int, error)
+	// GetUserPermissions returns effective menu and button permission strings for a user.
+	GetUserPermissions(ctx context.Context, userId int) ([]string, error)
+	// IsSuperAdmin checks if user is a super admin (has admin role).
+	IsSuperAdmin(ctx context.Context, userId int) bool
+	// PrimeTokenAccessContext preloads the access context cache for one freshly issued login token.
+	PrimeTokenAccessContext(
+		ctx context.Context,
+		tokenID string,
+		userID int,
+	) (*UserAccessContext, error)
+	// InvalidateTokenAccessContext removes the cached access context bound to one token.
+	InvalidateTokenAccessContext(ctx context.Context, tokenID string)
+	// InvalidateUserAccessContexts removes all cached access contexts bound to one user.
+	InvalidateUserAccessContexts(ctx context.Context, userID int)
+	// MarkAccessTopologyChanged bumps the shared permission topology revision and clears local token caches.
+	MarkAccessTopologyChanged(ctx context.Context) error
+	// NotifyAccessTopologyChanged best-effort refreshes the shared permission topology revision.
+	NotifyAccessTopologyChanged(ctx context.Context)
+	// GetUserAccessContext loads the user's roles, menus, and permissions with token-aware caching when available.
+	GetUserAccessContext(ctx context.Context, userId int) (*UserAccessContext, error)
 }
 
-// New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
+	bizCtxSvc  bizctx.Service
+	configSvc  config.Service
+	kvCacheSvc kvcache.Service
+	pluginSvc  pluginsvc.Service
+}
+
+func New() Service {
+	return &serviceImpl{
 		bizCtxSvc:  bizctx.New(),
 		configSvc:  config.New(),
 		kvCacheSvc: kvcache.New(),
@@ -34,16 +91,14 @@ func New() *Service {
 	}
 }
 
-// ListInput defines input for List function.
 type ListInput struct {
-	Name   string // Role name, supports fuzzy search
-	Key    string // Permission key, supports fuzzy search
-	Status *int   // Status: 1=Normal 0=Disabled
-	Page   int    // Page number
-	Size   int    // Page size
+	Name   string
+	Key    string
+	Status *int
+	Page   int
+	Size   int
 }
 
-// ListOutput defines output for List function.
 type ListOutput struct {
 	List  []*RoleItem // Role list
 	Total int         // Total count
@@ -63,7 +118,7 @@ type RoleItem struct {
 }
 
 // List queries role list with pagination.
-func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
+func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysRole.Columns()
 		m    = dao.SysRole.Ctx(ctx)
@@ -127,7 +182,7 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 }
 
 // GetById retrieves role by ID.
-func (s *Service) GetById(ctx context.Context, id int) (*entity.SysRole, error) {
+func (s *serviceImpl) GetById(ctx context.Context, id int) (*entity.SysRole, error) {
 	var role *entity.SysRole
 	err := dao.SysRole.Ctx(ctx).
 		Where(do.SysRole{Id: id}).
@@ -148,7 +203,7 @@ type GetDetailOutput struct {
 }
 
 // GetDetail retrieves role detail with menu IDs.
-func (s *Service) GetDetail(ctx context.Context, id int) (*GetDetailOutput, error) {
+func (s *serviceImpl) GetDetail(ctx context.Context, id int) (*GetDetailOutput, error) {
 	// Get role
 	role, err := s.GetById(ctx, id)
 	if err != nil {
@@ -188,7 +243,7 @@ type CreateInput struct {
 }
 
 // Create creates a new role.
-func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
+func (s *serviceImpl) Create(ctx context.Context, in CreateInput) (int, error) {
 	// Check name uniqueness
 	if err := s.checkNameUnique(ctx, in.Name, 0); err != nil {
 		return 0, err
@@ -252,7 +307,7 @@ type UpdateInput struct {
 }
 
 // Update updates role information.
-func (s *Service) Update(ctx context.Context, in UpdateInput) error {
+func (s *serviceImpl) Update(ctx context.Context, in UpdateInput) error {
 	// Check role exists
 	_, err := s.GetById(ctx, in.Id)
 	if err != nil {
@@ -326,7 +381,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 }
 
 // Delete deletes a role.
-func (s *Service) Delete(ctx context.Context, id int) error {
+func (s *serviceImpl) Delete(ctx context.Context, id int) error {
 	// Check role exists
 	_, err := s.GetById(ctx, id)
 	if err != nil {
@@ -371,7 +426,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 }
 
 // UpdateStatus updates role status.
-func (s *Service) UpdateStatus(ctx context.Context, id int, status int) error {
+func (s *serviceImpl) UpdateStatus(ctx context.Context, id int, status int) error {
 	// Check role exists
 	_, err := s.GetById(ctx, id)
 	if err != nil {
@@ -397,7 +452,7 @@ type OptionItem struct {
 }
 
 // GetOptions returns role options for dropdown.
-func (s *Service) GetOptions(ctx context.Context) ([]*OptionItem, error) {
+func (s *serviceImpl) GetOptions(ctx context.Context) ([]*OptionItem, error) {
 	var roles []*entity.SysRole
 	cols := dao.SysRole.Columns()
 	err := dao.SysRole.Ctx(ctx).
@@ -448,7 +503,7 @@ type GetUsersOutput struct {
 }
 
 // GetUsers queries users assigned to a role.
-func (s *Service) GetUsers(ctx context.Context, in GetUsersInput) (*GetUsersOutput, error) {
+func (s *serviceImpl) GetUsers(ctx context.Context, in GetUsersInput) (*GetUsersOutput, error) {
 	// Check role exists
 	_, err := s.GetById(ctx, in.RoleId)
 	if err != nil {
@@ -532,7 +587,7 @@ func (s *Service) GetUsers(ctx context.Context, in GetUsersInput) (*GetUsersOutp
 }
 
 // AssignUsers assigns users to a role.
-func (s *Service) AssignUsers(ctx context.Context, roleId int, userIds []int) error {
+func (s *serviceImpl) AssignUsers(ctx context.Context, roleId int, userIds []int) error {
 	// Check role exists
 	_, err := s.GetById(ctx, roleId)
 	if err != nil {
@@ -573,7 +628,7 @@ func (s *Service) AssignUsers(ctx context.Context, roleId int, userIds []int) er
 }
 
 // UnassignUser removes user from a role.
-func (s *Service) UnassignUser(ctx context.Context, roleId int, userId int) error {
+func (s *serviceImpl) UnassignUser(ctx context.Context, roleId int, userId int) error {
 	// Check role exists
 	_, err := s.GetById(ctx, roleId)
 	if err != nil {
@@ -593,7 +648,7 @@ func (s *Service) UnassignUser(ctx context.Context, roleId int, userId int) erro
 }
 
 // UnassignUsers removes multiple users from a role.
-func (s *Service) UnassignUsers(ctx context.Context, roleId int, userIds []int) error {
+func (s *serviceImpl) UnassignUsers(ctx context.Context, roleId int, userIds []int) error {
 	// Check role exists
 	_, err := s.GetById(ctx, roleId)
 	if err != nil {
@@ -613,7 +668,7 @@ func (s *Service) UnassignUsers(ctx context.Context, roleId int, userIds []int) 
 }
 
 // checkNameUnique checks if the role name is unique.
-func (s *Service) checkNameUnique(ctx context.Context, name string, excludeId int) error {
+func (s *serviceImpl) checkNameUnique(ctx context.Context, name string, excludeId int) error {
 	cols := dao.SysRole.Columns()
 	m := dao.SysRole.Ctx(ctx).Where(cols.Name, name)
 	if excludeId > 0 {
@@ -630,7 +685,7 @@ func (s *Service) checkNameUnique(ctx context.Context, name string, excludeId in
 }
 
 // checkKeyUnique checks if the role key is unique.
-func (s *Service) checkKeyUnique(ctx context.Context, key string, excludeId int) error {
+func (s *serviceImpl) checkKeyUnique(ctx context.Context, key string, excludeId int) error {
 	cols := dao.SysRole.Columns()
 	m := dao.SysRole.Ctx(ctx).Where(cols.Key, key)
 	if excludeId > 0 {
@@ -647,7 +702,7 @@ func (s *Service) checkKeyUnique(ctx context.Context, key string, excludeId int)
 }
 
 // GetUserRoleIds returns role IDs for a user.
-func (s *Service) GetUserRoleIds(ctx context.Context, userId int) ([]int, error) {
+func (s *serviceImpl) GetUserRoleIds(ctx context.Context, userId int) ([]int, error) {
 	urCols := dao.SysUserRole.Columns()
 	var userRoles []*entity.SysUserRole
 	err := dao.SysUserRole.Ctx(ctx).
@@ -666,7 +721,7 @@ func (s *Service) GetUserRoleIds(ctx context.Context, userId int) ([]int, error)
 }
 
 // GetUserRoles returns role entities for a user.
-func (s *Service) GetUserRoles(ctx context.Context, userId int) ([]*entity.SysRole, error) {
+func (s *serviceImpl) GetUserRoles(ctx context.Context, userId int) ([]*entity.SysRole, error) {
 	roleIds, err := s.GetUserRoleIds(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -675,7 +730,7 @@ func (s *Service) GetUserRoles(ctx context.Context, userId int) ([]*entity.SysRo
 }
 
 // GetUserRoleNames returns role names for a user.
-func (s *Service) GetUserRoleNames(ctx context.Context, userId int) ([]string, error) {
+func (s *serviceImpl) GetUserRoleNames(ctx context.Context, userId int) ([]string, error) {
 	roles, err := s.GetUserRoles(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -690,7 +745,7 @@ func (s *Service) GetUserRoleNames(ctx context.Context, userId int) ([]string, e
 }
 
 // GetUserMenuIds returns menu IDs accessible by a user through their roles.
-func (s *Service) GetUserMenuIds(ctx context.Context, userId int) ([]int, error) {
+func (s *serviceImpl) GetUserMenuIds(ctx context.Context, userId int) ([]int, error) {
 	roleIds, err := s.GetUserRoleIds(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -699,7 +754,7 @@ func (s *Service) GetUserMenuIds(ctx context.Context, userId int) ([]int, error)
 }
 
 // GetUserPermissions returns effective menu and button permission strings for a user.
-func (s *Service) GetUserPermissions(ctx context.Context, userId int) ([]string, error) {
+func (s *serviceImpl) GetUserPermissions(ctx context.Context, userId int) ([]string, error) {
 	menuIds, err := s.GetUserMenuIds(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -708,7 +763,7 @@ func (s *Service) GetUserPermissions(ctx context.Context, userId int) ([]string,
 }
 
 // IsSuperAdmin checks if user is a super admin (has admin role).
-func (s *Service) IsSuperAdmin(ctx context.Context, userId int) bool {
+func (s *serviceImpl) IsSuperAdmin(ctx context.Context, userId int) bool {
 	roleIds, err := s.GetUserRoleIds(ctx, userId)
 	if err != nil {
 		return false

@@ -66,7 +66,7 @@ func (e *dynamicWasmExecutor) Execute(
 }
 
 // executeDynamicRoute selects and runs the appropriate executor for the given manifest.
-func (s *Service) executeDynamicRoute(
+func (s *serviceImpl) executeDynamicRoute(
 	ctx context.Context,
 	manifest *catalog.Manifest,
 	request *pluginbridge.BridgeRequestEnvelopeV1,
@@ -76,7 +76,7 @@ func (s *Service) executeDynamicRoute(
 }
 
 // ExecuteDynamicRoute is the exported form of executeDynamicRoute for cross-package access.
-func (s *Service) ExecuteDynamicRoute(
+func (s *serviceImpl) ExecuteDynamicRoute(
 	ctx context.Context,
 	manifest *catalog.Manifest,
 	request *pluginbridge.BridgeRequestEnvelopeV1,
@@ -85,7 +85,7 @@ func (s *Service) ExecuteDynamicRoute(
 }
 
 // selectDynamicRouteExecutor returns the executor appropriate for the manifest's bridge spec.
-func (s *Service) selectDynamicRouteExecutor(manifest *catalog.Manifest) dynamicRouteExecutor {
+func (s *serviceImpl) selectDynamicRouteExecutor(manifest *catalog.Manifest) dynamicRouteExecutor {
 	if manifest == nil || manifest.BridgeSpec == nil {
 		return &dynamicPlaceholderExecutor{}
 	}

@@ -32,15 +32,31 @@ const (
 	NoticeStatusPublished = 1 // 已发布
 )
 
-// Service provides notice management operations.
-type Service struct {
-	bizCtxSvc *bizctx.Service    // Business context service
-	notifySvc *notifysvc.Service // Unified notify service
+// Service defines the notice service contract.
+type Service interface {
+	// List queries notice list with pagination and filters.
+	List(ctx context.Context, in ListInput) (*ListOutput, error)
+	// GetById retrieves notice by ID.
+	GetById(ctx context.Context, id int64) (*ListItem, error)
+	// Create creates a new notice.
+	Create(ctx context.Context, in CreateInput) (int64, error)
+	// Update updates notice information.
+	Update(ctx context.Context, in UpdateInput) error
+	// Delete soft-deletes notices by IDs and cascades to notify deliveries.
+	Delete(ctx context.Context, ids string) error
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
+	bizCtxSvc bizctx.Service    // Business context service
+	notifySvc notifysvc.Service // Unified notify service
 }
 
 // New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{
+func New() Service {
+	return &serviceImpl{
 		bizCtxSvc: bizctx.New(),
 		notifySvc: notifysvc.New(),
 	}
@@ -68,7 +84,7 @@ type ListOutput struct {
 }
 
 // List queries notice list with pagination and filters.
-func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
+func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysNotice.Columns()
 		m    = dao.SysNotice.Ctx(ctx)
@@ -147,7 +163,7 @@ func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 }
 
 // GetById retrieves notice by ID.
-func (s *Service) GetById(ctx context.Context, id int64) (*ListItem, error) {
+func (s *serviceImpl) GetById(ctx context.Context, id int64) (*ListItem, error) {
 	var notice *entity.SysNotice
 	err := dao.SysNotice.Ctx(ctx).
 		Where(do.SysNotice{Id: id}).
@@ -188,7 +204,7 @@ type CreateInput struct {
 }
 
 // Create creates a new notice.
-func (s *Service) Create(ctx context.Context, in CreateInput) (int64, error) {
+func (s *serviceImpl) Create(ctx context.Context, in CreateInput) (int64, error) {
 	bizCtx := s.bizCtxSvc.Get(ctx)
 	var createdBy int64
 	if bizCtx != nil {
@@ -232,7 +248,7 @@ type UpdateInput struct {
 }
 
 // Update updates notice information.
-func (s *Service) Update(ctx context.Context, in UpdateInput) error {
+func (s *serviceImpl) Update(ctx context.Context, in UpdateInput) error {
 	// Check notice exists and get old status
 	var oldNotice *entity.SysNotice
 	err := dao.SysNotice.Ctx(ctx).
@@ -301,7 +317,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 }
 
 // Delete soft-deletes notices by IDs and cascades to notify deliveries.
-func (s *Service) Delete(ctx context.Context, ids string) error {
+func (s *serviceImpl) Delete(ctx context.Context, ids string) error {
 	idList := strings.Split(ids, ",")
 	if len(idList) == 0 {
 		return gerror.New("请选择要删除的记录")
@@ -321,7 +337,7 @@ func (s *Service) Delete(ctx context.Context, ids string) error {
 	return nil
 }
 
-func (s *Service) dispatchPublishedNotice(
+func (s *serviceImpl) dispatchPublishedNotice(
 	ctx context.Context,
 	noticeID int64,
 	title string,
@@ -339,7 +355,7 @@ func (s *Service) dispatchPublishedNotice(
 	return err
 }
 
-func (s *Service) noticeTypeToCategoryCode(noticeType int) notifysvc.CategoryCode {
+func (s *serviceImpl) noticeTypeToCategoryCode(noticeType int) notifysvc.CategoryCode {
 	switch noticeType {
 	case NoticeTypeAnnouncement:
 		return notifysvc.CategoryCodeAnnouncement

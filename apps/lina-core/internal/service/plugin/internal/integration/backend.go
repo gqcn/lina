@@ -46,7 +46,7 @@ type ResourceListOutput struct {
 
 // LoadPluginBackendConfig loads plugin-owned hook and resource declarations into the manifest.
 // It implements catalog.BackendConfigLoader.
-func (s *Service) LoadPluginBackendConfig(manifest *catalog.Manifest) error {
+func (s *serviceImpl) LoadPluginBackendConfig(manifest *catalog.Manifest) error {
 	manifest.Hooks = make([]*catalog.HookSpec, 0)
 	manifest.BackendResources = make(map[string]*catalog.ResourceSpec)
 
@@ -112,7 +112,7 @@ func loadPluginYAMLFile(filePath string, target interface{}) error {
 
 // ListResourceRecords queries plugin-owned backend resource rows using the
 // generic plugin resource contract.
-func (s *Service) ListResourceRecords(ctx context.Context, in ResourceListInput) (*ResourceListOutput, error) {
+func (s *serviceImpl) ListResourceRecords(ctx context.Context, in ResourceListInput) (*ResourceListOutput, error) {
 	manifest, err := s.catalogSvc.GetActiveManifest(ctx, in.PluginID)
 	if err != nil {
 		return nil, err
@@ -211,7 +211,7 @@ func normalizePluginResourceValue(value interface{}) interface{} {
 }
 
 // executePluginInsertHook executes a generic insert hook declared by a source plugin.
-func (s *Service) executePluginInsertHook(ctx context.Context, pluginID string, hook *catalog.HookSpec, payload map[string]interface{}) error {
+func (s *serviceImpl) executePluginInsertHook(ctx context.Context, pluginID string, hook *catalog.HookSpec, payload map[string]interface{}) error {
 	columns := make([]string, 0, len(hook.Fields))
 	for column := range hook.Fields {
 		columns = append(columns, column)

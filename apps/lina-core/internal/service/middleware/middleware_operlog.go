@@ -18,7 +18,7 @@ import (
 const maxParamLen = 2000 // Max length for parameters and results
 
 // OperLog records operation logs for write operations and specially tagged GET operations.
-func (s *Service) OperLog(r *ghttp.Request) {
+func (s *serviceImpl) OperLog(r *ghttp.Request) {
 	startTime := time.Now()
 	r.Middleware.Next()
 

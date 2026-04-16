@@ -18,14 +18,24 @@ const (
 	CronServerMonitorCleanup   = "server-monitor-cleanup"   // Server monitor cleanup job name
 )
 
-// Service manages all scheduled/cron tasks.
-type Service struct {
+// Service defines the cron service contract.
+type Service interface {
+	// Start registers and starts all cron jobs.
+	Start(ctx context.Context)
+	// IsPrimary reports whether the current node should execute primary-only jobs.
+	IsPrimary() bool
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
 	sessionCfg   *config.SessionConfig // Session configuration
 	monCfg       *config.MonitorConfig // Monitor configuration
-	serverMonSvc *servermon.Service    // Server monitor service
+	serverMonSvc servermon.Service     // Server monitor service
 	sessionStore session.Store         // Session store
-	clusterSvc   *cluster.Service      // Cluster topology service
-	pluginSvc    *pluginsvc.Service    // Plugin service
+	clusterSvc   cluster.Service       // Cluster topology service
+	pluginSvc    pluginsvc.Service     // Plugin service
 }
 
 // New creates and returns a new Service instance.
@@ -33,9 +43,9 @@ func New(
 	sessionCfg *config.SessionConfig,
 	monCfg *config.MonitorConfig,
 	sessionStore session.Store,
-	clusterSvc *cluster.Service,
-) *Service {
-	return &Service{
+	clusterSvc cluster.Service,
+) Service {
+	return &serviceImpl{
 		sessionCfg:   sessionCfg,
 		monCfg:       monCfg,
 		serverMonSvc: servermon.New(),
@@ -46,7 +56,7 @@ func New(
 }
 
 // Start registers and starts all cron jobs.
-func (s *Service) Start(ctx context.Context) {
+func (s *serviceImpl) Start(ctx context.Context) {
 	// All-Node Jobs: executed on every node
 	s.startServerMonitor(ctx)
 
@@ -59,7 +69,7 @@ func (s *Service) Start(ctx context.Context) {
 }
 
 // IsPrimary reports whether the current node should execute primary-only jobs.
-func (s *Service) IsPrimary() bool {
+func (s *serviceImpl) IsPrimary() bool {
 	if s == nil || s.clusterSvc == nil {
 		return true
 	}

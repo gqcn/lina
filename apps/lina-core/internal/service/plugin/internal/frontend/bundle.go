@@ -244,7 +244,7 @@ func normalizeRequestedAssetPath(relativePath string) (string, error) {
 }
 
 // ensureBundle returns the cached bundle for the manifest, building and caching it if needed.
-func (s *Service) ensureBundle(ctx context.Context, manifest *catalog.Manifest) (*bundle, error) {
+func (s *serviceImpl) ensureBundle(ctx context.Context, manifest *catalog.Manifest) (*bundle, error) {
 	if manifest == nil {
 		return nil, gerror.New("插件清单不能为空")
 	}
@@ -348,6 +348,6 @@ type BundleReader interface {
 }
 
 // EnsureBundleReader returns a BundleReader for the manifest, building and caching the bundle if needed.
-func (s *Service) EnsureBundleReader(ctx context.Context, manifest *catalog.Manifest) (BundleReader, error) {
+func (s *serviceImpl) EnsureBundleReader(ctx context.Context, manifest *catalog.Manifest) (BundleReader, error) {
 	return s.ensureBundle(ctx, manifest)
 }

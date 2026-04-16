@@ -15,7 +15,7 @@ import (
 const lockName = "leader-election"
 
 type electionService struct {
-	locker      *locker.Service        // locker manages distributed lock ownership.
+	locker      locker.Service         // locker manages distributed lock ownership.
 	cfg         *config.ElectionConfig // cfg stores election lease and renew settings.
 	holder      string                 // holder is the current node identifier.
 	isLeader    atomic.Bool            // isLeader reports whether the current node owns leadership.
@@ -28,7 +28,7 @@ type electionService struct {
 }
 
 func newElectionService(
-	lockerSvc *locker.Service,
+	lockerSvc locker.Service,
 	cfg *config.ElectionConfig,
 	holder string,
 ) *electionService {

@@ -48,17 +48,17 @@ func init() {
 // Services groups the wired plugin sub-services used by package-level tests.
 type Services struct {
 	// Catalog provides manifest discovery, registry, and release access.
-	Catalog *catalog.Service
+	Catalog catalog.Service
 	// Lifecycle provides install and uninstall orchestration.
-	Lifecycle *lifecycle.Service
+	Lifecycle lifecycle.Service
 	// Runtime provides artifact parsing, reconcile, and route execution.
-	Runtime *runtime.Service
+	Runtime runtime.Service
 	// Frontend provides in-memory frontend bundle management.
-	Frontend *frontend.Service
+	Frontend frontend.Service
 	// Integration provides menu, hook, and resource-ref integration.
-	Integration *integration.Service
+	Integration integration.Service
 	// OpenAPI provides dynamic route OpenAPI projection.
-	OpenAPI *openapi.Service
+	OpenAPI openapi.Service
 }
 
 // RuntimeBuildOutput describes one artifact produced by the build-wasm helper in tests.
@@ -136,7 +136,7 @@ func TestDynamicStorageDir() string {
 }
 
 type jwtConfigAdapter struct {
-	svc *configsvc.Service
+	svc configsvc.Service
 }
 
 func (a *jwtConfigAdapter) GetJwtSecret(ctx context.Context) string {
@@ -144,7 +144,7 @@ func (a *jwtConfigAdapter) GetJwtSecret(ctx context.Context) string {
 }
 
 type userCtxAdapter struct {
-	svc *bizctx.Service
+	svc bizctx.Service
 }
 
 func (a *userCtxAdapter) SetUser(ctx context.Context, tokenID string, userID int, username string, status int) {
@@ -152,7 +152,7 @@ func (a *userCtxAdapter) SetUser(ctx context.Context, tokenID string, userID int
 }
 
 type bizCtxAdapter struct {
-	svc *bizctx.Service
+	svc bizctx.Service
 }
 
 func (a *bizCtxAdapter) GetUserId(ctx context.Context) int {

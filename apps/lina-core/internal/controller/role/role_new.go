@@ -11,7 +11,7 @@ import (
 
 // ControllerV1 is the role controller.
 type ControllerV1 struct {
-	roleSvc *rolesvc.Service // role service
+	roleSvc rolesvc.Service // role service
 }
 
 // NewV1 creates and returns a new role controller instance.

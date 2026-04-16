@@ -29,7 +29,7 @@ type ImportFailItem struct {
 
 // Import reads an Excel file and creates configs from it.
 // If updateSupport is true, existing records (matched by key) will be updated; otherwise, they will be skipped.
-func (s *Service) Import(ctx context.Context, fileReader io.Reader, updateSupport bool) (result *ImportResult, err error) {
+func (s *serviceImpl) Import(ctx context.Context, fileReader io.Reader, updateSupport bool) (result *ImportResult, err error) {
 	f, err := excelize.OpenReader(fileReader)
 	if err != nil {
 		return nil, gerror.New("无法解析 Excel 文件")
@@ -143,7 +143,7 @@ func (s *Service) Import(ctx context.Context, fileReader io.Reader, updateSuppor
 }
 
 // GenerateImportTemplate creates an Excel template for config import.
-func (s *Service) GenerateImportTemplate() (data []byte, err error) {
+func (s *serviceImpl) GenerateImportTemplate() (data []byte, err error) {
 	f := excelize.NewFile()
 	defer closeExcelFile(f, &err)
 	sheet := "Sheet1"

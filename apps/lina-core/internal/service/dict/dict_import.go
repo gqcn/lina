@@ -46,7 +46,7 @@ type ImportFailItem struct {
 
 // CombinedImport imports dictionary types and data from an Excel file.
 // If updateSupport is true, existing records will be updated; otherwise, they will be skipped.
-func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSupport bool) (result *CombinedImportResult, err error) {
+func (s *serviceImpl) CombinedImport(ctx context.Context, fileData []byte, updateSupport bool) (result *CombinedImportResult, err error) {
 	result = &CombinedImportResult{
 		FailList: make([]ImportFailItem, 0),
 	}
@@ -356,7 +356,7 @@ func (s *Service) CombinedImport(ctx context.Context, fileData []byte, updateSup
 }
 
 // CombinedImportTemplate generates an Excel template for dictionary import.
-func (s *Service) CombinedImportTemplate() (data []byte, err error) {
+func (s *serviceImpl) CombinedImportTemplate() (data []byte, err error) {
 	f := excelize.NewFile()
 	defer closeExcelFile(f, &err)
 
@@ -473,7 +473,7 @@ type ImportFailItemRecord struct {
 }
 
 // TypeImport imports dictionary types from an Excel file.
-func (s *Service) TypeImport(ctx context.Context, file io.Reader, updateSupport bool) (result *ImportResult, err error) {
+func (s *serviceImpl) TypeImport(ctx context.Context, file io.Reader, updateSupport bool) (result *ImportResult, err error) {
 	result = &ImportResult{
 		FailList: make([]ImportFailItemRecord, 0),
 	}
@@ -602,7 +602,7 @@ func (s *Service) TypeImport(ctx context.Context, file io.Reader, updateSupport 
 }
 
 // DataImport imports dictionary data from an Excel file.
-func (s *Service) DataImport(ctx context.Context, file io.Reader, updateSupport bool) (result *ImportResult, err error) {
+func (s *serviceImpl) DataImport(ctx context.Context, file io.Reader, updateSupport bool) (result *ImportResult, err error) {
 	result = &ImportResult{
 		FailList: make([]ImportFailItemRecord, 0),
 	}
@@ -782,7 +782,7 @@ func (s *Service) DataImport(ctx context.Context, file io.Reader, updateSupport 
 }
 
 // GenerateTypeImportTemplate generates an Excel template for dictionary type import.
-func (s *Service) GenerateTypeImportTemplate() (data []byte, err error) {
+func (s *serviceImpl) GenerateTypeImportTemplate() (data []byte, err error) {
 	f := excelize.NewFile()
 	defer closeExcelFile(f, &err)
 
@@ -817,7 +817,7 @@ func (s *Service) GenerateTypeImportTemplate() (data []byte, err error) {
 }
 
 // GenerateDataImportTemplate generates an Excel template for dictionary data import.
-func (s *Service) GenerateDataImportTemplate() (data []byte, err error) {
+func (s *serviceImpl) GenerateDataImportTemplate() (data []byte, err error) {
 	f := excelize.NewFile()
 	defer closeExcelFile(f, &err)
 

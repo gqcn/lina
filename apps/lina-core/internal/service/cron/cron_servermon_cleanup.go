@@ -14,7 +14,7 @@ import (
 // It runs every hour to delete records where updated_at is older than
 // (collection_interval * retention_multiplier) seconds.
 // This is a primary-only job, only executed on the primary node in clustered mode.
-func (s *Service) startServerMonitorCleanup(ctx context.Context) {
+func (s *serviceImpl) startServerMonitorCleanup(ctx context.Context) {
 	// Calculate stale threshold: interval * multiplier
 	staleThreshold := s.monCfg.Interval * time.Duration(s.monCfg.RetentionMultiplier)
 

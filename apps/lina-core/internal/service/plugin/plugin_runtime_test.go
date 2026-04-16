@@ -19,7 +19,7 @@ import (
 )
 
 func TestDynamicPluginUpgradeKeepsPreviousReleaseFrontendAssets(t *testing.T) {
-	service := New()
+	service := newTestService()
 	ctx := context.Background()
 
 	pluginID := "plugin-dynamic-upgrade"
@@ -121,7 +121,7 @@ func TestDynamicPluginUpgradeKeepsPreviousReleaseFrontendAssets(t *testing.T) {
 }
 
 func TestDynamicPluginUpgradeFailureRollsBackStableRelease(t *testing.T) {
-	service := New()
+	service := newTestService()
 	ctx := context.Background()
 
 	pluginID := "plugin-dynamic-upgrade-failed"
@@ -266,7 +266,7 @@ func TestDynamicPluginUpgradeFailureRollsBackStableRelease(t *testing.T) {
 }
 
 func TestDynamicPluginUninstallFailureRestoresStableRegistryFlags(t *testing.T) {
-	service := New()
+	service := newTestService()
 	ctx := context.Background()
 
 	pluginID := "plugin-dynamic-uninstall-failed"
@@ -339,7 +339,7 @@ func TestDynamicPluginFollowerDefersUntilPrimaryReconciles(t *testing.T) {
 		primary: false,
 		nodeID:  "follower-node",
 	}
-	service := New(topology)
+	service := newTestServiceWithTopology(topology)
 	ctx := context.Background()
 
 	pluginID := "plugin-dynamic-follower"
@@ -406,7 +406,7 @@ func TestDynamicPluginFollowerDefersUntilPrimaryReconciles(t *testing.T) {
 }
 
 func TestBundledDynamicPluginEnableMakesDynamicRouteExecutable(t *testing.T) {
-	service := New()
+	service := newTestService()
 	ctx := context.Background()
 
 	const pluginID = "plugin-demo-dynamic"
@@ -487,7 +487,7 @@ func TestBundledDynamicPluginEnableMakesDynamicRouteExecutable(t *testing.T) {
 }
 
 func TestInstallSameVersionDynamicPluginRefreshesArchivedReleaseArtifact(t *testing.T) {
-	service := New()
+	service := newTestService()
 	ctx := context.Background()
 
 	pluginID := "plugin-dynamic-same-version-refresh"

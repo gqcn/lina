@@ -21,7 +21,7 @@ type PluginDynamicConfig struct {
 }
 
 // GetPlugin reads plugin config from configuration file.
-func (s *Service) GetPlugin(ctx context.Context) *PluginConfig {
+func (s *serviceImpl) GetPlugin(ctx context.Context) *PluginConfig {
 	cfg := &PluginConfig{
 		Dynamic: PluginDynamicConfig{
 			StoragePath: "temp/output",
@@ -40,7 +40,7 @@ func (s *Service) GetPlugin(ctx context.Context) *PluginConfig {
 }
 
 // GetPluginDynamicStoragePath returns the normalized dynamic wasm storage directory.
-func (s *Service) GetPluginDynamicStoragePath(ctx context.Context) string {
+func (s *serviceImpl) GetPluginDynamicStoragePath(ctx context.Context) string {
 	if override := getPluginDynamicStoragePathOverride(); override != "" {
 		return override
 	}

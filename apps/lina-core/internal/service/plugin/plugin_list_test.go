@@ -15,7 +15,7 @@ import (
 
 func TestSyncAndListRetainsMissingRuntimeRegistryAndReconcilesState(t *testing.T) {
 	var (
-		service  = New()
+		service  = newTestService()
 		ctx      = context.Background()
 		pluginID = "plugin-dynamic-registry-missing"
 	)
@@ -106,7 +106,7 @@ func TestSyncAndListRetainsMissingRuntimeRegistryAndReconcilesState(t *testing.T
 
 func TestSyncAndListDoesNotRestoreUninstalledDynamicGovernanceProjection(t *testing.T) {
 	var (
-		service  = New()
+		service  = newTestService()
 		ctx      = context.Background()
 		pluginID = "plugin-dynamic-uninstall-governance"
 	)

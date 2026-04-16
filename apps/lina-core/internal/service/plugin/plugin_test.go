@@ -63,19 +63,27 @@ func ensureBundledRuntimeSampleArtifactForTests() error {
 	return nil
 }
 
-func (s *Service) getPluginRegistry(ctx context.Context, pluginID string) (*entity.SysPlugin, error) {
+func newTestService() *serviceImpl {
+	return New().(*serviceImpl)
+}
+
+func newTestServiceWithTopology(topology Topology) *serviceImpl {
+	return New(topology).(*serviceImpl)
+}
+
+func (s *serviceImpl) getPluginRegistry(ctx context.Context, pluginID string) (*entity.SysPlugin, error) {
 	return s.catalogSvc.GetRegistry(ctx, pluginID)
 }
 
-func (s *Service) getPluginRelease(ctx context.Context, pluginID string, version string) (*entity.SysPluginRelease, error) {
+func (s *serviceImpl) getPluginRelease(ctx context.Context, pluginID string, version string) (*entity.SysPluginRelease, error) {
 	return s.catalogSvc.GetRelease(ctx, pluginID, version)
 }
 
-func (s *Service) getActivePluginManifest(ctx context.Context, pluginID string) (*catalog.Manifest, error) {
+func (s *serviceImpl) getActivePluginManifest(ctx context.Context, pluginID string) (*catalog.Manifest, error) {
 	return s.catalogSvc.GetActiveManifest(ctx, pluginID)
 }
 
-func (s *Service) buildPluginGovernanceSnapshot(
+func (s *serviceImpl) buildPluginGovernanceSnapshot(
 	ctx context.Context,
 	pluginID string,
 	version string,
@@ -86,23 +94,23 @@ func (s *Service) buildPluginGovernanceSnapshot(
 	return s.catalogSvc.BuildGovernanceSnapshot(ctx, pluginID, version, pluginType, installed, enabled)
 }
 
-func (s *Service) loadRuntimePluginManifestFromArtifact(artifactPath string) (*catalog.Manifest, error) {
+func (s *serviceImpl) loadRuntimePluginManifestFromArtifact(artifactPath string) (*catalog.Manifest, error) {
 	return s.catalogSvc.LoadManifestFromArtifactPath(artifactPath)
 }
 
-func (s *Service) syncPluginManifest(ctx context.Context, manifest *catalog.Manifest) (*entity.SysPlugin, error) {
+func (s *serviceImpl) syncPluginManifest(ctx context.Context, manifest *catalog.Manifest) (*entity.SysPlugin, error) {
 	return s.catalogSvc.SyncManifest(ctx, manifest)
 }
 
-func (s *Service) setPluginInstalled(ctx context.Context, pluginID string, installed int) error {
+func (s *serviceImpl) setPluginInstalled(ctx context.Context, pluginID string, installed int) error {
 	return s.catalogSvc.SetPluginInstalled(ctx, pluginID, installed)
 }
 
-func (s *Service) setPluginStatus(ctx context.Context, pluginID string, status int) error {
+func (s *serviceImpl) setPluginStatus(ctx context.Context, pluginID string, status int) error {
 	return s.catalogSvc.SetPluginStatus(ctx, pluginID, status)
 }
 
-func (s *Service) executeDynamicRoute(ctx context.Context, manifest *catalog.Manifest, request *pluginbridge.BridgeRequestEnvelopeV1) (*pluginbridge.BridgeResponseEnvelopeV1, error) {
+func (s *serviceImpl) executeDynamicRoute(ctx context.Context, manifest *catalog.Manifest, request *pluginbridge.BridgeRequestEnvelopeV1) (*pluginbridge.BridgeResponseEnvelopeV1, error) {
 	return s.runtimeSvc.ExecuteDynamicRoute(ctx, manifest, request)
 }
 

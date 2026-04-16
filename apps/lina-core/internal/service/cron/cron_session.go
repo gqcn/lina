@@ -12,7 +12,7 @@ import (
 
 // startSessionCleanup registers the session cleanup cron job.
 // This is a primary-only job, only executed on the primary node in clustered mode.
-func (s *Service) startSessionCleanup(ctx context.Context) {
+func (s *serviceImpl) startSessionCleanup(ctx context.Context) {
 	cronPattern := fmt.Sprintf("@every %dns", s.sessionCfg.CleanupInterval.Nanoseconds())
 	_, err := gcron.Add(ctx, cronPattern, func(ctx context.Context) {
 		if !s.IsPrimary() {

@@ -11,7 +11,7 @@ import (
 
 // ControllerV1 is the department controller.
 type ControllerV1 struct {
-	deptSvc *deptsvc.Service // department service
+	deptSvc deptsvc.Service // department service
 }
 
 // NewV1 creates and returns a new department controller instance.

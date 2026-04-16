@@ -16,7 +16,7 @@ import (
 )
 
 // GetRegistry returns the sys_plugin row for the given plugin ID, or nil if not found.
-func (s *Service) GetRegistry(ctx context.Context, pluginID string) (*entity.SysPlugin, error) {
+func (s *serviceImpl) GetRegistry(ctx context.Context, pluginID string) (*entity.SysPlugin, error) {
 	normalizedID := strings.TrimSpace(pluginID)
 	if normalizedID == "" {
 		return nil, nil
@@ -30,7 +30,7 @@ func (s *Service) GetRegistry(ctx context.Context, pluginID string) (*entity.Sys
 }
 
 // ListAllRegistries returns all sys_plugin rows ordered by plugin_id.
-func (s *Service) ListAllRegistries(ctx context.Context) ([]*entity.SysPlugin, error) {
+func (s *serviceImpl) ListAllRegistries(ctx context.Context) ([]*entity.SysPlugin, error) {
 	var list []*entity.SysPlugin
 	err := dao.SysPlugin.Ctx(ctx).
 		OrderAsc(dao.SysPlugin.Columns().PluginId).
@@ -43,7 +43,7 @@ func (s *Service) ListAllRegistries(ctx context.Context) ([]*entity.SysPlugin, e
 
 // SyncManifest creates or updates the registry row for a discovered manifest and
 // then synchronizes the release metadata snapshot and node state record.
-func (s *Service) SyncManifest(ctx context.Context, manifest *Manifest) (*entity.SysPlugin, error) {
+func (s *serviceImpl) SyncManifest(ctx context.Context, manifest *Manifest) (*entity.SysPlugin, error) {
 	installedState := InstalledNo
 	if NormalizeType(manifest.Type) == TypeSource {
 		installedState = InstalledYes
@@ -173,7 +173,7 @@ func (s *Service) SyncManifest(ctx context.Context, manifest *Manifest) (*entity
 
 // SetPluginStatus updates the enabled flag on a plugin registry row and fires the
 // matching lifecycle hook event, then syncs release state and node state records.
-func (s *Service) SetPluginStatus(ctx context.Context, pluginID string, enabled int) error {
+func (s *serviceImpl) SetPluginStatus(ctx context.Context, pluginID string, enabled int) error {
 	registry, err := s.GetRegistry(ctx, pluginID)
 	if err != nil {
 		return err
@@ -245,7 +245,7 @@ func (s *Service) SetPluginStatus(ctx context.Context, pluginID string, enabled 
 }
 
 // SetPluginInstalled updates the installed flag and derived lifecycle states for one plugin registry row.
-func (s *Service) SetPluginInstalled(ctx context.Context, pluginID string, installed int) error {
+func (s *serviceImpl) SetPluginInstalled(ctx context.Context, pluginID string, installed int) error {
 	registry, err := s.GetRegistry(ctx, pluginID)
 	if err != nil {
 		return err
@@ -271,13 +271,13 @@ func (s *Service) SetPluginInstalled(ctx context.Context, pluginID string, insta
 }
 
 // BuildPluginStatusKey returns the display key for a plugin's status record.
-func (s *Service) BuildPluginStatusKey(pluginID string) string {
+func (s *serviceImpl) BuildPluginStatusKey(pluginID string) string {
 	return PluginStatusKeyPrefix + pluginID
 }
 
 // syncRegistryReleaseReference links the registry row to the matching release row
 // when the registry and manifest versions agree.
-func (s *Service) syncRegistryReleaseReference(
+func (s *serviceImpl) syncRegistryReleaseReference(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 	manifest *Manifest,
@@ -309,7 +309,7 @@ func (s *Service) syncRegistryReleaseReference(
 
 // SyncRegistryReleaseReference is the exported form of syncRegistryReleaseReference for
 // use by runtime-level callers that cannot call the private method directly.
-func (s *Service) SyncRegistryReleaseReference(
+func (s *serviceImpl) SyncRegistryReleaseReference(
 	ctx context.Context,
 	registry *entity.SysPlugin,
 	manifest *Manifest,
@@ -320,13 +320,13 @@ func (s *Service) SyncRegistryReleaseReference(
 // SyncMetadata orchestrates release metadata, resource reference, and node state
 // synchronization after a manifest or lifecycle change. It is the exported form
 // used by the runtime package after reconciler state transitions.
-func (s *Service) SyncMetadata(ctx context.Context, manifest *Manifest, registry *entity.SysPlugin, message string) error {
+func (s *serviceImpl) SyncMetadata(ctx context.Context, manifest *Manifest, registry *entity.SysPlugin, message string) error {
 	return s.syncMetadata(ctx, manifest, registry, message)
 }
 
 // syncMetadata orchestrates release metadata, resource reference, and node state
 // synchronization after a manifest or lifecycle change.
-func (s *Service) syncMetadata(ctx context.Context, manifest *Manifest, registry *entity.SysPlugin, message string) error {
+func (s *serviceImpl) syncMetadata(ctx context.Context, manifest *Manifest, registry *entity.SysPlugin, message string) error {
 	if manifest == nil || registry == nil {
 		return nil
 	}

@@ -11,7 +11,7 @@ import (
 
 // ControllerV1 is the post controller.
 type ControllerV1 struct {
-	postSvc *postsvc.Service // post service
+	postSvc postsvc.Service // post service
 }
 
 // NewV1 creates and returns a new post controller instance.

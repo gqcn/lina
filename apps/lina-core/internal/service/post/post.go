@@ -14,24 +14,44 @@ import (
 	"lina-core/internal/service/dept"
 )
 
-// Service provides post management operations.
-type Service struct {
-	deptSvc *dept.Service // Department service
+// Service defines the post service contract.
+type Service interface {
+	// List queries post list with pagination and filters.
+	List(ctx context.Context, in ListInput) (*ListOutput, error)
+	// Create creates a new post.
+	Create(ctx context.Context, in CreateInput) (int, error)
+	// GetById retrieves post by ID.
+	GetById(ctx context.Context, id int) (*entity.SysPost, error)
+	// Update updates post information.
+	Update(ctx context.Context, in UpdateInput) error
+	// Delete soft-deletes posts by comma-separated IDs.
+	Delete(ctx context.Context, ids string) error
+	// DeptTree returns department tree structure with "未分配部门" virtual node.
+	DeptTree(ctx context.Context) ([]*DeptTreeNode, error)
+	// OptionSelect returns post options for select dropdown.
+	OptionSelect(ctx context.Context, in OptionSelectInput) ([]PostOption, error)
+	// Export generates an Excel file with post data based on filters.
+	Export(ctx context.Context, in ExportInput) (data []byte, err error)
 }
 
-// New creates and returns a new Service instance.
-func New() *Service {
-	return &Service{
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
+	deptSvc dept.Service
+}
+
+func New() Service {
+	return &serviceImpl{
 		deptSvc: dept.New(),
 	}
 }
 
-// ListInput defines input for List function.
 type ListInput struct {
-	PageNum  int    // Page number, starting from 1
-	PageSize int    // Page size
-	DeptId   *int   // Department ID, 0 means unassigned
-	Code     string // Post code, supports fuzzy search
+	PageNum  int
+	PageSize int
+	DeptId   *int
+	Code     string
 	Name     string // Post name, supports fuzzy search
 	Status   *int   // Status: 1=Normal 0=Disabled
 }
@@ -43,7 +63,7 @@ type ListOutput struct {
 }
 
 // List queries post list with pagination and filters.
-func (s *Service) List(ctx context.Context, in ListInput) (*ListOutput, error) {
+func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, error) {
 	var (
 		cols = dao.SysPost.Columns()
 		m    = dao.SysPost.Ctx(ctx)
@@ -105,7 +125,7 @@ type CreateInput struct {
 }
 
 // Create creates a new post.
-func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
+func (s *serviceImpl) Create(ctx context.Context, in CreateInput) (int, error) {
 	// Check code uniqueness
 	count, err := dao.SysPost.Ctx(ctx).
 		Where(do.SysPost{Code: in.Code}).
@@ -134,7 +154,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (int, error) {
 }
 
 // GetById retrieves post by ID.
-func (s *Service) GetById(ctx context.Context, id int) (*entity.SysPost, error) {
+func (s *serviceImpl) GetById(ctx context.Context, id int) (*entity.SysPost, error) {
 	var post *entity.SysPost
 	err := dao.SysPost.Ctx(ctx).
 		Where(do.SysPost{Id: id}).
@@ -150,17 +170,17 @@ func (s *Service) GetById(ctx context.Context, id int) (*entity.SysPost, error) 
 
 // UpdateInput defines input for Update function.
 type UpdateInput struct {
-	Id     int      // Post ID
-	DeptId *int     // Department ID
-	Code   *string  // Post code
-	Name   *string  // Post name
-	Sort   *int     // Display order
-	Status *int     // Status: 1=Normal 0=Disabled
-	Remark *string  // Remark
+	Id     int     // Post ID
+	DeptId *int    // Department ID
+	Code   *string // Post code
+	Name   *string // Post name
+	Sort   *int    // Display order
+	Status *int    // Status: 1=Normal 0=Disabled
+	Remark *string // Remark
 }
 
 // Update updates post information.
-func (s *Service) Update(ctx context.Context, in UpdateInput) error {
+func (s *serviceImpl) Update(ctx context.Context, in UpdateInput) error {
 	// Check post exists
 	if _, err := s.GetById(ctx, in.Id); err != nil {
 		return err
@@ -191,7 +211,7 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) error {
 }
 
 // Delete soft-deletes posts by comma-separated IDs.
-func (s *Service) Delete(ctx context.Context, ids string) error {
+func (s *serviceImpl) Delete(ctx context.Context, ids string) error {
 	idList := gstr.SplitAndTrim(ids, ",")
 	if len(idList) == 0 {
 		return gerror.New("请选择要删除的岗位")
@@ -238,7 +258,7 @@ type DeptTreeNode struct {
 }
 
 // DeptTree returns department tree structure with "未分配部门" virtual node.
-func (s *Service) DeptTree(ctx context.Context) ([]*DeptTreeNode, error) {
+func (s *serviceImpl) DeptTree(ctx context.Context) ([]*DeptTreeNode, error) {
 	cols := dao.SysDept.Columns()
 	var depts []*entity.SysDept
 	err := dao.SysDept.Ctx(ctx).
@@ -328,7 +348,7 @@ type OptionSelectInput struct {
 }
 
 // OptionSelect returns post options for select dropdown.
-func (s *Service) OptionSelect(ctx context.Context, in OptionSelectInput) ([]PostOption, error) {
+func (s *serviceImpl) OptionSelect(ctx context.Context, in OptionSelectInput) ([]PostOption, error) {
 	cols := dao.SysPost.Columns()
 	m := dao.SysPost.Ctx(ctx).
 		Where(cols.Status, 1)
@@ -359,6 +379,6 @@ func (s *Service) OptionSelect(ctx context.Context, in OptionSelectInput) ([]Pos
 }
 
 // getDeptAndDescendantIds returns the given deptId plus all descendant dept IDs using shared dept service method.
-func (s *Service) getDeptAndDescendantIds(ctx context.Context, deptId int) ([]int, error) {
+func (s *serviceImpl) getDeptAndDescendantIds(ctx context.Context, deptId int) ([]int, error) {
 	return s.deptSvc.GetDeptAndDescendantIds(ctx, deptId)
 }

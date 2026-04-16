@@ -11,7 +11,7 @@ import (
 )
 
 // startServerMonitor starts the server monitor metrics collector.
-func (s *Service) startServerMonitor(ctx context.Context) {
+func (s *serviceImpl) startServerMonitor(ctx context.Context) {
 	// Collect immediately on startup
 	s.serverMonSvc.CollectAndStore(ctx)
 

@@ -19,7 +19,7 @@ import (
 func TestTouchDynamicRouteSessionKeepsExistingSessionWhenTimestampDoesNotChange(t *testing.T) {
 	var (
 		ctx     = context.Background()
-		service = &Service{}
+		service = &serviceImpl{}
 		tokenID = fmt.Sprintf("plugin-dynamic-route-session-%d", time.Now().UnixNano())
 	)
 

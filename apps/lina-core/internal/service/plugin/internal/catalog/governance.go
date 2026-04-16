@@ -27,7 +27,7 @@ type GovernanceSnapshot struct {
 }
 
 // BuildGovernanceSnapshot loads the current governance projection for one plugin version.
-func (s *Service) BuildGovernanceSnapshot(
+func (s *serviceImpl) BuildGovernanceSnapshot(
 	ctx context.Context,
 	pluginID string,
 	version string,
@@ -93,7 +93,7 @@ func (s *Service) BuildGovernanceSnapshot(
 }
 
 // getLatestMigration returns the newest migration record for one plugin release.
-func (s *Service) getLatestMigration(ctx context.Context, pluginID string, releaseID int) (*entity.SysPluginMigration, error) {
+func (s *serviceImpl) getLatestMigration(ctx context.Context, pluginID string, releaseID int) (*entity.SysPluginMigration, error) {
 	if releaseID <= 0 {
 		return nil, nil
 	}

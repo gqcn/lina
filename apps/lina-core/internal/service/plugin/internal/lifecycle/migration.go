@@ -30,7 +30,7 @@ type SQLAsset struct {
 
 // ExecuteManifestSQLFiles executes plugin manifest SQL files and records every attempt
 // in sys_plugin_migration.
-func (s *Service) ExecuteManifestSQLFiles(
+func (s *serviceImpl) ExecuteManifestSQLFiles(
 	ctx context.Context,
 	manifest *catalog.Manifest,
 	direction catalog.MigrationDirection,
@@ -72,7 +72,7 @@ func (s *Service) ExecuteManifestSQLFiles(
 
 // ResolveSQLAssets extracts lifecycle SQL either from embedded runtime artifact sections
 // or from source-style directory conventions, while preserving execution order.
-func (s *Service) ResolveSQLAssets(
+func (s *serviceImpl) ResolveSQLAssets(
 	manifest *catalog.Manifest,
 	direction catalog.MigrationDirection,
 ) ([]*SQLAsset, error) {
@@ -125,7 +125,7 @@ func (s *Service) ResolveSQLAssets(
 
 // ResolvePluginSQLAssets resolves SQL assets from the manifest and returns them as catalog.ArtifactSQLAsset
 // slices for callers that expect the catalog asset type rather than lifecycle.SQLAsset.
-func (s *Service) ResolvePluginSQLAssets(manifest *catalog.Manifest, direction catalog.MigrationDirection) ([]*catalog.ArtifactSQLAsset, error) {
+func (s *serviceImpl) ResolvePluginSQLAssets(manifest *catalog.Manifest, direction catalog.MigrationDirection) ([]*catalog.ArtifactSQLAsset, error) {
 	assets, err := s.ResolveSQLAssets(manifest, direction)
 	if err != nil {
 		return nil, err
@@ -152,7 +152,7 @@ func buildMigrationKey(direction catalog.MigrationDirection, sequenceNo int) str
 	return fmt.Sprintf("%s-step-%03d", normalizedDirection, sequenceNo)
 }
 
-func (s *Service) getMigration(
+func (s *serviceImpl) getMigration(
 	ctx context.Context,
 	pluginID string,
 	releaseID int,
@@ -171,7 +171,7 @@ func (s *Service) getMigration(
 	return migration, err
 }
 
-func (s *Service) recordMigration(
+func (s *serviceImpl) recordMigration(
 	ctx context.Context,
 	pluginID string,
 	releaseID int,

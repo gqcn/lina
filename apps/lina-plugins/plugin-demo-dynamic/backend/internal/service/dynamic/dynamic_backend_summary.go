@@ -8,7 +8,7 @@ import "lina-core/pkg/pluginbridge"
 const backendSummaryMessage = "This backend example is executed through the plugin-demo-dynamic Wasm bridge runtime."
 
 // BuildBackendSummaryPayload builds the backend summary response payload.
-func (s *Service) BuildBackendSummaryPayload(request *pluginbridge.BridgeRequestEnvelopeV1) *backendSummaryPayload {
+func (s *serviceImpl) BuildBackendSummaryPayload(request *pluginbridge.BridgeRequestEnvelopeV1) *backendSummaryPayload {
 	payload := &backendSummaryPayload{
 		Message:       backendSummaryMessage,
 		PluginID:      request.PluginID,

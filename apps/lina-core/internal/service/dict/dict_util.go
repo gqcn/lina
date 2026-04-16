@@ -17,7 +17,7 @@ type GetLabelByValueInput struct {
 
 // GetLabelByValue retrieves the label for a given dict type and value.
 // Returns the value itself if not found or on error.
-func (s *Service) GetLabelByValue(ctx context.Context, in GetLabelByValueInput) string {
+func (s *serviceImpl) GetLabelByValue(ctx context.Context, in GetLabelByValueInput) string {
 	if in.DictType == "" || in.Value == "" {
 		return in.Value
 	}
@@ -34,7 +34,7 @@ func (s *Service) GetLabelByValue(ctx context.Context, in GetLabelByValueInput) 
 
 // GetLabelByIntValue retrieves the label for a given dict type and integer value.
 // Converts the integer to string and calls GetLabelByValue.
-func (s *Service) GetLabelByIntValue(ctx context.Context, dictType string, value int) string {
+func (s *serviceImpl) GetLabelByIntValue(ctx context.Context, dictType string, value int) string {
 	return s.GetLabelByValue(ctx, GetLabelByValueInput{
 		DictType: dictType,
 		Value:    strconv.Itoa(value),
@@ -43,7 +43,7 @@ func (s *Service) GetLabelByIntValue(ctx context.Context, dictType string, value
 
 // BuildLabelMap builds a map of value to label for a given dict type.
 // Useful for batch lookups to avoid repeated database queries.
-func (s *Service) BuildLabelMap(ctx context.Context, dictType string) map[string]string {
+func (s *serviceImpl) BuildLabelMap(ctx context.Context, dictType string) map[string]string {
 	list, err := s.DataByType(ctx, dictType)
 	if err != nil || len(list) == 0 {
 		return make(map[string]string)
@@ -57,7 +57,7 @@ func (s *Service) BuildLabelMap(ctx context.Context, dictType string) map[string
 }
 
 // BuildIntLabelMap builds a map of integer value to label for a given dict type.
-func (s *Service) BuildIntLabelMap(ctx context.Context, dictType string) map[int]string {
+func (s *serviceImpl) BuildIntLabelMap(ctx context.Context, dictType string) map[int]string {
 	list, err := s.DataByType(ctx, dictType)
 	if err != nil || len(list) == 0 {
 		return make(map[int]string)

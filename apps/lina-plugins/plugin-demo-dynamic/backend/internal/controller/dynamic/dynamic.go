@@ -6,7 +6,7 @@ import dynamicservice "lina-plugin-demo-dynamic/backend/internal/service/dynamic
 
 // Controller handles dynamic plugin route requests.
 type Controller struct {
-	dynamicSvc *dynamicservice.Service
+	dynamicSvc dynamicservice.Service
 }
 
 // New creates and returns a new dynamic plugin controller instance.

@@ -97,16 +97,37 @@ type DBInfo struct {
 	Idle         int    `json:"idle"`         // Idle connections
 }
 
-// Service provides server monitoring operations.
-type Service struct {
+// Service defines the servermon service contract.
+type Service interface {
+	// CollectAndStore collects metrics and stores them in the database.
+	// This method is designed to be called by the cron service.
+	// Uses Save() with unique key constraint to ensure each node only has one record,
+	// with updated_at automatically maintained by the database.
+	CollectAndStore(ctx context.Context)
+	// Collect gathers all server metrics.
+	Collect(ctx context.Context) *MonitorData
+	// GetDBInfo collects database metrics on-demand.
+	GetDBInfo(ctx context.Context) *DBInfo
+	// GetLatest returns the latest monitor records for each node.
+	GetLatest(ctx context.Context, nodeName string) ([]*NodeMonitorData, error)
+	// CleanupStale deletes monitor records that haven't been updated
+	// within the specified threshold duration.
+	// This method is called by the cron service for scheduled cleanup.
+	CleanupStale(ctx context.Context, threshold time.Duration) (int64, error)
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
 	startTime     time.Time               // Service start time
 	lastNetBytes  *netutil.IOCountersStat // Last network statistics
 	lastCollectAt time.Time               // Last collection time
 }
 
 // New creates a new Service.
-func New() *Service {
-	return &Service{
+func New() Service {
+	return &serviceImpl{
 		startTime: time.Now(),
 	}
 }
@@ -115,7 +136,7 @@ func New() *Service {
 // This method is designed to be called by the cron service.
 // Uses Save() with unique key constraint to ensure each node only has one record,
 // with updated_at automatically maintained by the database.
-func (s *Service) CollectAndStore(ctx context.Context) {
+func (s *serviceImpl) CollectAndStore(ctx context.Context) {
 	data := s.Collect(ctx)
 	jsonData, err := gjson.Encode(data)
 	if err != nil {
@@ -146,7 +167,7 @@ func (s *Service) CollectAndStore(ctx context.Context) {
 }
 
 // Collect gathers all server metrics.
-func (s *Service) Collect(ctx context.Context) *MonitorData {
+func (s *serviceImpl) Collect(ctx context.Context) *MonitorData {
 	data := &MonitorData{}
 	data.Server = s.collectServer(ctx)
 	data.CPU = s.collectCPU()
@@ -157,7 +178,7 @@ func (s *Service) Collect(ctx context.Context) *MonitorData {
 	return data
 }
 
-func (s *Service) collectServer(ctx context.Context) *ServerInfo {
+func (s *serviceImpl) collectServer(ctx context.Context) *ServerInfo {
 	hostname := ""
 	if resolvedHostname, err := os.Hostname(); err == nil {
 		hostname = resolvedHostname
@@ -185,7 +206,7 @@ func (s *Service) collectServer(ctx context.Context) *ServerInfo {
 	}
 }
 
-func (s *Service) collectCPU() *CPUInfo {
+func (s *serviceImpl) collectCPU() *CPUInfo {
 	info := &CPUInfo{}
 	info.Cores = runtime.NumCPU()
 	cpuInfos, err := cpuutil.Info()
@@ -199,7 +220,7 @@ func (s *Service) collectCPU() *CPUInfo {
 	return info
 }
 
-func (s *Service) collectMemory() *MemoryInfo {
+func (s *serviceImpl) collectMemory() *MemoryInfo {
 	v, err := mem.VirtualMemory()
 	if err != nil {
 		return &MemoryInfo{}
@@ -229,7 +250,7 @@ var virtualFsTypes = map[string]bool{
 	"fuse":     true,
 }
 
-func (s *Service) collectDisks() []*DiskInfo {
+func (s *serviceImpl) collectDisks() []*DiskInfo {
 	partitions, err := disk.Partitions(false)
 	if err != nil {
 		return nil
@@ -256,7 +277,7 @@ func (s *Service) collectDisks() []*DiskInfo {
 	return disks
 }
 
-func (s *Service) collectNetwork() *NetworkInfo {
+func (s *serviceImpl) collectNetwork() *NetworkInfo {
 	counters, err := netutil.IOCounters(false)
 	if err != nil || len(counters) == 0 {
 		return &NetworkInfo{}
@@ -280,7 +301,7 @@ func (s *Service) collectNetwork() *NetworkInfo {
 	return info
 }
 
-func (s *Service) collectGoRuntime() *GoRuntimeInfo {
+func (s *serviceImpl) collectGoRuntime() *GoRuntimeInfo {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	info := &GoRuntimeInfo{
@@ -326,7 +347,7 @@ func (s *Service) collectGoRuntime() *GoRuntimeInfo {
 }
 
 // GetDBInfo collects database metrics on-demand.
-func (s *Service) GetDBInfo(ctx context.Context) *DBInfo {
+func (s *serviceImpl) GetDBInfo(ctx context.Context) *DBInfo {
 	info := &DBInfo{}
 
 	// Get database version
@@ -349,7 +370,7 @@ func (s *Service) GetDBInfo(ctx context.Context) *DBInfo {
 }
 
 // GetLatest returns the latest monitor records for each node.
-func (s *Service) GetLatest(ctx context.Context, nodeName string) ([]*NodeMonitorData, error) {
+func (s *serviceImpl) GetLatest(ctx context.Context, nodeName string) ([]*NodeMonitorData, error) {
 	cols := dao.SysServerMonitor.Columns()
 	m := dao.SysServerMonitor.Ctx(ctx)
 	if nodeName != "" {
@@ -419,7 +440,7 @@ func getLocalIP() string {
 // CleanupStale deletes monitor records that haven't been updated
 // within the specified threshold duration.
 // This method is called by the cron service for scheduled cleanup.
-func (s *Service) CleanupStale(ctx context.Context, threshold time.Duration) (int64, error) {
+func (s *serviceImpl) CleanupStale(ctx context.Context, threshold time.Duration) (int64, error) {
 	cutoff := time.Now().Add(-threshold)
 	cols := dao.SysServerMonitor.Columns()
 

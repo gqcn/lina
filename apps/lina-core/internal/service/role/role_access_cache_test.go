@@ -10,7 +10,7 @@ import (
 
 func TestTokenAccessContextCacheLifecycle(t *testing.T) {
 	ctx := context.Background()
-	svc := New()
+	svc := New().(*serviceImpl)
 	svc.clearLocalAccessCache(ctx)
 	t.Cleanup(func() {
 		svc.clearLocalAccessCache(ctx)
@@ -53,7 +53,7 @@ func TestTokenAccessContextCacheLifecycle(t *testing.T) {
 
 func TestInvalidateUserAccessContextsRemovesBoundTokensOnly(t *testing.T) {
 	ctx := context.Background()
-	svc := New()
+	svc := New().(*serviceImpl)
 	svc.clearLocalAccessCache(ctx)
 	t.Cleanup(func() {
 		svc.clearLocalAccessCache(ctx)

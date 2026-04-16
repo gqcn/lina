@@ -21,9 +21,21 @@ const (
 	maxLockBytes = 64
 )
 
-// Service provides ticket-based distributed lock operations for dynamic plugins.
-type Service struct {
-	lockerSvc *locker.Service // Underlying distributed locker service
+// Service defines the hostlock service contract.
+type Service interface {
+	// Acquire attempts to acquire one plugin-scoped distributed lock.
+	Acquire(ctx context.Context, in AcquireInput) (*AcquireOutput, error)
+	// Renew extends one held lock using the issued lock ticket.
+	Renew(ctx context.Context, pluginID string, resourceRef string, ticket string) (*gtime.Time, error)
+	// Release releases one held lock using the issued lock ticket.
+	Release(ctx context.Context, pluginID string, resourceRef string, ticket string) error
+}
+
+var _ Service = (*serviceImpl)(nil)
+
+// serviceImpl implements Service.
+type serviceImpl struct {
+	lockerSvc locker.Service // Underlying distributed locker service
 }
 
 // AcquireInput defines one distributed lock acquire request.
@@ -49,14 +61,14 @@ type AcquireOutput struct {
 }
 
 // New creates and returns a new plugin-facing host lock service instance.
-func New() *Service {
-	return &Service{
+func New() Service {
+	return &serviceImpl{
 		lockerSvc: locker.New(),
 	}
 }
 
 // Acquire attempts to acquire one plugin-scoped distributed lock.
-func (s *Service) Acquire(ctx context.Context, in AcquireInput) (*AcquireOutput, error) {
+func (s *serviceImpl) Acquire(ctx context.Context, in AcquireInput) (*AcquireOutput, error) {
 	actualLockName, err := buildActualLockName(in.PluginID, in.ResourceRef)
 	if err != nil {
 		return nil, err
@@ -95,7 +107,7 @@ func (s *Service) Acquire(ctx context.Context, in AcquireInput) (*AcquireOutput,
 }
 
 // Renew extends one held lock using the issued lock ticket.
-func (s *Service) Renew(ctx context.Context, pluginID string, resourceRef string, ticket string) (*gtime.Time, error) {
+func (s *serviceImpl) Renew(ctx context.Context, pluginID string, resourceRef string, ticket string) (*gtime.Time, error) {
 	claims, err := decodeAndValidateTicket(ticket, pluginID, resourceRef)
 	if err != nil {
 		return nil, err
@@ -112,7 +124,7 @@ func (s *Service) Renew(ctx context.Context, pluginID string, resourceRef string
 }
 
 // Release releases one held lock using the issued lock ticket.
-func (s *Service) Release(ctx context.Context, pluginID string, resourceRef string, ticket string) error {
+func (s *serviceImpl) Release(ctx context.Context, pluginID string, resourceRef string, ticket string) error {
 	claims, err := decodeAndValidateTicket(ticket, pluginID, resourceRef)
 	if err != nil {
 		return err

@@ -11,7 +11,7 @@ import (
 
 // ControllerV1 is the system info controller.
 type ControllerV1 struct {
-	sysInfoSvc *sysinfosvc.Service // system info service
+	sysInfoSvc sysinfosvc.Service // system info service
 }
 
 // NewV1 creates and returns a new system info controller instance.

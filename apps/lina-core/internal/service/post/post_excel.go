@@ -19,7 +19,7 @@ type ExportInput struct {
 }
 
 // Export generates an Excel file with post data based on filters.
-func (s *Service) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
+func (s *serviceImpl) Export(ctx context.Context, in ExportInput) (data []byte, err error) {
 	cols := dao.SysPost.Columns()
 	m := dao.SysPost.Ctx(ctx)
 
