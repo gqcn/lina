@@ -1,3 +1,5 @@
+// Package post implements post management, option queries, and export services
+// for the Lina backend.
 package post
 
 import (
@@ -102,7 +104,7 @@ func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, erro
 	// Query with pagination
 	var list []*entity.SysPost
 	err = m.Page(in.PageNum, in.PageSize).
-		Order(cols.Sort + " ASC").
+		OrderAsc(cols.Sort).
 		Scan(&list)
 	if err != nil {
 		return nil, err
@@ -262,7 +264,7 @@ func (s *serviceImpl) DeptTree(ctx context.Context) ([]*DeptTreeNode, error) {
 	cols := dao.SysDept.Columns()
 	var depts []*entity.SysDept
 	err := dao.SysDept.Ctx(ctx).
-		Order(cols.OrderNum + " ASC").
+		OrderAsc(cols.OrderNum).
 		Scan(&depts)
 	if err != nil {
 		return nil, err
@@ -362,7 +364,7 @@ func (s *serviceImpl) OptionSelect(ctx context.Context, in OptionSelectInput) ([
 	}
 
 	var list []*entity.SysPost
-	err := m.Order(cols.Sort + " ASC").Scan(&list)
+	err := m.OrderAsc(cols.Sort).Scan(&list)
 	if err != nil {
 		return nil, err
 	}

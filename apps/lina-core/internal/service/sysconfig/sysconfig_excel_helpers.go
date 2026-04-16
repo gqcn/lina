@@ -6,7 +6,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/xuri/excelize/v2"
 
-	"lina-core/internal/util/excelutil"
+	"lina-core/pkg/excelutil"
 )
 
 func closeExcelFile(file *excelize.File, errPtr *error) {

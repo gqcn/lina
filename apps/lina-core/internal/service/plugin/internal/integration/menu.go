@@ -408,7 +408,7 @@ func (s *serviceImpl) listPluginMenusByPlugin(ctx context.Context, pluginID stri
 	err := dao.SysMenu.Ctx(ctx).
 		Unscoped().
 		WhereLike(cols.MenuKey, pattern).
-		Order(cols.Id + " ASC").
+		OrderAsc(cols.Id).
 		Scan(&items)
 	return items, err
 }
@@ -426,7 +426,7 @@ func (s *serviceImpl) listMenusByKeys(ctx context.Context, menuKeys []string, un
 
 	cols := dao.SysMenu.Columns()
 	items := make([]*entity.SysMenu, 0)
-	if err := m.WhereIn(cols.MenuKey, menuKeys).Order(cols.Id + " ASC").Scan(&items); err != nil {
+	if err := m.WhereIn(cols.MenuKey, menuKeys).OrderAsc(cols.Id).Scan(&items); err != nil {
 		return nil, err
 	}
 	for _, item := range items {

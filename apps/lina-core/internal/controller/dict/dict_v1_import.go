@@ -1,3 +1,6 @@
+// This file implements the shared v1 dictionary import helper used by import
+// endpoints.
+
 package dict
 
 import (
@@ -8,7 +11,7 @@ import (
 
 	v1 "lina-core/api/dict/v1"
 	dictsvc "lina-core/internal/service/dict"
-	"lina-core/internal/util/closeutil"
+	"lina-core/pkg/closeutil"
 )
 
 // Import imports dictionary types and data together from an Excel file.

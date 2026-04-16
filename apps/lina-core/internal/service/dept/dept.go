@@ -1,3 +1,5 @@
+// Package dept implements department tree queries, mutation flows, and
+// descendant traversal helpers for the Lina backend.
 package dept
 
 import (
@@ -91,7 +93,7 @@ func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, erro
 
 	// Query all, ordered by order_num ASC
 	var list []*entity.SysDept
-	err := m.Order(cols.OrderNum + " ASC").Scan(&list)
+	err := m.OrderAsc(cols.OrderNum).Scan(&list)
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +326,7 @@ func (s *serviceImpl) Tree(ctx context.Context) ([]*TreeNode, error) {
 
 	var depts []*entity.SysDept
 	err := dao.SysDept.Ctx(ctx).
-		Order(cols.OrderNum + " ASC").
+		OrderAsc(cols.OrderNum).
 		Scan(&depts)
 	if err != nil {
 		return nil, err
@@ -375,7 +377,7 @@ func (s *serviceImpl) Exclude(ctx context.Context, in ExcludeInput) ([]*entity.S
 		WhereNot(cols.Id, in.Id).
 		WhereNotLike(cols.Ancestors, prefix+",%").
 		WhereNotLike(cols.Ancestors, prefix).
-		Order(cols.OrderNum + " ASC").
+		OrderAsc(cols.OrderNum).
 		Scan(&list)
 	if err != nil {
 		return nil, err

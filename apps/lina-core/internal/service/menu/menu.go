@@ -1,3 +1,5 @@
+// Package menu implements menu tree management, permission lookup, and
+// plugin-aware filtering for the Lina backend.
 package menu
 
 import (
@@ -82,7 +84,7 @@ func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, erro
 
 	// Query all, ordered by sort ASC
 	var list []*entity.SysMenu
-	err := m.Order(cols.ParentId + " ASC," + cols.Sort + " ASC," + cols.Id + " ASC").Scan(&list)
+	err := m.OrderAsc(cols.ParentId).OrderAsc(cols.Sort).OrderAsc(cols.Id).Scan(&list)
 	if err != nil {
 		return nil, err
 	}
@@ -423,7 +425,7 @@ func (s *serviceImpl) GetTreeSelect(ctx context.Context) ([]*MenuTreeNode, error
 	// Query all menus (including button type for permission selection)
 	var list []*entity.SysMenu
 	err := dao.SysMenu.Ctx(ctx).
-		Order(cols.ParentId + " ASC," + cols.Sort + " ASC," + cols.Id + " ASC").
+		OrderAsc(cols.ParentId).OrderAsc(cols.Sort).OrderAsc(cols.Id).
 		Scan(&list)
 	if err != nil {
 		return nil, err

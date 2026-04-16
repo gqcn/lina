@@ -1,3 +1,6 @@
+// This file implements the local filesystem storage backend for uploaded
+// files.
+
 package file
 
 import (
@@ -12,7 +15,7 @@ import (
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/grand"
 
-	"lina-core/internal/util/closeutil"
+	"lina-core/pkg/closeutil"
 )
 
 // LocalStorage implements Storage interface using local file system.

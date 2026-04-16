@@ -173,13 +173,13 @@ func (s *serviceImpl) ListResourceRecords(ctx context.Context, in ResourceListIn
 		fieldArgs = append(fieldArgs, field)
 	}
 
-	orderBy := resource.OrderBy.Column
+	queryModel := m.Fields(fieldArgs...).Page(in.PageNum, in.PageSize)
 	if catalog.NormalizeResourceOrderDirection(resource.OrderBy.Direction) == catalog.ResourceOrderDirectionDESC {
-		orderBy += " DESC"
+		queryModel = queryModel.OrderDesc(resource.OrderBy.Column)
 	} else {
-		orderBy += " ASC"
+		queryModel = queryModel.OrderAsc(resource.OrderBy.Column)
 	}
-	records, err := m.Fields(fieldArgs...).Page(in.PageNum, in.PageSize).Order(orderBy).All()
+	records, err := queryModel.All()
 	if err != nil {
 		return nil, err
 	}

@@ -1,3 +1,5 @@
+// Package notice implements notice management, publication, and related
+// lookup services for the Lina backend.
 package notice
 
 import (
@@ -115,7 +117,7 @@ func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, erro
 	// Query with pagination
 	var list []*entity.SysNotice
 	err = m.Page(in.PageNum, in.PageSize).
-		Order(cols.Id + " DESC").
+		OrderDesc(cols.Id).
 		Scan(&list)
 	if err != nil {
 		return nil, err

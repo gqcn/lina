@@ -1,3 +1,5 @@
+// Package role implements role management, permission lookup, and shared access
+// context caching for the Lina backend.
 package role
 
 import (
@@ -144,7 +146,7 @@ func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, erro
 	// Apply pagination
 	offset := (in.Page - 1) * in.Size
 	var roles []*entity.SysRole
-	err = m.Order(cols.Sort+" ASC").
+	err = m.OrderAsc(cols.Sort).
 		Limit(offset, in.Size).
 		Scan(&roles)
 	if err != nil {
@@ -457,7 +459,7 @@ func (s *serviceImpl) GetOptions(ctx context.Context) ([]*OptionItem, error) {
 	cols := dao.SysRole.Columns()
 	err := dao.SysRole.Ctx(ctx).
 		Where(cols.Status, 1).
-		Order(cols.Sort + " ASC").
+		OrderAsc(cols.Sort).
 		Scan(&roles)
 	if err != nil {
 		return nil, err
@@ -555,7 +557,7 @@ func (s *serviceImpl) GetUsers(ctx context.Context, in GetUsersInput) (*GetUsers
 	// Apply pagination
 	offset := (in.Page - 1) * in.Size
 	var users []*entity.SysUser
-	err = m.Order(userCols.Id+" DESC").
+	err = m.OrderDesc(userCols.Id).
 		Limit(offset, in.Size).
 		Scan(&users)
 	if err != nil {

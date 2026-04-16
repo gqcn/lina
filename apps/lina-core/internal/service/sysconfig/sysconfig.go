@@ -1,3 +1,5 @@
+// Package sysconfig implements system-configuration query, mutation, import,
+// and export services for the Lina backend.
 package sysconfig
 
 import (
@@ -90,7 +92,7 @@ func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, erro
 	// Query with pagination
 	var list []*entity.SysConfig
 	err = m.Page(in.PageNum, in.PageSize).
-		Order(cols.Id + " DESC").
+		OrderDesc(cols.Id).
 		Scan(&list)
 	if err != nil {
 		return nil, err
@@ -262,7 +264,7 @@ func (s *serviceImpl) Export(ctx context.Context, in ExportInput) (data []byte, 
 	}
 
 	var list []*entity.SysConfig
-	err = m.Order(cols.Id + " ASC").Scan(&list)
+	err = m.OrderAsc(cols.Id).Scan(&list)
 	if err != nil {
 		return nil, err
 	}

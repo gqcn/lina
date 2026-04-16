@@ -1,3 +1,5 @@
+// Package file implements file upload, storage, download, and metadata query
+// services for the Lina backend.
 package file
 
 import (
@@ -23,7 +25,8 @@ import (
 	"lina-core/internal/service/bizctx"
 	"lina-core/internal/service/config"
 	dictsvc "lina-core/internal/service/dict"
-	"lina-core/internal/util/closeutil"
+	"lina-core/pkg/closeutil"
+	"lina-core/pkg/gdbutil"
 	"lina-core/pkg/logger"
 )
 
@@ -325,25 +328,26 @@ func (s *serviceImpl) List(ctx context.Context, in *ListInput) (*ListOutput, err
 	}
 
 	cols := dao.SysFile.Columns()
-	orderBy := cols.Id
-	allowedSortFields := map[string]string{
-		"size":      cols.Size,
-		"createdAt": cols.CreatedAt,
-	}
+	var (
+		orderBy           = cols.Id
+		allowedSortFields = map[string]string{
+			"size":      cols.Size,
+			"createdAt": cols.CreatedAt,
+		}
+		direction = gdbutil.NormalizeOrderDirectionOrDefault(in.OrderDirection, gdbutil.OrderDirectionDESC)
+	)
 	if in.OrderBy != "" {
 		if field, ok := allowedSortFields[in.OrderBy]; ok {
 			orderBy = field
 		}
 	}
-	direction := "DESC"
-	if in.OrderDirection == "asc" {
-		direction = "ASC"
-	}
 
 	var files []*entity.SysFile
-	err = m.Page(in.PageNum, in.PageSize).
-		Order(orderBy + " " + direction).
-		Scan(&files)
+	err = gdbutil.ApplyModelOrder(
+		m.Page(in.PageNum, in.PageSize),
+		orderBy,
+		direction,
+	).Scan(&files)
 	if err != nil {
 		return nil, err
 	}

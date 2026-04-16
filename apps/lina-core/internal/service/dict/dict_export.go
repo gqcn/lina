@@ -1,3 +1,6 @@
+// This file implements shared dictionary export helpers used across dict
+// type and data services.
+
 package dict
 
 import (
@@ -37,7 +40,7 @@ func (s *serviceImpl) CombinedExport(ctx context.Context, in CombinedExportInput
 	typeM = typeM.Limit(10000)
 
 	var typeList []*entity.SysDictType
-	err = typeM.Order(typeCols.Id + " ASC").Scan(&typeList)
+	err = typeM.OrderAsc(typeCols.Id).Scan(&typeList)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +59,7 @@ func (s *serviceImpl) CombinedExport(ctx context.Context, in CombinedExportInput
 			WhereIn(dataCols.DictType, typeStrings).
 			Limit(10000)
 
-		err = dataM.Order(dataCols.Sort + " ASC").Scan(&dataList)
+		err = dataM.OrderAsc(dataCols.Sort).Scan(&dataList)
 		if err != nil {
 			return nil, err
 		}

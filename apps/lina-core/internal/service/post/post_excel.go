@@ -1,3 +1,5 @@
+// This file implements post Excel export helpers.
+
 package post
 
 import (
@@ -46,7 +48,7 @@ func (s *serviceImpl) Export(ctx context.Context, in ExportInput) (data []byte, 
 	}
 
 	var list []*entity.SysPost
-	err = m.Order(cols.Sort + " ASC").Scan(&list)
+	err = m.OrderAsc(cols.Sort).Scan(&list)
 	if err != nil {
 		return nil, err
 	}

@@ -1,3 +1,6 @@
+// This file implements dictionary-type query, option, import, and export
+// helpers.
+
 package dict
 
 import (
@@ -45,7 +48,7 @@ func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, erro
 
 	var list []*entity.SysDictType
 	err = m.Page(in.PageNum, in.PageSize).
-		Order(cols.Id + " DESC").
+		OrderDesc(cols.Id).
 		Scan(&list)
 	if err != nil {
 		return nil, err
@@ -202,7 +205,7 @@ func (s *serviceImpl) Export(ctx context.Context, in ExportInput) (data []byte, 
 	m = m.Limit(10000)
 
 	var list []*entity.SysDictType
-	err = m.Order(cols.Id + " ASC").Scan(&list)
+	err = m.OrderAsc(cols.Id).Scan(&list)
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +268,7 @@ func (s *serviceImpl) Options(ctx context.Context) ([]*OptionItem, error) {
 	var list []*entity.SysDictType
 	err := dao.SysDictType.Ctx(ctx).
 		Where(do.SysDictType{Status: 1}).
-		Order(cols.Id + " ASC").
+		OrderAsc(cols.Id).
 		Scan(&list)
 	if err != nil {
 		return nil, err

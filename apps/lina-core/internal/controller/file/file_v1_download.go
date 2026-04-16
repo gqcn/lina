@@ -1,3 +1,5 @@
+// This file implements the v1 file-download HTTP handler.
+
 package file
 
 import (
@@ -8,7 +10,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 
 	v1 "lina-core/api/file/v1"
-	"lina-core/internal/util/closeutil"
+	"lina-core/pkg/closeutil"
 )
 
 // Download downloads a file

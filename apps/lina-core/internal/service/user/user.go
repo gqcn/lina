@@ -1,12 +1,13 @@
+// Package user implements user management, profile maintenance, import/export,
+// and related authorization helpers for the Lina backend.
 package user
 
 import (
 	"context"
+	"io"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
-
-	"io"
 	"lina-core/internal/dao"
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
@@ -14,6 +15,7 @@ import (
 	"lina-core/internal/service/bizctx"
 	"lina-core/internal/service/dept"
 	"lina-core/internal/service/role"
+	"lina-core/pkg/gdbutil"
 	"lina-core/pkg/logger"
 )
 
@@ -181,32 +183,33 @@ func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, erro
 		return nil, err
 	}
 
-	// Determine sort order
-	allowedSortFields := map[string]string{
-		"id":         cols.Id,
-		"username":   cols.Username,
-		"nickname":   cols.Nickname,
-		"phone":      cols.Phone,
-		"email":      cols.Email,
-		"status":     cols.Status,
-		"created_at": cols.CreatedAt,
-		"createdAt":  cols.CreatedAt,
-	}
-	sortField := cols.Id
+	// Normalize the requested sort field and direction before applying the
+	// shared helper so business code never hand-builds ORDER BY fragments.
+	var (
+		allowedSortFields = map[string]string{
+			"id":         cols.Id,
+			"username":   cols.Username,
+			"nickname":   cols.Nickname,
+			"phone":      cols.Phone,
+			"email":      cols.Email,
+			"status":     cols.Status,
+			"created_at": cols.CreatedAt,
+			"createdAt":  cols.CreatedAt,
+		}
+		sortField     = cols.Id
+		sortDirection = gdbutil.NormalizeOrderDirectionOrDefault(in.OrderDirection, gdbutil.OrderDirectionDESC)
+	)
 	if f, ok := allowedSortFields[in.OrderBy]; ok {
 		sortField = f
-	}
-	sortDirection := "DESC"
-	if in.OrderDirection == "asc" {
-		sortDirection = "ASC"
 	}
 
 	// Query with pagination, exclude password field
 	var list []*entity.SysUser
-	err = m.FieldsEx(cols.Password).
-		Page(in.PageNum, in.PageSize).
-		Order(sortField + " " + sortDirection).
-		Scan(&list)
+	err = gdbutil.ApplyModelOrder(
+		m.FieldsEx(cols.Password).Page(in.PageNum, in.PageSize),
+		sortField,
+		sortDirection,
+	).Scan(&list)
 	if err != nil {
 		return nil, err
 	}

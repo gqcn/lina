@@ -1,3 +1,5 @@
+// This file implements the v1 user import HTTP handler.
+
 package user
 
 import (
@@ -7,7 +9,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 
 	v1 "lina-core/api/user/v1"
-	"lina-core/internal/util/closeutil"
+	"lina-core/pkg/closeutil"
 )
 
 // Import imports users

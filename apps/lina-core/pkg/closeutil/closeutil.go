@@ -20,9 +20,13 @@ func Close(closer Closer, errPtr *error, action string) {
 	}
 	wrapped := gerror.Wrap(closeErr, action)
 	if errPtr == nil {
+		// Callers that do not expose an error return must still fail loudly so
+		// close errors are never swallowed silently.
 		panic(wrapped)
 	}
 	if *errPtr == nil {
+		// Preserve the original business error when one already exists and only
+		// surface the close failure when nothing else has failed yet.
 		*errPtr = wrapped
 	}
 }

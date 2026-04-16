@@ -1,3 +1,5 @@
+// Package loginlog implements login-log query, cleanup, and export services
+// for the Lina backend.
 package loginlog
 
 import (
@@ -12,6 +14,7 @@ import (
 	"lina-core/internal/model/do"
 	"lina-core/internal/model/entity"
 	dictsvc "lina-core/internal/service/dict"
+	"lina-core/pkg/gdbutil"
 )
 
 const MaxExportRows = 10000 // Maximum rows for export
@@ -128,26 +131,26 @@ func (s *serviceImpl) List(ctx context.Context, in ListInput) (*ListOutput, erro
 		return nil, err
 	}
 
-	// Sorting
-	orderBy := cols.LoginTime
-	allowedSortFields := map[string]string{
-		"id":        cols.Id,
-		"loginTime": cols.LoginTime,
-	}
+	var (
+		orderBy           = cols.LoginTime
+		allowedSortFields = map[string]string{
+			"id":        cols.Id,
+			"loginTime": cols.LoginTime,
+		}
+		direction = gdbutil.NormalizeOrderDirectionOrDefault(in.OrderDirection, gdbutil.OrderDirectionDESC)
+	)
 	if in.OrderBy != "" {
 		if field, ok := allowedSortFields[in.OrderBy]; ok {
 			orderBy = field
 		}
 	}
-	direction := "DESC"
-	if in.OrderDirection == "asc" {
-		direction = "ASC"
-	}
 
 	var list []*entity.SysLoginLog
-	err = m.Page(in.PageNum, in.PageSize).
-		Order(orderBy + " " + direction).
-		Scan(&list)
+	err = gdbutil.ApplyModelOrder(
+		m.Page(in.PageNum, in.PageSize),
+		orderBy,
+		direction,
+	).Scan(&list)
 	if err != nil {
 		return nil, err
 	}
@@ -272,14 +275,13 @@ func (s *serviceImpl) Export(ctx context.Context, in ExportInput) (data []byte, 
 	// Limit export to prevent memory issues
 	m = m.Limit(MaxExportRows)
 
-	orderBy := cols.LoginTime
-	direction := "DESC"
-	if in.OrderDirection == "asc" {
-		direction = "ASC"
-	}
+	var (
+		orderBy   = cols.LoginTime
+		direction = gdbutil.NormalizeOrderDirectionOrDefault(in.OrderDirection, gdbutil.OrderDirectionDESC)
+	)
 
 	var list []*entity.SysLoginLog
-	err = m.Order(orderBy + " " + direction).Scan(&list)
+	err = gdbutil.ApplyModelOrder(m, orderBy, direction).Scan(&list)
 	if err != nil {
 		return nil, err
 	}

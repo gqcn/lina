@@ -79,7 +79,7 @@ func (s *serviceImpl) InboxList(ctx context.Context, in InboxListInput) (*InboxL
 		deliveryTbl+"."+deliveryCols.ReadAt+" AS read_at",
 		deliveryTbl+"."+deliveryCols.CreatedAt+" AS created_at",
 	).Page(in.PageNum, in.PageSize).
-		Order(deliveryTbl + "." + deliveryCols.Id + " DESC").
+		OrderDesc(deliveryTbl + "." + deliveryCols.Id).
 		Scan(&rows)
 	if err != nil {
 		return nil, err

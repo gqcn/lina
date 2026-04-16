@@ -1,3 +1,6 @@
+// This file implements dictionary-data query, option, import, and export
+// helpers.
+
 package dict
 
 import (
@@ -50,7 +53,7 @@ func (s *serviceImpl) DataList(ctx context.Context, in DataListInput) (*DataList
 	// Query with pagination
 	var list []*entity.SysDictData
 	err = m.Page(in.PageNum, in.PageSize).
-		Order(cols.Sort + " ASC").
+		OrderAsc(cols.Sort).
 		Scan(&list)
 	if err != nil {
 		return nil, err
@@ -199,7 +202,7 @@ func (s *serviceImpl) DataExport(ctx context.Context, in DataExportInput) (data 
 	m = m.Limit(10000)
 
 	var list []*entity.SysDictData
-	err = m.Order(cols.Sort + " ASC").Scan(&list)
+	err = m.OrderAsc(cols.Sort).Scan(&list)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +267,7 @@ func (s *serviceImpl) DataByType(ctx context.Context, dictType string) ([]*entit
 	var list []*entity.SysDictData
 	err := dao.SysDictData.Ctx(ctx).
 		Where(do.SysDictData{DictType: dictType, Status: 1}).
-		Order(cols.Sort + " ASC").
+		OrderAsc(cols.Sort).
 		Scan(&list)
 	if err != nil {
 		return nil, err

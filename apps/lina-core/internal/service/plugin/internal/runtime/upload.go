@@ -15,7 +15,7 @@ import (
 	"github.com/gogf/gf/v2/os/gfile"
 
 	"lina-core/internal/service/plugin/internal/catalog"
-	"lina-core/internal/util/closeutil"
+	"lina-core/pkg/closeutil"
 )
 
 // DynamicUploadInput defines input for uploading a runtime wasm package.

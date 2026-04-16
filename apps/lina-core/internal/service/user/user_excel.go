@@ -1,3 +1,5 @@
+// This file implements user Excel import-template and export helpers.
+
 package user
 
 import (
@@ -30,7 +32,7 @@ func (s *serviceImpl) Export(ctx context.Context, in ExportInput) (data []byte, 
 
 	var list []*entity.SysUser
 	err = m.FieldsEx(cols.Password).
-		Order(cols.Id + " ASC").
+		OrderAsc(cols.Id).
 		Scan(&list)
 	if err != nil {
 		return nil, err

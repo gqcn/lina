@@ -1,3 +1,5 @@
+// This file implements the v1 system-config import HTTP handler.
+
 package config
 
 import (
@@ -7,7 +9,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 
 	v1 "lina-core/api/config/v1"
-	"lina-core/internal/util/closeutil"
+	"lina-core/pkg/closeutil"
 )
 
 // ConfigImport imports configs from an Excel file.

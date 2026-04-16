@@ -18,9 +18,13 @@ func CloseFile(file *excelize.File, errPtr *error) {
 	}
 	wrapped := gerror.Wrap(closeErr, "关闭Excel文件失败")
 	if errPtr == nil {
+		// Export and import flows must treat close failures as fatal when the
+		// caller cannot merge the error into its return path.
 		panic(wrapped)
 	}
 	if *errPtr == nil {
+		// Keep any earlier business error intact and only report the close error
+		// when it is the first failure in the call chain.
 		*errPtr = wrapped
 	}
 }

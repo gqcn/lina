@@ -1,3 +1,5 @@
+// This file implements the v1 dictionary-type import HTTP handler.
+
 package dict
 
 import (
@@ -7,7 +9,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 
 	v1 "lina-core/api/dict/v1"
-	"lina-core/internal/util/closeutil"
+	"lina-core/pkg/closeutil"
 )
 
 // TypeImport imports dictionary types from an Excel file.
